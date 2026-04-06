@@ -4,6 +4,8 @@ dist/
 .env.*
 tokens.json
 *.log
+__pycache__/
+*.py[cod]
 
 # OS
 .DS_Store
