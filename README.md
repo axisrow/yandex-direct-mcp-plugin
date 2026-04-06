@@ -638,11 +638,65 @@ YANDEX_LOGIN=
 
 **Итого: `pytest` не требует токенов. Токен нужен только для `--record`, и скрипт сам его получит.**
 
-## Requirements
+## Tech Stack
 
-- [direct-cli](https://github.com/axisrow/direct-cli) installed and in PATH
-- Python >= 3.12
-- Yandex OAuth application registered at https://oauth.yandex.ru/
+| Слой | Технология | Версия | Зачем |
+|---|---|---|---|
+| **Runtime** | Python | >= 3.12 | Единый язык с direct-cli |
+| **MCP Server** | [mcp](https://pypi.org/project/mcp/) | latest | Python SDK для MCP (stdio transport) |
+| **CLI** | [direct-cli](https://github.com/axisrow/direct-cli) | latest | Обёртка над Яндекс.Директ API |
+| **HTTP** | [httpx](https://www.python-httpx.org/) | >= 0.27 | OAuth-запросы к `oauth.yandex.ru` |
+| **Testing** | [pytest](https://docs.pytest.org/) | >= 8.0 | Тесты, fixtures, markers |
+| **Mocking** | `unittest.mock` | stdlib | Моки subprocess для edge cases |
+| **Cassettes** | `cli_recorder.py` (свой) | — | Запись/воспроизведение CLI stdin/stdout |
+| **Config** | [python-dotenv](https://pypi.org/project/python-dotenv/) | >= 1.0 | Загрузка `.env.test` |
+| **Build** | [pyproject.toml](https://packaging.python.org/) | PEP 621 | Зависимости, scripts, metadata |
+| **Linting** | [ruff](https://docs.astral.sh/ruff/) | latest | Линтинг + форматирование |
+| **Types** | [mypy](https://mypy-lang.org/) | latest | Статическая типизация |
+| **CI** | GitHub Actions | — | pytest + audit кассет |
+| **Pre-commit** | [pre-commit](https://pre-commit.com/) | latest | Аудит кассет, ruff, mypy |
+
+### What is NOT in the stack
+
+| Технология | Почему нет |
+|---|---|
+| Node.js / npm | direct-cli — Python, MCP SDK — Python, нет смысла тащить второй runtime |
+| nock / polly.js / vcrpy | HTTP-рекордеры не перехватывают subprocess — используем свой cli_recorder |
+| Jest | Python-проект → pytest |
+| Docker | Плагин ставится как директория, не нужен контейнер |
+| Bitwarden | Заменён на встроенный OAuth-модуль |
+
+### pyproject.toml
+
+```toml
+[project]
+name = "yandex-direct-mcp-plugin"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "mocks: edge case tests using unittest.mock",
+    "integration: live API tests requiring OAuth token",
+]
+
+[tool.ruff]
+target-version = "py312"
+```
 
 ## License
 
