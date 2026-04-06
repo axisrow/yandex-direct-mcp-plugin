@@ -42,7 +42,7 @@ class FileTokenStorage:
         try:
             data = json.loads(self._path.read_text())
             return TokenData(**data)
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError, UnicodeDecodeError, OSError):
             return None
 
     def save(self, data: TokenData) -> None:

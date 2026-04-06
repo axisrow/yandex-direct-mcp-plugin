@@ -97,7 +97,10 @@ class OAuthManager:
             resp.raise_for_status()
             return resp
         except httpx.HTTPStatusError as e:
-            error_data = e.response.json() if e.response else {}
+            try:
+                error_data = e.response.json() if e.response else {}
+            except (ValueError, AttributeError):
+                error_data = {}
             error_type = error_data.get("error", "unknown_error")
             raise OAuthError(
                 error_type,

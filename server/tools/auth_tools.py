@@ -31,7 +31,7 @@ def auth_setup(code: str) -> dict:
         return {
             "success": True,
             "access_token_prefix": result["access_token"][:6] + "...",
-            "expires_in": int(result.get("expires_at", 0)),
+            "expires_in": int(result.get("expires_at", 0) - __import__("time").time()),
             "login": result.get("login", ""),
         }
     except OAuthError as e:
