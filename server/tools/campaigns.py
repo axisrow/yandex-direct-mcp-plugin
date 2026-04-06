@@ -1,33 +1,11 @@
 """MCP tools for campaign management."""
 
 from server.main import mcp
-from server.tools import ToolError
-from server.cli.runner import DirectCliRunner, CliAuthError, CliNotFoundError, CliTimeoutError
-
-from collections.abc import Callable
-
-# These will be injected by main.py when OAuth is ready
-_token_getter: Callable[[], str] | None = None
-
-
-def set_token_getter(getter: Callable[[], str]) -> None:
-    """Set the function that returns a valid OAuth token."""
-    global _token_getter
-    _token_getter = getter
-
-
-def _get_runner() -> DirectCliRunner:
-    """Get a CLI runner with a valid token."""
-    if _token_getter is None:
-        return ToolError(
-            error="misconfigured",
-            message="Token getter not configured. Call set_token_getter() first.",
-        ).to_dict()  # type: ignore[return-value]
-    token = _token_getter()
-    return DirectCliRunner(token=token)
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool()
+@handle_cli_errors
 def campaigns_list(state: str | None = None) -> list[dict] | dict:
     """List advertising campaigns, optionally filtered by state.
 
@@ -40,29 +18,17 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
             message=f"State must be 'ON' or 'OFF', got '{state}'",
         ).__dict__
 
-    try:
-        runner = _get_runner()
-        args = ["campaigns", "get", "--format", "json"]
-        result = runner.run_json(args)
+    runner = get_runner()
+    result = runner.run_json(["campaigns", "get", "--format", "json"])
 
-        if isinstance(result, list) and state:
-            result = [c for c in result if c.get("State") == state]
+    if isinstance(result, list) and state:
+        result = [c for c in result if c.get("State") == state]
 
-        return result
-    except CliAuthError:
-        return ToolError(
-            error="auth_expired",
-            message="Token expired. Re-authorization required.",
-        ).__dict__
-    except CliNotFoundError as e:
-        return ToolError(error="cli_not_found", message=str(e)).__dict__
-    except CliTimeoutError as e:
-        return ToolError(error="timeout", message=str(e)).__dict__
-    except Exception as e:
-        return ToolError(error="unknown", message=str(e)).__dict__
+    return result
 
 
 @mcp.tool()
+@handle_cli_errors
 def campaigns_update(id: str, state: str) -> dict:
     """Update campaign state (enable or disable).
 
@@ -76,22 +42,6 @@ def campaigns_update(id: str, state: str) -> dict:
             message=f"State must be 'ON' or 'OFF', got '{state}'",
         ).__dict__
 
-    try:
-        runner = _get_runner()
-        args = ["campaigns", "update", "--id", id, "--state", state, "--format", "json"]
-        runner.run_json(args)
-        return {"success": True, "id": id, "state": state}
-    except CliAuthError:
-        return ToolError(
-            error="auth_expired",
-            message="Token expired. Re-authorization required.",
-        ).__dict__
-    except CliNotFoundError as e:
-        return ToolError(error="cli_not_found", message=str(e)).__dict__
-    except CliTimeoutError as e:
-        return ToolError(error="timeout", message=str(e)).__dict__
-    except Exception as e:
-        error_msg = str(e)
-        if "not found" in error_msg.lower() or "404" in error_msg:
-            return ToolError(error="not_found", message=f"Campaign {id} not found").__dict__
-        return ToolError(error="unknown", message=error_msg).__dict__
+    runner = get_runner()
+    runner.run_json(["campaigns", "update", "--id", id, "--state", state, "--format", "json"])
+    return {"success": True, "id": id, "state": state}

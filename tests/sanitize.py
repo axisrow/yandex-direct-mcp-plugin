@@ -9,7 +9,6 @@ Processes all JSON files in tests/recordings/, replacing:
 
 import json
 import re
-import sys
 from pathlib import Path
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"

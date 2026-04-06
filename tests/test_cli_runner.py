@@ -36,7 +36,7 @@ class TestRun:
             patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
             patch("server.cli.runner.subprocess.run", return_value=mock_result) as mock_run,
         ):
-            result = runner.run(["campaigns", "get", "--format", "json"])
+            runner.run(["campaigns", "get", "--format", "json"])
 
             mock_run.assert_called_once()
             cmd = mock_run.call_args[0][0]

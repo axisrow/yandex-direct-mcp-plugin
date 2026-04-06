@@ -8,10 +8,30 @@ from server.main import mcp
 _oauth = OAuthManager()
 
 
+def _human_readable_time(seconds: float) -> str:
+    """Convert seconds to human-readable Russian string."""
+    seconds = int(seconds)
+    if seconds <= 0:
+        return "истёк"
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours} ч.")
+    if minutes > 0:
+        parts.append(f"{minutes} мин.")
+    if secs > 0 and hours == 0:
+        parts.append(f"{secs} сек.")
+    return " ".join(parts) if parts else "0 сек."
+
+
 @mcp.tool()
 def auth_status() -> dict:
     """Check the current OAuth token status."""
-    return _oauth.get_status()
+    status = _oauth.get_status()
+    if status.get("valid"):
+        status["expires_in_human"] = _human_readable_time(status.get("expires_in", 0))
+    return status
 
 
 @mcp.tool()

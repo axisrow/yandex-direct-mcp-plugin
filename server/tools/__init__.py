@@ -12,15 +12,44 @@ class ToolError:
     auth_url: str | None = None
 
 
+def _try_refresh_token() -> str | None:
+    """Force-refresh the OAuth token. Returns new access token or None."""
+    try:
+        from server.auth.oauth import OAuthManager
+
+        manager = OAuthManager()
+        data = manager.refresh_token()
+        return data["access_token"]
+    except Exception:
+        return None
+
+
 def handle_cli_errors(func):
-    """Decorator that catches CLI errors and returns ToolError dicts."""
+    """Decorator that catches CLI errors and returns ToolError dicts.
+
+    On 401, refreshes token and retries once."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except CliAuthError:
-            return ToolError(error="auth_expired", message="Token expired.").__dict__
+            new_token = _try_refresh_token()
+            if new_token is not None:
+                global _token_getter
+
+                def _new_getter(_t=new_token):
+                    return _t
+
+                _token_getter = _new_getter
+                try:
+                    return func(*args, **kwargs)
+                except CliAuthError:
+                    pass
+            return ToolError(
+                error="auth_expired",
+                message="Token expired. Re-authorization required.",
+            ).__dict__
         except CliNotFoundError as e:
             return ToolError(error="cli_not_found", message=str(e)).__dict__
         except CliTimeoutError as e:
