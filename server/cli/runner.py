@@ -9,7 +9,9 @@ from typing import Protocol
 class CliRunner(Protocol):
     """Protocol for executing direct-cli commands as subprocesses."""
 
-    def run(self, args: list[str], *, timeout: int = 30) -> subprocess.CompletedProcess[str]:
+    def run(
+        self, args: list[str], *, timeout: int = 30
+    ) -> subprocess.CompletedProcess[str]:
         """Run a direct-cli command with the given arguments."""
         ...
 
@@ -29,7 +31,9 @@ class DirectCliRunner:
         self._token = token
         self._timeout = timeout
 
-    def run(self, args: list[str], *, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
+    def run(
+        self, args: list[str], *, timeout: int | None = None
+    ) -> subprocess.CompletedProcess[str]:
         """Run a direct-cli command.
 
         Args:
@@ -46,7 +50,9 @@ class DirectCliRunner:
         effective_timeout = timeout if timeout is not None else self._timeout
 
         if not self.is_available():
-            raise CliNotFoundError("direct-cli not found. Install: https://github.com/axisrow/direct-cli")
+            raise CliNotFoundError(
+                "direct-cli not found. Install: https://github.com/axisrow/direct-cli"
+            )
 
         cmd = ["direct", "--token", self._token, *args]
 
@@ -59,15 +65,21 @@ class DirectCliRunner:
             )
             return result
         except subprocess.TimeoutExpired as e:
-            raise CliTimeoutError(f"direct-cli timed out after {effective_timeout}s") from e
+            raise CliTimeoutError(
+                f"direct-cli timed out after {effective_timeout}s"
+            ) from e
         except FileNotFoundError:
-            raise CliNotFoundError("direct-cli not found. Install: https://github.com/axisrow/direct-cli")
+            raise CliNotFoundError(
+                "direct-cli not found. Install: https://github.com/axisrow/direct-cli"
+            )
 
     def is_available(self) -> bool:
         """Check if the `direct` binary is available in PATH."""
         return shutil.which("direct") is not None
 
-    def run_json(self, args: list[str], *, timeout: int | None = None) -> list[dict] | dict:
+    def run_json(
+        self, args: list[str], *, timeout: int | None = None
+    ) -> list[dict] | dict:
         """Run a command and parse JSON output.
 
         Returns:
@@ -82,7 +94,9 @@ class DirectCliRunner:
             stderr = result.stderr.strip()
             if "401" in stderr or "Unauthorized" in stderr:
                 raise CliAuthError("Token expired or invalid")
-            raise CliError(f"direct-cli failed (exit {result.returncode}): {stderr or result.stdout[:200]}")
+            raise CliError(
+                f"direct-cli failed (exit {result.returncode}): {stderr or result.stdout[:200]}"
+            )
 
         output = result.stdout.strip()
         if not output:

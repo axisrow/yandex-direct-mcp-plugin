@@ -59,10 +59,16 @@ class OAuthManager:
         """Refresh the access token using a stored refresh token."""
         data = self._storage.load()
         if not data or not data.get("refresh_token"):
-            raise OAuthError("auth_expired", "No refresh token available", self.authorize_url)
+            raise OAuthError(
+                "auth_expired", "No refresh token available", self.authorize_url
+            )
 
-        resp = self._token_request({"grant_type": "refresh_token", "refresh_token": data["refresh_token"]})
-        return self._parse_and_save(resp, fallback_refresh_token=data.get("refresh_token", ""))
+        resp = self._token_request(
+            {"grant_type": "refresh_token", "refresh_token": data["refresh_token"]}
+        )
+        return self._parse_and_save(
+            resp, fallback_refresh_token=data.get("refresh_token", "")
+        )
 
     def get_valid_token(self) -> str:
         """Get a valid access token, auto-refreshing if expired or about to expire."""
@@ -91,13 +97,17 @@ class OAuthManager:
 
     def _token_request(self, data: dict) -> httpx.Response:
         """POST to the token endpoint, raising OAuthError on HTTP errors."""
-        data.update({"client_id": self._client_id, "client_secret": self._client_secret})
+        data.update(
+            {"client_id": self._client_id, "client_secret": self._client_secret}
+        )
         try:
             resp = httpx.post(self.TOKEN_URL, data=data, timeout=30)
             resp.raise_for_status()
             return resp
         except httpx.TransportError as e:
-            raise OAuthError("network_error", f"Network error: {e}", self.authorize_url) from e
+            raise OAuthError(
+                "network_error", f"Network error: {e}", self.authorize_url
+            ) from e
         except httpx.HTTPStatusError as e:
             try:
                 error_data = e.response.json() if e.response else {}
@@ -110,12 +120,16 @@ class OAuthManager:
                 self.authorize_url if error_type != "invalid_grant" else None,
             ) from e
 
-    def _parse_and_save(self, resp: httpx.Response, fallback_refresh_token: str) -> TokenData:
+    def _parse_and_save(
+        self, resp: httpx.Response, fallback_refresh_token: str
+    ) -> TokenData:
         """Parse a token response, persist it, and return the result."""
         token_data = resp.json()
         access_token = token_data.get("access_token")
         if not access_token:
-            raise OAuthError("invalid_response", "Missing access_token in token response")
+            raise OAuthError(
+                "invalid_response", "Missing access_token in token response"
+            )
         result = TokenData(
             access_token=access_token,
             refresh_token=token_data.get("refresh_token", fallback_refresh_token),

@@ -14,7 +14,12 @@ def setup():
 
 
 SAMPLE_ADS = [
-    {"Id": 111, "Title": "Ad title placeholder", "Title2": "Ad title2 placeholder", "State": "ON"},
+    {
+        "Id": 111,
+        "Title": "Ad title placeholder",
+        "Title2": "Ad title2 placeholder",
+        "State": "ON",
+    },
     {"Id": 222, "Title": "Ad title placeholder 2", "State": "OFF"},
 ]
 

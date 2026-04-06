@@ -17,7 +17,10 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
     """Validate batch size of comma-separated IDs."""
     ids = _parse_ids(ids_str)
     if len(ids) > MAX_BATCH_SIZE:
-        return ToolError(error="batch_limit", message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}")
+        return ToolError(
+            error="batch_limit",
+            message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}",
+        )
     return None
 
 
@@ -53,4 +56,6 @@ def ads_list(campaign_ids: str) -> list[dict] | dict:
         ).__dict__
 
     runner = get_runner()
-    return runner.run_json(["ads", "get", "--campaign-ids", campaign_ids, "--format", "json"])
+    return runner.run_json(
+        ["ads", "get", "--campaign-ids", campaign_ids, "--format", "json"]
+    )

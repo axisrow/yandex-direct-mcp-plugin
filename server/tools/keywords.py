@@ -10,7 +10,10 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
     """Validate batch size of comma-separated IDs."""
     ids = [id.strip() for id in ids_str.split(",") if id.strip()]
     if len(ids) > MAX_BATCH_SIZE:
-        return ToolError(error="batch_limit", message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}")
+        return ToolError(
+            error="batch_limit",
+            message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}",
+        )
     return None
 
 
@@ -27,7 +30,9 @@ def keywords_list(campaign_ids: str) -> list[dict] | dict:
         return batch_error.__dict__
 
     runner = get_runner()
-    return runner.run_json(["keywords", "get", "--campaign-ids", campaign_ids, "--format", "json"])
+    return runner.run_json(
+        ["keywords", "get", "--campaign-ids", campaign_ids, "--format", "json"]
+    )
 
 
 @mcp.tool()
@@ -50,5 +55,7 @@ def keywords_update(id: str, bid: str) -> dict:
         ).__dict__
 
     runner = get_runner()
-    runner.run_json(["keywords", "update", "--id", id, "--bid", str(bid_value), "--format", "json"])
+    runner.run_json(
+        ["keywords", "update", "--id", id, "--bid", str(bid_value), "--format", "json"]
+    )
     return {"success": True, "id": id, "bid": bid_value}

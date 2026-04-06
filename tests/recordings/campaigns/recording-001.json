@@ -1,0 +1,10 @@
+{
+  "command": "direct",
+  "args": [
+    "campaigns",
+    "get"
+  ],
+  "stdout": "[]",
+  "stderr": "",
+  "returncode": 0
+}

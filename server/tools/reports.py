@@ -6,7 +6,9 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def reports_get(date_from: str | None = None, date_to: str | None = None) -> list[dict] | dict:
+def reports_get(
+    date_from: str | None = None, date_to: str | None = None
+) -> list[dict] | dict:
     """Get campaign statistics for a date range.
 
     Args:

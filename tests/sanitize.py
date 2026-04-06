@@ -9,7 +9,6 @@ Processes all JSON files in tests/recordings/, replacing:
 
 import json
 import re
-import sys
 from pathlib import Path
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
@@ -95,4 +94,3 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
 
 if __name__ == "__main__":
     sanitize()  # Always exit 0 — count is informational, not an error code
-

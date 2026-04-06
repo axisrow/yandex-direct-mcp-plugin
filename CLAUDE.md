@@ -103,8 +103,8 @@ yandex-direct-mcp-plugin/
 ├── tests/
 │   ├── conftest.py              # Pytest fixtures, cli_recorder setup
 │   ├── cli_recorder.py          # Cassette record/replay
-│   ├── sanitize_cassettes.py    # Strip secrets from cassettes
-│   ├── audit_cassettes.py       # Detect leaked data
+│   ├── sanitize.py              # Strip secrets from cassettes
+│   ├── audit.py                 # Detect leaked data
 │   ├── setup.py                 # Interactive OAuth setup
 │   ├── recordings/              # Recorded cassettes (committed)
 │   └── fixtures/                # Test data

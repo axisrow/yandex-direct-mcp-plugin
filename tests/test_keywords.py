@@ -27,7 +27,9 @@ def _mock_runner(return_value):
 
 def test_keywords_list():
     """Test 14: List keywords."""
-    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(SAMPLE_KEYWORDS)):
+    with patch(
+        "server.tools.keywords.get_runner", return_value=_mock_runner(SAMPLE_KEYWORDS)
+    ):
         result = keywords_list(campaign_ids="12345")
         assert len(result) == 1
         assert result[0]["Id"] == 99999
