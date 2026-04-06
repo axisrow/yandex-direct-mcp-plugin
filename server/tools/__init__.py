@@ -1,13 +1,48 @@
-"""MCP tool definitions for Yandex.Direct."""
-
-from __future__ import annotations
-
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import wraps
+
+from server.cli.runner import CliAuthError, CliNotFoundError, CliTimeoutError
 
 
 @dataclass
 class ToolError:
-    """Structured error returned by MCP tools."""
-
-    code: str
+    error: str
     message: str
+    auth_url: str | None = None
+
+
+def handle_cli_errors(func):
+    """Decorator that catches CLI errors and returns ToolError dicts."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except CliAuthError:
+            return ToolError(error="auth_expired", message="Token expired.").__dict__
+        except CliNotFoundError as e:
+            return ToolError(error="cli_not_found", message=str(e)).__dict__
+        except CliTimeoutError as e:
+            return ToolError(error="timeout", message=str(e)).__dict__
+        except Exception as e:
+            return ToolError(error="unknown", message=str(e)).__dict__
+
+    return wrapper
+
+
+_token_getter: Callable[[], str] | None = None
+
+
+def set_token_getter(getter: Callable[[], str]) -> None:
+    global _token_getter
+    _token_getter = getter
+
+
+def get_runner():
+    """Create a DirectCliRunner using the configured token getter."""
+    from server.cli.runner import DirectCliRunner
+
+    if _token_getter is None:
+        raise RuntimeError("Token getter not configured")
+    return DirectCliRunner(token=_token_getter())

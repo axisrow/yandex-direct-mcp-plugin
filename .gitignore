@@ -4,6 +4,15 @@ dist/
 .env.*
 tokens.json
 *.log
+__pycache__/
+*.py[cod]
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
 
 # OS
 .DS_Store
@@ -17,3 +26,11 @@ Thumbs.db
 
 # Plugin data (sensitive)
 plugin-data/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.eggs/

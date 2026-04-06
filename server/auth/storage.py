@@ -1,33 +1,58 @@
-"""Token storage for OAuth credentials."""
+"""File-based token storage for OAuth credentials."""
 
-from __future__ import annotations
-
+import json
+import os
+import tempfile
+from pathlib import Path
 from typing import TypedDict
 
 
-class TokenData(TypedDict):
+class TokenData(TypedDict, total=False):
     """OAuth token data stored on disk."""
 
     access_token: str
     refresh_token: str
     expires_at: float
+    scope: str
+    login: str
 
 
 class FileTokenStorage:
-    """Store and retrieve OAuth tokens from a JSON file."""
+    """File-based token storage in CLAUDE_PLUGIN_DATA directory."""
 
-    def __init__(self, path: str) -> None:
-        """Initialize storage with the given file path.
+    def __init__(self, path: Path | None = None) -> None:
+        if path is not None:
+            self._path = path
+        else:
+            plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA")
+            if plugin_data:
+                self._path = Path(plugin_data) / "tokens.json"
+            else:
+                self._path = Path.home() / ".claude" / "plugins" / "data" / "yandex-direct" / "tokens.json"
 
-        Args:
-            path: Absolute path to the token JSON file.
-        """
-        self._path = path
+    @property
+    def path(self) -> Path:
+        """Return the path to the token file."""
+        return self._path
 
     def load(self) -> TokenData | None:
-        """Load tokens from disk. Returns None if file missing or invalid."""
-        ...
+        """Load tokens from disk. Returns None if file is missing or corrupt."""
+        if not self._path.exists():
+            return None
+        try:
+            data = json.loads(self._path.read_text())
+            return TokenData(**data)
+        except (json.JSONDecodeError, TypeError, UnicodeDecodeError, OSError):
+            return None
 
     def save(self, data: TokenData) -> None:
-        """Persist token data to disk."""
-        ...
+        """Atomically save tokens to disk via temp file + rename."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=self._path.parent, suffix=".tmp")
+        try:
+            with os.fdopen(tmp_fd, "w") as f:
+                json.dump(data, f, indent=2)
+            os.replace(tmp_path, self._path)
+        except Exception:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
