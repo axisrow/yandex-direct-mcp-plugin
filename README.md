@@ -135,6 +135,40 @@ mcp__yandex_direct__auth_setup({ code: "1234567" })
 // → { success: true, access_token: "AQA...", expires_in: 124234123534 }
 ```
 
+### Error Handling
+
+```javascript
+// Токен истёк → MCP-сервер обновит автоматически через refresh_token
+mcp__yandex_direct__campaigns_list({ state: "ON" })
+// 1) access_token expired → POST /token { grant_type: "refresh_token" }
+// 2) новый access_token сохранён → повторный запрос → результат
+
+// Токен невалиден (refresh тоже протух)
+mcp__yandex_direct__campaigns_list({ state: "ON" })
+// → { error: "auth_expired", message: "Требуется повторная авторизация",
+//    auth_url: "https://oauth.yandex.ru/authorize?client_id=..." }
+
+// Неверный код авторизации
+mcp__yandex_direct__auth_setup({ code: "0000000" })
+// → { error: "invalid_grant", message: "Неверный или просроченный код. Код действует 10 минут." }
+
+// Кампания не найдена
+mcp__yandex_direct__campaigns_update({ id: "999", state: "ON" })
+// → { error: "not_found", message: "Кампания 999 не найдена в аккаунте ksamatadirect" }
+
+// Кампания принадлежит второму аккаунту (ID ~73-77М)
+mcp__yandex_direct__ads_list({ campaign_ids: "75000001" })
+// → { error: "foreign_campaign", message: "Кампания 75000001 недоступна — принадлежит другому аккаунту" }
+
+// Лимит API (слишком много ID за раз)
+mcp__yandex_direct__ads_list({ campaign_ids: "1,2,3,4,5,6,7,8,9,10,11" })
+// → { error: "batch_limit", message: "Максимум 10 ID за запрос. Передано: 11" }
+
+// direct-cli не установлен или не в PATH
+mcp__yandex_direct__campaigns_list({})
+// → { error: "cli_not_found", message: "direct-cli не найден. Установите: https://github.com/axisrow/direct-cli" }
+```
+
 ### Without plugin (before)
 
 ```bash
