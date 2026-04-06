@@ -97,6 +97,44 @@ Just ask in natural language — the plugin handles the rest:
   → auth_status()
 ```
 
+### MCP Tool Calls
+
+Direct MCP tool invocations that Claude makes under the hood:
+
+```javascript
+// Список активных кампаний
+mcp__yandex_direct__campaigns_list({ state: "ON" })
+// → [{ Id: 12345, Name: "Кампания 1", State: "ON", DailyBudget: 5000 }, ...]
+
+// Объявления в кампании
+mcp__yandex_direct__ads_list({ campaign_ids: "12345" })
+// → [{ Id: 111, Title: "Доставка пиццы", Title2: "За 30 минут", State: "ON" }, ...]
+
+// Включить/отключить кампанию
+mcp__yandex_direct__campaigns_update({ id: "67890", state: "OFF" })
+// → { success: true, id: 67890, state: "OFF" }
+
+// Ключевые слова
+mcp__yandex_direct__keywords_list({ campaign_ids: "12345" })
+// → [{ Id: 99999, Keyword: "пицца доставка", Bid: 12000000 }, ...]
+
+// Изменить ставку (в микроюнитах: 15 руб = 15000000)
+mcp__yandex_direct__keywords_update({ id: "99999", bid: "15000000" })
+// → { success: true, id: 99999, bid: 15000000 }
+
+// Статистика
+mcp__yandex_direct__reports_get({ date_from: "2026-03-30", date_to: "2026-04-06" })
+// → [{ CampaignId: 12345, Impressions: 15420, Clicks: 312, Cost: 4680.50 }, ...]
+
+// Статус OAuth-токена
+mcp__yandex_direct__auth_status()
+// → { valid: true, expires_in: 7200, scope: "direct:...", login: "ksamatadirect" }
+
+// Авторизация (первый раз)
+mcp__yandex_direct__auth_setup({ code: "1234567" })
+// → { success: true, access_token: "AQA...", expires_in: 124234123534 }
+```
+
 ### Without plugin (before)
 
 ```bash
