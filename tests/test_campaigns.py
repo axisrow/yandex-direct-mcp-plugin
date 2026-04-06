@@ -84,7 +84,7 @@ class TestCampaignsUpdate:
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(id="999", state="ON")
             assert "error" in result
-            assert result["error"] == "unknown"
+            assert result["error"] == "not_found"
 
     def test_auth_error(self):
         """Test: Auth expired during update."""

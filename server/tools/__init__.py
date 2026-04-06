@@ -47,6 +47,8 @@ def handle_cli_errors(func):
                     return func(*args, **kwargs)
                 except CliAuthError:
                     pass
+                except OAuthError as e:
+                    return e.to_dict()
             return ToolError(
                 error="auth_expired",
                 message="Token expired. Re-authorization required.",

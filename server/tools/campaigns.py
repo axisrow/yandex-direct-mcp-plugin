@@ -43,5 +43,10 @@ def campaigns_update(id: str, state: str) -> dict:
         ).__dict__
 
     runner = get_runner()
-    runner.run_json(["campaigns", "update", "--id", id, "--state", state, "--format", "json"])
+    try:
+        runner.run_json(["campaigns", "update", "--id", id, "--state", state, "--format", "json"])
+    except Exception as exc:
+        if "not found" in str(exc).lower():
+            return ToolError(error="not_found", message=f"Campaign '{id}' not found").__dict__
+        raise
     return {"success": True, "id": id, "state": state}
