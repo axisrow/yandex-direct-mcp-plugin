@@ -305,10 +305,50 @@ npm run test:record
 npm test
 ```
 
-Кассеты записываются через [nock](https://github.com/nock/nock) `recorder` или [polly.js](https://netflix.github.io/pollyjs/):
-- Первый прогон идёт в реальный API и сохраняет HTTP-ответы в `__recordings__/`
-- Последующие прогоны воспроизводят записи без сети
-- Токены и секреты автоматически маскируются при записи
+**Recorder: собственный CLI-recorder** (не nock, не polly.js)
+
+`direct-cli` запускается как subprocess — HTTP-рекордеры (nock, polly) работают только in-process и его запросы не перехватят. Поэтому записываем на уровне CLI:
+
+```
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│  MCP Server  │──exec──▶│  direct-cli  │──HTTP──▶│  Яндекс API  │
+│  (Node.js)   │◀─stdout─│              │◀────────│              │
+└──────────────┘         └──────────────┘         └──────────────┘
+       │
+       ▼
+  cli-recorder.js перехватывает:
+  • args[] — с какими аргументами вызван CLI
+  • stdout  — что CLI вернул (JSON)
+  • stderr  — ошибки
+  • exitCode
+```
+
+Принцип работы:
+1. **Режим записи** (`RECORD=true`): MCP-сервер вызывает реальный `direct-cli`, `cli-recorder.js` сохраняет пару `{args, stdout, stderr, exitCode}` в JSON-файл
+2. **Режим воспроизведения** (по умолчанию): вместо `child_process.exec("direct-cli ...")` подставляется мок, который ищет совпадение по `args` в записанных кассетах и возвращает сохранённый `stdout`
+3. Санитизация прогоняется **между** шагами 1 и 2
+
+```javascript
+// server/__tests__/cli-recorder.js
+class CliRecorder {
+  // Запись: оборачивает exec(), сохраняет ввод-вывод
+  record(command, args) → { args, stdout, stderr, exitCode } → cassette.json
+
+  // Воспроизведение: по args находит кассету, возвращает stdout
+  replay(command, args) → stdout из cassette.json
+}
+```
+
+Кассета выглядит так:
+```json
+{
+  "command": "direct-cli",
+  "args": ["--token", "REDACTED", "campaigns", "get", "--format", "json"],
+  "stdout": "[{\"Id\": 12345, \"Name\": \"Campaign_12345\", \"State\": \"ON\"}]",
+  "stderr": "",
+  "exitCode": 0
+}
+```
 
 ```
 server/
