@@ -5,6 +5,13 @@ dist/
 tokens.json
 *.log
 
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+
 # OS
 .DS_Store
 Thumbs.db
