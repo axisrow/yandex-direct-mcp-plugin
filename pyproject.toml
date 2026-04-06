@@ -1,15 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "yandex-direct-mcp-plugin"
 version = "1.0.0"
+description = "Claude Code plugin for managing Yandex.Direct advertising campaigns"
 requires-python = ">=3.11"
-dependencies = ["mcp", "httpx>=0.27", "python-dotenv>=1.0"]
+dependencies = [
+    "mcp",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff", "mypy", "pre-commit"]
+dev = [
+    "pytest>=8.0",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+docs = [
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "furo",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["mocks: edge case tests", "integration: live API tests"]
+markers = [
+    "mocks: edge case tests using unittest.mock",
+    "integration: live API tests requiring OAuth token",
+]
 
 [tool.ruff]
 target-version = "py311"
@@ -18,3 +40,6 @@ line-length = 120
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[tool.setuptools.packages.find]
+include = ["server*"]

@@ -1,0 +1,16 @@
+{
+  "name": "yandex-direct",
+  "version": "1.0.0",
+  "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
+  "author": {"name": "axisrow"},
+  "keywords": ["yandex", "direct", "advertising", "oauth"],
+  "userConfig": {
+    "client_id": {
+      "description": "Client ID приложения Яндекс OAuth"
+    },
+    "client_secret": {
+      "description": "Client Secret приложения Яндекс OAuth",
+      "sensitive": true
+    }
+  }
+}
