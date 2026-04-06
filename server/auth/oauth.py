@@ -3,6 +3,7 @@ class OAuthError(Exception):
         self.error = error
         self.message = message
         self.auth_url = auth_url
+        super().__init__(message)
 
     def to_dict(self) -> dict:
         r: dict = {"error": self.error, "message": self.message}

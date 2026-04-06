@@ -4,11 +4,13 @@ from server.main import mcp
 from server.tools import ToolError
 from server.cli.runner import DirectCliRunner, CliAuthError, CliNotFoundError, CliTimeoutError
 
+from collections.abc import Callable
+
 # These will be injected by main.py when OAuth is ready
-_token_getter = None
+_token_getter: Callable[[], str] | None = None
 
 
-def set_token_getter(getter):
+def set_token_getter(getter: Callable[[], str]) -> None:
     """Set the function that returns a valid OAuth token."""
     global _token_getter
     _token_getter = getter
@@ -17,7 +19,10 @@ def set_token_getter(getter):
 def _get_runner() -> DirectCliRunner:
     """Get a CLI runner with a valid token."""
     if _token_getter is None:
-        raise RuntimeError("Token getter not configured")
+        return ToolError(
+            error="misconfigured",
+            message="Token getter not configured. Call set_token_getter() first.",
+        ).to_dict()  # type: ignore[return-value]
     token = _token_getter()
     return DirectCliRunner(token=token)
 
