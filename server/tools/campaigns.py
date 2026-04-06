@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 """MCP tools for campaign management."""
 
 from server.main import mcp
@@ -35,6 +34,12 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
     Args:
         state: Filter by campaign state ("ON" or "OFF"). If None, returns all campaigns.
     """
+    if state is not None and state not in ("ON", "OFF"):
+        return ToolError(
+            error="invalid_state",
+            message=f"State must be 'ON' or 'OFF', got '{state}'",
+        ).to_dict()
+
     try:
         runner = _get_runner()
         args = ["campaigns", "get", "--format", "json"]
@@ -90,7 +95,3 @@ def campaigns_update(id: str, state: str) -> dict:
         if "not found" in error_msg.lower() or "404" in error_msg:
             return ToolError(error="not_found", message=f"Campaign {id} not found").to_dict()
         return ToolError(error="unknown", message=error_msg).to_dict()
-=======
-"""MCP tools for campaigns."""
-# Implementation coming in separate units
->>>>>>> origin/main
