@@ -28,7 +28,9 @@ class CliRecorder:
         self._recordings_dir = recordings_dir
         self._command = command
 
-    def record(self, args: list[str], env: dict[str, str] | None = None) -> dict[str, Any]:
+    def record(
+        self, args: list[str], env: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """Call the real CLI and save the result as a cassette.
 
         Args:
@@ -73,7 +75,9 @@ class CliRecorder:
         cassette = self._find_cassette(search_args)
 
         if cassette is None:
-            raise CassetteNotFoundError(f"No cassette found for args: {search_args}. Record with: RECORD=true pytest")
+            raise CassetteNotFoundError(
+                f"No cassette found for args: {search_args}. Record with: RECORD=true pytest"
+            )
 
         return subprocess.CompletedProcess(
             args=args,

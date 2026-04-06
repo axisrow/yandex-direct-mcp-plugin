@@ -37,13 +37,19 @@ class TestCampaignsList:
 
     def test_list_all_campaigns(self, mock_campaigns):
         """Test 7: List all campaigns."""
-        with patch("server.tools.campaigns.get_runner", return_value=_mock_runner(mock_campaigns)):
+        with patch(
+            "server.tools.campaigns.get_runner",
+            return_value=_mock_runner(mock_campaigns),
+        ):
             result = campaigns_list()
             assert len(result) == 3
 
     def test_list_active_campaigns(self, mock_campaigns):
         """Test 8: Filter by state=ON."""
-        with patch("server.tools.campaigns.get_runner", return_value=_mock_runner(mock_campaigns)):
+        with patch(
+            "server.tools.campaigns.get_runner",
+            return_value=_mock_runner(mock_campaigns),
+        ):
             result = campaigns_list(state="ON")
             assert len(result) == 2
             assert all(c["State"] == "ON" for c in result)
@@ -60,14 +66,20 @@ class TestCampaignsUpdate:
 
     def test_enable_campaign(self):
         """Test 9: Enable a campaign."""
-        with patch("server.tools.campaigns.get_runner", return_value=_mock_runner({"Id": 67890, "State": "ON"})):
+        with patch(
+            "server.tools.campaigns.get_runner",
+            return_value=_mock_runner({"Id": 67890, "State": "ON"}),
+        ):
             result = campaigns_update(id="67890", state="ON")
             assert result["success"] is True
             assert result["state"] == "ON"
 
     def test_disable_campaign(self):
         """Test 9: Disable a campaign."""
-        with patch("server.tools.campaigns.get_runner", return_value=_mock_runner({"Id": 12345, "State": "OFF"})):
+        with patch(
+            "server.tools.campaigns.get_runner",
+            return_value=_mock_runner({"Id": 12345, "State": "OFF"}),
+        ):
             result = campaigns_update(id="12345", state="OFF")
             assert result["success"] is True
 
@@ -90,8 +102,10 @@ class TestCampaignsUpdate:
         """Test: Auth expired during update."""
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with patch("server.tools.campaigns.get_runner", return_value=runner), \
-             patch("server.tools._try_refresh_token", return_value=None):
+        with (
+            patch("server.tools.campaigns.get_runner", return_value=runner),
+            patch("server.tools._try_refresh_token", return_value=None),
+        ):
             result = campaigns_update(id="12345", state="ON")
             assert result["error"] == "auth_expired"
 
@@ -101,7 +115,12 @@ class TestCampaignsUpdate:
         expired_runner.run_json.side_effect = CliAuthError("Token expired")
         fresh_runner = MagicMock()
         fresh_runner.run_json.return_value = {"Id": 12345, "State": "ON"}
-        with patch("server.tools.campaigns.get_runner", side_effect=[expired_runner, fresh_runner]), \
-             patch("server.tools._try_refresh_token", return_value="new-token"):
+        with (
+            patch(
+                "server.tools.campaigns.get_runner",
+                side_effect=[expired_runner, fresh_runner],
+            ),
+            patch("server.tools._try_refresh_token", return_value="new-token"),
+        ):
             result = campaigns_update(id="12345", state="ON")
             assert result["success"] is True

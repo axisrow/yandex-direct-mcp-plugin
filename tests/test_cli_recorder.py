@@ -28,7 +28,9 @@ class TestRecord:
         mock_result.returncode = 0
 
         with patch("tests.cli_recorder.subprocess.run", return_value=mock_result):
-            cassette = recorder.record(["direct", "--token", "test", "campaigns", "get", "--format", "json"])
+            cassette = recorder.record(
+                ["direct", "--token", "test", "campaigns", "get", "--format", "json"]
+            )
 
         assert cassette["returncode"] == 0
         assert cassette["stdout"] == '[{"Id": 1}]'

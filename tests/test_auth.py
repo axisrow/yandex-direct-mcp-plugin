@@ -140,7 +140,9 @@ class TestOAuthManager:
         assert result["expires_at"] > time.time()
 
     @patch("server.auth.oauth.httpx.post")
-    def test_exchange_code_fails_with_invalid_grant(self, mock_post, tmp_path: Path) -> None:
+    def test_exchange_code_fails_with_invalid_grant(
+        self, mock_post, tmp_path: Path
+    ) -> None:
         mock_post.return_value = _make_httpx_response(
             400,
             {
@@ -190,7 +192,9 @@ class TestOAuthManager:
         assert exc_info.value.auth_url is not None
 
     @patch("server.auth.oauth.httpx.post")
-    def test_get_valid_token_auto_refreshes_when_expired(self, mock_post, tmp_path: Path) -> None:
+    def test_get_valid_token_auto_refreshes_when_expired(
+        self, mock_post, tmp_path: Path
+    ) -> None:
         storage = self._storage(tmp_path)
         # Token expires in 30 seconds (within 60s buffer)
         storage.save(
@@ -216,7 +220,9 @@ class TestOAuthManager:
         mock_post.assert_called_once()
 
     @patch("server.auth.oauth.httpx.post")
-    def test_get_valid_token_returns_existing_when_valid(self, mock_post, tmp_path: Path) -> None:
+    def test_get_valid_token_returns_existing_when_valid(
+        self, mock_post, tmp_path: Path
+    ) -> None:
         storage = self._storage(tmp_path)
         # Token expires in 1 hour (well beyond 60s buffer)
         storage.save(

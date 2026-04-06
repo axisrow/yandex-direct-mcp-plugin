@@ -27,7 +27,9 @@ def _mock_runner(return_value):
 
 def test_reports_get():
     """Test 16: Statistics for date range."""
-    with patch("server.tools.reports.get_runner", return_value=_mock_runner(SAMPLE_REPORTS)):
+    with patch(
+        "server.tools.reports.get_runner", return_value=_mock_runner(SAMPLE_REPORTS)
+    ):
         result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
         assert len(result) == 1
         assert result[0]["Impressions"] == 15420
@@ -35,6 +37,8 @@ def test_reports_get():
 
 def test_reports_no_dates():
     """Reports without date range."""
-    with patch("server.tools.reports.get_runner", return_value=_mock_runner(SAMPLE_REPORTS)):
+    with patch(
+        "server.tools.reports.get_runner", return_value=_mock_runner(SAMPLE_REPORTS)
+    ):
         result = reports_get()
         assert len(result) == 1

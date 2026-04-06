@@ -10,7 +10,9 @@ RECORDINGS_DIR = Path(__file__).parent / "recordings"
 
 def pytest_addoption(parser):
     """Add --record option for cassette recording."""
-    parser.addoption("--record", action="store_true", help="Record cassettes from live CLI")
+    parser.addoption(
+        "--record", action="store_true", help="Record cassettes from live CLI"
+    )
 
 
 @pytest.fixture(autouse=True)

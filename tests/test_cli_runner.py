@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from server.cli.runner import CliAuthError, CliNotFoundError, CliTimeoutError, DirectCliRunner
+from server.cli.runner import (
+    CliAuthError,
+    CliNotFoundError,
+    CliTimeoutError,
+    DirectCliRunner,
+)
 
 
 @pytest.fixture
@@ -34,7 +39,9 @@ class TestRun:
 
         with (
             patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
-            patch("server.cli.runner.subprocess.run", return_value=mock_result) as mock_run,
+            patch(
+                "server.cli.runner.subprocess.run", return_value=mock_result
+            ) as mock_run,
         ):
             runner.run(["campaigns", "get", "--format", "json"])
 
@@ -64,7 +71,10 @@ class TestRun:
         """Test 19: CLI hangs >30s."""
         with (
             patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
-            patch("server.cli.runner.subprocess.run", side_effect=subprocess.TimeoutExpired("direct", 30)),
+            patch(
+                "server.cli.runner.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("direct", 30),
+            ),
         ):
             with pytest.raises(CliTimeoutError):
                 runner.run(["campaigns", "get"])
