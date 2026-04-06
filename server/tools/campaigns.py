@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """MCP tools for campaign management."""
 
 from server.main import mcp
@@ -89,3 +90,7 @@ def campaigns_update(id: str, state: str) -> dict:
         if "not found" in error_msg.lower() or "404" in error_msg:
             return ToolError(error="not_found", message=f"Campaign {id} not found").to_dict()
         return ToolError(error="unknown", message=error_msg).to_dict()
+=======
+"""MCP tools for campaigns."""
+# Implementation coming in separate units
+>>>>>>> origin/main
