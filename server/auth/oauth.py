@@ -18,6 +18,6 @@ class OAuthManager:
         """Get a valid access token, auto-refreshing if needed."""
         raise NotImplementedError
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, object]:
         """Get the current token status."""
         raise NotImplementedError
