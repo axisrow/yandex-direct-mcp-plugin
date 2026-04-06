@@ -1,0 +1,22 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+
+  - repo: local
+    hooks:
+      - id: cassette-audit
+        name: Cassette audit
+        entry: python -m tests.audit
+        language: system
+        files: ^tests/recordings/.*\.json$
+        pass_filenames: false
