@@ -36,7 +36,12 @@ def handle_cli_errors(func):
         try:
             return func(*args, **kwargs)
         except CliAuthError:
-            new_token = _try_refresh_token()
+            from server.auth.oauth import OAuthError
+
+            try:
+                new_token = _try_refresh_token()
+            except OAuthError as e:
+                return e.to_dict()
             if new_token is not None:
                 try:
                     return func(*args, **kwargs)
