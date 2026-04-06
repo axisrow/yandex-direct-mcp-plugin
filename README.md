@@ -67,6 +67,50 @@ mcp__yandex_direct__auth_setup(code="<7-digit code>")
 - `/yandex-direct:yandex-direct` — campaign management guidance
 - `/yandex-direct:direct-ads` — ad copywriting for Yandex.Direct
 
+## Usage Examples
+
+Just ask in natural language — the plugin handles the rest:
+
+```
+> покажи активные кампании
+  → campaigns_list(state="ON")
+
+> сколько объявлений в кампании 12345?
+  → ads_list(campaign_ids="12345") → count
+
+> отключи кампанию 67890
+  → campaigns_update(id="67890", state="OFF")
+
+> покажи ключевые слова кампании 12345
+  → keywords_list(campaign_ids="12345")
+
+> поставь ставку 15 руб на ключевое слово 99999
+  → keywords_update(id="99999", bid="15000000")
+
+> статистика за последнюю неделю
+  → reports_get(date_from="2026-03-30", date_to="2026-04-06")
+
+> напиши объявление для доставки пиццы
+  → /yandex-direct:direct-ads "доставка пиццы"
+
+> токен живой?
+  → auth_status()
+```
+
+### Without plugin (before)
+
+```bash
+export BW_SESSION="$(bw unlock --raw)"
+direct-cli --bw-token-ref "yandex-direct" --bw-login-ref "yandex-direct" \
+  campaigns get --format json | jq '.[] | select(.State == "ON")'
+```
+
+### With plugin (after)
+
+```
+> покажи активные кампании
+```
+
 ## Requirements
 
 - [direct-cli](https://github.com/axisrow/direct-cli) installed and in PATH
