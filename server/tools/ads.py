@@ -21,16 +21,16 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
     return None
 
 
-def _is_foreign_campaign(ids_str: str) -> bool:
-    """Check if any campaign ID is in the foreign account range (73M-77M)."""
+def _get_foreign_campaign_id(ids_str: str) -> str | None:
+    """Return the first campaign ID in the foreign account range (73M-77M), or None."""
     for id_str in _parse_ids(ids_str):
         try:
             cid = int(id_str)
             if FOREIGN_CAMPAIGN_MIN <= cid <= FOREIGN_CAMPAIGN_MAX:
-                return True
+                return id_str
         except ValueError:
             continue
-    return False
+    return None
 
 
 @mcp.tool()
@@ -45,11 +45,11 @@ def ads_list(campaign_ids: str) -> list[dict] | dict:
     if batch_error:
         return batch_error.__dict__
 
-    if _is_foreign_campaign(campaign_ids):
-        first_id = _parse_ids(campaign_ids)[0]
+    foreign_id = _get_foreign_campaign_id(campaign_ids)
+    if foreign_id:
         return ToolError(
             error="foreign_campaign",
-            message=f"Campaign {first_id} is unavailable — belongs to another account",
+            message=f"Campaign {foreign_id} is unavailable — belongs to another account",
         ).__dict__
 
     runner = get_runner()
