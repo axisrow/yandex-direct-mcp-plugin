@@ -58,6 +58,10 @@ def handle_cli_errors(func):
         except CliTimeoutError as e:
             return ToolError(error="timeout", message=str(e)).__dict__
         except Exception as e:
+            from server.auth.oauth import OAuthError as _OAuthError
+
+            if isinstance(e, _OAuthError):
+                return e.to_dict()
             return ToolError(error="unknown", message=str(e)).__dict__
 
     return wrapper

@@ -1,5 +1,6 @@
 """MCP tools for campaign management."""
 
+from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -45,6 +46,8 @@ def campaigns_update(id: str, state: str) -> dict:
     runner = get_runner()
     try:
         runner.run_json(["campaigns", "update", "--id", id, "--state", state, "--format", "json"])
+    except (CliAuthError, CliNotFoundError):
+        raise
     except Exception as exc:
         if "not found" in str(exc).lower():
             return ToolError(error="not_found", message=f"Campaign '{id}' not found").__dict__
