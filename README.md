@@ -297,12 +297,77 @@ npm run test:integration
 - Обновления записей: `npm run test:record`
 - Smoke-тестов перед новой версией
 
+### Cassette Sanitization
+
+Кассеты содержат ответы реального API — **перед коммитом обязательна санитизация**. Скрипт `npm run test:sanitize` прогоняется автоматически после записи и как pre-commit hook.
+
+#### Что маскируется
+
+| Поле | Пример до | После |
+|---|---|---|
+| `access_token` | `AQAAAACy1C6ZAAAAfa6v...` | `ACCESS_TOKEN_REDACTED` |
+| `refresh_token` | `1:GN686QVt0mmak...` | `REFRESH_TOKEN_REDACTED` |
+| `Authorization` header | `Bearer AQAAAACy1...` | `Bearer ACCESS_TOKEN_REDACTED` |
+| `client_secret` | `a1b2c3d4e5f6` | `CLIENT_SECRET_REDACTED` |
+| `client_id` | `abc123def456` | `CLIENT_ID_REDACTED` |
+
+#### Что анонимизируется (коммерческие данные)
+
+| Поле | Пример до | После |
+|---|---|---|
+| Названия кампаний | `Доставка пиццы Москва` | `Campaign_12345` |
+| Тексты объявлений | `Закажите пиццу за 30 мин` | `Ad title for campaign 12345` |
+| Ключевые слова | `пицца доставка москва` | `keyword_99999` |
+| Логин аккаунта | `ksamatadirect` | `test_account` |
+| Суммы расходов | `4680.50` | `1000.00` |
+| URL сайтов в объявлениях | `https://pizza-example.ru` | `https://example.com` |
+| Телефоны, адреса | `+7 (495) 123-45-67` | `+7 (000) 000-00-00` |
+
+#### Как это работает
+
+```javascript
+// server/__tests__/sanitize-cassettes.js
+const SANITIZE_RULES = [
+  // Секреты — полная замена
+  { pattern: /"access_token"\s*:\s*"[^"]+"/g, replace: '"access_token": "ACCESS_TOKEN_REDACTED"' },
+  { pattern: /"refresh_token"\s*:\s*"[^"]+"/g, replace: '"refresh_token": "REFRESH_TOKEN_REDACTED"' },
+  { pattern: /Bearer [A-Za-z0-9_-]+/g, replace: 'Bearer ACCESS_TOKEN_REDACTED' },
+  { pattern: /"client_secret"\s*:\s*"[^"]+"/g, replace: '"client_secret": "CLIENT_SECRET_REDACTED"' },
+  
+  // Коммерческие данные — подмена на заглушки
+  { pattern: /"Name"\s*:\s*"[^"]+"/g, replace: (match, id) => `"Name": "Campaign_${id}"` },
+  { pattern: /"Title"\s*:\s*"[^"]+"/g, replace: '"Title": "Ad title placeholder"' },
+  { pattern: /"Keyword"\s*:\s*"[^"]+"/g, replace: (match, id) => `"Keyword": "keyword_${id}"` },
+  { pattern: /"Login"\s*:\s*"[^"]+"/g, replace: '"Login": "test_account"' },
+  { pattern: /"Cost"\s*:\s*[\d.]+/g, replace: '"Cost": 1000.00' },
+  { pattern: /"Href"\s*:\s*"https?:\/\/[^"]+"/g, replace: '"Href": "https://example.com"' },
+  { pattern: /\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g, replace: '+7 (000) 000-00-00' },
+];
+```
+
+#### Защита от случайной утечки
+
+```
+# .github/workflows/cassette-audit.yml — CI проверяет что кассеты чисты
+npm run test:audit-cassettes
+```
+
+Скрипт `audit-cassettes` сканирует `__recordings__/` на:
+- Паттерны OAuth-токенов (`AQAAAA`, `Bearer ey...`)
+- Реальные домены (не `example.com`)
+- Реальные телефоны (regex `+7...`)
+- Совпадения с `client_id` из `.env.test.example`
+
+Если находит — CI падает, кассета не попадёт в репо.
+
 ### Cassette Recording Rules
 
 | Правило | Почему |
 |---|---|
 | Кассеты коммитятся в git | Тесты работают без API-ключей |
-| Секреты маскируются (`access_token` → `REDACTED`) | Безопасность |
+| Санитизация автоматическая (post-record + pre-commit) | Человек забудет, скрипт — нет |
+| CI аудит кассет на каждый PR | Двойная проверка, ничего не утечёт |
+| Коммерческие данные анонимизируются | Названия кампаний, тексты объявлений — конфиденциально |
 | Кассеты перезаписываются перед мажорным релизом | Актуальность |
 | Edge cases остаются моками | Невоспроизводимы через API |
 | `.env.test` с тестовым OAuth-токеном в `.gitignore` | Не утечёт в репо |
