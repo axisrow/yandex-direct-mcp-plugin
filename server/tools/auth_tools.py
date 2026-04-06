@@ -1,5 +1,7 @@
 """MCP tools for OAuth authentication management."""
 
+import time
+
 from server.auth.oauth import OAuthError, OAuthManager
 from server.main import mcp
 
@@ -31,7 +33,7 @@ def auth_setup(code: str) -> dict:
         return {
             "success": True,
             "access_token_prefix": result["access_token"][:6] + "...",
-            "expires_in": int(result.get("expires_at", 0) - __import__("time").time()),
+            "expires_in": max(0, int(result.get("expires_at", 0) - time.time())),
             "login": result.get("login", ""),
         }
     except OAuthError as e:

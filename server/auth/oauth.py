@@ -96,6 +96,8 @@ class OAuthManager:
             resp = httpx.post(self.TOKEN_URL, data=data, timeout=30)
             resp.raise_for_status()
             return resp
+        except httpx.TransportError as e:
+            raise OAuthError("network_error", f"Network error: {e}", self.authorize_url) from e
         except httpx.HTTPStatusError as e:
             try:
                 error_data = e.response.json() if e.response else {}
@@ -111,8 +113,11 @@ class OAuthManager:
     def _parse_and_save(self, resp: httpx.Response, fallback_refresh_token: str) -> TokenData:
         """Parse a token response, persist it, and return the result."""
         token_data = resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            raise OAuthError("invalid_response", "Missing access_token in token response")
         result = TokenData(
-            access_token=token_data["access_token"],
+            access_token=access_token,
             refresh_token=token_data.get("refresh_token", fallback_refresh_token),
             expires_at=time.time() + token_data.get("expires_in", 0),
             scope=token_data.get("scope", ""),
