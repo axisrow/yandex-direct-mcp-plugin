@@ -8,6 +8,25 @@ Claude Code plugin for managing Yandex.Direct advertising campaigns.
 - **Skills** — domain knowledge for Yandex.Direct management and ad copywriting
 - **OAuth 2.0** — automatic token management with refresh support (no Bitwarden dependency)
 
+## Architecture
+
+```
+direct-cli (CLI)        — низкоуровневая утилита, общается с Яндекс.Директ API
+       ↑
+MCP Server (MCP)        — обёртка над CLI, выставляет структурированные инструменты
+       ↑
+Skill (SKILL.md)        — доменные знания: когда какой инструмент вызвать, лимиты, подводные камни
+       ↑
+Plugin (.claude-plugin) — контейнер, объединяющий MCP + скиллы + OAuth в единый пакет
+```
+
+| Компонент | Что это | Что делает | Без него |
+|---|---|---|---|
+| **direct-cli** | CLI-утилита | Выполняет запросы к Яндекс.Директ API | Ничего не работает |
+| **MCP Server** | Процесс (stdio) | Превращает CLI в структурированные инструменты с типизированными параметрами и ответами | Claude собирает bash-команды вручную |
+| **Skill** | Markdown-файл | Учит Claude *когда* и *зачем* вызывать инструменты, хранит доменные знания | Claude не знает про лимиты API, батчинг, второй аккаунт |
+| **Plugin** | Директория с манифестом | Упаковывает MCP + скиллы + OAuth для установки одной командой | Нужно настраивать каждый компонент отдельно |
+
 ## Installation
 
 ```bash
