@@ -15,11 +15,13 @@ class ToolError:
 def _try_refresh_token() -> str | None:
     """Force-refresh the OAuth token. Returns new access token or None."""
     try:
-        from server.auth.oauth import OAuthManager
+        from server.auth.oauth import OAuthError, OAuthManager
 
         manager = OAuthManager()
         data = manager.refresh_token()
         return data["access_token"]
+    except OAuthError:
+        raise
     except Exception:
         return None
 

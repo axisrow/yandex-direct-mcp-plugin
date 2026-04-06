@@ -94,3 +94,14 @@ class TestCampaignsUpdate:
              patch("server.tools._try_refresh_token", return_value=None):
             result = campaigns_update(id="12345", state="ON")
             assert result["error"] == "auth_expired"
+
+    def test_auth_error_refresh_retries(self):
+        """Test: Auth error triggers refresh, then retry succeeds."""
+        expired_runner = MagicMock()
+        expired_runner.run_json.side_effect = CliAuthError("Token expired")
+        fresh_runner = MagicMock()
+        fresh_runner.run_json.return_value = {"Id": 12345, "State": "ON"}
+        with patch("server.tools.campaigns.get_runner", side_effect=[expired_runner, fresh_runner]), \
+             patch("server.tools._try_refresh_token", return_value="new-token"):
+            result = campaigns_update(id="12345", state="ON")
+            assert result["success"] is True
