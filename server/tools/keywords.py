@@ -3,6 +3,16 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
+MAX_BATCH_SIZE = 10
+
+
+def _check_batch_limit(ids_str: str) -> ToolError | None:
+    """Validate batch size of comma-separated IDs."""
+    ids = [id.strip() for id in ids_str.split(",") if id.strip()]
+    if len(ids) > MAX_BATCH_SIZE:
+        return ToolError(error="batch_limit", message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}")
+    return None
+
 
 @mcp.tool()
 @handle_cli_errors
@@ -12,6 +22,10 @@ def keywords_list(campaign_ids: str) -> list[dict] | dict:
     Args:
         campaign_ids: Comma-separated campaign IDs (max 10).
     """
+    batch_error = _check_batch_limit(campaign_ids)
+    if batch_error:
+        return batch_error.__dict__
+
     runner = get_runner()
     return runner.run_json(["keywords", "get", "--campaign-ids", campaign_ids, "--format", "json"])
 

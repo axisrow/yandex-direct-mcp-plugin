@@ -25,7 +25,7 @@ class DirectCliRunner:
         self._timeout = timeout
 
     def run(self, args: list[str], *, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
-        effective_timeout = timeout or self._timeout
+        effective_timeout = timeout if timeout is not None else self._timeout
         cmd = ["direct", "--token", self._token, *args]
         try:
             return subprocess.run(cmd, capture_output=True, text=True, timeout=effective_timeout)

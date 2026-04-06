@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import wraps
 
 from server.cli.runner import CliAuthError, CliNotFoundError, CliTimeoutError
 
@@ -13,6 +15,7 @@ class ToolError:
 def handle_cli_errors(func):
     """Decorator that catches CLI errors and returns ToolError dicts."""
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -25,16 +28,13 @@ def handle_cli_errors(func):
         except Exception as e:
             return ToolError(error="unknown", message=str(e)).__dict__
 
-    wrapper.__name__ = func.__name__
-    wrapper.__qualname__ = func.__qualname__
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
-_token_getter = None
+_token_getter: Callable[[], str] | None = None
 
 
-def set_token_getter(getter):
+def set_token_getter(getter: Callable[[], str]) -> None:
     global _token_getter
     _token_getter = getter
 

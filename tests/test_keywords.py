@@ -49,3 +49,4 @@ def test_keywords_update_invalid_bid():
 
     result = keywords_update(id="99999", bid="abc")
     assert "error" in result
+    assert result["error"] == "invalid_bid"
