@@ -642,7 +642,7 @@ YANDEX_LOGIN=
 
 | Слой | Технология | Версия | Зачем |
 |---|---|---|---|
-| **Runtime** | Python | >= 3.12 | Единый язык с direct-cli |
+| **Runtime** | Python | >= 3.11 | Единый язык с direct-cli |
 | **MCP Server** | [mcp](https://pypi.org/project/mcp/) | latest | Python SDK для MCP (stdio transport) |
 | **CLI** | [direct-cli](https://github.com/axisrow/direct-cli) | latest | Обёртка над Яндекс.Директ API |
 | **HTTP** | [httpx](https://www.python-httpx.org/) | >= 0.27 | OAuth-запросы к `oauth.yandex.ru` |
@@ -672,7 +672,7 @@ YANDEX_LOGIN=
 [project]
 name = "yandex-direct-mcp-plugin"
 version = "1.0.0"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "mcp",
     "httpx>=0.27",
@@ -695,7 +695,7 @@ markers = [
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 ```
 
 ## License
