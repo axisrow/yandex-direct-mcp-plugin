@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.*
+tokens.json
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Plugin data (sensitive)
+plugin-data/
