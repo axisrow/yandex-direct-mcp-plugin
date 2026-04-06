@@ -40,6 +40,25 @@ def _sanitize_string(text: str) -> str:
     return text
 
 
+SECRET_FLAGS = {"--token", "--client-secret", "--client-id", "--password"}
+
+
+def _sanitize_args(args: list) -> list:
+    """Redact values following secret flags in the args list."""
+    result = []
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            result.append("REDACTED")
+            skip_next = False
+        elif arg in SECRET_FLAGS:
+            result.append(arg)
+            skip_next = True
+        else:
+            result.append(arg)
+    return result
+
+
 def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
     """Sanitize all cassettes in the recordings directory.
 
@@ -61,6 +80,10 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
         for field in ("stdout", "stderr"):
             if isinstance(data.get(field), str):
                 data[field] = _sanitize_string(data[field])
+
+        # Sanitize args array — redact values after secret flags
+        if isinstance(data.get("args"), list):
+            data["args"] = _sanitize_args(data["args"])
 
         cassette.write_text(json.dumps(data, indent=2, ensure_ascii=False))
         count += 1

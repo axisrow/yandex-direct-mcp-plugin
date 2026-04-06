@@ -97,9 +97,14 @@ class CliRecorder:
         subcmd_dir = self._recordings_dir / subcmd
         subcmd_dir.mkdir(parents=True, exist_ok=True)
 
-        # Find unique filename
-        existing = len(list(subcmd_dir.glob("*.json")))
-        filename = f"recording-{existing + 1:03d}.json"
+        # Find unique filename based on max existing index
+        indices = [
+            int(f.stem.split("-")[-1])
+            for f in subcmd_dir.glob("recording-*.json")
+            if f.stem.split("-")[-1].isdigit()
+        ]
+        next_idx = (max(indices) + 1) if indices else 1
+        filename = f"recording-{next_idx:03d}.json"
         path = subcmd_dir / filename
 
         path.write_text(json.dumps(cassette, indent=2, ensure_ascii=False))
