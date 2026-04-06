@@ -13,6 +13,7 @@ def runner():
     return DirectCliRunner(token="test-token")
 
 
+@pytest.mark.mocks
 class TestIsAvailable:
     def test_available(self, runner):
         with patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"):
@@ -23,6 +24,7 @@ class TestIsAvailable:
             assert runner.is_available() is False
 
 
+@pytest.mark.mocks
 class TestRun:
     def test_successful_run(self, runner):
         mock_result = MagicMock()
@@ -68,6 +70,7 @@ class TestRun:
                 runner.run(["campaigns", "get"])
 
 
+@pytest.mark.mocks
 class TestRunJson:
     def test_empty_response(self, runner):
         """Test 18: Empty API response."""

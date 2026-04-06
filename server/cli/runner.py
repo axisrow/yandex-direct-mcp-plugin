@@ -30,7 +30,7 @@ class DirectCliRunner:
             CliNotFoundError: If `direct` binary is not in PATH.
             CliTimeoutError: If the command exceeds the timeout.
         """
-        effective_timeout = timeout or self._timeout
+        effective_timeout = timeout if timeout is not None else self._timeout
 
         if not self.is_available():
             raise CliNotFoundError("direct-cli not found. Install: https://github.com/axisrow/direct-cli")
@@ -69,7 +69,7 @@ class DirectCliRunner:
             stderr = result.stderr.strip()
             if "401" in stderr or "Unauthorized" in stderr:
                 raise CliAuthError("Token expired or invalid")
-            raise CliError(f"direct-cli failed: {stderr}")
+            raise CliError(f"direct-cli failed (exit {result.returncode}): {stderr or result.stdout[:200]}")
 
         output = result.stdout.strip()
         if not output:
