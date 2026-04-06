@@ -236,7 +236,76 @@ server/
 │       └── tokens.json       # Мок-токены
 ```
 
-direct-cli мокается через `jest.mock('child_process')` — тесты не требуют реального API.
+### Test Modes
+
+**1. Cassettes (recorded API responses)** — основной режим
+
+```bash
+# Записать кассеты с реального API (один раз)
+npm run test:record
+
+# Прогнать тесты на записанных кассетах (CI/повседневно)
+npm test
+```
+
+Кассеты записываются через [nock](https://github.com/nock/nock) `recorder` или [polly.js](https://netflix.github.io/pollyjs/):
+- Первый прогон идёт в реальный API и сохраняет HTTP-ответы в `__recordings__/`
+- Последующие прогоны воспроизводят записи без сети
+- Токены и секреты автоматически маскируются при записи
+
+```
+server/
+├── __tests__/
+│   ├── __recordings__/            # Записанные кассеты
+│   │   ├── auth/
+│   │   │   ├── token-exchange.json
+│   │   │   ├── token-refresh.json
+│   │   │   └── invalid-code.json
+│   │   ├── campaigns/
+│   │   │   ├── list-all.json
+│   │   │   ├── list-active.json
+│   │   │   └── update-state.json
+│   │   ├── ads/
+│   │   │   ├── list-by-campaign.json
+│   │   │   └── foreign-campaign.json
+│   │   ├── keywords/
+│   │   │   └── list-and-update.json
+│   │   └── reports/
+│   │       └── weekly-stats.json
+```
+
+**2. Mocks** — для edge cases, которые нельзя записать
+
+```bash
+npm run test:mocks
+```
+
+Моки через `jest.mock('child_process')` только для сценариев, которых невозможно добиться от реального API:
+- `cli_not_found` — direct-cli не установлен
+- `timeout` — CLI зависает >30с
+- `batch_limit` — валидация на стороне MCP-сервера, до вызова API
+
+**3. Integration (live API)** — перед релизом
+
+```bash
+# Требует валидный OAuth-токен
+npm run test:integration
+```
+
+Полный прогон через реальный API Яндекс.Директ. Используется для:
+- Верификации кассет (не устарели ли?)
+- Обновления записей: `npm run test:record`
+- Smoke-тестов перед новой версией
+
+### Cassette Recording Rules
+
+| Правило | Почему |
+|---|---|
+| Кассеты коммитятся в git | Тесты работают без API-ключей |
+| Секреты маскируются (`access_token` → `REDACTED`) | Безопасность |
+| Кассеты перезаписываются перед мажорным релизом | Актуальность |
+| Edge cases остаются моками | Невоспроизводимы через API |
+| `.env.test` с тестовым OAuth-токеном в `.gitignore` | Не утечёт в репо |
 
 ## Requirements
 
