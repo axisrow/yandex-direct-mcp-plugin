@@ -108,7 +108,7 @@ class CliRecorder:
     def _find_cassette(self, args: list[str]) -> dict[str, Any] | None:
         """Search recordings for a cassette matching the given args."""
         # Look for exact args match in all cassette files
-        for cassette_file in self._recordings_dir.rglob("*.json"):
+        for cassette_file in sorted(self._recordings_dir.rglob("*.json")):
             try:
                 cassette = json.loads(cassette_file.read_text())
                 if cassette.get("args") == args:

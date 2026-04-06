@@ -66,7 +66,10 @@ def main() -> None:
         resp.raise_for_status()
         token_data = resp.json()
     except httpx.HTTPStatusError as e:
-        error = e.response.json() if e.response else {}
+        try:
+            error = e.response.json() if e.response else {}
+        except (ValueError, AttributeError):
+            error = {"error": "http_error", "error_description": str(e)}
         print(f"Error: {error.get('error', 'unknown')} -- {error.get('error_description', '')}")
         sys.exit(1)
 

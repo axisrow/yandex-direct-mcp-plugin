@@ -71,4 +71,5 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(sanitize())
+    sanitize()  # Always exit 0 — count is informational, not an error code
+
