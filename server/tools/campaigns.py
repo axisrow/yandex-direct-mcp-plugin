@@ -38,7 +38,7 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
         return ToolError(
             error="invalid_state",
             message=f"State must be 'ON' or 'OFF', got '{state}'",
-        ).to_dict()
+        ).__dict__
 
     try:
         runner = _get_runner()
@@ -53,13 +53,13 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
         return ToolError(
             error="auth_expired",
             message="Token expired. Re-authorization required.",
-        ).to_dict()
+        ).__dict__
     except CliNotFoundError as e:
-        return ToolError(error="cli_not_found", message=str(e)).to_dict()
+        return ToolError(error="cli_not_found", message=str(e)).__dict__
     except CliTimeoutError as e:
-        return ToolError(error="timeout", message=str(e)).to_dict()
+        return ToolError(error="timeout", message=str(e)).__dict__
     except Exception as e:
-        return ToolError(error="unknown", message=str(e)).to_dict()
+        return ToolError(error="unknown", message=str(e)).__dict__
 
 
 @mcp.tool()
@@ -74,7 +74,7 @@ def campaigns_update(id: str, state: str) -> dict:
         return ToolError(
             error="invalid_state",
             message=f"State must be 'ON' or 'OFF', got '{state}'",
-        ).to_dict()
+        ).__dict__
 
     try:
         runner = _get_runner()
@@ -85,13 +85,13 @@ def campaigns_update(id: str, state: str) -> dict:
         return ToolError(
             error="auth_expired",
             message="Token expired. Re-authorization required.",
-        ).to_dict()
+        ).__dict__
     except CliNotFoundError as e:
-        return ToolError(error="cli_not_found", message=str(e)).to_dict()
+        return ToolError(error="cli_not_found", message=str(e)).__dict__
     except CliTimeoutError as e:
-        return ToolError(error="timeout", message=str(e)).to_dict()
+        return ToolError(error="timeout", message=str(e)).__dict__
     except Exception as e:
         error_msg = str(e)
         if "not found" in error_msg.lower() or "404" in error_msg:
-            return ToolError(error="not_found", message=f"Campaign {id} not found").to_dict()
-        return ToolError(error="unknown", message=error_msg).to_dict()
+            return ToolError(error="not_found", message=f"Campaign {id} not found").__dict__
+        return ToolError(error="unknown", message=error_msg).__dict__

@@ -1,21 +1,15 @@
-<<<<<<< HEAD
-=======
 """File-based token storage for OAuth credentials."""
 
 import json
 import os
 import tempfile
 from pathlib import Path
->>>>>>> origin/main
 from typing import TypedDict
 
 
 class TokenData(TypedDict, total=False):
-<<<<<<< HEAD
-=======
     """OAuth token data stored on disk."""
 
->>>>>>> origin/main
     access_token: str
     refresh_token: str
     expires_at: float
@@ -24,9 +18,6 @@ class TokenData(TypedDict, total=False):
 
 
 class FileTokenStorage:
-<<<<<<< HEAD
-    pass
-=======
     """File-based token storage in CLAUDE_PLUGIN_DATA directory."""
 
     def __init__(self, path: Path | None = None) -> None:
@@ -65,4 +56,3 @@ class FileTokenStorage:
         except Exception:
             Path(tmp_path).unlink(missing_ok=True)
             raise
->>>>>>> origin/main
