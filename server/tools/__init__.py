@@ -36,12 +36,6 @@ def handle_cli_errors(func):
         except CliAuthError:
             new_token = _try_refresh_token()
             if new_token is not None:
-                global _token_getter
-
-                def _new_getter(_t=new_token):
-                    return _t
-
-                _token_getter = _new_getter
                 try:
                     return func(*args, **kwargs)
                 except CliAuthError:
