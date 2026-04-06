@@ -17,3 +17,9 @@ Thumbs.db
 
 # Plugin data (sensitive)
 plugin-data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
