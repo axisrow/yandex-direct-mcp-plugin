@@ -183,6 +183,61 @@ direct-cli --bw-token-ref "yandex-direct" --bw-login-ref "yandex-direct" \
 > покажи активные кампании
 ```
 
+## Testing
+
+```bash
+npm test
+```
+
+### Test Coverage
+
+| # | Сценарий | Что проверяем | Ожидаемый результат |
+|---|---|---|---|
+| **Auth** |
+| 1 | Обмен кода на токен | `auth_setup({ code })` → POST `/token` | `{ success: true, access_token, refresh_token }` |
+| 2 | Неверный код | `auth_setup({ code: "0000000" })` | `{ error: "invalid_grant" }` |
+| 3 | Просроченный код (>10 мин) | `auth_setup({ code })` после паузы | `{ error: "invalid_grant" }` |
+| 4 | Автообновление токена | Запрос с истёкшим `access_token` | Refresh → новый токен → повтор запроса → успех |
+| 5 | Refresh тоже протух | Оба токена невалидны | `{ error: "auth_expired", auth_url }` |
+| 6 | Статус токена | `auth_status()` | `{ valid: true/false, expires_in, login }` |
+| **Campaigns** |
+| 7 | Список всех кампаний | `campaigns_list({})` | Массив кампаний с Id, Name, State |
+| 8 | Фильтр по статусу | `campaigns_list({ state: "ON" })` | Только кампании с State=ON |
+| 9 | Включить кампанию | `campaigns_update({ id, state: "ON" })` | `{ success: true }` |
+| 10 | Несуществующая кампания | `campaigns_update({ id: "999" })` | `{ error: "not_found" }` |
+| **Ads** |
+| 11 | Объявления в кампании | `ads_list({ campaign_ids: "12345" })` | Массив объявлений |
+| 12 | Кампания второго аккаунта | `ads_list({ campaign_ids: "75000001" })` | `{ error: "foreign_campaign" }` |
+| 13 | Превышение лимита ID | `ads_list({ campaign_ids: "1,2,...,11" })` | `{ error: "batch_limit" }` |
+| **Keywords** |
+| 14 | Ключевые слова | `keywords_list({ campaign_ids: "12345" })` | Массив ключевых слов |
+| 15 | Изменить ставку | `keywords_update({ id, bid })` | `{ success: true }` |
+| **Reports** |
+| 16 | Статистика за период | `reports_get({ date_from, date_to })` | Массив с Impressions, Clicks, Cost |
+| **Edge cases** |
+| 17 | direct-cli не в PATH | Запрос без установленного CLI | `{ error: "cli_not_found" }` |
+| 18 | Пустой ответ API | Кампания без объявлений | `[]` (пустой массив, не ошибка) |
+| 19 | Таймаут direct-cli | CLI зависает >30с | `{ error: "timeout" }` |
+
+### Test Structure
+
+```
+server/
+├── __tests__/
+│   ├── auth.test.js          # Тесты 1-6: OAuth flow
+│   ├── campaigns.test.js     # Тесты 7-10: кампании
+│   ├── ads.test.js           # Тесты 11-13: объявления
+│   ├── keywords.test.js      # Тесты 14-15: ключевые слова
+│   ├── reports.test.js       # Тест 16: отчёты
+│   ├── edge-cases.test.js    # Тесты 17-19: граничные случаи
+│   └── fixtures/
+│       ├── campaigns.json    # Мок-данные кампаний
+│       ├── ads.json          # Мок-данные объявлений
+│       └── tokens.json       # Мок-токены
+```
+
+direct-cli мокается через `jest.mock('child_process')` — тесты не требуют реального API.
+
 ## Requirements
 
 - [direct-cli](https://github.com/axisrow/direct-cli) installed and in PATH
