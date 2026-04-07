@@ -36,7 +36,7 @@ def _exchange_or_set_token(code: str) -> dict:
         return {
             "error": "invalid_code",
             "message": "Введите код авторизации или OAuth-токен.",
-            "auth_url": _oauth.authorize_url,
+            "auth_url": _oauth.start_auth_flow(),
         }
 
     # Direct token (starts with y0_)
@@ -53,7 +53,7 @@ def _exchange_or_set_token(code: str) -> dict:
         return {
             "error": "invalid_code",
             "message": "Код должен содержать только буквы и цифры.",
-            "auth_url": _oauth.authorize_url,
+            "auth_url": _oauth.start_auth_flow(),
         }
 
     try:
