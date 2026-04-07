@@ -45,10 +45,13 @@ pip install -e ".[dev,docs]"
 # Run all tests (cassette-based, no API token needed)
 pytest
 
+# Run a single test
+pytest tests/test_campaigns.py::test_campaigns_list -v
+
 # Run only mock-based edge case tests
 pytest -m mocks
 
-# Run integration tests (requires live OAuth token)
+# Run integration tests (requires .env.test with YANDEX_OAUTH_TOKEN)
 pytest -m integration
 
 # Record cassettes from live API
@@ -63,6 +66,9 @@ python -m tests.audit
 # Interactive OAuth token setup
 python -m tests.setup
 
+# Run MCP server directly (for local testing)
+python3 server/main.py
+
 # Lint
 ruff check .
 ruff format .
@@ -73,6 +79,15 @@ mypy .
 # Build docs
 cd docs && make html
 ```
+
+## Environment Variables
+
+MCP server reads these at runtime:
+- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage (default: plugin data dir)
+- `CLAUDE_PLUGIN_OPTION_client_id` — Yandex OAuth app client ID
+- `CLAUDE_PLUGIN_OPTION_client_secret` — Yandex OAuth app client secret
+
+Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 
 ## Project Structure
 

@@ -1,0 +1,16 @@
+{
+  "command": "direct",
+  "args": [
+    "--token",
+    "REDACTED",
+    "keywords",
+    "get",
+    "--campaign-ids",
+    "62145823,63891204,65430917",
+    "--format",
+    "json"
+  ],
+  "stdout": "[\n  {\n    \"Id\": 26410293801,\n    \"Keyword\": \"курсы программирования онлайн\",\n    \"AdGroupId\": 4410293801,\n    \"CampaignId\": 62145823,\n    \"Bid\": 15000000,\n    \"ContextBid\": 8000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  },\n  {\n    \"Id\": 26410293802,\n    \"Keyword\": \"обучение python с нуля\",\n    \"AdGroupId\": 4410293801,\n    \"CampaignId\": 62145823,\n    \"Bid\": 18000000,\n    \"ContextBid\": 9000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  },\n  {\n    \"Id\": 26410293803,\n    \"Keyword\": \"онлайн школа программирования\",\n    \"AdGroupId\": 4410293802,\n    \"CampaignId\": 62145823,\n    \"Bid\": 12000000,\n    \"ContextBid\": 6000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  },\n  {\n    \"Id\": 26521847301,\n    \"Keyword\": \"курс python для начинающих\",\n    \"AdGroupId\": 4521847301,\n    \"CampaignId\": 63891204,\n    \"Bid\": 22000000,\n    \"ContextBid\": 11000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  },\n  {\n    \"Id\": 26521847302,\n    \"Keyword\": \"выучить программирование с нуля\",\n    \"AdGroupId\": 4521847301,\n    \"CampaignId\": 63891204,\n    \"Bid\": 19000000,\n    \"ContextBid\": 10000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  },\n  {\n    \"Id\": 26632928401,\n    \"Keyword\": \"купить курс программирования\",\n    \"AdGroupId\": 4632928401,\n    \"CampaignId\": 65430917,\n    \"Bid\": 25000000,\n    \"ContextBid\": 13000000,\n    \"Status\": \"ACCEPTED\",\n    \"ServingStatus\": \"ELIGIBLE\"\n  }\n]",
+  "stderr": "",
+  "returncode": 0
+}

@@ -5,11 +5,13 @@ Usage: python -m tests.sanitize
 Processes all JSON files in tests/recordings/, replacing:
 - Secrets (tokens, credentials) with REDACTED placeholders
 - Commercial data (names, keywords, costs) with anonymized values
+- Numeric IDs, ad texts, dates, bids — structural replacement via JSON parsing
 """
 
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
 
@@ -30,6 +32,69 @@ SANITIZE_RULES: list[tuple[str, str]] = [
     (r'"Href"\s*:\s*"https?://[^"]+"', '"Href": "https://example.com"'),
     (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "+7 (000) 000-00-00"),
 ]
+
+# Fields with numeric IDs — replaced consistently via id_map
+_ID_FIELDS = {"Id", "CampaignId", "AdGroupId", "KeywordId", "AdId"}
+
+# Text fields replaced with fixed placeholders
+_TEXT_REPLACEMENTS: dict[str, str] = {
+    "Text": "Текст объявления XXXXX",
+    "Body": "Текст XXXXX",
+    "Title": "Ad title placeholder",
+    "Title2": "Ad title2 placeholder",
+    "DisplayUrlPath": "example-path",
+}
+
+# Date fields replaced with fixed dates
+_DATE_REPLACEMENTS: dict[str, str] = {
+    "StartDate": "2024-01-01",
+    "EndDate": "2024-12-31",
+}
+
+# Numeric fields replaced with fixed values (micro-units: 1 RUB = 1 000 000)
+_NUMBER_REPLACEMENTS: dict[str, int] = {
+    "Bid": 1_000_000,
+    "ContextBid": 1_000_000,
+    "DailyBudget": 10_000_000,
+}
+
+
+def _anonymize_node(node: Any, id_map: dict[int, int]) -> Any:
+    """Recursively anonymize a parsed JSON node."""
+    if isinstance(node, list):
+        return [_anonymize_node(item, id_map) for item in node]
+
+    if isinstance(node, dict):
+        result: dict[str, Any] = {}
+        for key, value in node.items():
+            if key in _ID_FIELDS and isinstance(value, int) and value > 100_000:
+                if value not in id_map:
+                    id_map[value] = 10_000_000 + len(id_map) + 1
+                result[key] = id_map[value]
+            elif key in _TEXT_REPLACEMENTS and isinstance(value, str):
+                result[key] = _TEXT_REPLACEMENTS[key]
+            elif key in _DATE_REPLACEMENTS and isinstance(value, str) and value:
+                result[key] = _DATE_REPLACEMENTS[key]
+            elif key in _NUMBER_REPLACEMENTS and isinstance(value, (int, float)):
+                result[key] = _NUMBER_REPLACEMENTS[key]
+            else:
+                result[key] = _anonymize_node(value, id_map)
+        return result
+
+    return node
+
+
+def _anonymize_stdout(stdout: str, id_map: dict[int, int]) -> str:
+    """Parse stdout as JSON, anonymize commercial fields, re-serialize."""
+    stripped = stdout.strip()
+    if not stripped or stripped in ("[]", "{}"):
+        return stdout
+    try:
+        parsed = json.loads(stripped)
+        anonymized = _anonymize_node(parsed, id_map)
+        return json.dumps(anonymized, indent=2, ensure_ascii=False)
+    except json.JSONDecodeError:
+        return stdout  # not valid JSON — leave as-is
 
 
 def _sanitize_string(text: str) -> str:
@@ -62,11 +127,15 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
     """Sanitize all cassettes in the recordings directory.
 
     Parses each cassette as JSON, sanitizes the stdout and stderr string
-    fields using regex rules, then re-serializes to JSON.
+    fields using regex rules and structural JSON anonymization,
+    then re-serializes to JSON.
 
     Returns:
         Number of cassettes processed.
     """
+    # Shared ID map across all cassettes for cross-cassette consistency
+    id_map: dict[int, int] = {}
+
     count = 0
     for cassette in sorted(recordings_dir.rglob("*.json")):
         try:
@@ -75,7 +144,12 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
             print(f"  SKIP (invalid JSON): {cassette.relative_to(recordings_dir)}")
             continue
 
-        # Sanitize string fields that may contain CLI output with sensitive data
+        # Structural anonymization of stdout JSON first (IDs, texts, dates, bids)
+        # Must run before regex to avoid breaking JSON with partial replacements
+        if isinstance(data.get("stdout"), str):
+            data["stdout"] = _anonymize_stdout(data["stdout"], id_map)
+
+        # Regex sanitization (secrets, names, keywords, URLs) on already-structured output
         for field in ("stdout", "stderr"):
             if isinstance(data.get(field), str):
                 data[field] = _sanitize_string(data[field])
