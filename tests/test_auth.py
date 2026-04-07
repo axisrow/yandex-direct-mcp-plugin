@@ -1,13 +1,17 @@
-"""Tests for token storage, OAuth manager, and auth MCP tools."""
+"""Tests for token storage, OAuth manager (PKCE), and auth MCP tools."""
 
+import hashlib
 import json
 import time
+from base64 import urlsafe_b64encode
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
 from server.auth.oauth import OAuthError, OAuthManager
+from server.auth.pkce import generate_code_challenge, generate_code_verifier
 from server.auth.storage import FileTokenStorage, TokenData
 
 
@@ -132,12 +136,19 @@ class TestOAuthManager:
             },
         )
         manager = OAuthManager(storage=self._storage(tmp_path))
+        # Trigger PKCE verifier generation via authorize_url
+        _ = manager.authorize_url
         result = manager.exchange_code("1234567")
 
         assert result["access_token"] == "new-access-token"
         assert result["refresh_token"] == "new-refresh-token"
         assert result["login"] == "user@example.com"
         assert result["expires_at"] > time.time()
+
+        # Verify PKCE: code_verifier sent, client_secret NOT sent
+        call_data = mock_post.call_args[1].get("data", mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else {})
+        assert "code_verifier" in call_data
+        assert "client_secret" not in call_data
 
     @patch("server.auth.oauth.httpx.post")
     def test_exchange_code_fails_with_invalid_grant(
@@ -301,16 +312,10 @@ class TestAuthTools:
         assert result["access_token_prefix"] == "123456..."
         mock_oauth.exchange_code.assert_called_once_with("1234567")
 
-    def test_auth_setup_with_invalid_code_not_digits(self) -> None:
+    def test_auth_setup_with_invalid_code_special_chars(self) -> None:
         from server.tools.auth_tools import auth_setup
 
-        result = auth_setup("abcdefg")
-        assert result["error"] == "invalid_code"
-
-    def test_auth_setup_with_invalid_code_wrong_length(self) -> None:
-        from server.tools.auth_tools import auth_setup
-
-        result = auth_setup("123456")
+        result = auth_setup("abc!@#$")
         assert result["error"] == "invalid_code"
 
     def test_auth_setup_with_empty_code(self) -> None:
@@ -318,6 +323,20 @@ class TestAuthTools:
 
         result = auth_setup("")
         assert result["error"] == "invalid_code"
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_setup_with_direct_token(self, mock_oauth) -> None:
+        mock_oauth.set_token.return_value = TokenData(
+            access_token="y0_test_token_12345",
+            refresh_token="",
+            expires_at=1700000000.0,
+        )
+        from server.tools.auth_tools import auth_setup
+
+        result = auth_setup("y0_test_token_12345")
+        assert result["success"] is True
+        assert result["method"] == "direct_token"
+        mock_oauth.set_token.assert_called_once_with("y0_test_token_12345")
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_setup_propagates_oauth_errors(self, mock_oauth) -> None:
@@ -330,3 +349,114 @@ class TestAuthTools:
         result = auth_setup("1234567")
         assert result["error"] == "invalid_grant"
         assert "просроченный" in result["message"]
+
+
+# ---------------------------------------------------------------------------
+# PKCE Tests
+# ---------------------------------------------------------------------------
+
+
+class TestPKCE:
+    """Tests for PKCE code_verifier / code_challenge generation."""
+
+    def test_generate_code_verifier_length(self) -> None:
+        verifier = generate_code_verifier()
+        assert 43 <= len(verifier) <= 128
+
+    def test_generate_code_verifier_charset(self) -> None:
+        import re
+
+        verifier = generate_code_verifier()
+        assert re.fullmatch(r"[A-Za-z0-9_\-]+", verifier)
+
+    def test_generate_code_challenge_s256(self) -> None:
+        verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        expected_digest = hashlib.sha256(verifier.encode("ascii")).digest()
+        expected = urlsafe_b64encode(expected_digest).rstrip(b"=").decode("ascii")
+        assert generate_code_challenge(verifier) == expected
+
+    def test_authorize_url_contains_pkce_params(self) -> None:
+        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        manager = OAuthManager(storage=storage)
+        url = manager.authorize_url
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+
+        assert "code_challenge" in params
+        assert params["code_challenge_method"] == ["S256"]
+        assert params["response_type"] == ["code"]
+
+    @patch("server.auth.oauth.httpx.post")
+    def test_exchange_sends_verifier_not_secret(self, mock_post) -> None:
+        mock_post.return_value = _make_httpx_response(
+            200,
+            {
+                "access_token": "tok",
+                "refresh_token": "ref",
+                "expires_in": 3600,
+            },
+        )
+        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        manager = OAuthManager(storage=storage)
+        _ = manager.authorize_url  # generates code_verifier
+        manager.exchange_code("1234567")
+
+        call_kwargs = mock_post.call_args
+        sent_data = call_kwargs.kwargs.get("data", {})
+        assert "code_verifier" in sent_data
+        assert "client_secret" not in sent_data
+
+    def test_set_token_saves_directly(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        result = manager.set_token("y0_direct_token_value")
+        assert result["access_token"] == "y0_direct_token_value"
+        loaded = storage.load()
+        assert loaded is not None
+        assert loaded["access_token"] == "y0_direct_token_value"
+
+    @patch("server.auth.oauth.httpx.post")
+    def test_exchange_with_client_secret_no_pkce(self, mock_post, tmp_path: Path) -> None:
+        mock_post.return_value = _make_httpx_response(
+            200, {"access_token": "tok", "expires_in": 3600},
+        )
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        manager._client_secret = "my_secret"
+        manager.exchange_code("somecode")
+        sent_data = mock_post.call_args.kwargs.get("data", {})
+        assert sent_data["client_secret"] == "my_secret"
+        assert "code_verifier" not in sent_data
+
+    def test_env_token_takes_priority(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        storage.save(TokenData(access_token="stored", expires_at=time.time() + 3600))
+        manager = OAuthManager(storage=storage)
+        manager._static_token = "y0_from_env"
+        assert manager.get_valid_token() == "y0_from_env"
+
+    def test_yandex_direct_token_env_priority(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("YANDEX_DIRECT_TOKEN", "y0_from_env_var")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "y0_from_plugin")
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        assert manager._static_token == "y0_from_env_var"
+
+    def test_authorize_url_no_pkce_when_secret(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        manager._client_secret = "secret"
+        url = manager.authorize_url
+        assert "code_challenge" not in url
+
+    def test_code_verifier_cleared_after_exchange(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        _ = manager.authorize_url
+        assert manager._verifier_path.exists()
+        with patch("server.auth.oauth.httpx.post") as mock_post:
+            mock_post.return_value = _make_httpx_response(
+                200, {"access_token": "t", "expires_in": 3600}
+            )
+            manager.exchange_code("1234567")
+        assert not manager._verifier_path.exists()

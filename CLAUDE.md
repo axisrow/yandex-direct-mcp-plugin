@@ -82,10 +82,45 @@ cd docs && make html
 
 ## Environment Variables
 
-MCP server reads these at runtime:
-- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage (default: plugin data dir)
-- `CLAUDE_PLUGIN_OPTION_client_id` — Yandex OAuth app client ID
-- `CLAUDE_PLUGIN_OPTION_client_secret` — Yandex OAuth app client secret
+## Authentication
+
+Four methods, from simplest to advanced:
+
+### 1. Environment variable (recommended)
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "env": {
+    "YANDEX_DIRECT_TOKEN": "y0_..."
+  }
+}
+```
+Restart Claude Code. Done.
+
+### 2. Plugin settings
+
+Set `token` in plugin config — it arrives as `CLAUDE_PLUGIN_OPTION_token`.
+
+### 3. OAuth PKCE (interactive, no secrets)
+
+Run `auth_setup` → get a link → log in → paste the code. Uses built-in OAuth app, no `client_secret` needed.
+
+### 4. Custom OAuth app (advanced)
+
+Set `client_id` + `client_secret` in plugin settings for your own registered Yandex app. Disables PKCE, uses classic OAuth flow.
+
+### Priority
+
+`YANDEX_DIRECT_TOKEN` > `CLAUDE_PLUGIN_OPTION_token` > stored OAuth token (auto-refresh).
+
+### Environment variables
+
+- `YANDEX_DIRECT_TOKEN` — direct OAuth token (highest priority)
+- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage
+- `CLAUDE_PLUGIN_OPTION_token` — token via plugin settings
+- `CLAUDE_PLUGIN_OPTION_client_id` — custom OAuth app client ID
+- `CLAUDE_PLUGIN_OPTION_client_secret` — custom OAuth app secret (disables PKCE)
 
 Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 

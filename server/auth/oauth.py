@@ -1,10 +1,19 @@
-"""OAuth 2.0 manager for Yandex.Direct API authentication."""
+"""OAuth 2.0 manager for Yandex.Direct API authentication.
+
+Supports three auth modes:
+1. PKCE (default) — built-in app, no secrets needed
+2. Direct token — user provides a ready OAuth token
+3. Custom app — user's own client_id + client_secret
+"""
 
 import os
 import time
+from pathlib import Path
+from urllib.parse import urlencode
 
 import httpx
 
+from server.auth.pkce import generate_code_challenge, generate_code_verifier
 from server.auth.storage import FileTokenStorage, TokenData
 
 
@@ -15,6 +24,7 @@ _ERROR_MESSAGES: dict[str, str] = {
 }
 
 _REFRESH_BUFFER_SECONDS = 60
+_DEFAULT_CLIENT_ID = "dcf15d9625f6471d94d6d054d52017ba"
 
 
 class OAuthError(Exception):
@@ -35,43 +45,111 @@ class OAuthError(Exception):
 
 
 class OAuthManager:
-    """Manages OAuth 2.0 token lifecycle for Yandex.Direct."""
+    """Manages OAuth 2.0 token lifecycle for Yandex.Direct using PKCE."""
 
     TOKEN_URL = "https://oauth.yandex.ru/token"
     AUTHORIZE_URL = "https://oauth.yandex.ru/authorize"
 
     def __init__(self, storage: FileTokenStorage | None = None) -> None:
         self._storage = storage or FileTokenStorage()
-        self._client_id = os.environ.get("CLAUDE_PLUGIN_OPTION_client_id", "")
-        self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret", "")
+        self._client_id = (
+            os.environ.get("CLAUDE_PLUGIN_OPTION_client_id") or _DEFAULT_CLIENT_ID
+        )
+        self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret") or ""
+        self._static_token = (
+            os.environ.get("YANDEX_DIRECT_TOKEN")
+            or os.environ.get("CLAUDE_PLUGIN_OPTION_token")
+            or ""
+        )
+
+    @property
+    def _use_pkce(self) -> bool:
+        """PKCE mode when no client_secret is configured."""
+        return not self._client_secret
+
+    @property
+    def _verifier_path(self) -> Path:
+        return self._storage.path.parent / "pkce_verifier.txt"
+
+    def _save_verifier(self, verifier: str) -> None:
+        self._verifier_path.parent.mkdir(parents=True, exist_ok=True)
+        self._verifier_path.write_text(verifier)
+
+    def _load_verifier(self) -> str | None:
+        if self._verifier_path.exists():
+            return self._verifier_path.read_text().strip() or None
+        return None
+
+    def _clear_verifier(self) -> None:
+        self._verifier_path.unlink(missing_ok=True)
 
     @property
     def authorize_url(self) -> str:
-        """Return the full authorization URL for the user to visit."""
-        return f"{self.AUTHORIZE_URL}?response_type=code&client_id={self._client_id}"
+        """Return the full authorization URL (PKCE or classic depending on config)."""
+        params: dict[str, str] = {
+            "response_type": "code",
+            "client_id": self._client_id,
+        }
+        if self._use_pkce:
+            verifier = generate_code_verifier()
+            self._save_verifier(verifier)
+            params["code_challenge"] = generate_code_challenge(verifier)
+            params["code_challenge_method"] = "S256"
+        return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
+
+    def set_token(self, token: str) -> TokenData:
+        """Save a pre-existing OAuth token directly (no exchange needed)."""
+        result = TokenData(
+            access_token=token,
+            refresh_token="",
+            expires_at=time.time() + 365 * 24 * 3600,
+            scope="",
+            login="",
+        )
+        self._storage.save(result)
+        return result
 
     def exchange_code(self, code: str) -> TokenData:
-        """Exchange an authorization code for tokens."""
-        resp = self._token_request({"grant_type": "authorization_code", "code": code})
+        """Exchange an authorization code for tokens (PKCE or client_secret)."""
+        data: dict[str, str] = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": self._client_id,
+        }
+        if self._use_pkce:
+            verifier = self._load_verifier()
+            if verifier:
+                data["code_verifier"] = verifier
+        else:
+            data["client_secret"] = self._client_secret
+        resp = self._token_request(data)
+        self._clear_verifier()
         return self._parse_and_save(resp, fallback_refresh_token="")
 
     def refresh_token(self) -> TokenData:
         """Refresh the access token using a stored refresh token."""
-        data = self._storage.load()
-        if not data or not data.get("refresh_token"):
+        stored = self._storage.load()
+        if not stored or not stored.get("refresh_token"):
             raise OAuthError(
                 "auth_expired", "No refresh token available", self.authorize_url
             )
 
         resp = self._token_request(
-            {"grant_type": "refresh_token", "refresh_token": data["refresh_token"]}
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": stored["refresh_token"],
+                "client_id": self._client_id,
+            }
         )
         return self._parse_and_save(
-            resp, fallback_refresh_token=data.get("refresh_token", "")
+            resp, fallback_refresh_token=stored.get("refresh_token", "")
         )
 
     def get_valid_token(self) -> str:
-        """Get a valid access token, auto-refreshing if expired or about to expire."""
+        """Get a valid access token. Priority: env token > stored token (auto-refresh)."""
+        if self._static_token:
+            return self._static_token
+
         data = self._storage.load()
         if not data:
             raise OAuthError("auth_expired", "No tokens stored", self.authorize_url)
@@ -97,9 +175,6 @@ class OAuthManager:
 
     def _token_request(self, data: dict) -> httpx.Response:
         """POST to the token endpoint, raising OAuthError on HTTP errors."""
-        data.update(
-            {"client_id": self._client_id, "client_secret": self._client_secret}
-        )
         try:
             resp = httpx.post(self.TOKEN_URL, data=data, timeout=30)
             resp.raise_for_status()
