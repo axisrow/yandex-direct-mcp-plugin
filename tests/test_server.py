@@ -57,8 +57,7 @@ def test_mcp_server_registers_all_tools():
 
         # 2. notifications/initialized
         proc.stdin.write(
-            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"})
-            + "\n"
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n"
         )
         proc.stdin.flush()
 
