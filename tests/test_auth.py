@@ -162,6 +162,7 @@ class TestOAuthManager:
             },
         )
         manager = OAuthManager(storage=self._storage(tmp_path))
+        _ = manager.authorize_url  # generate PKCE verifier
 
         with pytest.raises(OAuthError) as exc_info:
             manager.exchange_code("bad-code")
@@ -375,8 +376,8 @@ class TestPKCE:
         expected = urlsafe_b64encode(expected_digest).rstrip(b"=").decode("ascii")
         assert generate_code_challenge(verifier) == expected
 
-    def test_authorize_url_contains_pkce_params(self) -> None:
-        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+    def test_authorize_url_contains_pkce_params(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         url = manager.authorize_url
         parsed = urlparse(url)
@@ -387,7 +388,7 @@ class TestPKCE:
         assert params["response_type"] == ["code"]
 
     @patch("server.auth.oauth.httpx.post")
-    def test_exchange_sends_verifier_not_secret(self, mock_post) -> None:
+    def test_exchange_sends_verifier_not_secret(self, mock_post, tmp_path: Path) -> None:
         mock_post.return_value = _make_httpx_response(
             200,
             {
@@ -396,7 +397,7 @@ class TestPKCE:
                 "expires_in": 3600,
             },
         )
-        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         _ = manager.authorize_url  # generates code_verifier
         manager.exchange_code("1234567")
