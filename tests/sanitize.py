@@ -55,7 +55,7 @@ _DATE_REPLACEMENTS: dict[str, str] = {
 _NUMBER_REPLACEMENTS: dict[str, int] = {
     "Bid": 1_000_000,
     "ContextBid": 1_000_000,
-    "DailyBudget": 10_000_000,
+    "Amount": 10_000_000,
 }
 
 
@@ -88,13 +88,13 @@ def _anonymize_stdout(stdout: str, id_map: dict[int, int]) -> str:
     """Parse stdout as JSON, anonymize commercial fields, re-serialize."""
     stripped = stdout.strip()
     if not stripped or stripped in ("[]", "{}"):
-        return stdout
+        return stripped
     try:
         parsed = json.loads(stripped)
         anonymized = _anonymize_node(parsed, id_map)
         return json.dumps(anonymized, indent=2, ensure_ascii=False)
     except json.JSONDecodeError:
-        return stdout  # not valid JSON — leave as-is
+        return stripped  # not valid JSON — leave as-is
 
 
 def _sanitize_string(text: str) -> str:
@@ -107,8 +107,8 @@ def _sanitize_string(text: str) -> str:
 SECRET_FLAGS = {"--token", "--client-secret", "--client-id", "--password"}
 
 
-def _sanitize_args(args: list) -> list:
-    """Redact values following secret flags in the args list."""
+def _sanitize_args(args: list, id_map: dict[int, int]) -> list:
+    """Redact values following secret flags and remap numeric IDs in args."""
     result = []
     skip_next = False
     for arg in args:
@@ -118,6 +118,16 @@ def _sanitize_args(args: list) -> list:
         elif arg in SECRET_FLAGS:
             result.append(arg)
             skip_next = True
+        elif isinstance(arg, str):
+            # Remap numeric IDs found in comma-separated arg values (e.g. --campaign-ids)
+            parts = arg.split(",")
+            if len(parts) > 1 and all(p.strip().isdigit() for p in parts):
+                remapped = [
+                    str(id_map.get(int(p.strip()), int(p.strip()))) for p in parts
+                ]
+                result.append(",".join(remapped))
+            else:
+                result.append(arg)
         else:
             result.append(arg)
     return result
@@ -156,7 +166,7 @@ def sanitize(recordings_dir: Path = RECORDINGS_DIR) -> int:
 
         # Sanitize args array — redact values after secret flags
         if isinstance(data.get("args"), list):
-            data["args"] = _sanitize_args(data["args"])
+            data["args"] = _sanitize_args(data["args"], id_map)
 
         cassette.write_text(json.dumps(data, indent=2, ensure_ascii=False))
         count += 1
