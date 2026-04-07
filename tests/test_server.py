@@ -20,7 +20,7 @@ EXPECTED_TOOLS = {
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _read_response(proc: subprocess.Popen) -> dict:
+def _read_response(proc: subprocess.Popen[str]) -> dict:
     """Read a single JSON-RPC response line from server stdout."""
     line = proc.stdout.readline()
     assert line, "Server closed stdout unexpectedly"
