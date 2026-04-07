@@ -1,16 +1,17 @@
-"""OAuth 2.0 manager for Yandex.Direct API authentication."""
+"""OAuth 2.0 manager for Yandex.Direct API authentication with PKCE."""
 
 import os
 import time
+from urllib.parse import urlencode
 
 import httpx
 
+from server.auth.pkce import generate_code_challenge, generate_code_verifier
 from server.auth.storage import FileTokenStorage, TokenData
 
 
 _ERROR_MESSAGES: dict[str, str] = {
     "invalid_grant": "Неверный или просроченный код. Код действует 10 минут.",
-    "invalid_client": "Неверный client_id или client_secret.",
     "unauthorized_client": "Приложение не авторизовано.",
 }
 
@@ -35,7 +36,7 @@ class OAuthError(Exception):
 
 
 class OAuthManager:
-    """Manages OAuth 2.0 token lifecycle for Yandex.Direct."""
+    """Manages OAuth 2.0 token lifecycle for Yandex.Direct using PKCE."""
 
     TOKEN_URL = "https://oauth.yandex.ru/token"
     AUTHORIZE_URL = "https://oauth.yandex.ru/authorize"
@@ -43,31 +44,50 @@ class OAuthManager:
     def __init__(self, storage: FileTokenStorage | None = None) -> None:
         self._storage = storage or FileTokenStorage()
         self._client_id = os.environ.get("CLAUDE_PLUGIN_OPTION_client_id", "")
-        self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret", "")
+        self._code_verifier: str | None = None
 
     @property
     def authorize_url(self) -> str:
-        """Return the full authorization URL for the user to visit."""
-        return f"{self.AUTHORIZE_URL}?response_type=code&client_id={self._client_id}"
+        """Return the full authorization URL with PKCE challenge."""
+        self._code_verifier = generate_code_verifier()
+        params = {
+            "response_type": "code",
+            "client_id": self._client_id,
+            "code_challenge": generate_code_challenge(self._code_verifier),
+            "code_challenge_method": "S256",
+        }
+        return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
     def exchange_code(self, code: str) -> TokenData:
-        """Exchange an authorization code for tokens."""
-        resp = self._token_request({"grant_type": "authorization_code", "code": code})
+        """Exchange an authorization code for tokens using PKCE verifier."""
+        data: dict[str, str] = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": self._client_id,
+        }
+        if self._code_verifier:
+            data["code_verifier"] = self._code_verifier
+        resp = self._token_request(data)
+        self._code_verifier = None
         return self._parse_and_save(resp, fallback_refresh_token="")
 
     def refresh_token(self) -> TokenData:
         """Refresh the access token using a stored refresh token."""
-        data = self._storage.load()
-        if not data or not data.get("refresh_token"):
+        stored = self._storage.load()
+        if not stored or not stored.get("refresh_token"):
             raise OAuthError(
                 "auth_expired", "No refresh token available", self.authorize_url
             )
 
         resp = self._token_request(
-            {"grant_type": "refresh_token", "refresh_token": data["refresh_token"]}
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": stored["refresh_token"],
+                "client_id": self._client_id,
+            }
         )
         return self._parse_and_save(
-            resp, fallback_refresh_token=data.get("refresh_token", "")
+            resp, fallback_refresh_token=stored.get("refresh_token", "")
         )
 
     def get_valid_token(self) -> str:
@@ -97,9 +117,6 @@ class OAuthManager:
 
     def _token_request(self, data: dict) -> httpx.Response:
         """POST to the token endpoint, raising OAuthError on HTTP errors."""
-        data.update(
-            {"client_id": self._client_id, "client_secret": self._client_secret}
-        )
         try:
             resp = httpx.post(self.TOKEN_URL, data=data, timeout=30)
             resp.raise_for_status()

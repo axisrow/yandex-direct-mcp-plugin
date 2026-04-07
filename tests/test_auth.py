@@ -1,13 +1,17 @@
-"""Tests for token storage, OAuth manager, and auth MCP tools."""
+"""Tests for token storage, OAuth manager (PKCE), and auth MCP tools."""
 
+import hashlib
 import json
 import time
+from base64 import urlsafe_b64encode
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
 from server.auth.oauth import OAuthError, OAuthManager
+from server.auth.pkce import generate_code_challenge, generate_code_verifier
 from server.auth.storage import FileTokenStorage, TokenData
 
 
@@ -132,12 +136,19 @@ class TestOAuthManager:
             },
         )
         manager = OAuthManager(storage=self._storage(tmp_path))
+        # Trigger PKCE verifier generation via authorize_url
+        _ = manager.authorize_url
         result = manager.exchange_code("1234567")
 
         assert result["access_token"] == "new-access-token"
         assert result["refresh_token"] == "new-refresh-token"
         assert result["login"] == "user@example.com"
         assert result["expires_at"] > time.time()
+
+        # Verify PKCE: code_verifier sent, client_secret NOT sent
+        call_data = mock_post.call_args[1].get("data", mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else {})
+        assert "code_verifier" in call_data
+        assert "client_secret" not in call_data
 
     @patch("server.auth.oauth.httpx.post")
     def test_exchange_code_fails_with_invalid_grant(
@@ -330,3 +341,71 @@ class TestAuthTools:
         result = auth_setup("1234567")
         assert result["error"] == "invalid_grant"
         assert "просроченный" in result["message"]
+
+
+# ---------------------------------------------------------------------------
+# PKCE Tests
+# ---------------------------------------------------------------------------
+
+
+class TestPKCE:
+    """Tests for PKCE code_verifier / code_challenge generation."""
+
+    def test_generate_code_verifier_length(self) -> None:
+        verifier = generate_code_verifier()
+        assert 43 <= len(verifier) <= 128
+
+    def test_generate_code_verifier_charset(self) -> None:
+        import re
+
+        verifier = generate_code_verifier()
+        assert re.fullmatch(r"[A-Za-z0-9_\-]+", verifier)
+
+    def test_generate_code_challenge_s256(self) -> None:
+        verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        expected_digest = hashlib.sha256(verifier.encode("ascii")).digest()
+        expected = urlsafe_b64encode(expected_digest).rstrip(b"=").decode("ascii")
+        assert generate_code_challenge(verifier) == expected
+
+    def test_authorize_url_contains_pkce_params(self) -> None:
+        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        manager = OAuthManager(storage=storage)
+        url = manager.authorize_url
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+
+        assert "code_challenge" in params
+        assert params["code_challenge_method"] == ["S256"]
+        assert params["response_type"] == ["code"]
+
+    @patch("server.auth.oauth.httpx.post")
+    def test_exchange_sends_verifier_not_secret(self, mock_post) -> None:
+        mock_post.return_value = _make_httpx_response(
+            200,
+            {
+                "access_token": "tok",
+                "refresh_token": "ref",
+                "expires_in": 3600,
+            },
+        )
+        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        manager = OAuthManager(storage=storage)
+        _ = manager.authorize_url  # generates code_verifier
+        manager.exchange_code("1234567")
+
+        call_kwargs = mock_post.call_args
+        sent_data = call_kwargs.kwargs.get("data", {})
+        assert "code_verifier" in sent_data
+        assert "client_secret" not in sent_data
+
+    def test_code_verifier_cleared_after_exchange(self) -> None:
+        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+        manager = OAuthManager(storage=storage)
+        _ = manager.authorize_url
+        assert manager._code_verifier is not None
+        with patch("server.auth.oauth.httpx.post") as mock_post:
+            mock_post.return_value = _make_httpx_response(
+                200, {"access_token": "t", "expires_in": 3600}
+            )
+            manager.exchange_code("1234567")
+        assert manager._code_verifier is None

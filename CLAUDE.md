@@ -84,8 +84,9 @@ cd docs && make html
 
 MCP server reads these at runtime:
 - `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage (default: plugin data dir)
-- `CLAUDE_PLUGIN_OPTION_client_id` — Yandex OAuth app client ID
-- `CLAUDE_PLUGIN_OPTION_client_secret` — Yandex OAuth app client secret
+- `CLAUDE_PLUGIN_OPTION_client_id` — Yandex OAuth app client ID (optional, built-in app used by default)
+
+Authentication uses PKCE (Proof Key for Code Exchange) — no `client_secret` needed.
 
 Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 
