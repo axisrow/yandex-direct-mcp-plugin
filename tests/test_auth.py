@@ -146,7 +146,9 @@ class TestOAuthManager:
         assert result["expires_at"] > time.time()
 
         # Verify PKCE: code_verifier sent, client_secret NOT sent
-        call_data = mock_post.call_args[1].get("data", mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else {})
+        call_data = mock_post.call_args[1].get(
+            "data", mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else {}
+        )
         assert "code_verifier" in call_data
         assert "client_secret" not in call_data
 
@@ -388,7 +390,9 @@ class TestPKCE:
         assert params["response_type"] == ["code"]
 
     @patch("server.auth.oauth.httpx.post")
-    def test_exchange_sends_verifier_not_secret(self, mock_post, tmp_path: Path) -> None:
+    def test_exchange_sends_verifier_not_secret(
+        self, mock_post, tmp_path: Path
+    ) -> None:
         mock_post.return_value = _make_httpx_response(
             200,
             {
@@ -417,9 +421,12 @@ class TestPKCE:
         assert loaded["access_token"] == "y0_direct_token_value"
 
     @patch("server.auth.oauth.httpx.post")
-    def test_exchange_with_client_secret_no_pkce(self, mock_post, tmp_path: Path) -> None:
+    def test_exchange_with_client_secret_no_pkce(
+        self, mock_post, tmp_path: Path
+    ) -> None:
         mock_post.return_value = _make_httpx_response(
-            200, {"access_token": "tok", "expires_in": 3600},
+            200,
+            {"access_token": "tok", "expires_in": 3600},
         )
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
@@ -436,7 +443,9 @@ class TestPKCE:
         manager._static_token = "y0_from_env"
         assert manager.get_valid_token() == "y0_from_env"
 
-    def test_yandex_direct_token_env_priority(self, tmp_path: Path, monkeypatch) -> None:
+    def test_yandex_direct_token_env_priority(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         monkeypatch.setenv("YANDEX_DIRECT_TOKEN", "y0_from_env_var")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "y0_from_plugin")
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
