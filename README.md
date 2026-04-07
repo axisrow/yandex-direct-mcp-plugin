@@ -60,11 +60,16 @@ Set `token` in plugin configuration — will be available as `CLAUDE_PLUGIN_OPTI
 
 ### 3. OAuth PKCE (interactive)
 
-No configuration needed. Run `auth_setup` — get a link, log in to Yandex, paste the code:
+No configuration needed. Use `auth_login` for a fully interactive flow (opens browser, prompts for code):
+```
+mcp__yandex_direct__auth_login()
+```
+
+Or manually with `auth_setup`:
 ```
 mcp__yandex_direct__auth_setup(code="nvyaod2jwwf2ctyu")
 ```
-Uses built-in OAuth app. No `client_secret` required.
+Uses built-in OAuth app. No `client_secret` required. Token is saved to disk and auto-refreshed.
 
 ### 4. Custom OAuth app
 
@@ -88,7 +93,8 @@ mcp__yandex_direct__auth_setup(code="y0_AgAAAA...")
 | `keywords_update` | Update keyword bids |
 | `reports_get` | Get campaign statistics |
 | `auth_status` | Check OAuth token status |
-| `auth_setup` | Submit authorization code |
+| `auth_setup` | Submit authorization code or direct token |
+| `auth_login` | Interactive OAuth flow (browser + code input via elicitation) |
 
 ## Skills
 

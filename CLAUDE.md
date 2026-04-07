@@ -104,7 +104,7 @@ Set `token` in plugin config — it arrives as `CLAUDE_PLUGIN_OPTION_token`.
 
 ### 3. OAuth PKCE (interactive, no secrets)
 
-Run `auth_setup` → get a link → log in → paste the code. Uses built-in OAuth app, no `client_secret` needed.
+Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code entry). Uses built-in OAuth app, no `client_secret` needed. Token is saved to disk and auto-refreshed.
 
 ### 4. Custom OAuth app (advanced)
 
@@ -146,7 +146,7 @@ yandex-direct-mcp-plugin/
 │       ├── ads.py               # ads_list
 │       ├── keywords.py          # keywords_list, keywords_update
 │       ├── reports.py           # reports_get
-│       └── auth_tools.py        # auth_status, auth_setup
+│       └── auth_tools.py        # auth_status, auth_setup, auth_login + oauth_login prompt
 ├── skills/
 │   ├── yandex-direct/SKILL.md   # Campaign management skill
 │   └── direct-ads/SKILL.md      # Ad copywriting skill
@@ -162,7 +162,7 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (8 total)
+## MCP Tools (9 total) + 1 Prompt
 
 | Tool | Purpose |
 |---|---|
@@ -173,7 +173,12 @@ yandex-direct-mcp-plugin/
 | `keywords_update` | Update keyword bid (in micro-units: 15 RUB = 15000000) |
 | `reports_get` | Campaign statistics for date range |
 | `auth_status` | Check OAuth token validity |
-| `auth_setup` | Submit 7-digit authorization code |
+| `auth_setup` | Submit authorization code or direct token |
+| `auth_login` | Interactive OAuth flow with elicitation (browser redirect + code input) |
+
+| Prompt | Purpose |
+|---|---|
+| `oauth_login` | Start OAuth PKCE authorization flow |
 
 ## Testing Model
 
