@@ -42,8 +42,12 @@ class OAuthManager:
 
     def __init__(self, storage: FileTokenStorage | None = None) -> None:
         self._storage = storage or FileTokenStorage()
-        self._client_id = os.environ.get("CLAUDE_PLUGIN_OPTION_client_id", "")
-        self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret", "")
+        self._client_id = os.environ.get(
+            "CLAUDE_PLUGIN_OPTION_client_id", "dcf15d9625f6471d94d6d054d52017ba"
+        )
+        self._client_secret = os.environ.get(
+            "CLAUDE_PLUGIN_OPTION_client_secret", "c168aacc471f47a09222a4c4affc10d5"
+        )
 
     @property
     def authorize_url(self) -> str:

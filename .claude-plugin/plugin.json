@@ -6,10 +6,10 @@
   "keywords": ["yandex", "direct", "advertising", "oauth"],
   "userConfig": {
     "client_id": {
-      "description": "Client ID приложения Яндекс OAuth"
+      "description": "Client ID приложения Яндекс OAuth (по умолчанию используется встроенное приложение)"
     },
     "client_secret": {
-      "description": "Client Secret приложения Яндекс OAuth",
+      "description": "Client Secret приложения Яндекс OAuth (по умолчанию используется встроенное приложение)",
       "sensitive": true
     }
   }
