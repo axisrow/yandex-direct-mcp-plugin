@@ -1,3 +1,11 @@
+import sys
+
+# Prevent dual-import: when run as `python3 server/main.py`, register
+# the __main__ module under its canonical name so that tool modules
+# doing `from server.main import mcp` get the same instance.
+if __name__ == "__main__":
+    sys.modules.setdefault("server.main", sys.modules["__main__"])
+
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("yandex-direct-mcp", json_response=True)
