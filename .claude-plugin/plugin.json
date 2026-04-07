@@ -3,18 +3,5 @@
   "version": "1.0.0",
   "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
   "author": {"name": "axisrow"},
-  "keywords": ["yandex", "direct", "advertising", "oauth"],
-  "userConfig": {
-    "token": {
-      "description": "Готовый OAuth-токен Яндекса (начинается с y0_). Самый простой способ — вставьте токен и всё.",
-      "sensitive": true
-    },
-    "client_id": {
-      "description": "Client ID своего OAuth-приложения (опционально, есть встроенное)"
-    },
-    "client_secret": {
-      "description": "Client Secret своего OAuth-приложения (опционально, без него используется PKCE)",
-      "sensitive": true
-    }
-  }
+  "keywords": ["yandex", "direct", "advertising", "oauth"]
 }

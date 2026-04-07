@@ -1,6 +1,7 @@
 """MCP tools and prompts for OAuth authentication management."""
 
 import time
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -90,18 +91,27 @@ def auth_setup(code: str) -> dict:
     return _exchange_or_set_token(code)
 
 
-class AuthCode(BaseModel):
-    """Schema for eliciting authorization code from user."""
+class AuthMethodChoice(BaseModel):
+    """Schema for choosing authentication method."""
 
-    code: str = Field(description="Код авторизации (7 цифр) или OAuth-токен (y0_...)")
+    method: Literal["pkce", "token"] = Field(
+        description="pkce — авторизация через браузер (рекомендуется), "
+        "token — вставить готовый OAuth-токен"
+    )
+
+
+class AuthCredential(BaseModel):
+    """Schema for eliciting an authorization code or token from user."""
+
+    value: str = Field(description="Код авторизации (7 цифр) или OAuth-токен (y0_...)")
 
 
 @mcp.tool()
 async def auth_login(ctx: Context) -> dict:
-    """Start interactive OAuth login flow with browser redirect.
+    """Start interactive OAuth login flow.
 
-    Opens the Yandex OAuth page for the user, then collects the authorization code.
-    No arguments needed — everything happens interactively.
+    Asks the user how they want to authenticate, then guides them through
+    the chosen flow. No arguments needed — everything happens interactively.
     """
     # Check if already authenticated
     status = _oauth.get_status()
@@ -109,27 +119,42 @@ async def auth_login(ctx: Context) -> dict:
         status["expires_in_human"] = _human_readable_time(status.get("expires_in", 0))
         return {"already_authenticated": True, **status}
 
-    # Generate PKCE URL, persist verifier, redirect user
+    # Step 1: Ask how to authenticate
+    choice = await ctx.elicit(
+        message="Как хотите авторизоваться в Яндекс.Директ?",
+        schema=AuthMethodChoice,
+    )
+    if choice.action != "accept" or not choice.data:
+        return {"cancelled": True, "message": "Авторизация отменена."}
+
+    # Step 2a: Direct token
+    if choice.data.method == "token":
+        result = await ctx.elicit(
+            message="Вставьте OAuth-токен (начинается с y0_)",
+            schema=AuthCredential,
+        )
+        if result.action != "accept" or not result.data:
+            return {"cancelled": True, "message": "Ввод токена отменён."}
+        return _exchange_or_set_token(result.data.value)
+
+    # Step 2b: PKCE flow — open browser, collect code
     auth_url = _oauth.start_auth_flow()
     url_result = await ctx.elicit_url(
         message="Перейдите по ссылке для авторизации в Яндекс.Директ",
         url=auth_url,
         elicitation_id="yandex-oauth-login",
     )
-
     if url_result.action != "accept":
         return {"cancelled": True, "message": "Авторизация отменена пользователем."}
 
-    # Collect the authorization code
-    code_result = await ctx.elicit(
-        message="Введите код авторизации (7 цифр) или вставьте OAuth-токен (y0_...)",
-        schema=AuthCode,
+    result = await ctx.elicit(
+        message="Введите код авторизации (7 цифр)",
+        schema=AuthCredential,
     )
-
-    if code_result.action != "accept" or not code_result.data:
+    if result.action != "accept" or not result.data:
         return {"cancelled": True, "message": "Ввод кода отменён."}
 
-    return _exchange_or_set_token(code_result.data.code)
+    return _exchange_or_set_token(result.data.value)
 
 
 # --- MCP Prompt ---
