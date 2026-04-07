@@ -1,4 +1,10 @@
-"""OAuth 2.0 manager for Yandex.Direct API authentication with PKCE."""
+"""OAuth 2.0 manager for Yandex.Direct API authentication.
+
+Supports three auth modes:
+1. PKCE (default) — built-in app, no secrets needed
+2. Direct token — user provides a ready OAuth token
+3. Custom app — user's own client_id + client_secret
+"""
 
 import os
 import time
@@ -13,6 +19,7 @@ from server.auth.storage import FileTokenStorage, TokenData
 
 _ERROR_MESSAGES: dict[str, str] = {
     "invalid_grant": "Неверный или просроченный код. Код действует 10 минут.",
+    "invalid_client": "Неверный client_id или client_secret.",
     "unauthorized_client": "Приложение не авторизовано.",
 }
 
@@ -48,6 +55,13 @@ class OAuthManager:
         self._client_id = (
             os.environ.get("CLAUDE_PLUGIN_OPTION_client_id") or _DEFAULT_CLIENT_ID
         )
+        self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret") or ""
+        self._static_token = os.environ.get("CLAUDE_PLUGIN_OPTION_token") or ""
+
+    @property
+    def _use_pkce(self) -> bool:
+        """PKCE mode when no client_secret is configured."""
+        return not self._client_secret
 
     @property
     def _verifier_path(self) -> Path:
@@ -67,27 +81,43 @@ class OAuthManager:
 
     @property
     def authorize_url(self) -> str:
-        """Return the full authorization URL with PKCE challenge."""
-        verifier = generate_code_verifier()
-        self._save_verifier(verifier)
-        params = {
+        """Return the full authorization URL (PKCE or classic depending on config)."""
+        params: dict[str, str] = {
             "response_type": "code",
             "client_id": self._client_id,
-            "code_challenge": generate_code_challenge(verifier),
-            "code_challenge_method": "S256",
         }
+        if self._use_pkce:
+            verifier = generate_code_verifier()
+            self._save_verifier(verifier)
+            params["code_challenge"] = generate_code_challenge(verifier)
+            params["code_challenge_method"] = "S256"
         return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
+    def set_token(self, token: str) -> TokenData:
+        """Save a pre-existing OAuth token directly (no exchange needed)."""
+        result = TokenData(
+            access_token=token,
+            refresh_token="",
+            expires_at=time.time() + 365 * 24 * 3600,
+            scope="",
+            login="",
+        )
+        self._storage.save(result)
+        return result
+
     def exchange_code(self, code: str) -> TokenData:
-        """Exchange an authorization code for tokens using PKCE verifier."""
-        verifier = self._load_verifier()
+        """Exchange an authorization code for tokens (PKCE or client_secret)."""
         data: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": code,
             "client_id": self._client_id,
         }
-        if verifier:
-            data["code_verifier"] = verifier
+        if self._use_pkce:
+            verifier = self._load_verifier()
+            if verifier:
+                data["code_verifier"] = verifier
+        else:
+            data["client_secret"] = self._client_secret
         resp = self._token_request(data)
         self._clear_verifier()
         return self._parse_and_save(resp, fallback_refresh_token="")
@@ -112,7 +142,10 @@ class OAuthManager:
         )
 
     def get_valid_token(self) -> str:
-        """Get a valid access token, auto-refreshing if expired or about to expire."""
+        """Get a valid access token. Priority: env token > stored token (auto-refresh)."""
+        if self._static_token:
+            return self._static_token
+
         data = self._storage.load()
         if not data:
             raise OAuthError("auth_expired", "No tokens stored", self.authorize_url)

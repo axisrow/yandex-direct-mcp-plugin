@@ -312,16 +312,10 @@ class TestAuthTools:
         assert result["access_token_prefix"] == "123456..."
         mock_oauth.exchange_code.assert_called_once_with("1234567")
 
-    def test_auth_setup_with_invalid_code_not_digits(self) -> None:
+    def test_auth_setup_with_invalid_code_special_chars(self) -> None:
         from server.tools.auth_tools import auth_setup
 
-        result = auth_setup("abcdefg")
-        assert result["error"] == "invalid_code"
-
-    def test_auth_setup_with_invalid_code_wrong_length(self) -> None:
-        from server.tools.auth_tools import auth_setup
-
-        result = auth_setup("123456")
+        result = auth_setup("abc!@#$")
         assert result["error"] == "invalid_code"
 
     def test_auth_setup_with_empty_code(self) -> None:
@@ -329,6 +323,20 @@ class TestAuthTools:
 
         result = auth_setup("")
         assert result["error"] == "invalid_code"
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_setup_with_direct_token(self, mock_oauth) -> None:
+        mock_oauth.set_token.return_value = TokenData(
+            access_token="y0_test_token_12345",
+            refresh_token="",
+            expires_at=1700000000.0,
+        )
+        from server.tools.auth_tools import auth_setup
+
+        result = auth_setup("y0_test_token_12345")
+        assert result["success"] is True
+        assert result["method"] == "direct_token"
+        mock_oauth.set_token.assert_called_once_with("y0_test_token_12345")
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_setup_propagates_oauth_errors(self, mock_oauth) -> None:
@@ -397,6 +405,42 @@ class TestPKCE:
         sent_data = call_kwargs.kwargs.get("data", {})
         assert "code_verifier" in sent_data
         assert "client_secret" not in sent_data
+
+    def test_set_token_saves_directly(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        result = manager.set_token("y0_direct_token_value")
+        assert result["access_token"] == "y0_direct_token_value"
+        loaded = storage.load()
+        assert loaded is not None
+        assert loaded["access_token"] == "y0_direct_token_value"
+
+    @patch("server.auth.oauth.httpx.post")
+    def test_exchange_with_client_secret_no_pkce(self, mock_post, tmp_path: Path) -> None:
+        mock_post.return_value = _make_httpx_response(
+            200, {"access_token": "tok", "expires_in": 3600},
+        )
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        manager._client_secret = "my_secret"
+        manager.exchange_code("somecode")
+        sent_data = mock_post.call_args.kwargs.get("data", {})
+        assert sent_data["client_secret"] == "my_secret"
+        assert "code_verifier" not in sent_data
+
+    def test_env_token_takes_priority(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        storage.save(TokenData(access_token="stored", expires_at=time.time() + 3600))
+        manager = OAuthManager(storage=storage)
+        manager._static_token = "y0_from_env"
+        assert manager.get_valid_token() == "y0_from_env"
+
+    def test_authorize_url_no_pkce_when_secret(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        manager._client_secret = "secret"
+        url = manager.authorize_url
+        assert "code_challenge" not in url
 
     def test_code_verifier_cleared_after_exchange(self, tmp_path: Path) -> None:
         storage = FileTokenStorage(path=tmp_path / "tokens.json")

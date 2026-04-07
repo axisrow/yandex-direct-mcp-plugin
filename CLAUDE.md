@@ -82,11 +82,19 @@ cd docs && make html
 
 ## Environment Variables
 
-MCP server reads these at runtime:
-- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage (default: plugin data dir)
-- `CLAUDE_PLUGIN_OPTION_client_id` — Yandex OAuth app client ID (optional, built-in app used by default)
+## Authentication
 
-Authentication uses PKCE (Proof Key for Code Exchange) — no `client_secret` needed.
+Three methods, from simplest to advanced:
+
+1. **PKCE (default)** — just run `auth_setup`, follow the link, paste the code. No secrets needed.
+2. **Direct token** — set `token` in plugin settings or call `auth_setup("y0_...")` with a ready token.
+3. **Custom OAuth app** — set `client_id` + `client_secret` for your own registered Yandex app.
+
+Environment variables:
+- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage (default: plugin data dir)
+- `CLAUDE_PLUGIN_OPTION_token` — direct OAuth token (highest priority, skips OAuth flow)
+- `CLAUDE_PLUGIN_OPTION_client_id` — custom OAuth app client ID (optional)
+- `CLAUDE_PLUGIN_OPTION_client_secret` — custom OAuth app secret (optional, disables PKCE)
 
 Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 

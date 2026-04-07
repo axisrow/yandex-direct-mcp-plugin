@@ -36,15 +36,32 @@ def auth_status() -> dict:
 
 @mcp.tool()
 def auth_setup(code: str) -> dict:
-    """Submit a 7-digit authorization code to complete OAuth setup.
+    """Submit an authorization code or direct OAuth token.
 
     Args:
-        code: 7-digit authorization code from Yandex.
+        code: Authorization code from Yandex, or a direct OAuth token (starts with y0_).
     """
-    if not code or not code.isdigit() or len(code) != 7:
+    if not code:
         return {
             "error": "invalid_code",
-            "message": "Код должен состоять из 7 цифр.",
+            "message": "Введите код авторизации или OAuth-токен.",
+            "auth_url": _oauth.authorize_url,
+        }
+
+    # Direct token (starts with y0_)
+    if code.startswith("y0_"):
+        result = _oauth.set_token(code)
+        return {
+            "success": True,
+            "method": "direct_token",
+            "access_token_prefix": result["access_token"][:6] + "...",
+        }
+
+    # Authorization code (alphanumeric, from Yandex OAuth page)
+    if not code.isalnum():
+        return {
+            "error": "invalid_code",
+            "message": "Код должен содержать только буквы и цифры.",
             "auth_url": _oauth.authorize_url,
         }
 
@@ -52,6 +69,7 @@ def auth_setup(code: str) -> dict:
         result = _oauth.exchange_code(code)
         return {
             "success": True,
+            "method": "oauth_code",
             "access_token_prefix": result["access_token"][:6] + "...",
             "expires_in": max(0, int(result.get("expires_at", 0) - time.time())),
             "login": result.get("login", ""),
