@@ -317,7 +317,7 @@ class TestAuthTools:
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_setup_with_invalid_code_special_chars(self, mock_oauth) -> None:
-        mock_oauth.authorize_url = "https://oauth.yandex.ru/authorize?test=1"
+        mock_oauth.start_auth_flow.return_value = "https://oauth.yandex.ru/authorize?test=1"
         from server.tools.auth_tools import auth_setup
 
         result = auth_setup("abc!@#$")
@@ -325,7 +325,7 @@ class TestAuthTools:
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_setup_with_empty_code(self, mock_oauth) -> None:
-        mock_oauth.authorize_url = "https://oauth.yandex.ru/authorize?test=1"
+        mock_oauth.start_auth_flow.return_value = "https://oauth.yandex.ru/authorize?test=1"
         from server.tools.auth_tools import auth_setup
 
         result = auth_setup("")
@@ -474,3 +474,4 @@ class TestPKCE:
             )
             manager.exchange_code("1234567")
         assert not manager._verifier_path.exists()
+        assert manager._cached_verifier is None

@@ -82,6 +82,7 @@ class OAuthManager:
         return None
 
     def _clear_verifier(self) -> None:
+        self._cached_verifier = None
         self._verifier_path.unlink(missing_ok=True)
 
     @property
