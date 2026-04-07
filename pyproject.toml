@@ -13,3 +13,9 @@ requires = ["setuptools>=75"]
 
 [tool.setuptools.packages.find]
 include = ["server*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "mocks: tests using unittest.mock instead of cassettes",
+    "integration: tests requiring live OAuth token",
+]
