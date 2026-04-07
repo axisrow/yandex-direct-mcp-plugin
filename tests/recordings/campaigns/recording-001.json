@@ -1,10 +1,14 @@
 {
   "command": "direct",
   "args": [
+    "--token",
+    "REDACTED",
     "campaigns",
-    "get"
+    "get",
+    "--format",
+    "json"
   ],
-  "stdout": "[]",
+  "stdout": "[\n  {\n    \"ClientInfo\": null,\n    \"Id\": 62145823,\n    \"Name\": \"Поиск — Курсы программирования\",\n    \"StartDate\": \"2024-03-01\",\n    \"Type\": \"TEXT_CAMPAIGN\",\n    \"Status\": \"ACCEPTED\",\n    \"State\": \"ON\",\n    \"DailyBudget\": {\n      \"Amount\": 300000000,\n      \"Mode\": \"STANDARD\"\n    },\n    \"EndDate\": null\n  },\n  {\n    \"ClientInfo\": null,\n    \"Id\": 63891204,\n    \"Name\": \"РСЯ — Образование взрослых\",\n    \"StartDate\": \"2024-04-15\",\n    \"Type\": \"TEXT_CAMPAIGN\",\n    \"Status\": \"ACCEPTED\",\n    \"State\": \"ON\",\n    \"DailyBudget\": {\n      \"Amount\": 150000000,\n      \"Mode\": \"STANDARD\"\n    },\n    \"EndDate\": null\n  },\n  {\n    \"ClientInfo\": null,\n    \"Id\": 65430917,\n    \"Name\": \"Ретаргет — Брошенные корзины\",\n    \"StartDate\": \"2024-06-01\",\n    \"Type\": \"TEXT_CAMPAIGN\",\n    \"Status\": \"ACCEPTED\",\n    \"State\": \"OFF\",\n    \"DailyBudget\": {\n      \"Amount\": 50000000,\n      \"Mode\": \"STANDARD\"\n    },\n    \"EndDate\": null\n  }\n]",
   "stderr": "",
   "returncode": 0
 }
