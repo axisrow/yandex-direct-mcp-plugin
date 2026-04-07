@@ -17,4 +17,6 @@ _manager = OAuthManager()
 set_token_getter(_manager.get_valid_token)
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    from server.main import mcp as _mcp
+
+    _mcp.run(transport="stdio")
