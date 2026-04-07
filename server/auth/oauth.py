@@ -61,6 +61,7 @@ class OAuthManager:
             or os.environ.get("CLAUDE_PLUGIN_OPTION_token")
             or ""
         )
+        self._cached_verifier: str | None = None
 
     @property
     def _use_pkce(self) -> bool:
@@ -81,21 +82,37 @@ class OAuthManager:
         return None
 
     def _clear_verifier(self) -> None:
+        self._cached_verifier = None
         self._verifier_path.unlink(missing_ok=True)
 
     @property
     def authorize_url(self) -> str:
-        """Return the full authorization URL (PKCE or classic depending on config)."""
+        """Return authorization URL. No disk writes — safe to call anywhere."""
         params: dict[str, str] = {
             "response_type": "code",
             "client_id": self._client_id,
         }
         if self._use_pkce:
-            verifier = self._load_verifier() or generate_code_verifier()
-            self._save_verifier(verifier)
+            verifier = (
+                self._cached_verifier
+                or self._load_verifier()
+                or generate_code_verifier()
+            )
+            self._cached_verifier = verifier
             params["code_challenge"] = generate_code_challenge(verifier)
             params["code_challenge_method"] = "S256"
         return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
+
+    def start_auth_flow(self) -> str:
+        """Start OAuth flow: persist PKCE verifier to disk and return auth URL.
+
+        Call this only when the user is actually starting authorization.
+        """
+        if self._use_pkce:
+            verifier = self._cached_verifier or generate_code_verifier()
+            self._cached_verifier = verifier
+            self._save_verifier(verifier)
+        return self.authorize_url
 
     def set_token(self, token: str) -> TokenData:
         """Save a pre-existing OAuth token directly (no exchange needed)."""
@@ -117,11 +134,11 @@ class OAuthManager:
             "client_id": self._client_id,
         }
         if self._use_pkce:
-            verifier = self._load_verifier()
+            verifier = self._cached_verifier or self._load_verifier()
             if not verifier:
                 raise OAuthError(
                     "invalid_request",
-                    "PKCE code_verifier отсутствует. Сначала получите ссылку через authorize_url.",
+                    "PKCE code_verifier отсутствует. Сначала получите ссылку через start_auth_flow().",
                 )
             data["code_verifier"] = verifier
         else:

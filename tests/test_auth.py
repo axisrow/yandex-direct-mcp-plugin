@@ -315,13 +315,21 @@ class TestAuthTools:
         assert result["access_token_prefix"] == "123456..."
         mock_oauth.exchange_code.assert_called_once_with("1234567")
 
-    def test_auth_setup_with_invalid_code_special_chars(self) -> None:
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_setup_with_invalid_code_special_chars(self, mock_oauth) -> None:
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?test=1"
+        )
         from server.tools.auth_tools import auth_setup
 
         result = auth_setup("abc!@#$")
         assert result["error"] == "invalid_code"
 
-    def test_auth_setup_with_empty_code(self) -> None:
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_setup_with_empty_code(self, mock_oauth) -> None:
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?test=1"
+        )
         from server.tools.auth_tools import auth_setup
 
         result = auth_setup("")
@@ -462,7 +470,7 @@ class TestPKCE:
     def test_code_verifier_cleared_after_exchange(self, tmp_path: Path) -> None:
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
-        _ = manager.authorize_url
+        _ = manager.start_auth_flow()
         assert manager._verifier_path.exists()
         with patch("server.auth.oauth.httpx.post") as mock_post:
             mock_post.return_value = _make_httpx_response(
@@ -470,3 +478,4 @@ class TestPKCE:
             )
             manager.exchange_code("1234567")
         assert not manager._verifier_path.exists()
+        assert manager._cached_verifier is None

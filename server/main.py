@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("yandex-direct", json_response=True)
+mcp = FastMCP("yandex-direct-mcp", json_response=True)
 
 # Tool registration happens via imports
 import server.tools.ads  # noqa: E402, F401
