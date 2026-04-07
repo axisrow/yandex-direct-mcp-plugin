@@ -22,6 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 def _read_response(proc: subprocess.Popen[str]) -> dict:
     """Read a single JSON-RPC response line from server stdout."""
+    assert proc.stdout is not None
     line = proc.stdout.readline()
     assert line, "Server closed stdout unexpectedly"
     return json.loads(line)
