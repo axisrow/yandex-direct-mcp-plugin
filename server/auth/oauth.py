@@ -2,6 +2,7 @@
 
 import os
 import time
+from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
@@ -16,6 +17,7 @@ _ERROR_MESSAGES: dict[str, str] = {
 }
 
 _REFRESH_BUFFER_SECONDS = 60
+_DEFAULT_CLIENT_ID = "dcf15d9625f6471d94d6d054d52017ba"
 
 
 class OAuthError(Exception):
@@ -43,32 +45,51 @@ class OAuthManager:
 
     def __init__(self, storage: FileTokenStorage | None = None) -> None:
         self._storage = storage or FileTokenStorage()
-        self._client_id = os.environ.get("CLAUDE_PLUGIN_OPTION_client_id", "")
-        self._code_verifier: str | None = None
+        self._client_id = (
+            os.environ.get("CLAUDE_PLUGIN_OPTION_client_id") or _DEFAULT_CLIENT_ID
+        )
+
+    @property
+    def _verifier_path(self) -> Path:
+        return self._storage.path.parent / "pkce_verifier.txt"
+
+    def _save_verifier(self, verifier: str) -> None:
+        self._verifier_path.parent.mkdir(parents=True, exist_ok=True)
+        self._verifier_path.write_text(verifier)
+
+    def _load_verifier(self) -> str | None:
+        if self._verifier_path.exists():
+            return self._verifier_path.read_text().strip() or None
+        return None
+
+    def _clear_verifier(self) -> None:
+        self._verifier_path.unlink(missing_ok=True)
 
     @property
     def authorize_url(self) -> str:
         """Return the full authorization URL with PKCE challenge."""
-        self._code_verifier = generate_code_verifier()
+        verifier = generate_code_verifier()
+        self._save_verifier(verifier)
         params = {
             "response_type": "code",
             "client_id": self._client_id,
-            "code_challenge": generate_code_challenge(self._code_verifier),
+            "code_challenge": generate_code_challenge(verifier),
             "code_challenge_method": "S256",
         }
         return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
     def exchange_code(self, code: str) -> TokenData:
         """Exchange an authorization code for tokens using PKCE verifier."""
+        verifier = self._load_verifier()
         data: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": code,
             "client_id": self._client_id,
         }
-        if self._code_verifier:
-            data["code_verifier"] = self._code_verifier
+        if verifier:
+            data["code_verifier"] = verifier
         resp = self._token_request(data)
-        self._code_verifier = None
+        self._clear_verifier()
         return self._parse_and_save(resp, fallback_refresh_token="")
 
     def refresh_token(self) -> TokenData:

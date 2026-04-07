@@ -398,14 +398,14 @@ class TestPKCE:
         assert "code_verifier" in sent_data
         assert "client_secret" not in sent_data
 
-    def test_code_verifier_cleared_after_exchange(self) -> None:
-        storage = FileTokenStorage(path=Path("/tmp/test-pkce-tokens.json"))
+    def test_code_verifier_cleared_after_exchange(self, tmp_path: Path) -> None:
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         _ = manager.authorize_url
-        assert manager._code_verifier is not None
+        assert manager._verifier_path.exists()
         with patch("server.auth.oauth.httpx.post") as mock_post:
             mock_post.return_value = _make_httpx_response(
                 200, {"access_token": "t", "expires_in": 3600}
             )
             manager.exchange_code("1234567")
-        assert manager._code_verifier is None
+        assert not manager._verifier_path.exists()
