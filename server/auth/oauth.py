@@ -91,7 +91,7 @@ class OAuthManager:
             "client_id": self._client_id,
         }
         if self._use_pkce:
-            verifier = generate_code_verifier()
+            verifier = self._load_verifier() or generate_code_verifier()
             self._save_verifier(verifier)
             params["code_challenge"] = generate_code_challenge(verifier)
             params["code_challenge_method"] = "S256"
@@ -118,8 +118,12 @@ class OAuthManager:
         }
         if self._use_pkce:
             verifier = self._load_verifier()
-            if verifier:
-                data["code_verifier"] = verifier
+            if not verifier:
+                raise OAuthError(
+                    "invalid_request",
+                    "PKCE code_verifier отсутствует. Сначала получите ссылку через authorize_url.",
+                )
+            data["code_verifier"] = verifier
         else:
             data["client_secret"] = self._client_secret
         resp = self._token_request(data)
