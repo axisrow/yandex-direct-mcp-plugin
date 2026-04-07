@@ -435,6 +435,13 @@ class TestPKCE:
         manager._static_token = "y0_from_env"
         assert manager.get_valid_token() == "y0_from_env"
 
+    def test_yandex_direct_token_env_priority(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("YANDEX_DIRECT_TOKEN", "y0_from_env_var")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "y0_from_plugin")
+        storage = FileTokenStorage(path=tmp_path / "tokens.json")
+        manager = OAuthManager(storage=storage)
+        assert manager._static_token == "y0_from_env_var"
+
     def test_authorize_url_no_pkce_when_secret(self, tmp_path: Path) -> None:
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)

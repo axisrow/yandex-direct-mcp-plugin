@@ -38,15 +38,43 @@ claude --plugin-dir ./yandex-direct-mcp-plugin
 /plugin install yandex-direct@axisrow-yandex-direct-mcp-plugin
 ```
 
-## Setup
+## Authentication
 
-On first use, the plugin will ask for:
-- **client_id** — your Yandex OAuth application ID
-- **client_secret** — your Yandex OAuth application secret
+Four ways to authenticate, from simplest to advanced:
 
-Then authorize via:
+### 1. Environment variable (recommended)
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "env": {
+    "YANDEX_DIRECT_TOKEN": "y0_AgAAAA..."
+  }
+}
 ```
-mcp__yandex_direct__auth_setup(code="<7-digit code>")
+Restart Claude Code. Done.
+
+### 2. Plugin settings
+
+Set `token` in plugin configuration — will be available as `CLAUDE_PLUGIN_OPTION_token`.
+
+### 3. OAuth PKCE (interactive)
+
+No configuration needed. Run `auth_setup` — get a link, log in to Yandex, paste the code:
+```
+mcp__yandex_direct__auth_setup(code="nvyaod2jwwf2ctyu")
+```
+Uses built-in OAuth app. No `client_secret` required.
+
+### 4. Custom OAuth app
+
+For advanced users with their own registered Yandex OAuth app. Set `client_id` and `client_secret` in plugin settings — disables PKCE, uses classic OAuth flow.
+
+### Direct token via auth_setup
+
+You can also paste a token directly:
+```
+mcp__yandex_direct__auth_setup(code="y0_AgAAAA...")
 ```
 
 ## MCP Tools

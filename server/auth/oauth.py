@@ -56,7 +56,11 @@ class OAuthManager:
             os.environ.get("CLAUDE_PLUGIN_OPTION_client_id") or _DEFAULT_CLIENT_ID
         )
         self._client_secret = os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret") or ""
-        self._static_token = os.environ.get("CLAUDE_PLUGIN_OPTION_token") or ""
+        self._static_token = (
+            os.environ.get("YANDEX_DIRECT_TOKEN")
+            or os.environ.get("CLAUDE_PLUGIN_OPTION_token")
+            or ""
+        )
 
     @property
     def _use_pkce(self) -> bool:
