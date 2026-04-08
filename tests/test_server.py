@@ -74,6 +74,43 @@ EXPECTED_TOOLS = {
     "dynamic_targets_add",
     "dynamic_targets_update",
     "dynamic_targets_delete",
+    # Negative Keywords (4 tools)
+    "negative_keywords_list",
+    "negative_keywords_add",
+    "negative_keywords_update",
+    "negative_keywords_delete",
+    # Smart Targets (4 tools)
+    "smart_targets_list",
+    "smart_targets_add",
+    "smart_targets_update",
+    "smart_targets_delete",
+    # Dictionaries (1 tool)
+    "dictionaries_get",
+    # Changes (3 tools)
+    "changes_check",
+    "changes_checkcamp",
+    "changes_checkdict",
+    # Clients (2 tools)
+    "clients_get",
+    "clients_update",
+    # Agency (3 tools)
+    "agency_clients_list",
+    "agency_clients_add",
+    "agency_clients_delete",
+    # Research (2 tools)
+    "keywords_has_volume",
+    "keywords_deduplicate",
+    # Leads (1 tool)
+    "leads_list",
+    # Feeds (4 tools)
+    "feeds_list",
+    "feeds_add",
+    "feeds_update",
+    "feeds_delete",
+    # Creatives (1 tool)
+    "creatives_list",
+    # Turbo Pages (1 tool)
+    "turbo_pages_list",
     # Auth (3 tools)
     "auth_status",
     "auth_setup",
