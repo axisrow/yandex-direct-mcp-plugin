@@ -116,12 +116,13 @@ class OAuthManager:
 
     def set_token(self, token: str) -> TokenData:
         """Save a pre-existing OAuth token directly (no exchange needed)."""
+        login = self.fetch_login(token) or ""
         result = TokenData(
             access_token=token,
             refresh_token="",
             expires_at=time.time() + 365 * 24 * 3600,
             scope="",
-            login="",
+            login=login,
         )
         self._storage.save(result)
         return result
@@ -163,7 +164,9 @@ class OAuthManager:
             }
         )
         return self._parse_and_save(
-            resp, fallback_refresh_token=stored.get("refresh_token", "")
+            resp,
+            fallback_refresh_token=stored.get("refresh_token", ""),
+            fallback_login=stored.get("login", ""),
         )
 
     def get_valid_token(self) -> str:
@@ -216,8 +219,27 @@ class OAuthManager:
                 self.authorize_url if error_type != "invalid_grant" else None,
             ) from e
 
+    def fetch_login(self, access_token: str) -> str | None:
+        """Fetch Yandex login via login.yandex.ru/info endpoint."""
+        try:
+            resp = httpx.get(
+                "https://login.yandex.ru/info",
+                headers={"Authorization": f"OAuth {access_token}"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            if isinstance(payload, dict):
+                return payload.get("login")
+            return None
+        except (httpx.HTTPError, ValueError):
+            return None
+
     def _parse_and_save(
-        self, resp: httpx.Response, fallback_refresh_token: str
+        self,
+        resp: httpx.Response,
+        fallback_refresh_token: str,
+        fallback_login: str = "",
     ) -> TokenData:
         """Parse a token response, persist it, and return the result."""
         token_data = resp.json()
@@ -226,12 +248,16 @@ class OAuthManager:
             raise OAuthError(
                 "invalid_response", "Missing access_token in token response"
             )
+        login = token_data.get("login", "")
+        if not login:
+            login = self.fetch_login(access_token) or fallback_login
+
         result = TokenData(
             access_token=access_token,
             refresh_token=token_data.get("refresh_token", fallback_refresh_token),
             expires_at=time.time() + token_data.get("expires_in", 0),
             scope=token_data.get("scope", ""),
-            login=token_data.get("login", ""),
+            login=login,
         )
         self._storage.save(result)
         return result
