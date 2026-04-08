@@ -34,7 +34,26 @@ SANITIZE_RULES: list[tuple[str, str]] = [
 ]
 
 # Fields with numeric IDs — replaced consistently via id_map
-_ID_FIELDS = {"Id", "CampaignId", "AdGroupId", "KeywordId", "AdId"}
+_ID_FIELDS = {
+    "Id",
+    "CampaignId",
+    "AdGroupId",
+    "KeywordId",
+    "AdId",
+    "SitelinkSetId",
+    "VCardId",
+    "AdImageHash",
+    "AdExtensionId",
+    "AudienceTargetId",
+    "RetargetingListId",
+    "DynamicTargetId",
+    "NegativeKeywordSharedSetId",
+    "SmartTargetId",
+    "FeedId",
+    "CreativeId",
+    "TurboPageId",
+    "ClientId",
+}
 
 # Text fields replaced with fixed placeholders
 _TEXT_REPLACEMENTS: dict[str, str] = {
