@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from server.auth.storage import FileTokenStorage, TokenData
 from server.tools.ads import ads_list
 from server.tools.auth_tools import auth_setup, auth_status
 from server.tools.campaigns import campaigns_list
@@ -32,7 +33,9 @@ def active_campaign(live_token_getter):
     preferred_id = os.environ.get("TEST_ACTIVE_CAMPAIGN_ID")
     if preferred_id:
         campaign = _find_campaign(campaigns, preferred_id)
-        assert campaign is not None, f"TEST_ACTIVE_CAMPAIGN_ID={preferred_id} not found in active campaigns"
+        assert campaign is not None, (
+            f"TEST_ACTIVE_CAMPAIGN_ID={preferred_id} not found in active campaigns"
+        )
         return campaign
 
     return campaigns[0]
@@ -60,7 +63,8 @@ def test_live_auth_setup_accepts_existing_direct_token(
         status = auth_status()
         assert status["valid"] is True
     finally:
-        token_path.write_text(original_contents)
+        storage = FileTokenStorage(path=token_path)
+        storage.save(TokenData(**original_data))
 
 
 def test_live_campaigns_list_returns_active_campaigns(live_token_getter):

@@ -35,9 +35,7 @@ def pytest_collection_modifyitems(config, items):
     run_live_safe = config.getoption("--run-live-safe")
     run_live_unsafe = config.getoption("--run-live-unsafe")
 
-    skip_live_safe = pytest.mark.skip(
-        reason="live_safe tests require --run-live-safe"
-    )
+    skip_live_safe = pytest.mark.skip(reason="live_safe tests require --run-live-safe")
     skip_live_unsafe = pytest.mark.skip(
         reason="live_unsafe tests require --run-live-unsafe"
     )

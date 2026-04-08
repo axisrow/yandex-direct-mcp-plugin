@@ -489,7 +489,9 @@ class TestAuthTools:
     @patch("server.tools.auth_tools._oauth")
     def test_auth_login_pkce_flow(self, mock_oauth, mock_exchange) -> None:
         mock_oauth.get_status.return_value = {"valid": False}
-        mock_oauth.start_auth_flow.return_value = "https://oauth.yandex.ru/authorize?x=1"
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
         mock_exchange.return_value = {"success": True, "method": "oauth_code"}
 
         mock_ctx = MagicMock()
@@ -511,7 +513,9 @@ class TestAuthTools:
     @patch("server.tools.auth_tools._oauth")
     def test_auth_login_pkce_code_cancelled(self, mock_oauth) -> None:
         mock_oauth.get_status.return_value = {"valid": False}
-        mock_oauth.start_auth_flow.return_value = "https://oauth.yandex.ru/authorize?x=1"
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
 
         mock_ctx = MagicMock()
         method_choice = MagicMock()
@@ -529,7 +533,9 @@ class TestAuthTools:
 
     @patch("server.tools.auth_tools._oauth")
     def test_oauth_login_prompt_embeds_authorize_url(self, mock_oauth) -> None:
-        mock_oauth.start_auth_flow.return_value = "https://oauth.yandex.ru/authorize?x=1"
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
 
         from server.tools.auth_tools import oauth_login_prompt
 

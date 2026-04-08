@@ -49,30 +49,30 @@ def test_try_refresh_token_returns_none_on_generic_error() -> None:
 
 
 def test_handle_cli_errors_maps_registration_error() -> None:
-        @tools.handle_cli_errors
-        def wrapped():
-            raise CliRegistrationError("registration incomplete")
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliRegistrationError("registration incomplete")
 
-        result = wrapped()
-        assert result["error"] == "incomplete_registration"
+    result = wrapped()
+    assert result["error"] == "incomplete_registration"
 
 
 def test_handle_cli_errors_maps_cli_not_found() -> None:
-        @tools.handle_cli_errors
-        def wrapped():
-            raise CliNotFoundError("cli missing")
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliNotFoundError("cli missing")
 
-        result = wrapped()
-        assert result["error"] == "cli_not_found"
+    result = wrapped()
+    assert result["error"] == "cli_not_found"
 
 
 def test_handle_cli_errors_maps_timeout() -> None:
-        @tools.handle_cli_errors
-        def wrapped():
-            raise CliTimeoutError("timed out")
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliTimeoutError("timed out")
 
-        result = wrapped()
-        assert result["error"] == "timeout"
+    result = wrapped()
+    assert result["error"] == "timeout"
 
 
 def test_handle_cli_errors_retries_once_after_refresh() -> None:
