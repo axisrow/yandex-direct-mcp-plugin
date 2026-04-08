@@ -1,6 +1,7 @@
 """Direct CLI runner — subprocess wrapper for the `direct` command."""
 
 import json
+import re
 import shutil
 import subprocess
 from typing import Protocol
@@ -94,7 +95,7 @@ class DirectCliRunner:
             stderr = result.stderr.strip()
             if "401" in stderr or "Unauthorized" in stderr:
                 raise CliAuthError("Token expired or invalid")
-            if "error_code=58" in stderr:
+            if re.search(r"\berror_code=58\b", stderr):
                 raise CliRegistrationError(
                     "Незаконченная регистрация. "
                     "Вам нужно подать или переподать заявку на регистрацию приложения "
