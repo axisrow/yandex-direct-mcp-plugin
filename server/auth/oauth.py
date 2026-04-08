@@ -164,7 +164,9 @@ class OAuthManager:
             }
         )
         return self._parse_and_save(
-            resp, fallback_refresh_token=stored.get("refresh_token", "")
+            resp,
+            fallback_refresh_token=stored.get("refresh_token", ""),
+            fallback_login=stored.get("login", ""),
         )
 
     def get_valid_token(self) -> str:
@@ -226,12 +228,16 @@ class OAuthManager:
                 timeout=15,
             )
             resp.raise_for_status()
-            return resp.json().get("login")
+            payload = resp.json()
+            if isinstance(payload, dict):
+                return payload.get("login")
+            return None
         except (httpx.HTTPError, ValueError):
             return None
 
     def _parse_and_save(
-        self, resp: httpx.Response, fallback_refresh_token: str
+        self, resp: httpx.Response, fallback_refresh_token: str,
+        fallback_login: str = "",
     ) -> TokenData:
         """Parse a token response, persist it, and return the result."""
         token_data = resp.json()
@@ -242,7 +248,7 @@ class OAuthManager:
             )
         login = token_data.get("login", "")
         if not login:
-            login = self.fetch_login(access_token) or ""
+            login = self.fetch_login(access_token) or fallback_login
 
         result = TokenData(
             access_token=access_token,
