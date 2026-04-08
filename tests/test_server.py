@@ -35,6 +35,45 @@ EXPECTED_TOOLS = {
     "keywords_resume",
     # Reports
     "reports_get",
+    # Bids (2 tools)
+    "bids_list",
+    "bids_set",
+    # Bid Modifiers (4 tools)
+    "bidmodifiers_list",
+    "bidmodifiers_set",
+    "bidmodifiers_toggle",
+    "bidmodifiers_delete",
+    # Sitelinks (3 tools)
+    "sitelinks_list",
+    "sitelinks_add",
+    "sitelinks_delete",
+    # VCards (3 tools)
+    "vcards_list",
+    "vcards_add",
+    "vcards_delete",
+    # Ad Images (3 tools)
+    "adimages_list",
+    "adimages_add",
+    "adimages_delete",
+    # Ad Extensions (3 tools)
+    "adextensions_list",
+    "adextensions_add",
+    "adextensions_delete",
+    # Audience Targets (5 tools)
+    "audience_targets_list",
+    "audience_targets_add",
+    "audience_targets_delete",
+    "audience_targets_suspend",
+    "audience_targets_resume",
+    # Retargeting (3 tools)
+    "retargeting_list",
+    "retargeting_add",
+    "retargeting_delete",
+    # Dynamic Targets (4 tools)
+    "dynamic_targets_list",
+    "dynamic_targets_add",
+    "dynamic_targets_update",
+    "dynamic_targets_delete",
     # Auth (3 tools)
     "auth_status",
     "auth_setup",
