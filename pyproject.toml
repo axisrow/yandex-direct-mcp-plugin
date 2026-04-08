@@ -18,4 +18,6 @@ include = ["server*"]
 markers = [
     "mocks: tests using unittest.mock instead of cassettes",
     "integration: tests requiring live OAuth token",
+    "live_safe: read-only live tests against the real Yandex.Direct API",
+    "live_unsafe: mutating live tests with mandatory rollback",
 ]

@@ -1,5 +1,6 @@
 """Tests for token storage, OAuth manager (PKCE), and auth MCP tools."""
 
+import asyncio
 import hashlib
 import json
 import time
@@ -404,8 +405,6 @@ class TestAuthTools:
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_login_invalid_method(self, mock_oauth) -> None:
-        import asyncio
-
         mock_oauth.get_status.return_value = {"valid": False}
 
         mock_ctx = MagicMock()
@@ -416,13 +415,11 @@ class TestAuthTools:
 
         from server.tools.auth_tools import auth_login
 
-        result = asyncio.get_event_loop().run_until_complete(auth_login(mock_ctx))
+        result = asyncio.run(auth_login(mock_ctx))
         assert result["error"] == "invalid_method"
 
     @patch("server.tools.auth_tools._oauth")
     def test_auth_login_already_authenticated(self, mock_oauth) -> None:
-        import asyncio
-
         mock_oauth.get_status.return_value = {
             "valid": True,
             "expires_in": 3600,
@@ -430,8 +427,122 @@ class TestAuthTools:
 
         from server.tools.auth_tools import auth_login
 
-        result = asyncio.get_event_loop().run_until_complete(auth_login(MagicMock()))
+        result = asyncio.run(auth_login(MagicMock()))
         assert result.get("already_authenticated") is True
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_cancelled_on_method_choice(self, mock_oauth) -> None:
+        mock_oauth.get_status.return_value = {"valid": False}
+
+        mock_ctx = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.action = "decline"
+        mock_choice.data = None
+        mock_ctx.elicit = AsyncMock(return_value=mock_choice)
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result == {"cancelled": True, "message": "Авторизация отменена."}
+
+    @patch("server.tools.auth_tools._exchange_or_set_token")
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_token_flow(self, mock_oauth, mock_exchange) -> None:
+        mock_oauth.get_status.return_value = {"valid": False}
+        mock_exchange.return_value = {"success": True, "method": "direct_token"}
+
+        mock_ctx = MagicMock()
+        method_choice = MagicMock()
+        method_choice.action = "accept"
+        method_choice.data.method = "token"
+        token_input = MagicMock()
+        token_input.action = "accept"
+        token_input.data.value = "y0_live_token"
+        mock_ctx.elicit = AsyncMock(side_effect=[method_choice, token_input])
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result["success"] is True
+        mock_exchange.assert_called_once_with("y0_live_token")
+        assert mock_ctx.elicit.await_count == 2
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_token_input_cancelled(self, mock_oauth) -> None:
+        mock_oauth.get_status.return_value = {"valid": False}
+
+        mock_ctx = MagicMock()
+        method_choice = MagicMock()
+        method_choice.action = "accept"
+        method_choice.data.method = "token"
+        token_input = MagicMock()
+        token_input.action = "decline"
+        token_input.data = None
+        mock_ctx.elicit = AsyncMock(side_effect=[method_choice, token_input])
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result == {"cancelled": True, "message": "Ввод токена отменён."}
+
+    @patch("server.tools.auth_tools._exchange_or_set_token")
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_pkce_flow(self, mock_oauth, mock_exchange) -> None:
+        mock_oauth.get_status.return_value = {"valid": False}
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
+        mock_exchange.return_value = {"success": True, "method": "oauth_code"}
+
+        mock_ctx = MagicMock()
+        method_choice = MagicMock()
+        method_choice.action = "accept"
+        method_choice.data.method = "pkce"
+        code_input = MagicMock()
+        code_input.action = "accept"
+        code_input.data.value = "ABC1234"
+        mock_ctx.elicit = AsyncMock(side_effect=[method_choice, code_input])
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result["success"] is True
+        mock_oauth.start_auth_flow.assert_called_once()
+        mock_exchange.assert_called_once_with("ABC1234")
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_pkce_code_cancelled(self, mock_oauth) -> None:
+        mock_oauth.get_status.return_value = {"valid": False}
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
+
+        mock_ctx = MagicMock()
+        method_choice = MagicMock()
+        method_choice.action = "accept"
+        method_choice.data.method = "pkce"
+        code_input = MagicMock()
+        code_input.action = "decline"
+        code_input.data = None
+        mock_ctx.elicit = AsyncMock(side_effect=[method_choice, code_input])
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result == {"cancelled": True, "message": "Ввод кода отменён."}
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_oauth_login_prompt_embeds_authorize_url(self, mock_oauth) -> None:
+        mock_oauth.start_auth_flow.return_value = (
+            "https://oauth.yandex.ru/authorize?x=1"
+        )
+
+        from server.tools.auth_tools import oauth_login_prompt
+
+        prompt = oauth_login_prompt()
+        assert len(prompt) == 1
+        assert prompt[0]["role"] == "user"
+        assert "https://oauth.yandex.ru/authorize?x=1" in prompt[0]["content"]
 
 
 # ---------------------------------------------------------------------------
