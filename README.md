@@ -214,7 +214,9 @@ mcp__yandex_direct__keywords_update(id="99999", bid="15000000")
 
 # Статистика
 mcp__yandex_direct__reports_get(date_from="2026-03-30", date_to="2026-04-06")
-# → [{"CampaignId": 12345, "Impressions": 15420, "Clicks": 312, "Cost": 4680.50}, ...]
+# → [{"CampaignName": "Ретаргет ДРР 18.10", "Impressions": 15420, "Clicks": 312,
+#     "Cost": 4680.50, "Conversions": 70, "CostPerConversion": 68.51,
+#     "ConversionRate": 22.44}, ...]
 
 # Статус OAuth-токена
 mcp__yandex_direct__auth_status()
@@ -307,7 +309,7 @@ pytest
 | 14 | Ключевые слова | `keywords_list(campaign_ids="12345")` | Массив ключевых слов |
 | 15 | Изменить ставку | `keywords_update(id=..., bid=...)` | `{"success": True}` |
 | **Reports** |
-| 16 | Статистика за период | `reports_get(date_from=..., date_to=...)` | Массив с Impressions, Clicks, Cost |
+| 16 | Статистика за период | `reports_get(date_from=..., date_to=...)` | Массив с CampaignName, Impressions, Clicks, Cost, Conversions |
 | **Edge cases** |
 | 17 | direct-cli не в PATH | Запрос без установленного CLI | `{"error": "cli_not_found"}` |
 | 18 | Пустой ответ API | Кампания без объявлений | `[]` (пустой массив, не ошибка) |
@@ -328,6 +330,29 @@ tests/
 ├── audit_cassettes.py       # Аудит кассет перед коммитом
 ├── conftest.py              # pytest fixtures, cli_recorder setup
 ├── fixtures/
+
+### Live test suites
+
+Live tests are split into read-only and mutating suites and are **disabled by default**.
+
+```bash
+# Read-only checks against the real API
+pytest -m live_safe --run-live-safe
+
+# Mutating checks with mandatory rollback
+pytest -m live_unsafe --run-live-unsafe
+```
+
+`live_unsafe` requires dedicated test data in env vars:
+
+```bash
+TEST_OFF_CAMPAIGN_ID=123456
+TEST_KEYWORD_CAMPAIGN_ID=123456
+TEST_KEYWORD_ID=987654
+TEST_KEYWORD_BID_TEMP=15000000
+```
+
+Do not point these at production entities. Unsafe tests assume the campaign starts in `OFF`, change it to `ON`, and then restore it. Keyword tests temporarily change the bid and then restore the original value.
 │   ├── campaigns.json       # Мок-данные кампаний
 │   ├── ads.json             # Мок-данные объявлений
 │   └── tokens.json          # Мок-токены
