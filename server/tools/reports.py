@@ -8,8 +8,7 @@ from server.tools import get_runner, handle_cli_errors
 DEFAULT_REPORT_TYPE = "CAMPAIGN_PERFORMANCE_REPORT"
 DEFAULT_REPORT_NAME = "mcp_campaign_performance"
 DEFAULT_REPORT_FIELDS = (
-    "CampaignName,Impressions,Clicks,Cost,Conversions,"
-    "CostPerConversion,ConversionRate"
+    "CampaignName,Impressions,Clicks,Cost,Conversions,CostPerConversion,ConversionRate"
 )
 DEFAULT_WINDOW_DAYS = 8
 
