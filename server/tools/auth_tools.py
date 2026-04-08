@@ -102,7 +102,9 @@ class AuthMethodChoice(BaseModel):
 class AuthCredential(BaseModel):
     """Schema for eliciting an authorization code or token from user."""
 
-    value: str = Field(description="Код авторизации (буквы и цифры) или OAuth-токен (y0_...)")
+    value: str = Field(
+        description="Код авторизации (буквы и цифры) или OAuth-токен (y0_...)"
+    )
 
 
 @mcp.tool()
