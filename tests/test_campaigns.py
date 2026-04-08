@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.campaigns import campaigns_list, campaigns_update
+from server.tools.campaigns import campaigns_list, campaigns_update, campaigns_add, campaigns_delete, campaigns_archive, campaigns_unarchive
 from server.cli.runner import CliAuthError
 
 
@@ -124,3 +124,64 @@ class TestCampaignsUpdate:
         ):
             result = campaigns_update(id="12345", state="ON")
             assert result["success"] is True
+
+
+class TestCampaignsCrudOperations:
+    """Tests for campaign CRUD operations (add, delete, archive, unarchive)."""
+
+    def test_campaigns_add(self):
+        """Test adding a new campaign."""
+        mock_result = {"Id": 99999, "Name": "New Campaign"}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_add(name="New Campaign", start_date="2026-01-01")
+            assert result["Id"] == 99999
+
+    def test_campaigns_delete_success(self):
+        """Test deleting campaigns successfully."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_delete(ids="12345,67890")
+            assert result["success"] is True
+
+    def test_campaigns_delete_batch_limit(self):
+        """Test batch limit validation for delete."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = campaigns_delete(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_campaigns_archive_success(self):
+        """Test archiving campaigns successfully."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_archive(ids="12345,67890")
+            assert result["success"] is True
+
+    def test_campaigns_archive_batch_limit(self):
+        """Test batch limit validation for archive."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = campaigns_archive(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_campaigns_unarchive_success(self):
+        """Test unarchiving campaigns successfully."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_unarchive(ids="12345,67890")
+            assert result["success"] is True
+
+    def test_campaigns_unarchive_batch_limit(self):
+        """Test batch limit validation for unarchive."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = campaigns_unarchive(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"

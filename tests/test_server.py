@@ -6,12 +6,36 @@ import sys
 from pathlib import Path
 
 EXPECTED_TOOLS = {
+    # Ad Groups (4 tools)
+    "adgroups_list",
+    "adgroups_add",
+    "adgroups_update",
+    "adgroups_delete",
+    # Campaigns (6 tools)
     "campaigns_list",
     "campaigns_update",
+    "campaigns_add",
+    "campaigns_delete",
+    "campaigns_archive",
+    "campaigns_unarchive",
+    # Ads (7 tools)
     "ads_list",
+    "ads_add",
+    "ads_update",
+    "ads_delete",
+    "ads_moderate",
+    "ads_suspend",
+    "ads_resume",
+    # Keywords (6 tools)
     "keywords_list",
     "keywords_update",
+    "keywords_add",
+    "keywords_delete",
+    "keywords_suspend",
+    "keywords_resume",
+    # Reports
     "reports_get",
+    # Auth (3 tools)
     "auth_status",
     "auth_setup",
     "auth_login",
