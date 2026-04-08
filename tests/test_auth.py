@@ -5,7 +5,7 @@ import json
 import time
 from base64 import urlsafe_b64encode
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -360,6 +360,37 @@ class TestAuthTools:
         result = auth_setup("1234567")
         assert result["error"] == "invalid_grant"
         assert "просроченный" in result["message"]
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_invalid_method(self, mock_oauth) -> None:
+        import asyncio
+
+        mock_oauth.get_status.return_value = {"valid": False}
+
+        mock_ctx = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.action = "accept"
+        mock_choice.data.method = "invalid"
+        mock_ctx.elicit = AsyncMock(return_value=mock_choice)
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.get_event_loop().run_until_complete(auth_login(mock_ctx))
+        assert result["error"] == "invalid_method"
+
+    @patch("server.tools.auth_tools._oauth")
+    def test_auth_login_already_authenticated(self, mock_oauth) -> None:
+        import asyncio
+
+        mock_oauth.get_status.return_value = {
+            "valid": True,
+            "expires_in": 3600,
+        }
+
+        from server.tools.auth_tools import auth_login
+
+        result = asyncio.get_event_loop().run_until_complete(auth_login(MagicMock()))
+        assert result.get("already_authenticated") is True
 
 
 # ---------------------------------------------------------------------------

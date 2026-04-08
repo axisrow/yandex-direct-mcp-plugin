@@ -82,6 +82,62 @@ You can also paste a token directly:
 mcp__yandex_direct__auth_setup(code="y0_AgAAAA...")
 ```
 
+### Token storage
+
+OAuth tokens are saved to `$CLAUDE_PLUGIN_DATA/tokens.json`. The directory name depends on how the plugin was installed:
+
+| Install method | Data directory |
+|---|---|
+| Marketplace (`/plugin install`) | `~/.claude/plugins/data/yandex-direct/` |
+| Local path (`claude plugin install ./path`) | `~/.claude/plugins/data/yandex-direct-inline/` |
+
+The `-inline` suffix is added by Claude Code for locally-installed plugins. The `$CLAUDE_PLUGIN_DATA` env var always points to the correct path, so this is transparent to the plugin.
+
+## Setup: Creating Yandex Applications
+
+Для работы плагина нужно зарегистрировать **два приложения** в Яндексе:
+
+### Шаг 1. OAuth-приложение (oauth.yandex.ru)
+
+Это приложение получает OAuth-токены от имени пользователя.
+
+1. Перейдите на https://oauth.yandex.ru/client/new
+2. Заполните форму:
+   - **Название** — любое (например, `My Direct Plugin`)
+   - **Платформа** — выберите «Веб-сервисы»
+   - **Redirect URI** — `https://oauth.yandex.ru/verification_code`
+   - **Доступы** — обязательно добавьте **«Использование API Яндекс Директа»** (`direct:api`)
+3. Нажмите «Создать приложение»
+4. Скопируйте **Client ID** (ID приложения) и **Client Secret** (Пароль приложения)
+
+### Шаг 2. Заявка на доступ к API Директа (direct.yandex.ru)
+
+OAuth-приложение само по себе не даёт доступ к API — нужна отдельная заявка.
+
+1. Войдите в https://direct.yandex.ru
+2. Перейдите в **Инструменты → API → Мои заявки**
+3. Нажмите «Новая заявка»
+4. Укажите **Client ID** из Шага 1
+5. Выберите уровень доступа (начните с тестового)
+6. Отправьте заявку и дождитесь подтверждения
+
+> **Без выполненного Шага 2** все запросы к API вернут ошибку `incomplete_registration` (код 58).
+
+### Использование своего приложения
+
+После регистрации передайте credentials через настройки плагина:
+
+```json
+{
+  "options": {
+    "client_id": "ваш-client-id",
+    "client_secret": "ваш-client-secret"
+  }
+}
+```
+
+Или через переменные окружения `CLAUDE_PLUGIN_OPTION_client_id` / `CLAUDE_PLUGIN_OPTION_client_secret`.
+
 ## MCP Tools
 
 | Tool | Description |
@@ -201,6 +257,10 @@ mcp__yandex_direct__ads_list(campaign_ids="1,2,3,4,5,6,7,8,9,10,11")
 # direct-cli не установлен или не в PATH
 mcp__yandex_direct__campaigns_list()
 # → {"error": "cli_not_found", "message": "direct-cli не найден. Установите: https://github.com/axisrow/direct-cli"}
+
+# Заявка на доступ к API не подана или отклонена (ошибка 58)
+mcp__yandex_direct__campaigns_list()
+# → {"error": "incomplete_registration", "message": "Незаконченная регистрация. Вам нужно подать или переподать заявку..."}
 ```
 
 ### Without plugin (before)

@@ -8,6 +8,7 @@ import pytest
 from server.cli.runner import (
     CliAuthError,
     CliNotFoundError,
+    CliRegistrationError,
     CliTimeoutError,
     DirectCliRunner,
 )
@@ -123,3 +124,38 @@ class TestRunJson:
         ):
             with pytest.raises(CliAuthError):
                 runner.run_json(["campaigns", "get"])
+
+    def test_registration_error_58(self, runner):
+        """Test error code 58 (incomplete registration)."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "✗ request_id=123, error_code=58, "
+            "error_string=Incomplete registration, "
+            "error_detail=You need to fill out an app access request"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            with pytest.raises(CliRegistrationError):
+                runner.run_json(["campaigns", "get"])
+
+    def test_no_false_positive_error_580(self, runner):
+        """Test that error_code=580 does NOT trigger CliRegistrationError."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = "error_code=580"
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            from server.cli.runner import CliError
+
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["campaigns", "get"])
+            assert not isinstance(exc_info.value, CliRegistrationError)

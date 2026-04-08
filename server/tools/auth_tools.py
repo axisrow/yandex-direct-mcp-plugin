@@ -1,7 +1,6 @@
 """MCP tools and prompts for OAuth authentication management."""
 
 import time
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -94,16 +93,18 @@ def auth_setup(code: str) -> dict:
 class AuthMethodChoice(BaseModel):
     """Schema for choosing authentication method."""
 
-    method: Literal["pkce", "token"] = Field(
-        description="pkce — авторизация через браузер (рекомендуется), "
-        "token — вставить готовый OAuth-токен"
+    method: str = Field(
+        description="Выберите метод: 'pkce' (авторизация через браузер, рекомендуется) "
+        "или 'token' (вставить готовый OAuth-токен)"
     )
 
 
 class AuthCredential(BaseModel):
     """Schema for eliciting an authorization code or token from user."""
 
-    value: str = Field(description="Код авторизации (7 цифр) или OAuth-токен (y0_...)")
+    value: str = Field(
+        description="Код авторизации (буквы и цифры) или OAuth-токен (y0_...)"
+    )
 
 
 @mcp.tool()
@@ -127,6 +128,12 @@ async def auth_login(ctx: Context) -> dict:
     if choice.action != "accept" or not choice.data:
         return {"cancelled": True, "message": "Авторизация отменена."}
 
+    if choice.data.method not in ("pkce", "token"):
+        return {
+            "error": "invalid_method",
+            "message": "Метод должен быть 'pkce' или 'token'.",
+        }
+
     # Step 2a: Direct token
     if choice.data.method == "token":
         result = await ctx.elicit(
@@ -148,7 +155,7 @@ async def auth_login(ctx: Context) -> dict:
         return {"cancelled": True, "message": "Авторизация отменена пользователем."}
 
     result = await ctx.elicit(
-        message="Введите код авторизации (7 цифр)",
+        message="Введите код авторизации",
         schema=AuthCredential,
     )
     if result.action != "accept" or not result.data:
@@ -174,7 +181,7 @@ def oauth_login_prompt() -> list[dict]:
             "content": (
                 f"Авторизуй меня в Яндекс.Директ.\n\n"
                 f"Ссылка для авторизации: {auth_url}\n\n"
-                f"После авторизации я введу 7-значный код."
+                f"После авторизации я введу код подтверждения."
             ),
         }
     ]

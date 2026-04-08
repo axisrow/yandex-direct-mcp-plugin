@@ -2,7 +2,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
 
-from server.cli.runner import CliAuthError, CliNotFoundError, CliTimeoutError
+from server.cli.runner import (
+    CliAuthError,
+    CliNotFoundError,
+    CliRegistrationError,
+    CliTimeoutError,
+)
 
 
 @dataclass
@@ -35,6 +40,8 @@ def handle_cli_errors(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except CliRegistrationError as e:
+            return ToolError(error="incomplete_registration", message=str(e)).__dict__
         except CliAuthError:
             from server.auth.oauth import OAuthError
 
