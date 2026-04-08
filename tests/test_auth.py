@@ -123,8 +123,9 @@ class TestOAuthManager:
     def _storage(self, tmp_path: Path) -> FileTokenStorage:
         return FileTokenStorage(path=tmp_path / "tokens.json")
 
+    @patch("server.auth.oauth.httpx.get")
     @patch("server.auth.oauth.httpx.post")
-    def test_exchange_code_succeeds(self, mock_post, tmp_path: Path) -> None:
+    def test_exchange_code_succeeds(self, mock_post, mock_get, tmp_path: Path) -> None:
         mock_post.return_value = _make_httpx_response(
             200,
             {
@@ -135,6 +136,7 @@ class TestOAuthManager:
                 "login": "user@example.com",
             },
         )
+        mock_get.return_value = _make_httpx_response(200, {"login": "user@example.com"})
         manager = OAuthManager(storage=self._storage(tmp_path))
         # Trigger PKCE verifier generation via authorize_url
         _ = manager.authorize_url
@@ -172,8 +174,9 @@ class TestOAuthManager:
         assert exc_info.value.error == "invalid_grant"
         assert "просроченный" in exc_info.value.message
 
+    @patch("server.auth.oauth.httpx.get")
     @patch("server.auth.oauth.httpx.post")
-    def test_refresh_token_succeeds(self, mock_post, tmp_path: Path) -> None:
+    def test_refresh_token_succeeds(self, mock_post, mock_get, tmp_path: Path) -> None:
         storage = self._storage(tmp_path)
         storage.save(
             TokenData(
@@ -192,6 +195,7 @@ class TestOAuthManager:
                 "login": "user@example.com",
             },
         )
+        mock_get.return_value = _make_httpx_response(200, {"login": "user@example.com"})
         manager = OAuthManager(storage=storage)
         result = manager.refresh_token()
 
@@ -205,9 +209,10 @@ class TestOAuthManager:
         assert exc_info.value.error == "auth_expired"
         assert exc_info.value.auth_url is not None
 
+    @patch("server.auth.oauth.httpx.get")
     @patch("server.auth.oauth.httpx.post")
     def test_get_valid_token_auto_refreshes_when_expired(
-        self, mock_post, tmp_path: Path
+        self, mock_post, mock_get, tmp_path: Path
     ) -> None:
         storage = self._storage(tmp_path)
         # Token expires in 30 seconds (within 60s buffer)
@@ -227,6 +232,7 @@ class TestOAuthManager:
                 "scope": "direct:api",
             },
         )
+        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
         manager = OAuthManager(storage=storage)
         token = manager.get_valid_token()
 
@@ -279,6 +285,41 @@ class TestOAuthManager:
         manager = OAuthManager(storage=self._storage(tmp_path))
         status = manager.get_status()
         assert status["valid"] is False
+
+    @patch("server.auth.oauth.httpx.get")
+    def test_fetch_login_succeeds(self, mock_get, tmp_path: Path) -> None:
+        mock_get.return_value = _make_httpx_response(200, {"login": "mylogin"})
+        manager = OAuthManager(storage=self._storage(tmp_path))
+        assert manager.fetch_login("some-token") == "mylogin"
+        mock_get.assert_called_once_with(
+            "https://login.yandex.ru/info",
+            headers={"Authorization": "OAuth some-token"},
+            timeout=15,
+        )
+
+    @patch("server.auth.oauth.httpx.get")
+    def test_fetch_login_returns_none_on_error(self, mock_get, tmp_path: Path) -> None:
+        mock_get.side_effect = __import__("httpx").TransportError("fail")
+        manager = OAuthManager(storage=self._storage(tmp_path))
+        assert manager.fetch_login("some-token") is None
+
+    @patch("server.auth.oauth.httpx.get")
+    def test_parse_and_save_fetches_login_when_missing(
+        self, mock_get, tmp_path: Path
+    ) -> None:
+        """When OAuth token response has no login, fetch it from login.yandex.ru."""
+        mock_get.return_value = _make_httpx_response(200, {"login": "fetched-login"})
+        storage = self._storage(tmp_path)
+        manager = OAuthManager(storage=storage)
+        resp = _make_httpx_response(
+            200,
+            {"access_token": "tok", "refresh_token": "ref", "expires_in": 3600},
+        )
+        result = manager._parse_and_save(resp, fallback_refresh_token="")
+        assert result["login"] == "fetched-login"
+        loaded = storage.load()
+        assert loaded is not None
+        assert loaded["login"] == "fetched-login"
 
 
 # ---------------------------------------------------------------------------
@@ -428,9 +469,10 @@ class TestPKCE:
         assert params["code_challenge_method"] == ["S256"]
         assert params["response_type"] == ["code"]
 
+    @patch("server.auth.oauth.httpx.get")
     @patch("server.auth.oauth.httpx.post")
     def test_exchange_sends_verifier_not_secret(
-        self, mock_post, tmp_path: Path
+        self, mock_post, mock_get, tmp_path: Path
     ) -> None:
         mock_post.return_value = _make_httpx_response(
             200,
@@ -440,6 +482,7 @@ class TestPKCE:
                 "expires_in": 3600,
             },
         )
+        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         _ = manager.authorize_url  # generates code_verifier
@@ -450,23 +493,31 @@ class TestPKCE:
         assert "code_verifier" in sent_data
         assert "client_secret" not in sent_data
 
-    def test_set_token_saves_directly(self, tmp_path: Path) -> None:
+    @patch("server.auth.oauth.httpx.get")
+    def test_set_token_saves_directly(self, mock_get, tmp_path: Path) -> None:
+        mock_get.return_value = _make_httpx_response(
+            200, {"login": "test-user"}
+        )
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         result = manager.set_token("y0_direct_token_value")
         assert result["access_token"] == "y0_direct_token_value"
+        assert result["login"] == "test-user"
         loaded = storage.load()
         assert loaded is not None
         assert loaded["access_token"] == "y0_direct_token_value"
+        assert loaded["login"] == "test-user"
 
+    @patch("server.auth.oauth.httpx.get")
     @patch("server.auth.oauth.httpx.post")
     def test_exchange_with_client_secret_no_pkce(
-        self, mock_post, tmp_path: Path
+        self, mock_post, mock_get, tmp_path: Path
     ) -> None:
         mock_post.return_value = _make_httpx_response(
             200,
             {"access_token": "tok", "expires_in": 3600},
         )
+        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         manager._client_secret = "my_secret"
@@ -503,10 +554,12 @@ class TestPKCE:
         manager = OAuthManager(storage=storage)
         _ = manager.start_auth_flow()
         assert manager._verifier_path.exists()
-        with patch("server.auth.oauth.httpx.post") as mock_post:
+        with patch("server.auth.oauth.httpx.get") as mock_get, \
+             patch("server.auth.oauth.httpx.post") as mock_post:
             mock_post.return_value = _make_httpx_response(
                 200, {"access_token": "t", "expires_in": 3600}
             )
+            mock_get.return_value = _make_httpx_response(200, {"login": "u"})
             manager.exchange_code("1234567")
         assert not manager._verifier_path.exists()
         assert manager._cached_verifier is None

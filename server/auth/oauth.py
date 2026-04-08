@@ -116,12 +116,13 @@ class OAuthManager:
 
     def set_token(self, token: str) -> TokenData:
         """Save a pre-existing OAuth token directly (no exchange needed)."""
+        login = self.fetch_login(token) or ""
         result = TokenData(
             access_token=token,
             refresh_token="",
             expires_at=time.time() + 365 * 24 * 3600,
             scope="",
-            login="",
+            login=login,
         )
         self._storage.save(result)
         return result
@@ -216,6 +217,19 @@ class OAuthManager:
                 self.authorize_url if error_type != "invalid_grant" else None,
             ) from e
 
+    def fetch_login(self, access_token: str) -> str | None:
+        """Fetch Yandex login via login.yandex.ru/info endpoint."""
+        try:
+            resp = httpx.get(
+                "https://login.yandex.ru/info",
+                headers={"Authorization": f"OAuth {access_token}"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            return resp.json().get("login")
+        except (httpx.HTTPError, ValueError):
+            return None
+
     def _parse_and_save(
         self, resp: httpx.Response, fallback_refresh_token: str
     ) -> TokenData:
@@ -226,12 +240,16 @@ class OAuthManager:
             raise OAuthError(
                 "invalid_response", "Missing access_token in token response"
             )
+        login = token_data.get("login", "")
+        if not login:
+            login = self.fetch_login(access_token) or ""
+
         result = TokenData(
             access_token=access_token,
             refresh_token=token_data.get("refresh_token", fallback_refresh_token),
             expires_at=time.time() + token_data.get("expires_in", 0),
             scope=token_data.get("scope", ""),
-            login=token_data.get("login", ""),
+            login=login,
         )
         self._storage.save(result)
         return result

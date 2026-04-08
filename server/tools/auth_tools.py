@@ -45,6 +45,7 @@ def _exchange_or_set_token(code: str) -> dict:
             "success": True,
             "method": "direct_token",
             "access_token_prefix": result["access_token"][:6] + "...",
+            "login": result.get("login", ""),
         }
 
     # Authorization code (alphanumeric, from Yandex OAuth page)
@@ -144,18 +145,11 @@ async def auth_login(ctx: Context) -> dict:
             return {"cancelled": True, "message": "Ввод токена отменён."}
         return _exchange_or_set_token(result.data.value)
 
-    # Step 2b: PKCE flow — open browser, collect code
+    # Step 2b: PKCE flow — show URL, collect code
     auth_url = _oauth.start_auth_flow()
-    url_result = await ctx.elicit_url(
-        message="Перейдите по ссылке для авторизации в Яндекс.Директ",
-        url=auth_url,
-        elicitation_id="yandex-oauth-login",
-    )
-    if url_result.action != "accept":
-        return {"cancelled": True, "message": "Авторизация отменена пользователем."}
-
     result = await ctx.elicit(
-        message="Введите код авторизации",
+        message=f"Перейдите по ссылке для авторизации:\n{auth_url}\n\n"
+        f"После разрешения введите код авторизации.",
         schema=AuthCredential,
     )
     if result.action != "accept" or not result.data:
