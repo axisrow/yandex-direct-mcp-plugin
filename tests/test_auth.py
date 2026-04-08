@@ -361,9 +361,10 @@ class TestAuthTools:
         assert result["error"] == "invalid_grant"
         assert "просроченный" in result["message"]
 
-    @pytest.mark.asyncio
     @patch("server.tools.auth_tools._oauth")
-    async def test_auth_login_invalid_method(self, mock_oauth) -> None:
+    def test_auth_login_invalid_method(self, mock_oauth) -> None:
+        import asyncio
+
         mock_oauth.get_status.return_value = {"valid": False}
 
         mock_ctx = MagicMock()
@@ -374,12 +375,13 @@ class TestAuthTools:
 
         from server.tools.auth_tools import auth_login
 
-        result = await auth_login(mock_ctx)
+        result = asyncio.get_event_loop().run_until_complete(auth_login(mock_ctx))
         assert result["error"] == "invalid_method"
 
-    @pytest.mark.asyncio
     @patch("server.tools.auth_tools._oauth")
-    async def test_auth_login_already_authenticated(self, mock_oauth) -> None:
+    def test_auth_login_already_authenticated(self, mock_oauth) -> None:
+        import asyncio
+
         mock_oauth.get_status.return_value = {
             "valid": True,
             "expires_in": 3600,
@@ -387,7 +389,7 @@ class TestAuthTools:
 
         from server.tools.auth_tools import auth_login
 
-        result = await auth_login(MagicMock())
+        result = asyncio.get_event_loop().run_until_complete(auth_login(MagicMock()))
         assert result.get("already_authenticated") is True
 
 
