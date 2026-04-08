@@ -82,6 +82,17 @@ You can also paste a token directly:
 mcp__yandex_direct__auth_setup(code="y0_AgAAAA...")
 ```
 
+### Token storage
+
+OAuth tokens are saved to `$CLAUDE_PLUGIN_DATA/tokens.json`. The directory name depends on how the plugin was installed:
+
+| Install method | Data directory |
+|---|---|
+| Marketplace (`/plugin install`) | `~/.claude/plugins/data/yandex-direct/` |
+| Local path (`claude plugin install ./path`) | `~/.claude/plugins/data/yandex-direct-inline/` |
+
+The `-inline` suffix is added by Claude Code for locally-installed plugins. The `$CLAUDE_PLUGIN_DATA` env var always points to the correct path, so this is transparent to the plugin.
+
 ## Setup: Creating Yandex Applications
 
 Для работы плагина нужно зарегистрировать **два приложения** в Яндексе:
