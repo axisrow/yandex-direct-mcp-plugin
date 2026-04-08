@@ -94,6 +94,12 @@ class DirectCliRunner:
             stderr = result.stderr.strip()
             if "401" in stderr or "Unauthorized" in stderr:
                 raise CliAuthError("Token expired or invalid")
+            if "error_code=58" in stderr:
+                raise CliRegistrationError(
+                    "Незаконченная регистрация. "
+                    "Вам нужно подать или переподать заявку на регистрацию приложения "
+                    "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
+                )
             raise CliError(
                 f"direct-cli failed (exit {result.returncode}): {stderr or result.stdout[:200]}"
             )
@@ -128,5 +134,11 @@ class CliTimeoutError(CliError):
 
 class CliAuthError(CliError):
     """Authentication error (401)."""
+
+    pass
+
+
+class CliRegistrationError(CliError):
+    """Application not registered in Yandex.Direct (error 58)."""
 
     pass
