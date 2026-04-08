@@ -236,7 +236,9 @@ class OAuthManager:
             return None
 
     def _parse_and_save(
-        self, resp: httpx.Response, fallback_refresh_token: str,
+        self,
+        resp: httpx.Response,
+        fallback_refresh_token: str,
         fallback_login: str = "",
     ) -> TokenData:
         """Parse a token response, persist it, and return the result."""

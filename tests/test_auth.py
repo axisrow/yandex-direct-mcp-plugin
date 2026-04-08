@@ -495,9 +495,7 @@ class TestPKCE:
 
     @patch("server.auth.oauth.httpx.get")
     def test_set_token_saves_directly(self, mock_get, tmp_path: Path) -> None:
-        mock_get.return_value = _make_httpx_response(
-            200, {"login": "test-user"}
-        )
+        mock_get.return_value = _make_httpx_response(200, {"login": "test-user"})
         storage = FileTokenStorage(path=tmp_path / "tokens.json")
         manager = OAuthManager(storage=storage)
         result = manager.set_token("y0_direct_token_value")
@@ -554,8 +552,10 @@ class TestPKCE:
         manager = OAuthManager(storage=storage)
         _ = manager.start_auth_flow()
         assert manager._verifier_path.exists()
-        with patch("server.auth.oauth.httpx.get") as mock_get, \
-             patch("server.auth.oauth.httpx.post") as mock_post:
+        with (
+            patch("server.auth.oauth.httpx.get") as mock_get,
+            patch("server.auth.oauth.httpx.post") as mock_post,
+        ):
             mock_post.return_value = _make_httpx_response(
                 200, {"access_token": "t", "expires_in": 3600}
             )
