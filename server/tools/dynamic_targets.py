@@ -1,0 +1,102 @@
+"""MCP tools for dynamic target management."""
+
+from server.main import mcp
+from server.tools import get_runner, handle_cli_errors
+
+
+@mcp.tool()
+@handle_cli_errors
+def dynamic_targets_list(ad_group_ids: str) -> list[dict]:
+    """List dynamic targets for specified ad groups.
+
+    Args:
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ad_group_ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(
+        ["dynamictargets", "get", "--ad-group-ids", ad_group_ids, "--format", "json"]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def dynamic_targets_add(ad_group_id: str, conditions: str) -> dict:
+    """Add a dynamic target to an ad group.
+
+    Args:
+        ad_group_id: Ad group ID to add target to.
+        conditions: JSON string with dynamic target conditions.
+    """
+    runner = get_runner()
+    result = runner.run_json(
+        [
+            "dynamictargets",
+            "add",
+            "--ad-group-id",
+            ad_group_id,
+            "--conditions",
+            conditions,
+            "--format",
+            "json",
+        ]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def dynamic_targets_update(id: str, conditions: str | None = None) -> dict:
+    """Update a dynamic target.
+
+    Args:
+        id: Dynamic target ID to update.
+        conditions: JSON string with new conditions (optional).
+    """
+    runner = get_runner()
+    if conditions is None:
+        # If no conditions provided, just return current target
+        result = runner.run_json(
+            ["dynamictargets", "get", "--ids", id, "--format", "json"]
+        )
+    else:
+        result = runner.run_json(
+            [
+                "dynamictargets",
+                "update",
+                "--id",
+                id,
+                "--conditions",
+                conditions,
+                "--format",
+                "json",
+            ]
+        )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def dynamic_targets_delete(ids: str) -> dict:
+    """Delete dynamic targets.
+
+    Args:
+        ids: Comma-separated dynamic target IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(
+        ["dynamictargets", "delete", "--ids", ids, "--format", "json"]
+    )
+    return result
