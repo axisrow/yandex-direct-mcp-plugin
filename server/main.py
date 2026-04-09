@@ -24,6 +24,7 @@ import server.tools.changes  # noqa: E402, F401
 import server.tools.clients  # noqa: E402, F401
 import server.tools.creatives  # noqa: E402, F401
 import server.tools.dictionaries  # noqa: E402, F401
+import server.tools.dynamic_ads  # noqa: E402, F401
 import server.tools.dynamic_targets  # noqa: E402, F401
 import server.tools.feeds  # noqa: E402, F401
 import server.tools.images  # noqa: E402, F401
