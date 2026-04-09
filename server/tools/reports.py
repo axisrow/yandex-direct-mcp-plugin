@@ -64,3 +64,11 @@ def reports_get(
         "json",
     ]
     return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def reports_list_types() -> list[str]:
+    """List available report types."""
+    runner = get_runner()
+    return runner.run_json(["reports", "list-types", "--format", "json"])
