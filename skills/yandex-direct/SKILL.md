@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступные MCP Tools (83)
+## Доступные MCP Tools (105)
 
 ### Кампании
 | Tool | Описание | Параметры |
@@ -29,6 +29,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `campaigns_delete` | Удалить кампании | `ids` (max 10) |
 | `campaigns_archive` | Архивировать кампании | `ids` (max 10) |
 | `campaigns_unarchive` | Разархивировать кампании | `ids` (max 10) |
+| `campaigns_suspend` | Приостановить кампании | `ids` (max 10) |
+| `campaigns_resume` | Возобновить кампании | `ids` (max 10) |
 
 ### Группы объявлений
 | Tool | Описание | Параметры |
@@ -48,6 +50,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `ads_moderate` | Отправить на модерацию | `ids` (max 10) |
 | `ads_suspend` | Приостановить объявления | `ids` (max 10) |
 | `ads_resume` | Возобновить объявления | `ids` (max 10) |
+| `ads_archive` | Архивировать объявления | `ids` (max 10) |
+| `ads_unarchive` | Разархивировать объявления | `ids` (max 10) |
 
 ### Ключевые слова
 | Tool | Описание | Параметры |
@@ -58,12 +62,20 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `keywords_delete` | Удалить ключевые слова | `ids` (max 10) |
 | `keywords_suspend` | Приостановить ключевые слова | `ids` (max 10) |
 | `keywords_resume` | Возобновить ключевые слова | `ids` (max 10) |
+| `keywords_archive` | Архивировать ключевые слова | `ids` (max 10) |
+| `keywords_unarchive` | Разархивировать ключевые слова | `ids` (max 10) |
 
 ### Ставки
 | Tool | Описание | Параметры |
 |---|---|---|
 | `bids_list` | Список ставок | `campaign_ids` (max 10) |
 | `bids_set` | Установить ставку | `campaign_id`, `bid`, `context_bid?` |
+
+### Ставки ключевых слов
+| Tool | Описание | Параметры |
+|---|---|---|
+| `keyword_bids_list` | Список ставок ключевых слов | `campaign_ids?`, `ad_group_ids?`, `keyword_ids?` |
+| `keyword_bids_set` | Установить ставку ключевого слова | `keyword_id`, `search_bid?`, `network_bid?` |
 
 ### Корректировки ставок
 | Tool | Описание | Параметры |
@@ -104,14 +116,26 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `dynamic_targets_add` | Добавить динамический таргет | `ad_group_id`, `conditions` (JSON) |
 | `dynamic_targets_update` | Обновить динамический таргет | `id`, `conditions` (JSON) |
 | `dynamic_targets_delete` | Удалить динамические таргеты | `ids` (max 10) |
+| `dynamic_ads_list` | Список динамических объявлений (webpages) | `ad_group_ids` |
+| `dynamic_ads_add` | Добавить динамическое объявление | `ad_group_id`, `target_data` (JSON) |
+| `dynamic_ads_update` | Обновить динамическое объявление | `id`, `extra_json` |
+| `dynamic_ads_delete` | Удалить динамическое объявление | `id` |
 | `negative_keywords_list` | Список минус-слов | `campaign_ids` (max 10) |
 | `negative_keywords_add` | Добавить минус-слова | `campaign_id`, `keywords` |
 | `negative_keywords_update` | Обновить минус-слова | `id`, `keywords` |
 | `negative_keywords_delete` | Удалить минус-слова | `ids` (max 10) |
+| `negative_keyword_shared_sets_list` | Список общих наборов минус-слов | `ids?` |
+| `negative_keyword_shared_sets_add` | Добавить набор минус-слов | `name`, `keywords` |
+| `negative_keyword_shared_sets_update` | Обновить набор минус-слов | `id`, `name?`, `keywords?` |
+| `negative_keyword_shared_sets_delete` | Удалить набор минус-слов | `id` |
 | `smart_targets_list` | Список смарт-таргетов | `ad_group_ids` (max 10) |
 | `smart_targets_add` | Добавить смарт-таргет | `ad_group_id`, `conditions` (JSON) |
 | `smart_targets_update` | Обновить смарт-таргет | `id`, `conditions` (JSON) |
 | `smart_targets_delete` | Удалить смарт-таргеты | `ids` (max 10) |
+| `smart_ad_targets_list` | Список смарт-таргетов объявлений | `ad_group_ids` |
+| `smart_ad_targets_add` | Добавить смарт-таргет объявления | `ad_group_id`, `target_type`, `extra_json?` |
+| `smart_ad_targets_update` | Обновить смарт-таргет объявления | `id`, `extra_json?` |
+| `smart_ad_targets_delete` | Удалить смарт-таргет объявления | `id` |
 
 ### Справочники и изменения
 | Tool | Описание | Параметры |
@@ -130,6 +154,11 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `agency_clients_add` | Добавить клиента агентству | `login`, `client_info` (JSON) |
 | `agency_clients_delete` | Удалить клиента из агентства | `login`, `client_login` |
 
+### Бизнесы
+| Tool | Описание | Параметры |
+|---|---|---|
+| `businesses_list` | Список бизнесов | `ids?` |
+
 ### Исследования и отчёты
 | Tool | Описание | Параметры |
 |---|---|---|
@@ -137,6 +166,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `keywords_deduplicate` | Дедупликация ключевых слов | `keywords` |
 | `leads_list` | Список лидов | `campaign_ids`, `date_from?`, `date_to?` |
 | `reports_get` | Статистика кампаний | `date_from?`, `date_to?` |
+| `reports_list_types` | Список типов отчётов | — |
 
 ### Фиды, креативы, Турбо-страницы
 | Tool | Описание | Параметры |
