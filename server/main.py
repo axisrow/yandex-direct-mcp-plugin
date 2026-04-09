@@ -29,6 +29,7 @@ import server.tools.feeds  # noqa: E402, F401
 import server.tools.images  # noqa: E402, F401
 import server.tools.keywords  # noqa: E402, F401
 import server.tools.leads  # noqa: E402, F401
+import server.tools.negative_keyword_shared_sets  # noqa: E402, F401
 import server.tools.negative_keywords  # noqa: E402, F401
 import server.tools.reports  # noqa: E402, F401
 import server.tools.research  # noqa: E402, F401

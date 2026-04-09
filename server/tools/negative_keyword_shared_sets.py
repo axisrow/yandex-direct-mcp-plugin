@@ -1,0 +1,72 @@
+"""MCP tools for negative keyword shared sets management."""
+
+from server.main import mcp
+from server.tools import get_runner, handle_cli_errors
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keyword_shared_sets_list(ids: str | None = None) -> list[dict] | dict:
+    """List negative keyword shared sets.
+
+    Args:
+        ids: Comma-separated set IDs (optional).
+    """
+    args = ["negativekeywordsharedsets", "get", "--format", "json"]
+    if ids:
+        args.extend(["--ids", ids])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keyword_shared_sets_add(name: str, keywords: str) -> dict:
+    """Add a negative keyword shared set.
+
+    Args:
+        name: Set name.
+        keywords: Comma-separated negative keywords.
+    """
+    runner = get_runner()
+    return runner.run_json(
+        ["negativekeywordsharedsets", "add", "--name", name, "--keywords", keywords, "--format", "json"]
+    )
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keyword_shared_sets_update(
+    id: str,
+    name: str | None = None,
+    keywords: str | None = None,
+) -> dict:
+    """Update a negative keyword shared set.
+
+    Args:
+        id: Set ID.
+        name: New set name (optional).
+        keywords: New comma-separated negative keywords (optional).
+    """
+    args = ["negativekeywordsharedsets", "update", "--id", id]
+    if name:
+        args.extend(["--name", name])
+    if keywords:
+        args.extend(["--keywords", keywords])
+    args.extend(["--format", "json"])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keyword_shared_sets_delete(id: str) -> dict:
+    """Delete a negative keyword shared set.
+
+    Args:
+        id: Set ID.
+    """
+    runner = get_runner()
+    return runner.run_json(
+        ["negativekeywordsharedsets", "delete", "--id", id, "--format", "json"]
+    )

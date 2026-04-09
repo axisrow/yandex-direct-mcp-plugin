@@ -79,6 +79,11 @@ EXPECTED_TOOLS = {
     "negative_keywords_add",
     "negative_keywords_update",
     "negative_keywords_delete",
+    # Negative Keyword Shared Sets (4 tools)
+    "negative_keyword_shared_sets_list",
+    "negative_keyword_shared_sets_add",
+    "negative_keyword_shared_sets_update",
+    "negative_keyword_shared_sets_delete",
     # Smart Targets (4 tools)
     "smart_targets_list",
     "smart_targets_add",
