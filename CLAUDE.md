@@ -154,15 +154,15 @@ yandex-direct-mcp-plugin/
 │       ├── bidmodifiers.py      # bidmodifiers_list/set/toggle/delete
 │       ├── campaigns.py         # campaigns_list/update/add/delete/archive/unarchive/suspend/resume
 │       ├── businesses.py        # businesses_list
-changes.py           # changes_check/checkcamp/checkdict
+│       ├── changes.py           # changes_check/checkcamp/checkdict
 │       ├── clients.py           # clients_get/update
 │       ├── creatives.py         # creatives_list
 │       ├── dictionaries.py      # dictionaries_get
-│       ├── dynamic_targets.py   # dynamic_targets_list/add/update/delete
 │       ├── dynamic_ads.py       # dynamic_ads_list/add/update/delete
+│       ├── dynamic_targets.py   # dynamic_targets_list/add/update/delete
 │       ├── feeds.py             # feeds_list/add/update/delete
-│       ├── keywords.py          # keyword_bids.py      # keyword_bids_list/set
-keywords_list/update/add/delete/suspend/resume/archive/unarchive
+│       ├── keyword_bids.py      # keyword_bids_list/set
+│       ├── keywords.py          # keywords_list/update/add/delete/suspend/resume/archive/unarchive
 │       ├── leads.py             # leads_list
 │       ├── negative_keyword_shared_sets.py # negative_keyword_shared_sets_list/add/update/delete
 │       ├── negative_keywords.py # negative_keywords_list/add/update/delete
