@@ -30,7 +30,16 @@ def negative_keyword_shared_sets_add(name: str, keywords: str) -> dict:
     """
     runner = get_runner()
     return runner.run_json(
-        ["negativekeywordsharedsets", "add", "--name", name, "--keywords", keywords, "--format", "json"]
+        [
+            "negativekeywordsharedsets",
+            "add",
+            "--name",
+            name,
+            "--keywords",
+            keywords,
+            "--format",
+            "json",
+        ]
     )
 
 
@@ -49,9 +58,9 @@ def negative_keyword_shared_sets_update(
         keywords: New comma-separated negative keywords (optional).
     """
     args = ["negativekeywordsharedsets", "update", "--id", id]
-    if name:
+    if name is not None:
         args.extend(["--name", name])
-    if keywords:
+    if keywords is not None:
         args.extend(["--keywords", keywords])
     args.extend(["--format", "json"])
     runner = get_runner()

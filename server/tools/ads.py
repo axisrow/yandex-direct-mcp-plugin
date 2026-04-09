@@ -63,7 +63,12 @@ def ads_list(campaign_ids: str) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def ads_add(ad_group_id: str, title: str | None = None, text: str | None = None, href: str | None = None) -> dict:
+def ads_add(
+    ad_group_id: str,
+    title: str | None = None,
+    text: str | None = None,
+    href: str | None = None,
+) -> dict:
     """Create a new ad.
 
     Args:

@@ -11,14 +11,16 @@ EXPECTED_TOOLS = {
     "adgroups_add",
     "adgroups_update",
     "adgroups_delete",
-    # Campaigns (6 tools)
+    # Campaigns (8 tools)
     "campaigns_list",
     "campaigns_update",
     "campaigns_add",
     "campaigns_delete",
     "campaigns_archive",
     "campaigns_unarchive",
-    # Ads (7 tools)
+    "campaigns_suspend",
+    "campaigns_resume",
+    # Ads (9 tools)
     "ads_list",
     "ads_add",
     "ads_update",
@@ -26,15 +28,23 @@ EXPECTED_TOOLS = {
     "ads_moderate",
     "ads_suspend",
     "ads_resume",
-    # Keywords (6 tools)
+    "ads_archive",
+    "ads_unarchive",
+    # Keywords (8 tools)
     "keywords_list",
     "keywords_update",
     "keywords_add",
     "keywords_delete",
     "keywords_suspend",
     "keywords_resume",
-    # Reports
+    "keywords_archive",
+    "keywords_unarchive",
+    # Keyword Bids (2 tools)
+    "keyword_bids_list",
+    "keyword_bids_set",
+    # Reports (2 tools)
     "reports_get",
+    "reports_list_types",
     # Bids (2 tools)
     "bids_list",
     "bids_set",
@@ -74,6 +84,11 @@ EXPECTED_TOOLS = {
     "dynamic_targets_add",
     "dynamic_targets_update",
     "dynamic_targets_delete",
+    # Dynamic Ads (4 tools)
+    "dynamic_ads_list",
+    "dynamic_ads_add",
+    "dynamic_ads_update",
+    "dynamic_ads_delete",
     # Negative Keywords (4 tools)
     "negative_keywords_list",
     "negative_keywords_add",
@@ -89,6 +104,13 @@ EXPECTED_TOOLS = {
     "smart_targets_add",
     "smart_targets_update",
     "smart_targets_delete",
+    # Smart Ad Targets (4 tools)
+    "smart_ad_targets_list",
+    "smart_ad_targets_add",
+    "smart_ad_targets_update",
+    "smart_ad_targets_delete",
+    # Businesses (1 tool)
+    "businesses_list",
     # Dictionaries (1 tool)
     "dictionaries_get",
     # Changes (3 tools)

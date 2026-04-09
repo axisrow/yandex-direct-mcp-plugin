@@ -72,7 +72,7 @@ def keywords_add(ad_group_id: str, keyword: str, bid: str | None = None) -> dict
         bid: Optional bid (will be converted to micro-units if numeric, e.g. 15 → 15000000).
     """
     args = ["keywords", "add", "--adgroup-id", ad_group_id, "--keyword", keyword]
-    if bid:
+    if bid is not None:
         args.extend(["--bid", bid])
     args.extend(["--format", "json"])
     runner = get_runner()
