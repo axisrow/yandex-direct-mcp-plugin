@@ -48,8 +48,14 @@ def adextensions_delete(ids: str) -> dict:
     """Delete ad extensions.
 
     Args:
-        ids: Comma-separated extension IDs.
+        ids: Comma-separated extension IDs (max 10).
     """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
     runner = get_runner()
     result = runner.run_json(
         ["adextensions", "delete", "--ids", ids, "--format", "json"]
