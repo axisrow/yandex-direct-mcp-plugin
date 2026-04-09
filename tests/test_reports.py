@@ -11,6 +11,7 @@ from server.tools.reports import (
     DEFAULT_REPORT_NAME,
     DEFAULT_REPORT_TYPE,
     reports_get,
+    reports_list_types,
 )
 
 
@@ -141,3 +142,19 @@ def test_reports_only_date_from():
                 "json",
             ]
         )
+
+
+def test_reports_list_types():
+    expected_types = [
+        "CAMPAIGN_PERFORMANCE_REPORT",
+        "ADGROUP_PERFORMANCE_REPORT",
+        "AD_PERFORMANCE_REPORT",
+        "CRITERIA_PERFORMANCE_REPORT",
+        "CUSTOM_REPORT",
+        "REACH_AND_FREQUENCY_CAMPAIGN_REPORT",
+        "SEARCH_QUERY_PERFORMANCE_REPORT",
+    ]
+    with patch("server.tools.reports.get_runner", return_value=_mock_runner(expected_types)):
+        result = reports_list_types()
+        assert len(result) == 7
+        assert "CAMPAIGN_PERFORMANCE_REPORT" in result
