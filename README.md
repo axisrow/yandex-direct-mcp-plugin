@@ -138,16 +138,112 @@ OAuth-приложение само по себе не даёт доступ к 
 
 Или через переменные окружения `CLAUDE_PLUGIN_OPTION_client_id` / `CLAUDE_PLUGIN_OPTION_client_secret`.
 
-## MCP Tools
+## MCP Tools (105 total)
 
 | Tool | Description |
 |---|---|
 | `campaigns_list` | List campaigns (filter by state) |
 | `campaigns_update` | Enable/disable campaigns |
+| `campaigns_add` | Create campaign |
+| `campaigns_delete` | Delete campaigns |
+| `campaigns_archive` | Archive campaigns |
+| `campaigns_unarchive` | Unarchive campaigns |
+| `campaigns_suspend` | Suspend campaigns |
+| `campaigns_resume` | Resume campaigns |
+| `adgroups_list` | List ad groups |
+| `adgroups_add` | Create ad group |
+| `adgroups_update` | Update ad group |
+| `adgroups_delete` | Delete ad groups |
 | `ads_list` | List ads in a campaign |
+| `ads_add` | Create ad |
+| `ads_update` | Update ad |
+| `ads_delete` | Delete ads |
+| `ads_moderate` | Submit ads for moderation |
+| `ads_suspend` | Suspend ads |
+| `ads_resume` | Resume ads |
+| `ads_archive` | Archive ads |
+| `ads_unarchive` | Unarchive ads |
 | `keywords_list` | List keywords in a campaign |
 | `keywords_update` | Update keyword bids |
+| `keywords_add` | Add keywords |
+| `keywords_delete` | Delete keywords |
+| `keywords_suspend` | Suspend keywords |
+| `keywords_resume` | Resume keywords |
+| `keywords_archive` | Archive keywords |
+| `keywords_unarchive` | Unarchive keywords |
+| `keyword_bids_list` | List keyword bids |
+| `keyword_bids_set` | Set keyword bids |
+| `bids_list` | List bids |
+| `bids_set` | Set bid for campaign |
+| `bidmodifiers_list` | List bid modifiers |
+| `bidmodifiers_set` | Set bid modifier |
+| `bidmodifiers_toggle` | Toggle modifier on/off |
+| `bidmodifiers_delete` | Delete bid modifiers |
+| `sitelinks_list` | List sitelinks sets |
+| `sitelinks_add` | Add sitelinks set |
+| `sitelinks_delete` | Delete sitelinks |
+| `vcards_list` | List vCards |
+| `vcards_add` | Add vCard |
+| `vcards_delete` | Delete vCards |
+| `adimages_list` | List ad images |
+| `adimages_add` | Add ad image |
+| `adimages_delete` | Delete images |
+| `adextensions_list` | List ad extensions |
+| `adextensions_add` | Add extension |
+| `adextensions_delete` | Delete extensions |
+| `audience_targets_list` | List audience targets |
+| `audience_targets_add` | Add audience target |
+| `audience_targets_delete` | Delete targets |
+| `audience_targets_suspend` | Suspend targets |
+| `audience_targets_resume` | Resume targets |
+| `retargeting_list` | List retargeting lists |
+| `retargeting_add` | Add retargeting list |
+| `retargeting_delete` | Delete retargeting lists |
+| `dynamic_targets_list` | List dynamic targets |
+| `dynamic_targets_add` | Add dynamic target |
+| `dynamic_targets_update` | Update dynamic target |
+| `dynamic_targets_delete` | Delete dynamic targets |
+| `dynamic_ads_list` | List dynamic ads |
+| `dynamic_ads_add` | Add dynamic ad |
+| `dynamic_ads_update` | Update dynamic ad |
+| `dynamic_ads_delete` | Delete dynamic ads |
+| `negative_keywords_list` | List negative keywords |
+| `negative_keywords_add` | Add negative keywords |
+| `negative_keywords_update` | Update negative keywords |
+| `negative_keywords_delete` | Delete negative keywords |
+| `negative_keyword_shared_sets_list` | List negative keyword shared sets |
+| `negative_keyword_shared_sets_add` | Add negative keyword shared set |
+| `negative_keyword_shared_sets_update` | Update negative keyword shared set |
+| `negative_keyword_shared_sets_delete` | Delete negative keyword shared set |
+| `smart_targets_list` | List smart targets |
+| `smart_targets_add` | Add smart target |
+| `smart_targets_update` | Update smart target |
+| `smart_targets_delete` | Delete smart targets |
+| `smart_ad_targets_list` | List smart ad targets |
+| `smart_ad_targets_add` | Add smart ad target |
+| `smart_ad_targets_update` | Update smart ad target |
+| `smart_ad_targets_delete` | Delete smart ad targets |
+| `businesses_list` | List businesses |
+| `dictionaries_get` | Get dictionary data |
+| `changes_check` | Check changes since timestamp |
+| `changes_checkcamp` | Check campaign changes |
+| `changes_checkdict` | Check dictionary changes |
+| `clients_get` | Get client info |
+| `clients_update` | Update client |
+| `agency_clients_list` | List agency clients |
+| `agency_clients_add` | Add client to agency |
+| `agency_clients_delete` | Remove client from agency |
+| `keywords_has_volume` | Check keyword search volume |
+| `keywords_deduplicate` | Deduplicate keywords |
+| `leads_list` | List leads |
+| `feeds_list` | List feeds |
+| `feeds_add` | Add feed |
+| `feeds_update` | Update feed |
+| `feeds_delete` | Delete feeds |
+| `creatives_list` | List creatives |
+| `turbo_pages_list` | List turbo pages |
 | `reports_get` | Get campaign statistics |
+| `reports_list_types` | List available report types |
 | `auth_status` | Check OAuth token status |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow (browser + code input via elicitation) |
