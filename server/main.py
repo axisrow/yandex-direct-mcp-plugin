@@ -34,6 +34,7 @@ import server.tools.reports  # noqa: E402, F401
 import server.tools.research  # noqa: E402, F401
 import server.tools.retargeting  # noqa: E402, F401
 import server.tools.sitelinks  # noqa: E402, F401
+import server.tools.smart_ad_targets  # noqa: E402, F401
 import server.tools.smart_targets  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401
