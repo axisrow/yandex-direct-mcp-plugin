@@ -62,28 +62,20 @@ def smart_targets_add(ad_group_id: str, conditions: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def smart_targets_update(id: str, conditions: str | None = None) -> dict:
+def smart_targets_update(id: str, conditions: str) -> dict:
     """Update smart target.
 
     Args:
         id: Smart target ID.
-        conditions: JSON string of conditions for the smart target (optional).
+        conditions: JSON string of conditions for the smart target.
     """
-    if conditions is not None:
-        # Validate JSON format
-        try:
-            json.loads(conditions)
-        except json.JSONDecodeError as e:
-            return ToolError(
-                error="invalid_json",
-                message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
-            ).__dict__
-
-    if conditions is None:
-        # Return error if no conditions provided
+    # Validate JSON format
+    try:
+        json.loads(conditions)
+    except json.JSONDecodeError as e:
         return ToolError(
-            error="missing_conditions",
-            message="Conditions parameter is required for update",
+            error="invalid_json",
+            message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
         ).__dict__
 
     runner = get_runner()

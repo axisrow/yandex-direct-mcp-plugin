@@ -146,7 +146,7 @@ yandex-direct-mcp-plugin/
 │       ├── adextensions.py      # adextensions_list/add/delete
 │       ├── adgroups.py          # adgroups_list/add/update/delete
 │       ├── ads.py               # ads_list/add/update/delete/moderate/suspend/resume
-│       ├── adimages.py          # adimages_list/add/delete
+│       ├── images.py            # adimages_list/add/delete
 │       ├── agency.py            # agency_clients_list/add/delete
 │       ├── audience.py          # audience_targets_list/add/delete/suspend/resume
 │       ├── auth_tools.py        # auth_status, auth_setup, auth_login

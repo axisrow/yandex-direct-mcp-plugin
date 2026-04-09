@@ -1,7 +1,7 @@
 """MCP tools for feed management."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
@@ -40,6 +40,12 @@ def feeds_update(id: str, name: str | None = None, url: str | None = None) -> di
         name: Optional new feed name.
         url: Optional new feed URL.
     """
+    if name is None and url is None:
+        return ToolError(
+            error="nothing_to_update",
+            message="At least one field (name, url) must be provided for update",
+        ).__dict__
+
     runner = get_runner()
     args = [
         "feeds",

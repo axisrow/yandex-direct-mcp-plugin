@@ -86,13 +86,6 @@ def test_smart_targets_update_invalid_json():
     assert result["error"] == "invalid_json"
 
 
-def test_smart_targets_update_missing_conditions():
-    """Test updating smart target without conditions."""
-    result = smart_targets_update(id="1", conditions=None)
-    assert "error" in result
-    assert result["error"] == "missing_conditions"
-
-
 class TestSmartTargetsDelete:
     """Tests for smart target delete operations."""
 

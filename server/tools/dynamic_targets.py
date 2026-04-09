@@ -1,7 +1,9 @@
 """MCP tools for dynamic target management."""
 
+import json
+
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool()
@@ -34,6 +36,15 @@ def dynamic_targets_add(ad_group_id: str, conditions: str) -> dict:
         ad_group_id: Ad group ID to add target to.
         conditions: JSON string with dynamic target conditions.
     """
+    # Validate JSON format
+    try:
+        json.loads(conditions)
+    except json.JSONDecodeError as e:
+        return ToolError(
+            error="invalid_json",
+            message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
+        ).__dict__
+
     runner = get_runner()
     result = runner.run_json(
         [

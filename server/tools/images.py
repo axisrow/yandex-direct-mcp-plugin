@@ -38,8 +38,14 @@ def adimages_delete(ids: str) -> dict:
     """Delete ad images.
 
     Args:
-        ids: Comma-separated image IDs.
+        ids: Comma-separated image IDs (max 10).
     """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
     runner = get_runner()
     result = runner.run_json(["adimages", "delete", "--ids", ids, "--format", "json"])
     return result
