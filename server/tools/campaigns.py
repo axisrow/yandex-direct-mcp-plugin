@@ -141,3 +141,41 @@ def campaigns_unarchive(ids: str) -> dict:
         ["campaigns", "unarchive", "--ids", ids, "--format", "json"]
     )
     return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_suspend(ids: str) -> dict:
+    """Suspend campaigns.
+
+    Args:
+        ids: Comma-separated campaign IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["campaigns", "suspend", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_resume(ids: str) -> dict:
+    """Resume suspended campaigns.
+
+    Args:
+        ids: Comma-separated campaign IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["campaigns", "resume", "--ids", ids, "--format", "json"])
+    return result

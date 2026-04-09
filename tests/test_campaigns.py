@@ -12,6 +12,8 @@ from server.tools.campaigns import (
     campaigns_delete,
     campaigns_archive,
     campaigns_unarchive,
+    campaigns_suspend,
+    campaigns_resume,
 )
 from server.cli.runner import CliAuthError
 
@@ -190,5 +192,37 @@ class TestCampaignsCrudOperations:
         """Test batch limit validation for unarchive."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
         result = campaigns_unarchive(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_campaigns_suspend_success(self):
+        """Test suspending campaigns successfully."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_suspend(ids="12345")
+            assert result["success"] is True
+
+    def test_campaigns_suspend_batch_limit(self):
+        """Test batch limit validation for suspend."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = campaigns_suspend(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_campaigns_resume_success(self):
+        """Test resuming campaigns successfully."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = campaigns_resume(ids="12345")
+            assert result["success"] is True
+
+    def test_campaigns_resume_batch_limit(self):
+        """Test batch limit validation for resume."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = campaigns_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
