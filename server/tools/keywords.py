@@ -63,30 +63,20 @@ def keywords_update(id: str, bid: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_add(campaign_id: str, ad_group_id: str, keywords: str) -> dict:
-    """Add keywords to an ad group.
+def keywords_add(ad_group_id: str, keyword: str, bid: str | None = None) -> dict:
+    """Add a keyword to an ad group.
 
     Args:
-        campaign_id: Campaign ID.
-        ad_group_id: Ad group ID to add keywords to.
-        keywords: Comma-separated keyword list.
+        ad_group_id: Ad group ID to add the keyword to.
+        keyword: Keyword text.
+        bid: Optional bid (will be converted to micro-units if numeric, e.g. 15 → 15000000).
     """
+    args = ["keywords", "add", "--adgroup-id", ad_group_id, "--keyword", keyword]
+    if bid:
+        args.extend(["--bid", bid])
+    args.extend(["--format", "json"])
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "keywords",
-            "add",
-            "--campaign-id",
-            campaign_id,
-            "--ad-group-id",
-            ad_group_id,
-            "--keywords",
-            keywords,
-            "--format",
-            "json",
-        ]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
