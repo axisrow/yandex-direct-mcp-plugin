@@ -144,3 +144,41 @@ def keywords_resume(ids: str) -> dict:
     runner = get_runner()
     result = runner.run_json(["keywords", "resume", "--ids", ids, "--format", "json"])
     return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_archive(ids: str) -> dict:
+    """Archive keywords.
+
+    Args:
+        ids: Comma-separated keyword IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["keywords", "archive", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_unarchive(ids: str) -> dict:
+    """Unarchive keywords.
+
+    Args:
+        ids: Comma-separated keyword IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["keywords", "unarchive", "--ids", ids, "--format", "json"])
+    return result

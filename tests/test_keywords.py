@@ -12,6 +12,8 @@ from server.tools.keywords import (
     keywords_delete,
     keywords_suspend,
     keywords_resume,
+    keywords_archive,
+    keywords_unarchive,
 )
 
 
@@ -122,3 +124,31 @@ class TestKeywordsCrudOperations:
         result = keywords_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+def test_keywords_archive_success():
+    mock_result = {"success": True}
+    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)):
+        result = keywords_archive(ids="111,222")
+        assert result["success"] is True
+
+
+def test_keywords_archive_batch_limit():
+    ids = ",".join(str(i) for i in range(1, 12))
+    result = keywords_archive(ids=ids)
+    assert "error" in result
+    assert result["error"] == "batch_limit"
+
+
+def test_keywords_unarchive_success():
+    mock_result = {"success": True}
+    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)):
+        result = keywords_unarchive(ids="111,222")
+        assert result["success"] is True
+
+
+def test_keywords_unarchive_batch_limit():
+    ids = ",".join(str(i) for i in range(1, 12))
+    result = keywords_unarchive(ids=ids)
+    assert "error" in result
+    assert result["error"] == "batch_limit"
