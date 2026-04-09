@@ -63,19 +63,20 @@ def dynamic_targets_add(ad_group_id: str, conditions: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def dynamic_targets_update(id: str, conditions: str | None = None) -> dict:
+def dynamic_targets_update(id: str, conditions: str) -> dict:
     """Update a dynamic target.
 
     Args:
         id: Dynamic target ID to update.
-        conditions: JSON string with new conditions (optional).
+        conditions: JSON string with new conditions.
     """
-    if conditions is None:
-        from server.tools import ToolError
-
+    # Validate JSON format
+    try:
+        json.loads(conditions)
+    except json.JSONDecodeError as e:
         return ToolError(
-            error="nothing_to_update",
-            message="At least one field (conditions) must be provided for update",
+            error="invalid_json",
+            message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
         ).__dict__
 
     runner = get_runner()

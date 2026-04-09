@@ -91,18 +91,13 @@ def ads_add(campaign_id: str, ad_group_id: str, text: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def ads_update(id: str, text: str | None = None) -> dict:
+def ads_update(id: str, text: str) -> dict:
     """Update an ad.
 
     Args:
         id: Ad ID to update.
-        text: New ad text. If None, only updates other fields.
+        text: New ad text.
     """
-    if text is None:
-        return ToolError(
-            error="nothing_to_update",
-            message="At least one field (text) must be provided for update",
-        ).__dict__
 
     runner = get_runner()
     result = runner.run_json(["ads", "update", "--id", id, "--text", text, "--format", "json"])

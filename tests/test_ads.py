@@ -77,12 +77,6 @@ class TestAdsCrudOperations:
             result = ads_update(id="111", text="Updated ad text")
             assert result["Id"] == 111
 
-    def test_ads_update_without_fields(self):
-        """Test updating an ad with no fields returns error."""
-        result = ads_update(id="111", text=None)
-        assert "error" in result
-        assert result["error"] == "nothing_to_update"
-
     def test_ads_update_argv_composition(self):
         """Test that update passes correct argv to CLI."""
         runner = _mock_runner({"Id": 111})

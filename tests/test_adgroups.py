@@ -84,12 +84,6 @@ class TestAdgroupsUpdate:
             result = adgroups_update(id="123", name="Updated Name")
             assert result["Id"] == 123
 
-    def test_adgroups_update_without_fields(self):
-        """Test updating an ad group with no fields returns error."""
-        result = adgroups_update(id="123", name=None)
-        assert "error" in result
-        assert result["error"] == "nothing_to_update"
-
     def test_adgroups_update_argv_composition(self):
         """Test that update passes correct argv to CLI."""
         runner = _mock_runner({"Id": 123})

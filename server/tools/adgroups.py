@@ -60,18 +60,13 @@ def adgroups_add(campaign_id: str, name: str, region_ids: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def adgroups_update(id: str, name: str | None = None) -> dict:
+def adgroups_update(id: str, name: str) -> dict:
     """Update an ad group.
 
     Args:
         id: Ad group ID to update.
-        name: New name for the ad group. If None, only updates other fields.
+        name: New name for the ad group.
     """
-    if name is None:
-        return ToolError(
-            error="nothing_to_update",
-            message="At least one field (name) must be provided for update",
-        ).__dict__
 
     runner = get_runner()
     result = runner.run_json(

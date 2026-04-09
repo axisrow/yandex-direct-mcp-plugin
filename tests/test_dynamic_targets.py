@@ -125,12 +125,6 @@ class TestDynamicTargetsUpdate:
             result = dynamic_targets_update(id="301", conditions=conditions)
             assert result["Id"] == 301
 
-    def test_update_dynamic_target_without_conditions(self):
-        """Test updating a dynamic target without conditions returns error."""
-        result = dynamic_targets_update(id="301", conditions=None)
-        assert "error" in result
-        assert result["error"] == "nothing_to_update"
-
     def test_update_dynamic_target_argv_composition(self):
         """Test that update passes correct argv to CLI."""
         runner = _mock_runner({"Id": 301})
