@@ -13,6 +13,8 @@ from server.tools.ads import (
     ads_moderate,
     ads_suspend,
     ads_resume,
+    ads_archive,
+    ads_unarchive,
 )
 
 
@@ -77,31 +79,31 @@ class TestAdsCrudOperations:
         with patch(
             "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = ads_add(campaign_id="12345", ad_group_id="1", text="New ad text")
+            result = ads_add(ad_group_id="1", text="New ad text")
             assert result["Id"] == 999
 
     def test_ads_update(self):
         """Test updating an ad."""
-        mock_result = {"Id": 111, "Text": "Updated ad text"}
+        mock_result = {"Id": 111, "Status": "SUSPENDED"}
         with patch(
             "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = ads_update(id="111", text="Updated ad text")
+            result = ads_update(id="111", extra_json='{"Status": "SUSPENDED"}')
             assert result["Id"] == 111
 
     def test_ads_update_argv_composition(self):
         """Test that update passes correct argv to CLI."""
         runner = _mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
-            ads_update(id="111", text="New text")
+            ads_update(id="111", extra_json='{"TextAd": {"Title": "New"}}')
             runner.run_json.assert_called_once_with(
                 [
                     "ads",
                     "update",
                     "--id",
                     "111",
-                    "--text",
-                    "New text",
+                    "--json",
+                    '{"TextAd": {"Title": "New"}}',
                     "--format",
                     "json",
                 ]
@@ -168,5 +170,37 @@ class TestAdsCrudOperations:
         """Test batch limit validation for resume."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
         result = ads_resume(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_ads_archive_success(self):
+        """Test archiving ads."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = ads_archive(ids="111,222")
+            assert result["success"] is True
+
+    def test_ads_archive_batch_limit(self):
+        """Test batch limit validation for archive."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = ads_archive(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_ads_unarchive_success(self):
+        """Test unarchiving ads."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
+            result = ads_unarchive(ids="111,222")
+            assert result["success"] is True
+
+    def test_ads_unarchive_batch_limit(self):
+        """Test batch limit validation for unarchive."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = ads_unarchive(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
