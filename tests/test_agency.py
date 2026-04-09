@@ -45,9 +45,7 @@ class TestAgencyClientsList:
 
     def test_list_agency_clients_with_login(self):
         """Test listing agency clients filtered by login."""
-        mock_result = {
-            "Clients": [{"Login": "client1", "FirstName": "John"}]
-        }
+        mock_result = {"Clients": [{"Login": "client1", "FirstName": "John"}]}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 

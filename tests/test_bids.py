@@ -30,7 +30,9 @@ class TestBidsList:
 
     def test_bids_list_success(self):
         """Test listing bids for campaigns."""
-        with patch("server.tools.bids.get_runner", return_value=_mock_runner(SAMPLE_BIDS)):
+        with patch(
+            "server.tools.bids.get_runner", return_value=_mock_runner(SAMPLE_BIDS)
+        ):
             result = bids_list(campaign_ids="12345")
             assert len(result) == 1
             assert result[0]["CampaignId"] == 12345
@@ -49,15 +51,21 @@ class TestBidsSet:
     def test_bids_set_success(self):
         """Test setting bid successfully."""
         mock_result = {"success": True}
-        with patch("server.tools.bids.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.bids.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = bids_set(campaign_id="12345", bid="15000000")
             assert result["success"] is True
 
     def test_bids_set_with_context_bid(self):
         """Test setting bid with context bid."""
         mock_result = {"success": True}
-        with patch("server.tools.bids.get_runner", return_value=_mock_runner(mock_result)) as mock:
-            result = bids_set(campaign_id="12345", bid="15000000", context_bid="12000000")
+        with patch(
+            "server.tools.bids.get_runner", return_value=_mock_runner(mock_result)
+        ) as mock:
+            result = bids_set(
+                campaign_id="12345", bid="15000000", context_bid="12000000"
+            )
             assert result["success"] is True
             # Verify the CLI command includes context bid
             call_args = mock.return_value.run_json.call_args[0][0]

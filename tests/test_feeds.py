@@ -38,7 +38,11 @@ class TestFeedsAdd:
 
     def test_feeds_add_basic(self):
         """Test adding a new feed."""
-        mock_result = {"id": 1, "name": "New Feed", "url": "https://example.com/feed.xml"}
+        mock_result = {
+            "id": 1,
+            "name": "New Feed",
+            "url": "https://example.com/feed.xml",
+        }
         with patch(
             "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
         ):
@@ -70,7 +74,11 @@ class TestFeedsUpdate:
 
     def test_feeds_update_both(self):
         """Test updating both feed name and URL."""
-        mock_result = {"id": 1, "name": "Updated Feed", "url": "https://example.com/new-feed.xml"}
+        mock_result = {
+            "id": 1,
+            "name": "Updated Feed",
+            "url": "https://example.com/new-feed.xml",
+        }
         with patch(
             "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
         ):

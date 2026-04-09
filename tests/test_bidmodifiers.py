@@ -36,7 +36,8 @@ class TestBidModifiersList:
     def test_bidmodifiers_list_success(self):
         """Test listing bid modifiers for campaigns."""
         with patch(
-            "server.tools.bidmodifiers.get_runner", return_value=_mock_runner(SAMPLE_BIDMODIFIERS)
+            "server.tools.bidmodifiers.get_runner",
+            return_value=_mock_runner(SAMPLE_BIDMODIFIERS),
         ):
             result = bidmodifiers_list(campaign_ids="12345")
             assert len(result) == 1
@@ -56,31 +57,44 @@ class TestBidModifiersSet:
     def test_bidmodifiers_set_success(self):
         """Test setting bid modifier successfully."""
         mock_result = {"success": True}
-        with patch("server.tools.bidmodifiers.get_runner", return_value=_mock_runner(mock_result)):
-            result = bidmodifiers_set(campaign_id="12345", modifier_type="MULTIPLIER", value="100")
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=_mock_runner(mock_result),
+        ):
+            result = bidmodifiers_set(
+                campaign_id="12345", modifier_type="MULTIPLIER", value="100"
+            )
             assert result["success"] is True
 
     def test_bidmodifiers_set_invalid_type(self):
         """Test bidmodifiers_set with invalid modifier type."""
-        result = bidmodifiers_set(campaign_id="12345", modifier_type="INVALID", value="100")
+        result = bidmodifiers_set(
+            campaign_id="12345", modifier_type="INVALID", value="100"
+        )
         assert "error" in result
         assert result["error"] == "invalid_state"
 
     def test_bidmodifiers_set_invalid_value_negative(self):
         """Test bidmodifiers_set with negative value."""
-        result = bidmodifiers_set(campaign_id="12345", modifier_type="MULTIPLIER", value="-100")
+        result = bidmodifiers_set(
+            campaign_id="12345", modifier_type="MULTIPLIER", value="-100"
+        )
         assert "error" in result
         assert result["error"] == "invalid_value"
 
     def test_bidmodifiers_set_invalid_value_zero(self):
         """Test bidmodifiers_set with zero value."""
-        result = bidmodifiers_set(campaign_id="12345", modifier_type="MULTIPLIER", value="0")
+        result = bidmodifiers_set(
+            campaign_id="12345", modifier_type="MULTIPLIER", value="0"
+        )
         assert "error" in result
         assert result["error"] == "invalid_value"
 
     def test_bidmodifiers_set_invalid_value_non_numeric(self):
         """Test bidmodifiers_set with non-numeric value."""
-        result = bidmodifiers_set(campaign_id="12345", modifier_type="MULTIPLIER", value="abc")
+        result = bidmodifiers_set(
+            campaign_id="12345", modifier_type="MULTIPLIER", value="abc"
+        )
         assert "error" in result
         assert result["error"] == "invalid_value"
 
@@ -91,7 +105,10 @@ class TestBidModifiersToggle:
     def test_bidmodifiers_toggle_enable(self):
         """Test enabling a bid modifier."""
         mock_result = {"success": True}
-        with patch("server.tools.bidmodifiers.get_runner", return_value=_mock_runner(mock_result)) as mock:
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=_mock_runner(mock_result),
+        ) as mock:
             result = bidmodifiers_toggle(id="1", enabled=True)
             assert result["success"] is True
             # Verify the CLI command uses lowercase true
@@ -102,7 +119,10 @@ class TestBidModifiersToggle:
     def test_bidmodifiers_toggle_disable(self):
         """Test disabling a bid modifier."""
         mock_result = {"success": True}
-        with patch("server.tools.bidmodifiers.get_runner", return_value=_mock_runner(mock_result)) as mock:
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=_mock_runner(mock_result),
+        ) as mock:
             result = bidmodifiers_toggle(id="1", enabled=False)
             assert result["success"] is True
             # Verify the CLI command uses lowercase false
@@ -117,7 +137,10 @@ class TestBidModifiersDelete:
     def test_bidmodifiers_delete_success(self):
         """Test deleting bid modifiers successfully."""
         mock_result = {"success": True}
-        with patch("server.tools.bidmodifiers.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=_mock_runner(mock_result),
+        ):
             result = bidmodifiers_delete(ids="1,2,3")
             assert result["success"] is True
 

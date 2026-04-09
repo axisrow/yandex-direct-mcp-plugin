@@ -5,7 +5,15 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 import server.tools
-from server.tools.ads import ads_list, ads_add, ads_update, ads_delete, ads_moderate, ads_suspend, ads_resume
+from server.tools.ads import (
+    ads_list,
+    ads_add,
+    ads_update,
+    ads_delete,
+    ads_moderate,
+    ads_suspend,
+    ads_resume,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -66,14 +74,18 @@ class TestAdsCrudOperations:
     def test_ads_add(self):
         """Test adding a new ad."""
         mock_result = {"Id": 999, "Text": "New ad text"}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_add(campaign_id="12345", ad_group_id="1", text="New ad text")
             assert result["Id"] == 999
 
     def test_ads_update(self):
         """Test updating an ad."""
         mock_result = {"Id": 111, "Text": "Updated ad text"}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_update(id="111", text="Updated ad text")
             assert result["Id"] == 111
 
@@ -83,13 +95,24 @@ class TestAdsCrudOperations:
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(id="111", text="New text")
             runner.run_json.assert_called_once_with(
-                ["ads", "update", "--id", "111", "--text", "New text", "--format", "json"]
+                [
+                    "ads",
+                    "update",
+                    "--id",
+                    "111",
+                    "--text",
+                    "New text",
+                    "--format",
+                    "json",
+                ]
             )
 
     def test_ads_delete_success(self):
         """Test deleting ads successfully."""
         mock_result = {"success": True}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_delete(ids="111,222")
             assert result["success"] is True
 
@@ -103,7 +126,9 @@ class TestAdsCrudOperations:
     def test_ads_moderate_success(self):
         """Test submitting ads for moderation."""
         mock_result = {"success": True}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_moderate(ids="111,222")
             assert result["success"] is True
 
@@ -117,7 +142,9 @@ class TestAdsCrudOperations:
     def test_ads_suspend_success(self):
         """Test suspending ads."""
         mock_result = {"success": True}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_suspend(ids="111,222")
             assert result["success"] is True
 
@@ -131,7 +158,9 @@ class TestAdsCrudOperations:
     def test_ads_resume_success(self):
         """Test resuming suspended ads."""
         mock_result = {"success": True}
-        with patch("server.tools.ads.get_runner", return_value=_mock_runner(mock_result)):
+        with patch(
+            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+        ):
             result = ads_resume(ids="111,222")
             assert result["success"] is True
 

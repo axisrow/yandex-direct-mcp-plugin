@@ -27,7 +27,9 @@ def feeds_add(name: str, url: str) -> dict:
         url: Feed URL.
     """
     runner = get_runner()
-    return runner.run_json(["feeds", "add", "--name", name, "--url", url, "--format", "json"])
+    return runner.run_json(
+        ["feeds", "add", "--name", name, "--url", url, "--format", "json"]
+    )
 
 
 @mcp.tool()

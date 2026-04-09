@@ -85,7 +85,9 @@ class TestAdextensionsAdd:
             "server.tools.adextensions.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = adextensions_add(extension_type="Call", extension_data=extension_data)
+            result = adextensions_add(
+                extension_type="Call", extension_data=extension_data
+            )
             assert result["Id"] == 123
             assert result["Type"] == "Call"
 

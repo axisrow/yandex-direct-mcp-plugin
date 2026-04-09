@@ -87,5 +87,7 @@ def negative_keywords_delete(ids: str) -> dict:
         return batch_error.__dict__
 
     runner = get_runner()
-    result = runner.run_json(["negativekeywords", "delete", "--ids", ids, "--format", "json"])
+    result = runner.run_json(
+        ["negativekeywords", "delete", "--ids", ids, "--format", "json"]
+    )
     return result

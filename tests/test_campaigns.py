@@ -5,7 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.campaigns import campaigns_list, campaigns_update, campaigns_add, campaigns_delete, campaigns_archive, campaigns_unarchive
+from server.tools.campaigns import (
+    campaigns_list,
+    campaigns_update,
+    campaigns_add,
+    campaigns_delete,
+    campaigns_archive,
+    campaigns_unarchive,
+)
 from server.cli.runner import CliAuthError
 
 

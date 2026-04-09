@@ -5,7 +5,14 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 import server.tools
-from server.tools.keywords import keywords_list, keywords_update, keywords_add, keywords_delete, keywords_suspend, keywords_resume
+from server.tools.keywords import (
+    keywords_list,
+    keywords_update,
+    keywords_add,
+    keywords_delete,
+    keywords_suspend,
+    keywords_resume,
+)
 
 
 @pytest.fixture(autouse=True)

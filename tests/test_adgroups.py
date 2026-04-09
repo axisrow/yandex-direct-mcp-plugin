@@ -37,7 +37,8 @@ class TestAdgroupsList:
     def test_adgroups_list_success(self):
         """Test listing ad groups successfully."""
         with patch(
-            "server.tools.adgroups.get_runner", return_value=_mock_runner(SAMPLE_ADGROUPS)
+            "server.tools.adgroups.get_runner",
+            return_value=_mock_runner(SAMPLE_ADGROUPS),
         ):
             result = adgroups_list(campaign_ids="12345")
             assert len(result) == 2
@@ -90,7 +91,16 @@ class TestAdgroupsUpdate:
         with patch("server.tools.adgroups.get_runner", return_value=runner):
             adgroups_update(id="123", name="New Name")
             runner.run_json.assert_called_once_with(
-                ["adgroups", "update", "--id", "123", "--name", "New Name", "--format", "json"]
+                [
+                    "adgroups",
+                    "update",
+                    "--id",
+                    "123",
+                    "--name",
+                    "New Name",
+                    "--format",
+                    "json",
+                ]
             )
 
 

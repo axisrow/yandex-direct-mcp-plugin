@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, validate_positive_int, validate_state
+from server.tools.helpers import (
+    check_batch_limit,
+    validate_positive_int,
+    validate_state,
+)
 
 
 @mcp.tool()
@@ -70,7 +74,16 @@ def bidmodifiers_toggle(id: str, enabled: bool) -> dict:
     """
     runner = get_runner()
     result = runner.run_json(
-        ["bidmodifiers", "toggle", "--id", id, "--enabled", str(enabled).lower(), "--format", "json"]
+        [
+            "bidmodifiers",
+            "toggle",
+            "--id",
+            id,
+            "--enabled",
+            str(enabled).lower(),
+            "--format",
+            "json",
+        ]
     )
     return result
 
@@ -88,5 +101,7 @@ def bidmodifiers_delete(ids: str) -> dict:
         return batch_error.__dict__
 
     runner = get_runner()
-    result = runner.run_json(["bidmodifiers", "delete", "--ids", ids, "--format", "json"])
+    result = runner.run_json(
+        ["bidmodifiers", "delete", "--ids", ids, "--format", "json"]
+    )
     return result

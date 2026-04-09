@@ -48,5 +48,7 @@ def retargeting_delete(ids: str) -> dict:
         return batch_error.__dict__
 
     runner = get_runner()
-    result = runner.run_json(["retargeting", "delete", "--ids", ids, "--format", "json"])
+    result = runner.run_json(
+        ["retargeting", "delete", "--ids", ids, "--format", "json"]
+    )
     return result

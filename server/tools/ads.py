@@ -100,7 +100,9 @@ def ads_update(id: str, text: str) -> dict:
     """
 
     runner = get_runner()
-    result = runner.run_json(["ads", "update", "--id", id, "--text", text, "--format", "json"])
+    result = runner.run_json(
+        ["ads", "update", "--id", id, "--text", text, "--format", "json"]
+    )
     return result
 
 

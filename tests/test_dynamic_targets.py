@@ -132,7 +132,16 @@ class TestDynamicTargetsUpdate:
         with patch("server.tools.dynamic_targets.get_runner", return_value=runner):
             dynamic_targets_update(id="301", conditions=conditions)
             runner.run_json.assert_called_once_with(
-                ["dynamictargets", "update", "--id", "301", "--conditions", conditions, "--format", "json"]
+                [
+                    "dynamictargets",
+                    "update",
+                    "--id",
+                    "301",
+                    "--conditions",
+                    conditions,
+                    "--format",
+                    "json",
+                ]
             )
 
     def test_update_dynamic_target_auth_error(self):

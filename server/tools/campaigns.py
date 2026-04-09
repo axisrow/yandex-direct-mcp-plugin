@@ -70,7 +70,16 @@ def campaigns_add(name: str, start_date: str) -> dict:
     """
     runner = get_runner()
     result = runner.run_json(
-        ["campaigns", "add", "--name", name, "--start-date", start_date, "--format", "json"]
+        [
+            "campaigns",
+            "add",
+            "--name",
+            name,
+            "--start-date",
+            start_date,
+            "--format",
+            "json",
+        ]
     )
     return result
 

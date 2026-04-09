@@ -7,7 +7,9 @@ from server.tools.helpers import check_batch_limit
 
 @mcp.tool()
 @handle_cli_errors
-def leads_list(campaign_ids: str, date_from: str | None = None, date_to: str | None = None) -> dict:
+def leads_list(
+    campaign_ids: str, date_from: str | None = None, date_to: str | None = None
+) -> dict:
     """List leads for specified campaigns.
 
     Args:

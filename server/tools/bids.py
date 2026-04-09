@@ -38,7 +38,16 @@ def bids_set(campaign_id: str, bid: str, context_bid: str | None = None) -> dict
         return bid_result.__dict__
     bid_value = bid_result
 
-    cmd = ["bids", "set", "--campaign-id", campaign_id, "--bid", str(bid_value), "--format", "json"]
+    cmd = [
+        "bids",
+        "set",
+        "--campaign-id",
+        campaign_id,
+        "--bid",
+        str(bid_value),
+        "--format",
+        "json",
+    ]
 
     if context_bid is not None:
         context_result = validate_positive_int(context_bid, "context_bid")

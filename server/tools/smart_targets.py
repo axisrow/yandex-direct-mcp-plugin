@@ -107,5 +107,7 @@ def smart_targets_delete(ids: str) -> dict:
         return batch_error.__dict__
 
     runner = get_runner()
-    result = runner.run_json(["smarttargets", "delete", "--ids", ids, "--format", "json"])
+    result = runner.run_json(
+        ["smarttargets", "delete", "--ids", ids, "--format", "json"]
+    )
     return result

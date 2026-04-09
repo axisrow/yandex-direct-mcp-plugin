@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.retargeting import retargeting_add, retargeting_delete, retargeting_list
+from server.tools.retargeting import (
+    retargeting_add,
+    retargeting_delete,
+    retargeting_list,
+)
 from server.cli.runner import CliAuthError
 
 
@@ -86,7 +90,8 @@ class TestRetargetingAdd:
         }
         rule = '{"conditions": [{"operator": "AND", "operands": [{"type": "time_on_site", "time_on_site": 30}]}]}'
         with patch(
-            "server.tools.retargeting.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.retargeting.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = retargeting_add(name="Site visitors", rule=rule)
             assert result["Id"] == 203
@@ -111,7 +116,8 @@ class TestRetargetingDelete:
         """Test deleting retargeting lists successfully."""
         mock_result = {"success": True}
         with patch(
-            "server.tools.retargeting.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.retargeting.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = retargeting_delete(ids="201,202")
             assert result["success"] is True
