@@ -65,14 +65,12 @@ class TestKeywordsCrudOperations:
     """Tests for keyword CRUD operations (add, delete, suspend, resume)."""
 
     def test_keywords_add(self):
-        """Test adding keywords to an ad group."""
-        mock_result = {"success": True, "keywords": ["keyword1", "keyword2"]}
+        """Test adding a keyword to an ad group."""
+        mock_result = {"success": True}
         with patch(
             "server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = keywords_add(
-                campaign_id="12345", ad_group_id="1", keywords="keyword1,keyword2"
-            )
+            result = keywords_add(ad_group_id="1", keyword="buy shoes")
             assert result["success"] is True
 
     def test_keywords_delete_success(self):
