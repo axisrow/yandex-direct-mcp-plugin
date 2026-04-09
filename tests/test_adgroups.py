@@ -84,14 +84,20 @@ class TestAdgroupsUpdate:
             result = adgroups_update(id="123", name="Updated Name")
             assert result["Id"] == 123
 
-    def test_adgroups_update_with_none_name(self):
-        """Test updating an ad group with None name."""
-        mock_result = {"Id": 123, "Name": "Original Name"}
-        with patch(
-            "server.tools.adgroups.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = adgroups_update(id="123", name=None)
-            assert result["Id"] == 123
+    def test_adgroups_update_without_fields(self):
+        """Test updating an ad group with no fields returns error."""
+        result = adgroups_update(id="123", name=None)
+        assert "error" in result
+        assert result["error"] == "nothing_to_update"
+
+    def test_adgroups_update_argv_composition(self):
+        """Test that update passes correct argv to CLI."""
+        runner = _mock_runner({"Id": 123})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_update(id="123", name="New Name")
+            runner.run_json.assert_called_once_with(
+                ["adgroups", "update", "--id", "123", "--name", "New Name", "--format", "json"]
+            )
 
 
 class TestAdgroupsDelete:

@@ -6,7 +6,7 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def dynamic_targets_list(ad_group_ids: str) -> list[dict]:
+def dynamic_targets_list(ad_group_ids: str) -> list[dict] | dict:
     """List dynamic targets for specified ad groups.
 
     Args:
@@ -59,25 +59,27 @@ def dynamic_targets_update(id: str, conditions: str | None = None) -> dict:
         id: Dynamic target ID to update.
         conditions: JSON string with new conditions (optional).
     """
-    runner = get_runner()
     if conditions is None:
-        # If no conditions provided, just return current target
-        result = runner.run_json(
-            ["dynamictargets", "get", "--ids", id, "--format", "json"]
-        )
-    else:
-        result = runner.run_json(
-            [
-                "dynamictargets",
-                "update",
-                "--id",
-                id,
-                "--conditions",
-                conditions,
-                "--format",
-                "json",
-            ]
-        )
+        from server.tools import ToolError
+
+        return ToolError(
+            error="nothing_to_update",
+            message="At least one field (conditions) must be provided for update",
+        ).__dict__
+
+    runner = get_runner()
+    result = runner.run_json(
+        [
+            "dynamictargets",
+            "update",
+            "--id",
+            id,
+            "--conditions",
+            conditions,
+            "--format",
+            "json",
+        ]
+    )
     return result
 
 

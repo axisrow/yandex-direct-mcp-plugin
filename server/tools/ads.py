@@ -98,6 +98,12 @@ def ads_update(id: str, text: str | None = None) -> dict:
         id: Ad ID to update.
         text: New ad text. If None, only updates other fields.
     """
+    if text is None:
+        return ToolError(
+            error="nothing_to_update",
+            message="At least one field (text) must be provided for update",
+        ).__dict__
+
     runner = get_runner()
     result = runner.run_json(["ads", "update", "--id", id, "--text", text, "--format", "json"])
     return result

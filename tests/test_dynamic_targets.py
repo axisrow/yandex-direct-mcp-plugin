@@ -126,19 +126,20 @@ class TestDynamicTargetsUpdate:
             assert result["Id"] == 301
 
     def test_update_dynamic_target_without_conditions(self):
-        """Test updating a dynamic target without conditions (get current)."""
-        mock_result = {
-            "Id": 301,
-            "AdGroupId": 67890,
-            "Conditions": '{"type": "page", "url": "https://example.com/product"}',
-            "State": "ON",
-        }
-        with patch(
-            "server.tools.dynamic_targets.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = dynamic_targets_update(id="301", conditions=None)
-            assert result["Id"] == 301
+        """Test updating a dynamic target without conditions returns error."""
+        result = dynamic_targets_update(id="301", conditions=None)
+        assert "error" in result
+        assert result["error"] == "nothing_to_update"
+
+    def test_update_dynamic_target_argv_composition(self):
+        """Test that update passes correct argv to CLI."""
+        runner = _mock_runner({"Id": 301})
+        conditions = '{"type": "page", "url": "https://example.com/new"}'
+        with patch("server.tools.dynamic_targets.get_runner", return_value=runner):
+            dynamic_targets_update(id="301", conditions=conditions)
+            runner.run_json.assert_called_once_with(
+                ["dynamictargets", "update", "--id", "301", "--conditions", conditions, "--format", "json"]
+            )
 
     def test_update_dynamic_target_auth_error(self):
         """Test auth error during dynamic target update."""

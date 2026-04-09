@@ -67,6 +67,12 @@ def adgroups_update(id: str, name: str | None = None) -> dict:
         id: Ad group ID to update.
         name: New name for the ad group. If None, only updates other fields.
     """
+    if name is None:
+        return ToolError(
+            error="nothing_to_update",
+            message="At least one field (name) must be provided for update",
+        ).__dict__
+
     runner = get_runner()
     result = runner.run_json(
         ["adgroups", "update", "--id", id, "--name", name, "--format", "json"]

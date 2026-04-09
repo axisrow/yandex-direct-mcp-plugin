@@ -6,7 +6,7 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def audience_targets_list(campaign_ids: str) -> list[dict]:
+def audience_targets_list(campaign_ids: str) -> list[dict] | dict:
     """List audience targets for specified campaigns.
 
     Args:

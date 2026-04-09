@@ -6,7 +6,7 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def adextensions_list(ids: str) -> list[dict]:
+def adextensions_list(ids: str) -> list[dict] | dict:
     """List ad extensions.
 
     Args:

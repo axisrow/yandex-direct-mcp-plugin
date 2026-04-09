@@ -6,7 +6,7 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def agency_clients_list(login: str | None = None) -> list[dict]:
+def agency_clients_list(login: str | None = None) -> list[dict] | dict:
     """List agency clients.
 
     Args:
