@@ -17,7 +17,7 @@ server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
 server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 75 MCP tools across 26 modules
+server/tools/               — 79 MCP tools across 27 modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
@@ -161,6 +161,7 @@ yandex-direct-mcp-plugin/
 │       ├── feeds.py             # feeds_list/add/update/delete
 │       ├── keywords.py          # keywords_list/update/add/delete/suspend/resume
 │       ├── leads.py             # leads_list
+│       ├── negative_keyword_shared_sets.py # negative_keyword_shared_sets_list/add/update/delete
 │       ├── negative_keywords.py # negative_keywords_list/add/update/delete
 │       ├── reports.py           # reports_get
 │       ├── research.py          # keywords_has_volume/deduplicate
@@ -184,7 +185,7 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (75 total) + 1 Prompt
+## MCP Tools (79 total) + 1 Prompt
 
 | Tool | Purpose |
 |---|---|
@@ -245,6 +246,10 @@ yandex-direct-mcp-plugin/
 | `negative_keywords_add` | Add negative keywords |
 | `negative_keywords_update` | Update negative keywords |
 | `negative_keywords_delete` | Delete negative keywords |
+| `negative_keyword_shared_sets_list` | List negative keyword shared sets |
+| `negative_keyword_shared_sets_add` | Add negative keyword shared set |
+| `negative_keyword_shared_sets_update` | Update negative keyword shared set |
+| `negative_keyword_shared_sets_delete` | Delete negative keyword shared set |
 | `smart_targets_list` | List smart targets |
 | `smart_targets_add` | Add smart target |
 | `smart_targets_update` | Update smart target |
