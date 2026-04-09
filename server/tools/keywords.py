@@ -59,3 +59,88 @@ def keywords_update(id: str, bid: str) -> dict:
         ["keywords", "update", "--id", id, "--bid", str(bid_value), "--format", "json"]
     )
     return {"success": True, "id": id, "bid": bid_value}
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_add(campaign_id: str, ad_group_id: str, keywords: str) -> dict:
+    """Add keywords to an ad group.
+
+    Args:
+        campaign_id: Campaign ID.
+        ad_group_id: Ad group ID to add keywords to.
+        keywords: Comma-separated keyword list.
+    """
+    runner = get_runner()
+    result = runner.run_json(
+        [
+            "keywords",
+            "add",
+            "--campaign-id",
+            campaign_id,
+            "--ad-group-id",
+            ad_group_id,
+            "--keywords",
+            keywords,
+            "--format",
+            "json",
+        ]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_delete(ids: str) -> dict:
+    """Delete keywords.
+
+    Args:
+        ids: Comma-separated keyword IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["keywords", "delete", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_suspend(ids: str) -> dict:
+    """Suspend keywords.
+
+    Args:
+        ids: Comma-separated keyword IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["keywords", "suspend", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def keywords_resume(ids: str) -> dict:
+    """Resume suspended keywords.
+
+    Args:
+        ids: Comma-separated keyword IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["keywords", "resume", "--ids", ids, "--format", "json"])
+    return result

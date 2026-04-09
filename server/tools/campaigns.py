@@ -57,3 +57,87 @@ def campaigns_update(id: str, state: str) -> dict:
             ).__dict__
         raise
     return {"success": True, "id": id, "state": state}
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_add(name: str, start_date: str) -> dict:
+    """Create a new campaign.
+
+    Args:
+        name: Campaign name.
+        start_date: Campaign start date in YYYY-MM-DD format.
+    """
+    runner = get_runner()
+    result = runner.run_json(
+        [
+            "campaigns",
+            "add",
+            "--name",
+            name,
+            "--start-date",
+            start_date,
+            "--format",
+            "json",
+        ]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_delete(ids: str) -> dict:
+    """Delete campaigns.
+
+    Args:
+        ids: Comma-separated campaign IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["campaigns", "delete", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_archive(ids: str) -> dict:
+    """Archive campaigns.
+
+    Args:
+        ids: Comma-separated campaign IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["campaigns", "archive", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def campaigns_unarchive(ids: str) -> dict:
+    """Unarchive campaigns.
+
+    Args:
+        ids: Comma-separated campaign IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(
+        ["campaigns", "unarchive", "--ids", ids, "--format", "json"]
+    )
+    return result

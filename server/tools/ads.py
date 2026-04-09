@@ -59,3 +59,124 @@ def ads_list(campaign_ids: str) -> list[dict] | dict:
     return runner.run_json(
         ["ads", "get", "--campaign-ids", campaign_ids, "--format", "json"]
     )
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_add(campaign_id: str, ad_group_id: str, text: str) -> dict:
+    """Create a new ad.
+
+    Args:
+        campaign_id: Campaign ID to add the ad to.
+        ad_group_id: Ad group ID to add the ad to.
+        text: Ad text content.
+    """
+    runner = get_runner()
+    result = runner.run_json(
+        [
+            "ads",
+            "add",
+            "--campaign-id",
+            campaign_id,
+            "--ad-group-id",
+            ad_group_id,
+            "--text",
+            text,
+            "--format",
+            "json",
+        ]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_update(id: str, text: str) -> dict:
+    """Update an ad.
+
+    Args:
+        id: Ad ID to update.
+        text: New ad text.
+    """
+
+    runner = get_runner()
+    result = runner.run_json(
+        ["ads", "update", "--id", id, "--text", text, "--format", "json"]
+    )
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_delete(ids: str) -> dict:
+    """Delete ads.
+
+    Args:
+        ids: Comma-separated ad IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["ads", "delete", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_moderate(ids: str) -> dict:
+    """Submit ads for moderation.
+
+    Args:
+        ids: Comma-separated ad IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["ads", "moderate", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_suspend(ids: str) -> dict:
+    """Suspend ads.
+
+    Args:
+        ids: Comma-separated ad IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["ads", "suspend", "--ids", ids, "--format", "json"])
+    return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def ads_resume(ids: str) -> dict:
+    """Resume suspended ads.
+
+    Args:
+        ids: Comma-separated ad IDs (max 10).
+    """
+    from server.tools.helpers import check_batch_limit
+
+    batch_error = check_batch_limit(ids)
+    if batch_error:
+        return batch_error.__dict__
+
+    runner = get_runner()
+    result = runner.run_json(["ads", "resume", "--ids", ids, "--format", "json"])
+    return result

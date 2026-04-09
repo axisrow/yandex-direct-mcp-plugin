@@ -17,7 +17,7 @@ server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
 server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 8 MCP tools (campaigns, ads, keywords, reports, auth)
+server/tools/               — 75 MCP tools across 26 modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
@@ -141,12 +141,34 @@ yandex-direct-mcp-plugin/
 │   ├── cli/
 │   │   └── runner.py            # DirectCliRunner (subprocess wrapper)
 │   └── tools/
-│       ├── __init__.py          # ToolError dataclass
-│       ├── campaigns.py         # campaigns_list, campaigns_update
-│       ├── ads.py               # ads_list
-│       ├── keywords.py          # keywords_list, keywords_update
+│       ├── __init__.py          # ToolError dataclass, handle_cli_errors, get_runner
+│       ├── helpers.py           # Shared validation (parse_ids, check_batch_limit)
+│       ├── adextensions.py      # adextensions_list/add/delete
+│       ├── adgroups.py          # adgroups_list/add/update/delete
+│       ├── ads.py               # ads_list/add/update/delete/moderate/suspend/resume
+│       ├── images.py            # adimages_list/add/delete
+│       ├── agency.py            # agency_clients_list/add/delete
+│       ├── audience.py          # audience_targets_list/add/delete/suspend/resume
+│       ├── auth_tools.py        # auth_status, auth_setup, auth_login
+│       ├── bids.py              # bids_list/set
+│       ├── bidmodifiers.py      # bidmodifiers_list/set/toggle/delete
+│       ├── campaigns.py         # campaigns_list/update/add/delete/archive/unarchive
+│       ├── changes.py           # changes_check/checkcamp/checkdict
+│       ├── clients.py           # clients_get/update
+│       ├── creatives.py         # creatives_list
+│       ├── dictionaries.py      # dictionaries_get
+│       ├── dynamic_targets.py   # dynamic_targets_list/add/update/delete
+│       ├── feeds.py             # feeds_list/add/update/delete
+│       ├── keywords.py          # keywords_list/update/add/delete/suspend/resume
+│       ├── leads.py             # leads_list
+│       ├── negative_keywords.py # negative_keywords_list/add/update/delete
 │       ├── reports.py           # reports_get
-│       └── auth_tools.py        # auth_status, auth_setup, auth_login + oauth_login prompt
+│       ├── research.py          # keywords_has_volume/deduplicate
+│       ├── retargeting.py       # retargeting_list/add/delete
+│       ├── sitelinks.py         # sitelinks_list/add/delete
+│       ├── smart_targets.py     # smart_targets_list/add/update/delete
+│       ├── turbo_pages.py       # turbo_pages_list
+│       └── vcards.py            # vcards_list/add/delete
 ├── skills/
 │   ├── yandex-direct/SKILL.md   # Campaign management skill
 │   └── direct-ads/SKILL.md      # Ad copywriting skill
@@ -162,19 +184,93 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (9 total) + 1 Prompt
+## MCP Tools (75 total) + 1 Prompt
 
 | Tool | Purpose |
 |---|---|
 | `campaigns_list` | List campaigns, optional state filter |
 | `campaigns_update` | Enable/disable campaign |
+| `campaigns_add` | Create campaign |
+| `campaigns_delete` | Delete campaigns |
+| `campaigns_archive` | Archive campaigns |
+| `campaigns_unarchive` | Unarchive campaigns |
+| `adgroups_list` | List ad groups |
+| `adgroups_add` | Create ad group |
+| `adgroups_update` | Update ad group |
+| `adgroups_delete` | Delete ad groups |
 | `ads_list` | List ads by campaign IDs |
+| `ads_add` | Create ad |
+| `ads_update` | Update ad |
+| `ads_delete` | Delete ads |
+| `ads_moderate` | Submit ads for moderation |
+| `ads_suspend` | Suspend ads |
+| `ads_resume` | Resume suspended ads |
 | `keywords_list` | List keywords by campaign IDs |
-| `keywords_update` | Update keyword bid (in micro-units: 15 RUB = 15000000) |
+| `keywords_update` | Update keyword bid (micro-units) |
+| `keywords_add` | Add keywords |
+| `keywords_delete` | Delete keywords |
+| `keywords_suspend` | Suspend keywords |
+| `keywords_resume` | Resume keywords |
+| `bids_list` | List bids |
+| `bids_set` | Set bid for campaign |
+| `bidmodifiers_list` | List bid modifiers |
+| `bidmodifiers_set` | Set bid modifier |
+| `bidmodifiers_toggle` | Toggle modifier on/off |
+| `bidmodifiers_delete` | Delete bid modifiers |
+| `sitelinks_list` | List sitelinks sets |
+| `sitelinks_add` | Add sitelinks set |
+| `sitelinks_delete` | Delete sitelinks |
+| `vcards_list` | List vCards |
+| `vcards_add` | Add vCard |
+| `vcards_delete` | Delete vCards |
+| `adimages_list` | List ad images |
+| `adimages_add` | Add ad image |
+| `adimages_delete` | Delete images |
+| `adextensions_list` | List ad extensions |
+| `adextensions_add` | Add extension |
+| `adextensions_delete` | Delete extensions |
+| `audience_targets_list` | List audience targets |
+| `audience_targets_add` | Add audience target |
+| `audience_targets_delete` | Delete targets |
+| `audience_targets_suspend` | Suspend targets |
+| `audience_targets_resume` | Resume targets |
+| `retargeting_list` | List retargeting lists |
+| `retargeting_add` | Add retargeting list |
+| `retargeting_delete` | Delete retargeting lists |
+| `dynamic_targets_list` | List dynamic targets |
+| `dynamic_targets_add` | Add dynamic target |
+| `dynamic_targets_update` | Update dynamic target |
+| `dynamic_targets_delete` | Delete dynamic targets |
+| `negative_keywords_list` | List negative keywords |
+| `negative_keywords_add` | Add negative keywords |
+| `negative_keywords_update` | Update negative keywords |
+| `negative_keywords_delete` | Delete negative keywords |
+| `smart_targets_list` | List smart targets |
+| `smart_targets_add` | Add smart target |
+| `smart_targets_update` | Update smart target |
+| `smart_targets_delete` | Delete smart targets |
+| `dictionaries_get` | Get dictionary data |
+| `changes_check` | Check changes since timestamp |
+| `changes_checkcamp` | Check campaign changes |
+| `changes_checkdict` | Check dictionary changes |
+| `clients_get` | Get client info |
+| `clients_update` | Update client |
+| `agency_clients_list` | List agency clients |
+| `agency_clients_add` | Add client to agency |
+| `agency_clients_delete` | Remove client from agency |
+| `keywords_has_volume` | Check keyword search volume |
+| `keywords_deduplicate` | Deduplicate keywords |
+| `leads_list` | List leads |
+| `feeds_list` | List feeds |
+| `feeds_add` | Add feed |
+| `feeds_update` | Update feed |
+| `feeds_delete` | Delete feeds |
+| `creatives_list` | List creatives |
+| `turbo_pages_list` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
 | `auth_status` | Check OAuth token validity |
 | `auth_setup` | Submit authorization code or direct token |
-| `auth_login` | Interactive OAuth flow with elicitation (browser redirect + code input) |
+| `auth_login` | Interactive OAuth flow with elicitation |
 
 | Prompt | Purpose |
 |---|---|

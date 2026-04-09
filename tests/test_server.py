@@ -6,12 +6,112 @@ import sys
 from pathlib import Path
 
 EXPECTED_TOOLS = {
+    # Ad Groups (4 tools)
+    "adgroups_list",
+    "adgroups_add",
+    "adgroups_update",
+    "adgroups_delete",
+    # Campaigns (6 tools)
     "campaigns_list",
     "campaigns_update",
+    "campaigns_add",
+    "campaigns_delete",
+    "campaigns_archive",
+    "campaigns_unarchive",
+    # Ads (7 tools)
     "ads_list",
+    "ads_add",
+    "ads_update",
+    "ads_delete",
+    "ads_moderate",
+    "ads_suspend",
+    "ads_resume",
+    # Keywords (6 tools)
     "keywords_list",
     "keywords_update",
+    "keywords_add",
+    "keywords_delete",
+    "keywords_suspend",
+    "keywords_resume",
+    # Reports
     "reports_get",
+    # Bids (2 tools)
+    "bids_list",
+    "bids_set",
+    # Bid Modifiers (4 tools)
+    "bidmodifiers_list",
+    "bidmodifiers_set",
+    "bidmodifiers_toggle",
+    "bidmodifiers_delete",
+    # Sitelinks (3 tools)
+    "sitelinks_list",
+    "sitelinks_add",
+    "sitelinks_delete",
+    # VCards (3 tools)
+    "vcards_list",
+    "vcards_add",
+    "vcards_delete",
+    # Ad Images (3 tools)
+    "adimages_list",
+    "adimages_add",
+    "adimages_delete",
+    # Ad Extensions (3 tools)
+    "adextensions_list",
+    "adextensions_add",
+    "adextensions_delete",
+    # Audience Targets (5 tools)
+    "audience_targets_list",
+    "audience_targets_add",
+    "audience_targets_delete",
+    "audience_targets_suspend",
+    "audience_targets_resume",
+    # Retargeting (3 tools)
+    "retargeting_list",
+    "retargeting_add",
+    "retargeting_delete",
+    # Dynamic Targets (4 tools)
+    "dynamic_targets_list",
+    "dynamic_targets_add",
+    "dynamic_targets_update",
+    "dynamic_targets_delete",
+    # Negative Keywords (4 tools)
+    "negative_keywords_list",
+    "negative_keywords_add",
+    "negative_keywords_update",
+    "negative_keywords_delete",
+    # Smart Targets (4 tools)
+    "smart_targets_list",
+    "smart_targets_add",
+    "smart_targets_update",
+    "smart_targets_delete",
+    # Dictionaries (1 tool)
+    "dictionaries_get",
+    # Changes (3 tools)
+    "changes_check",
+    "changes_checkcamp",
+    "changes_checkdict",
+    # Clients (2 tools)
+    "clients_get",
+    "clients_update",
+    # Agency (3 tools)
+    "agency_clients_list",
+    "agency_clients_add",
+    "agency_clients_delete",
+    # Research (2 tools)
+    "keywords_has_volume",
+    "keywords_deduplicate",
+    # Leads (1 tool)
+    "leads_list",
+    # Feeds (4 tools)
+    "feeds_list",
+    "feeds_add",
+    "feeds_update",
+    "feeds_delete",
+    # Creatives (1 tool)
+    "creatives_list",
+    # Turbo Pages (1 tool)
+    "turbo_pages_list",
+    # Auth (3 tools)
     "auth_status",
     "auth_setup",
     "auth_login",

@@ -18,16 +18,139 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступные MCP Tools
+## Доступные MCP Tools (83)
 
+### Кампании
 | Tool | Описание | Параметры |
 |---|---|---|
 | `campaigns_list` | Список кампаний | `state?` (ON/OFF) |
 | `campaigns_update` | Изменить статус кампании | `id`, `state` (ON/OFF) |
-| `ads_list` | Объявления в кампаниях | `campaign_ids` (comma-separated, max 10) |
-| `keywords_list` | Ключевые слова | `campaign_ids` |
+| `campaigns_add` | Создать кампанию | `name`, `start_date` |
+| `campaigns_delete` | Удалить кампании | `ids` (max 10) |
+| `campaigns_archive` | Архивировать кампании | `ids` (max 10) |
+| `campaigns_unarchive` | Разархивировать кампании | `ids` (max 10) |
+
+### Группы объявлений
+| Tool | Описание | Параметры |
+|---|---|---|
+| `adgroups_list` | Список групп объявлений | `campaign_ids` (max 10) |
+| `adgroups_add` | Создать группу | `campaign_id`, `name`, `region_ids` |
+| `adgroups_update` | Обновить группу | `id`, `name` |
+| `adgroups_delete` | Удалить группы | `ids` (max 10) |
+
+### Объявления
+| Tool | Описание | Параметры |
+|---|---|---|
+| `ads_list` | Список объявлений | `campaign_ids` (max 10) |
+| `ads_add` | Создать объявление | `campaign_id`, `ad_group_id`, `text` |
+| `ads_update` | Обновить текст объявления | `id`, `text` |
+| `ads_delete` | Удалить объявления | `ids` (max 10) |
+| `ads_moderate` | Отправить на модерацию | `ids` (max 10) |
+| `ads_suspend` | Приостановить объявления | `ids` (max 10) |
+| `ads_resume` | Возобновить объявления | `ids` (max 10) |
+
+### Ключевые слова
+| Tool | Описание | Параметры |
+|---|---|---|
+| `keywords_list` | Список ключевых слов | `campaign_ids` (max 10) |
 | `keywords_update` | Изменить ставку | `id`, `bid` (micro-units) |
-| `reports_get` | Статистика | `date_from?`, `date_to?` |
+| `keywords_add` | Добавить ключевые слова | `campaign_id`, `ad_group_id`, `keywords` |
+| `keywords_delete` | Удалить ключевые слова | `ids` (max 10) |
+| `keywords_suspend` | Приостановить ключевые слова | `ids` (max 10) |
+| `keywords_resume` | Возобновить ключевые слова | `ids` (max 10) |
+
+### Ставки
+| Tool | Описание | Параметры |
+|---|---|---|
+| `bids_list` | Список ставок | `campaign_ids` (max 10) |
+| `bids_set` | Установить ставку | `campaign_id`, `bid`, `context_bid?` |
+
+### Корректировки ставок
+| Tool | Описание | Параметры |
+|---|---|---|
+| `bidmodifiers_list` | Список корректировок | `campaign_ids` (max 10) |
+| `bidmodifiers_set` | Установить корректировку | `campaign_id`, `modifier_type`, `value` |
+| `bidmodifiers_toggle` | Вкл/выкл корректировку | `id`, `enabled` |
+| `bidmodifiers_delete` | Удалить корректировки | `ids` (max 10) |
+
+### Расширения объявлений
+| Tool | Описание | Параметры |
+|---|---|---|
+| `sitelinks_list` | Список наборов ссылок | `ids` (max 10) |
+| `sitelinks_add` | Добавить набор ссылок | `sitelinks_data` (JSON) |
+| `sitelinks_delete` | Удалить наборы ссылок | `ids` (max 10) |
+| `vcards_list` | Список визиток | `ids` (max 10) |
+| `vcards_add` | Добавить визитку | `vcard_data` (JSON) |
+| `vcards_delete` | Удалить визитки | `ids` (max 10) |
+| `adimages_list` | Список изображений | `ids` |
+| `adimages_add` | Добавить изображение | `image_data` (base64) |
+| `adimages_delete` | Удалить изображения | `ids` |
+| `adextensions_list` | Список расширений | `ids` |
+| `adextensions_add` | Добавить расширение | `extension_type`, `extension_data` (JSON) |
+| `adextensions_delete` | Удалить расширения | `ids` |
+
+### Таргетинг и аудитории
+| Tool | Описание | Параметры |
+|---|---|---|
+| `audience_targets_list` | Список аудиторий | `campaign_ids` (max 10) |
+| `audience_targets_add` | Добавить аудиториою | `campaign_id`, `ad_group_id`, `audience_id` |
+| `audience_targets_delete` | Удалить аудитории | `ids` (max 10) |
+| `audience_targets_suspend` | Приостановить аудитории | `ids` (max 10) |
+| `audience_targets_resume` | Возобновить аудитории | `ids` (max 10) |
+| `retargeting_list` | Список ретаргетингов | `ids` |
+| `retargeting_add` | Добавить ретаргетинг | `name`, `rule` (JSON) |
+| `retargeting_delete` | Удалить ретаргетинги | `ids` (max 10) |
+| `dynamic_targets_list` | Список динамических таргетов | `ad_group_ids` (max 10) |
+| `dynamic_targets_add` | Добавить динамический таргет | `ad_group_id`, `conditions` (JSON) |
+| `dynamic_targets_update` | Обновить динамический таргет | `id`, `conditions` (JSON) |
+| `dynamic_targets_delete` | Удалить динамические таргеты | `ids` (max 10) |
+| `negative_keywords_list` | Список минус-слов | `campaign_ids` (max 10) |
+| `negative_keywords_add` | Добавить минус-слова | `campaign_id`, `keywords` |
+| `negative_keywords_update` | Обновить минус-слова | `id`, `keywords` |
+| `negative_keywords_delete` | Удалить минус-слова | `ids` (max 10) |
+| `smart_targets_list` | Список смарт-таргетов | `ad_group_ids` (max 10) |
+| `smart_targets_add` | Добавить смарт-таргет | `ad_group_id`, `conditions` (JSON) |
+| `smart_targets_update` | Обновить смарт-таргет | `id`, `conditions` (JSON) |
+| `smart_targets_delete` | Удалить смарт-таргеты | `ids` (max 10) |
+
+### Справочники и изменения
+| Tool | Описание | Параметры |
+|---|---|---|
+| `dictionaries_get` | Получить справочник | `dictionary_type`, `locale?` |
+| `changes_check` | Проверить изменения | `timestamp` |
+| `changes_checkcamp` | Изменения по кампаниям | `campaign_ids`, `timestamp` |
+| `changes_checkdict` | Изменения справочников | `timestamp` |
+
+### Клиенты и агентство
+| Tool | Описание | Параметры |
+|---|---|---|
+| `clients_get` | Информация о клиенте | `login?` |
+| `clients_update` | Обновить клиента | `login`, `fields` (JSON) |
+| `agency_clients_list` | Клиенты агентства | `login?` |
+| `agency_clients_add` | Добавить клиента агентству | `login`, `client_info` (JSON) |
+| `agency_clients_delete` | Удалить клиента из агентства | `login`, `client_login` |
+
+### Исследования и отчёты
+| Tool | Описание | Параметры |
+|---|---|---|
+| `keywords_has_volume` | Проверить объём по ключевым словам | `keywords`, `region_id?` |
+| `keywords_deduplicate` | Дедупликация ключевых слов | `keywords` |
+| `leads_list` | Список лидов | `campaign_ids`, `date_from?`, `date_to?` |
+| `reports_get` | Статистика кампаний | `date_from?`, `date_to?` |
+
+### Фиды, креативы, Турбо-страницы
+| Tool | Описание | Параметры |
+|---|---|---|
+| `feeds_list` | Список фидов | `ids` |
+| `feeds_add` | Добавить фид | `name`, `url` |
+| `feeds_update` | Обновить фид | `id`, `name?`, `url?` |
+| `feeds_delete` | Удалить фиды | `ids` (max 10) |
+| `creatives_list` | Список креативов | `ids` |
+| `turbo_pages_list` | Список Турбо-страниц | `ids` |
+
+### Авторизация
+| Tool | Описание | Параметры |
+|---|---|---|
 | `auth_status` | Статус OAuth-токена | — |
 | `auth_setup` | Ввести код авторизации | `code` (7 digits или y0_ токен) |
 | `auth_login` | Интерактивный OAuth (браузер + ввод кода) | — |
@@ -38,12 +161,16 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 |---|---|
 | Покажи все кампании | `campaigns_list()` |
 | Покажи активные кампании | `campaigns_list(state="ON")` |
+| Создай кампанию | `campaigns_add(name="...", start_date="2024-01-01")` |
 | Сколько объявлений в кампании 123? | `ads_list(campaign_ids="123")` → count |
 | Включи кампанию 456 | `campaigns_update(id="456", state="ON")` |
 | Отключи кампанию 456 | `campaigns_update(id="456", state="OFF")` |
 | Ключевые слова кампании 789 | `keywords_list(campaign_ids="789")` |
 | Изменить ставку ключевого слова на 15 руб | `keywords_update(id="99999", bid="15000000")` |
 | Статистика за последнюю неделю | `reports_get(date_from="...", date_to="...")` |
+| Установить ставку 10 руб на кампанию | `bids_set(campaign_id="123", bid="10000000")` |
+| Проверить есть ли изменения в кампаниях | `changes_checkcamp(campaign_ids="123", timestamp="...")` |
+| Показать группы объявлений | `adgroups_list(campaign_ids="123")` |
 | Токен живой? | `auth_status()` |
 
 ## Важные детали
@@ -52,8 +179,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 Ставки передаются в микроюнитах: **15 RUB = 15,000,000**. Всегда умножайте рубли на 1,000,000.
 
 ### API-лимиты и батчинг
-- Максимум **10 ID** за запрос для ads_list, keywords_list
-- Для больших наборов кампаний делайте несколько запросов по 5-10 ID
+- Максимум **10 ID** за запрос для list/delete операций
+- Для больших наборов делайте несколько запросов по 5-10 ID
 
 ### Второй аккаунт
 - Кампании с ID в диапазоне **73M-77M** принадлежат второму аккаунту
