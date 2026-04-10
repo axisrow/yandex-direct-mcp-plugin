@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 import server.tools
-from server.tools.ads import ads_list
+from server.tools.ads import ads_list, ads_update
 
 
 @pytest.fixture(autouse=True)
@@ -58,3 +58,47 @@ def test_ads_empty():
     with patch("server.tools.ads.get_runner", return_value=_mock_runner([])):
         result = ads_list(campaign_ids="12345")
         assert result == []
+
+
+def test_ads_update_status_success():
+    """Update ad status through direct-cli."""
+    runner = _mock_runner({"result": "ok"})
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_update(id="111", status="SUSPENDED")
+
+    runner.run_json.assert_called_once_with(
+        ["ads", "update", "--id", "111", "--status", "SUSPENDED", "--format", "json"]
+    )
+    assert result == {"success": True, "id": "111", "status": "SUSPENDED"}
+
+
+def test_ads_update_extra_json_success():
+    """Pass through additional JSON update payload."""
+    runner = _mock_runner({"result": "ok"})
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_update(id="111", extra_json='{"TextAd":{"Title":"New title"}}')
+
+    runner.run_json.assert_called_once_with(
+        [
+            "ads",
+            "update",
+            "--id",
+            "111",
+            "--json",
+            '{"TextAd":{"Title":"New title"}}',
+            "--format",
+            "json",
+        ]
+    )
+    assert result == {
+        "success": True,
+        "id": "111",
+        "extra_json": '{"TextAd":{"Title":"New title"}}',
+    }
+
+
+def test_ads_update_requires_changes():
+    """Reject empty updates before calling the CLI."""
+    result = ads_update(id="111")
+
+    assert result["error"] == "missing_update_fields"

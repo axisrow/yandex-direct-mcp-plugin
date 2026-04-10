@@ -9,6 +9,7 @@ EXPECTED_TOOLS = {
     "campaigns_list",
     "campaigns_update",
     "ads_list",
+    "ads_update",
     "keywords_list",
     "keywords_update",
     "reports_get",

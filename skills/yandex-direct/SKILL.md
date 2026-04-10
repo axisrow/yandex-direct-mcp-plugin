@@ -25,6 +25,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `campaigns_list` | Список кампаний | `state?` (ON/OFF) |
 | `campaigns_update` | Изменить статус кампании | `id`, `state` (ON/OFF) |
 | `ads_list` | Объявления в кампаниях | `campaign_ids` (comma-separated, max 10) |
+| `ads_update` | Обновить объявление | `id`, `status?`, `extra_json?` |
 | `keywords_list` | Ключевые слова | `campaign_ids` |
 | `keywords_update` | Изменить ставку | `id`, `bid` (micro-units) |
 | `reports_get` | Статистика | `date_from?`, `date_to?` |
@@ -39,6 +40,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Покажи все кампании | `campaigns_list()` |
 | Покажи активные кампании | `campaigns_list(state="ON")` |
 | Сколько объявлений в кампании 123? | `ads_list(campaign_ids="123")` → count |
+| Переведи объявление 111 в новый статус | `ads_update(id="111", status="SUSPENDED")` |
 | Включи кампанию 456 | `campaigns_update(id="456", state="ON")` |
 | Отключи кампанию 456 | `campaigns_update(id="456", state="OFF")` |
 | Ключевые слова кампании 789 | `keywords_list(campaign_ids="789")` |
