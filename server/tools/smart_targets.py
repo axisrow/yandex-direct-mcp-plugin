@@ -7,7 +7,7 @@ wrappers in ``smart_ad_targets.py``.
 """
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
@@ -72,6 +72,12 @@ def smart_targets_update(
         target_type: New target type (optional).
         extra_json: JSON string with fields to update (optional).
     """
+    if not any((target_type, extra_json)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: target_type, extra_json",
+        ).__dict__
+
     args = ["smartadtargets", "update", "--id", id]
     if target_type:
         args.extend(["--type", target_type])

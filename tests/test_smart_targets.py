@@ -98,6 +98,12 @@ def test_smart_targets_update():
         assert result["success"] is True
 
 
+def test_smart_targets_update_requires_fields():
+    """Test missing smart target update fields returns a local error."""
+    result = smart_targets_update(id="1")
+    assert result["error"] == "missing_update_fields"
+
+
 class TestSmartTargetsDelete:
     """Tests for smart target delete operations."""
 

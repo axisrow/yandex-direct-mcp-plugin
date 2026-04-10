@@ -13,7 +13,10 @@ def feeds_list(ids: str) -> dict:
         ids: Comma-separated feed IDs.
     """
     runner = get_runner()
-    return runner.run_json(["feeds", "get", "--ids", ids, "--format", "json"])
+    normalized_ids = ids.strip()
+    return runner.run_json(
+        ["feeds", "get", "--ids", normalized_ids, "--format", "json"]
+    )
 
 
 @mcp.tool()

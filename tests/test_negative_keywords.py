@@ -97,6 +97,12 @@ def test_negative_keywords_update():
         assert result["success"] is True
 
 
+def test_negative_keywords_update_requires_fields():
+    """Test missing negative keyword update fields returns a local error."""
+    result = negative_keywords_update(id="1")
+    assert result["error"] == "missing_update_fields"
+
+
 class TestNegativeKeywordsDelete:
     """Tests for negative keyword delete operations."""
 

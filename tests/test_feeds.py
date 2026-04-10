@@ -33,6 +33,18 @@ class TestFeedsList:
             result = feeds_list(ids="1")
             assert "feeds" in result
 
+    def test_feeds_list_trims_ids_before_cli(self):
+        """Test feed IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"feeds": []}
+
+        with patch("server.tools.feeds.get_runner", return_value=runner):
+            feeds_list(ids=" 1 ")
+
+        runner.run_json.assert_called_once_with(
+            ["feeds", "get", "--ids", "1", "--format", "json"]
+        )
+
 
 class TestFeedsAdd:
     """Tests for feeds_add tool."""

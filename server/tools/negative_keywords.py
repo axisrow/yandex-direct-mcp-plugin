@@ -7,7 +7,7 @@ wrappers in ``negative_keyword_shared_sets.py``.
 """
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
@@ -71,6 +71,12 @@ def negative_keywords_update(
         name: New set name (optional).
         keywords: New comma-separated negative keywords (optional).
     """
+    if not any((name, keywords)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: name, keywords",
+        ).__dict__
+
     args = ["negativekeywordsharedsets", "update", "--id", id]
     if name is not None:
         args.extend(["--name", name])

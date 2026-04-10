@@ -89,16 +89,16 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Tool | Описание | Параметры |
 |---|---|---|
 | `sitelinks_list` | Список наборов ссылок | `ids` (max 10) |
-| `sitelinks_add` | Добавить набор ссылок | `sitelinks_data` (JSON) |
+| `sitelinks_add` | Добавить набор ссылок | `links` (JSON) |
 | `sitelinks_delete` | Удалить наборы ссылок | `ids` (max 10) |
 | `vcards_list` | Список визиток | `ids` (max 10) |
-| `vcards_add` | Добавить визитку | `vcard_data` (JSON) |
+| `vcards_add` | Добавить визитку | `vcard_json` (JSON) |
 | `vcards_delete` | Удалить визитки | `ids` (max 10) |
-| `adimages_list` | Список изображений | `ids` |
-| `adimages_add` | Добавить изображение | `image_data` (base64) |
-| `adimages_delete` | Удалить изображения | `ids` |
+| `adimages_list` | Список изображений | `ids?` |
+| `adimages_add` | Добавить изображение | `image_json` (base64) |
+| `adimages_delete` | Удалить изображения | `hash_value` |
 | `adextensions_list` | Список расширений | `ids` |
-| `adextensions_add` | Добавить расширение | `extension_type`, `extension_data` (JSON) |
+| `adextensions_add` | Добавить расширение | `extension_type`, `extra_json` (JSON) |
 | `adextensions_delete` | Удалить расширения | `ids` |
 
 ### Таргетинг и аудитории
@@ -112,21 +112,21 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `retargeting_list` | Список ретаргетингов | `ids` |
 | `retargeting_add` | Добавить ретаргетинг | `name`, `rule` (JSON) |
 | `retargeting_delete` | Удалить ретаргетинги | `ids` (max 10) |
-| `dynamic_targets_list` | Список динамических таргетов | `ad_group_ids` (max 10) |
-| `dynamic_targets_add` | Добавить динамический таргет | `ad_group_id`, `conditions` (JSON) |
-| `dynamic_targets_update` | Обновить динамический таргет | `id`, `conditions` (JSON) |
+| `dynamic_targets_list` | Список динамических таргетов | `ad_group_ids?` (max 10) |
+| `dynamic_targets_add` | Добавить динамический таргет | `ad_group_id`, `target_data` (JSON) |
+| `dynamic_targets_update` | Обновить динамический таргет | `id`, `extra_json` (JSON) |
 | `dynamic_targets_delete` | Удалить динамические таргеты | `ids` (max 10) |
 | `dynamic_ads_list` | Список динамических объявлений | `ad_group_ids` |
 | `dynamic_ads_add` | Добавить динамическое объявление | `ad_group_id`, `target_data` (JSON) |
 | `dynamic_ads_update` | Обновить динамическое объявление | `id`, `extra_json` (JSON) |
 | `dynamic_ads_delete` | Удалить динамические объявления | `id` |
-| `negative_keywords_list` | Список минус-слов | `campaign_ids` (max 10) |
-| `negative_keywords_add` | Добавить минус-слова | `campaign_id`, `keywords` |
-| `negative_keywords_update` | Обновить минус-слова | `id`, `keywords` |
+| `negative_keywords_list` | Список минус-слов | `ids?` (max 10) |
+| `negative_keywords_add` | Добавить минус-слова | `name`, `keywords` |
+| `negative_keywords_update` | Обновить минус-слова | `id`, `name?`, `keywords?` |
 | `negative_keywords_delete` | Удалить минус-слова | `ids` (max 10) |
-| `smart_targets_list` | Список смарт-таргетов | `ad_group_ids` (max 10) |
-| `smart_targets_add` | Добавить смарт-таргет | `ad_group_id`, `conditions` (JSON) |
-| `smart_targets_update` | Обновить смарт-таргет | `id`, `conditions` (JSON) |
+| `smart_targets_list` | Список смарт-таргетов | `ad_group_ids?` (max 10) |
+| `smart_targets_add` | Добавить смарт-таргет | `ad_group_id`, `target_type`, `extra_json?` |
+| `smart_targets_update` | Обновить смарт-таргет | `id`, `target_type?`, `extra_json?` |
 | `smart_targets_delete` | Удалить смарт-таргеты | `ids` (max 10) |
 | `smart_ad_targets_list` | Список смарт-таргетов объявлений | `ad_group_ids` |
 | `smart_ad_targets_add` | Добавить смарт-таргет объявлений | `ad_group_id`, `target_type`, `extra_json?` |
@@ -149,11 +149,11 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 ### Клиенты и агентство
 | Tool | Описание | Параметры |
 |---|---|---|
-| `clients_get` | Информация о клиенте | `login?` |
-| `clients_update` | Обновить клиента | `login`, `fields` (JSON) |
-| `agency_clients_list` | Клиенты агентства | `login?` |
-| `agency_clients_add` | Добавить клиента агентству | `login`, `client_info` (JSON) |
-| `agency_clients_delete` | Удалить клиента из агентства | `login`, `client_login` |
+| `clients_get` | Информация о клиенте | `ids?` |
+| `clients_update` | Обновить клиента | `client_id`, `extra_json` (JSON) |
+| `agency_clients_list` | Клиенты агентства | `ids?` |
+| `agency_clients_add` | Добавить клиента агентству | `client_json` (JSON) |
+| `agency_clients_delete` | Удалить клиента из агентства | `id` |
 
 ### Исследования и отчёты
 | Tool | Описание | Параметры |
