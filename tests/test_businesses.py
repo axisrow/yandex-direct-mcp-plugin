@@ -62,3 +62,24 @@ def test_businesses_list_empty():
     ):
         result = businesses_list()
         assert result == []
+
+
+def test_businesses_list_ignores_blank_ids():
+    """Test blank ids behave like no filter."""
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_BUSINESSES
+    with patch("server.tools.businesses.get_runner", return_value=runner):
+        result = businesses_list(ids="   ")
+        assert len(result) == 1
+        call_args = runner.run_json.call_args[0][0]
+        assert "--ids" not in call_args
+
+
+def test_businesses_list_empty_ids():
+    """Test empty ids string treated like no filter."""
+    runner = MagicMock()
+    runner.run_json.return_value = []
+    with patch("server.tools.businesses.get_runner", return_value=runner):
+        businesses_list(ids="")
+
+    runner.run_json.assert_called_once_with(["businesses", "get", "--format", "json"])

@@ -128,3 +128,34 @@ class TestBidsSet:
 
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
+
+    def test_bids_set_only_extra_json(self):
+        """Test setting bid with only extra_json (no bid)."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch(
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            result = bids_set(
+                campaign_id="12345",
+                extra_json='{"ContextBid":12000000}',
+            )
+            assert result["success"] is True
+            call_args = runner.run_json.call_args[0][0]
+            assert "--bid" not in call_args
+            assert "--json" in call_args
+
+    def test_bids_list_ad_group_batch_limit(self):
+        """Test batch limit validation for ad_group_ids."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = bids_list(ad_group_ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
+    def test_bids_list_keyword_batch_limit(self):
+        """Test batch limit validation for keyword_ids."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = bids_list(keyword_ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"

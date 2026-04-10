@@ -160,3 +160,24 @@ def test_reports_list_types():
         assert len(result) == 7
         assert "CAMPAIGN_PERFORMANCE_REPORT" in result
         runner.run_json.assert_called_once_with(["reports", "list-types"])
+
+
+def test_reports_get_empty():
+    """Test report with empty result."""
+    with patch("server.tools.reports.get_runner", return_value=_mock_runner([])):
+        result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
+        assert result == []
+
+
+def test_reports_get_auth_error():
+    """Test auth error during report retrieval."""
+    from server.cli.runner import CliAuthError
+
+    runner = MagicMock()
+    runner.run_json.side_effect = CliAuthError("Token expired")
+    with (
+        patch("server.tools.reports.get_runner", return_value=runner),
+        patch("server.tools._try_refresh_token", return_value=None),
+    ):
+        result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
+        assert result["error"] == "auth_expired"

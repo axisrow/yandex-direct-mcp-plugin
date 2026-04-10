@@ -110,3 +110,30 @@ class TestClientsUpdate:
             extra_json = '{"Grants": ["CampaignManagement"]}'
             result = clients_update(client_id="123", extra_json=extra_json)
             assert result == mock_result
+
+    def test_update_client_argv_composition(self):
+        """Test update passes correct argv to CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Login": "client1"}
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            clients_update(client_id="123", extra_json='{"FirstName":"Bob"}')
+
+        runner.run_json.assert_called_once_with(
+            [
+                "clients",
+                "update",
+                "--client-id",
+                "123",
+                "--json",
+                '{"FirstName":"Bob"}',
+            ]
+        )
+
+    def test_get_client_ignores_blank_ids(self):
+        """Test blank ids behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Clients": []}
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            clients_get(ids="   ")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--ids" not in call_args

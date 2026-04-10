@@ -88,3 +88,45 @@ class TestTurboPagesAdd:
             )
             call_args = runner.run_json.call_args[0][0]
             assert "--json" in call_args
+
+    def test_turbo_pages_add_argv_composition(self):
+        """Test add passes correct argv to CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"id": 125}
+        with patch("server.tools.turbo_pages.get_runner", return_value=runner):
+            turbo_pages_add(
+                name="My Page",
+                url="https://example.com",
+                extra_json='{"Description":"desc"}',
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "turbopages",
+                "add",
+                "--name",
+                "My Page",
+                "--url",
+                "https://example.com",
+                "--json",
+                '{"Description":"desc"}',
+            ]
+        )
+
+    def test_turbo_pages_list_empty_result(self):
+        """Test empty response returns empty dict."""
+        with patch(
+            "server.tools.turbo_pages.get_runner",
+            return_value=_mock_runner({"turboPages": []}),
+        ):
+            result = turbo_pages_list()
+            assert result == {"turboPages": []}
+
+    def test_turbo_pages_list_ignores_blank_ids(self):
+        """Test blank ids behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"turboPages": []}
+        with patch("server.tools.turbo_pages.get_runner", return_value=runner):
+            turbo_pages_list(ids="   ")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--ids" not in call_args

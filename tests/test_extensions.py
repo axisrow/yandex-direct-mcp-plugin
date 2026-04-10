@@ -119,6 +119,13 @@ class TestAdextensionsList:
             result = adextensions_list(ids="999")
             assert result == []
 
+    def test_list_extensions_batch_limit(self):
+        """Test batch limit validation for adextensions_list."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        result = adextensions_list(ids=ids)
+        assert "error" in result
+        assert result["error"] == "batch_limit"
+
 
 class TestAdextensionsAdd:
     """Tests for adextensions_add tool."""
