@@ -42,8 +42,18 @@ class TestFeedsList:
             feeds_list(ids=" 1 ")
 
         runner.run_json.assert_called_once_with(
-            ["feeds", "get", "--ids", "1", "--format", "json"]
+            ["feeds", "get", "--format", "json", "--ids", "1"]
         )
+
+    def test_feeds_list_no_ids(self):
+        """Test listing all feeds without IDs."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"feeds": []}
+
+        with patch("server.tools.feeds.get_runner", return_value=runner):
+            feeds_list()
+
+        runner.run_json.assert_called_once_with(["feeds", "get", "--format", "json"])
 
 
 class TestFeedsAdd:

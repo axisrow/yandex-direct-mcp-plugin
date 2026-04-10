@@ -6,17 +6,18 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def feeds_list(ids: str) -> dict:
-    """List feeds by IDs.
+def feeds_list(ids: str | None = None) -> dict:
+    """List feeds.
 
     Args:
-        ids: Comma-separated feed IDs.
+        ids: Comma-separated feed IDs (optional, omit for all feeds).
     """
+    args = ["feeds", "get", "--format", "json"]
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
     runner = get_runner()
-    normalized_ids = ids.strip()
-    return runner.run_json(
-        ["feeds", "get", "--ids", normalized_ids, "--format", "json"]
-    )
+    return runner.run_json(args)
 
 
 @mcp.tool()

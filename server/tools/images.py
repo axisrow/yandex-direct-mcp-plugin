@@ -39,6 +39,10 @@ def adimages_add(image_json: str) -> dict:
 def adimages_delete(hash_value: str) -> dict:
     """Delete an ad image by its hash.
 
+    Note: The previous ``ids`` parameter accepted comma-separated IDs,
+    but the CLI only supports deleting a single image at a time via
+    ``--hash``.  The old parameter was always incorrect.
+
     Args:
         hash_value: Ad image hash to delete.
     """
