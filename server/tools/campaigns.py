@@ -30,24 +30,53 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_update(id: str, state: str) -> dict:
-    """Update campaign state (enable or disable).
+def campaigns_update(
+    id: str,
+    name: str | None = None,
+    status: str | None = None,
+    budget: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
+    """Update campaign fields.
 
     Args:
         id: Campaign ID to update.
-        state: New state ("ON" to enable, "OFF" to disable).
+        name: Optional new campaign name.
+        status: Optional new campaign status.
+        budget: Optional new daily budget.
+        extra_json: Optional JSON string forwarded to direct-cli --json.
     """
-    if state not in ("ON", "OFF"):
+    if not any((name, status, budget, extra_json)):
         return ToolError(
-            error="invalid_state",
-            message=f"State must be 'ON' or 'OFF', got '{state}'",
+            error="missing_update_fields",
+            message="Provide at least one of: name, status, budget, extra_json",
         ).__dict__
+
+    budget_value: str | None = None
+    if budget is not None:
+        try:
+            if int(budget) <= 0:
+                raise ValueError("Budget must be positive")
+            budget_value = budget
+        except (ValueError, TypeError):
+            return ToolError(
+                error="invalid_budget",
+                message=f"Budget must be a positive integer. Got: '{budget}'",
+            ).__dict__
 
     runner = get_runner()
     try:
-        runner.run_json(
-            ["campaigns", "update", "--id", id, "--state", state, "--format", "json"]
-        )
+        args = ["campaigns", "update", "--id", id]
+        if name:
+            args.extend(["--name", name])
+        if status:
+            args.extend(["--status", status])
+        if budget_value is not None:
+            args.extend(["--budget", budget_value])
+        if extra_json:
+            args.extend(["--json", extra_json])
+        args.extend(["--format", "json"])
+        runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
     except Exception as exc:
@@ -56,7 +85,16 @@ def campaigns_update(id: str, state: str) -> dict:
                 error="not_found", message=f"Campaign '{id}' not found"
             ).__dict__
         raise
-    return {"success": True, "id": id, "state": state}
+    result: dict[str, object] = {"success": True, "id": id}
+    if name:
+        result["name"] = name
+    if status:
+        result["status"] = status
+    if budget_value is not None:
+        result["budget"] = int(budget_value)
+    if extra_json:
+        result["extra_json"] = extra_json
+    return result
 
 
 @mcp.tool()

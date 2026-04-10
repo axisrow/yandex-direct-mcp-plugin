@@ -63,6 +63,49 @@ def test_keywords_update_invalid_bid():
     assert result["error"] == "invalid_bid"
 
 
+def test_keywords_update_argv_composition():
+    """Test that update passes the expanded CLI surface."""
+    runner = _mock_runner({})
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        result = keywords_update(
+            id="99999",
+            bid="15000000",
+            context_bid="9000000",
+            status="SUSPENDED",
+            extra_json='{"StrategyPriority": "HIGH"}',
+        )
+
+    runner.run_json.assert_called_once_with(
+        [
+            "keywords",
+            "update",
+            "--id",
+            "99999",
+            "--bid",
+            "15000000",
+            "--context-bid",
+            "9000000",
+            "--status",
+            "SUSPENDED",
+            "--json",
+            '{"StrategyPriority": "HIGH"}',
+            "--format",
+            "json",
+        ]
+    )
+    assert result["context_bid"] == 9000000
+
+
+def test_keywords_update_requires_changes():
+    """Test that empty updates are rejected before CLI call."""
+    runner = _mock_runner({})
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        result = keywords_update(id="99999")
+
+    assert result["error"] == "missing_update_fields"
+    runner.run_json.assert_not_called()
+
+
 class TestKeywordsCrudOperations:
     """Tests for keyword CRUD operations (add, delete, suspend, resume)."""
 

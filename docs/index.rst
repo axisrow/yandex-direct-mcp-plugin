@@ -10,3 +10,4 @@ Claude Code plugin for managing Yandex.Direct advertising campaigns.
    api/auth
    api/cli
    api/tools
+   api/issue-43-parity

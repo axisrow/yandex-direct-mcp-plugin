@@ -91,14 +91,25 @@ def ads_add(
 
 @mcp.tool()
 @handle_cli_errors
-def ads_update(id: str, extra_json: str | None = None) -> dict:
+def ads_update(
+    id: str, status: str | None = None, extra_json: str | None = None
+) -> dict:
     """Update an ad.
 
     Args:
         id: Ad ID to update.
+        status: Optional new ad status.
         extra_json: JSON string with fields to update (e.g. '{"TextAd": {"Title": "New"}}').
     """
+    if not status and not extra_json:
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: status, extra_json",
+        ).__dict__
+
     args = ["ads", "update", "--id", id]
+    if status:
+        args.extend(["--status", status])
     if extra_json:
         args.extend(["--json", extra_json])
     args.extend(["--format", "json"])
