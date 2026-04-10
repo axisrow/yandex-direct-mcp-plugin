@@ -20,9 +20,7 @@ def dynamic_targets_list(ad_group_ids: str | None = None) -> list[dict] | dict:
     Args:
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
     """
-    normalized_ad_group_ids = (
-        ad_group_ids.strip() if ad_group_ids is not None else None
-    )
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids)
         if batch_error:

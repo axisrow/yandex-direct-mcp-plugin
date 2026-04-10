@@ -67,7 +67,9 @@ class TestBidsList:
         runner = MagicMock()
         runner.run_json.return_value = SAMPLE_BIDS
         with patch("server.tools.bids.get_runner", return_value=runner):
-            result = bids_list(campaign_ids="   ", ad_group_ids="   ", keyword_ids="   ")
+            result = bids_list(
+                campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
+            )
             assert len(result) == 1
             call_args = runner.run_json.call_args[0][0]
             assert "--campaign-ids" not in call_args
