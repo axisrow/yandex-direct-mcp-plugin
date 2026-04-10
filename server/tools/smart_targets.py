@@ -1,111 +1,93 @@
-"""MCP tools for smart target management.
+"""MCP tools for smart ad targets (legacy aliases).
 
-NOTE: The direct-cli does not expose a ``smarttargets`` subcommand.
-The CLI provides ``smartadtargets`` (see smart_ad_targets.py) instead.
-These tools are kept as placeholders until the CLI adds a matching command.
+These tools wrap the ``smarttargets`` CLI subcommand, which is an alias
+for ``smartadtargets``.  Prefer the canonical wrappers in
+``smart_ad_targets.py`` — the tools here are kept for backward
+compatibility with existing skill/prompt references.
 """
 
-import json
-
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools import get_runner, handle_cli_errors
 
 from server.tools.helpers import check_batch_limit
 
 
 @mcp.tool()
 @handle_cli_errors
-def smart_targets_list(ad_group_ids: str) -> list[dict] | dict:
-    """List smart targets in specified ad groups.
+def smart_targets_list(ad_group_ids: str | None = None) -> list[dict] | dict:
+    """List smart ad targets.
 
     Args:
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
     """
-    batch_error = check_batch_limit(ad_group_ids)
-    if batch_error:
-        return batch_error.__dict__
+    if ad_group_ids is not None:
+        batch_error = check_batch_limit(ad_group_ids)
+        if batch_error:
+            return batch_error.__dict__
 
+    args = ["smarttargets", "get", "--format", "json"]
+    if ad_group_ids:
+        args.extend(["--adgroup-ids", ad_group_ids])
     runner = get_runner()
-    return runner.run_json(
-        ["smarttargets", "get", "--ad-group-ids", ad_group_ids, "--format", "json"]
-    )
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def smart_targets_add(ad_group_id: str, conditions: str) -> dict:
-    """Add smart target to an ad group.
+def smart_targets_add(
+    ad_group_id: str, target_type: str, extra_json: str | None = None
+) -> dict:
+    """Add a smart ad target.
 
     Args:
         ad_group_id: Ad group ID.
-        conditions: JSON string of conditions for the smart target.
+        target_type: Target type (e.g. RETARGETING).
+        extra_json: Additional JSON parameters (optional).
     """
-    # Validate JSON format
-    try:
-        json.loads(conditions)
-    except json.JSONDecodeError as e:
-        return ToolError(
-            error="invalid_json",
-            message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
-        ).__dict__
-
+    args = [
+        "smarttargets",
+        "add",
+        "--adgroup-id",
+        ad_group_id,
+        "--type",
+        target_type,
+    ]
+    if extra_json:
+        args.extend(["--json", extra_json])
+    args.extend(["--format", "json"])
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "smarttargets",
-            "add",
-            "--ad-group-id",
-            ad_group_id,
-            "--conditions",
-            conditions,
-            "--format",
-            "json",
-        ]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def smart_targets_update(id: str, conditions: str) -> dict:
-    """Update smart target.
+def smart_targets_update(
+    id: str, target_type: str | None = None, extra_json: str | None = None
+) -> dict:
+    """Update a smart ad target.
 
     Args:
-        id: Smart target ID.
-        conditions: JSON string of conditions for the smart target.
+        id: Target ID.
+        target_type: New target type (optional).
+        extra_json: JSON string with fields to update (optional).
     """
-    # Validate JSON format
-    try:
-        json.loads(conditions)
-    except json.JSONDecodeError as e:
-        return ToolError(
-            error="invalid_json",
-            message=f"Conditions must be valid JSON. Got: '{conditions}'. Error: {e}",
-        ).__dict__
-
+    args = ["smarttargets", "update", "--id", id]
+    if target_type:
+        args.extend(["--type", target_type])
+    if extra_json:
+        args.extend(["--json", extra_json])
+    args.extend(["--format", "json"])
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "smarttargets",
-            "update",
-            "--id",
-            id,
-            "--conditions",
-            conditions,
-            "--format",
-            "json",
-        ]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
 def smart_targets_delete(ids: str) -> dict:
-    """Delete smart targets.
+    """Delete smart ad targets.
 
     Args:
-        ids: Comma-separated smart target IDs (max 10).
+        ids: Comma-separated target IDs (max 10).
     """
     batch_error = check_batch_limit(ids)
     if batch_error:
@@ -113,6 +95,6 @@ def smart_targets_delete(ids: str) -> dict:
 
     runner = get_runner()
     result = runner.run_json(
-        ["smarttargets", "delete", "--ids", ids, "--format", "json"]
+        ["smarttargets", "delete", "--id", ids, "--format", "json"]
     )
     return result

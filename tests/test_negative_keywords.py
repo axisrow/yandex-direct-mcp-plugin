@@ -1,6 +1,6 @@
 """Tests for negative keyword MCP tools."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,70 +18,74 @@ def setup():
     server.tools.set_token_getter(lambda: "test-token")
 
 
-SAMPLE_NEGATIVE_KEYWORDS = [
-    {"Id": 1, "CampaignId": 12345, "Keywords": "bad keyword, another bad"},
+SAMPLE_SETS = [
+    {"Id": 1, "Name": "Bad words", "Keywords": "bad, awful"},
 ]
 
 
 def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
 
 
 def test_negative_keywords_list():
-    """Test listing negative keywords."""
+    """Test listing negative keyword sets."""
     with patch(
         "server.tools.negative_keywords.get_runner",
-        return_value=_mock_runner(SAMPLE_NEGATIVE_KEYWORDS),
+        return_value=_mock_runner(SAMPLE_SETS),
     ):
-        result = negative_keywords_list(campaign_ids="12345")
+        result = negative_keywords_list(ids="1")
         assert len(result) == 1
         assert result[0]["Id"] == 1
-        assert result[0]["CampaignId"] == 12345
+
+
+def test_negative_keywords_list_no_ids():
+    """Test listing all negative keyword sets."""
+    with patch(
+        "server.tools.negative_keywords.get_runner",
+        return_value=_mock_runner(SAMPLE_SETS),
+    ):
+        result = negative_keywords_list()
+        assert len(result) == 1
 
 
 def test_negative_keywords_add():
-    """Test adding negative keywords."""
-    mock_result = {"success": True, "id": 1}
+    """Test adding a negative keyword set."""
+    mock_result = {"Id": 1}
     with patch(
         "server.tools.negative_keywords.get_runner",
         return_value=_mock_runner(mock_result),
     ):
-        result = negative_keywords_add(campaign_id="12345", keywords="bad, awful")
-        assert result["success"] is True
-        assert result["id"] == 1
+        result = negative_keywords_add(name="Bad words", keywords="bad, awful")
+        assert result["Id"] == 1
 
 
 def test_negative_keywords_update():
-    """Test updating negative keywords."""
-    mock_result = {"success": True, "id": 1}
+    """Test updating a negative keyword set."""
+    mock_result = {"success": True}
     with patch(
         "server.tools.negative_keywords.get_runner",
         return_value=_mock_runner(mock_result),
     ):
-        result = negative_keywords_update(id="1", keywords="new bad, worse")
+        result = negative_keywords_update(id="1", name="Updated")
         assert result["success"] is True
-        assert result["id"] == 1
 
 
 class TestNegativeKeywordsDelete:
     """Tests for negative keyword delete operations."""
 
     def test_negative_keywords_delete_success(self):
-        """Test deleting negative keywords successfully."""
         mock_result = {"success": True}
         with patch(
             "server.tools.negative_keywords.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = negative_keywords_delete(ids="1,2")
+            result = negative_keywords_delete(ids="1")
             assert result["success"] is True
 
     def test_negative_keywords_delete_batch_limit(self):
-        """Test batch limit validation for delete."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        ids = ",".join(str(i) for i in range(1, 12))
         result = negative_keywords_delete(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
