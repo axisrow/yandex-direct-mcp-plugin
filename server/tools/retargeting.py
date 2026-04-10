@@ -2,35 +2,55 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import run_single_id_batch
 
 
 @mcp.tool()
 @handle_cli_errors
-def retargeting_list(ids: str) -> list[dict] | dict:
+def retargeting_list(
+    ids: str | None = None, types: str | None = None
+) -> list[dict] | dict:
     """List retargeting lists.
 
     Args:
-        ids: Comma-separated retargeting list IDs.
+        ids: Comma-separated retargeting list IDs (optional).
+        types: Comma-separated types to filter by (optional).
     """
+    args = ["retargeting", "get", "--format", "json"]
+    if ids is not None:
+        args.extend(["--ids", ids])
+    if types is not None:
+        args.extend(["--types", types])
     runner = get_runner()
-    result = runner.run_json(["retargeting", "get", "--ids", ids, "--format", "json"])
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def retargeting_add(name: str, rule: str) -> dict:
+def retargeting_add(
+    name: str,
+    list_type: str,
+    extra_json: str | None = None,
+) -> dict:
     """Add a retargeting list.
 
     Args:
         name: Name for the retargeting list.
-        rule: JSON string with retargeting conditions.
+        list_type: List type (e.g. "AUDIENCE_SEGMENT").
+        extra_json: Optional JSON string with additional parameters.
     """
+    args = [
+        "retargeting",
+        "add",
+        "--name",
+        name,
+        "--type",
+        list_type,
+    ]
+    if extra_json is not None:
+        args.extend(["--json", extra_json])
     runner = get_runner()
-    result = runner.run_json(
-        ["retargeting", "add", "--name", name, "--rule", rule, "--format", "json"]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
@@ -41,14 +61,4 @@ def retargeting_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated retargeting list IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["retargeting", "delete", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "retargeting", "delete", ids)

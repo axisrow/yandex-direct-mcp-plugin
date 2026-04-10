@@ -38,27 +38,51 @@ def _get_foreign_campaign_id(ids_str: str) -> str | None:
 
 @mcp.tool()
 @handle_cli_errors
-def ads_list(campaign_ids: str) -> list[dict] | dict:
-    """List ads in specified campaigns.
+def ads_list(
+    campaign_ids: str | None = None,
+    ids: str | None = None,
+    ad_group_ids: str | None = None,
+    status: str | None = None,
+) -> list[dict] | dict:
+    """List ads.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (optional, max 10).
+        ids: Comma-separated ad IDs (optional, max 10).
+        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
+        status: Filter by status (optional).
     """
-    batch_error = _check_batch_limit(campaign_ids)
-    if batch_error:
-        return batch_error.__dict__
+    if campaign_ids is not None:
+        batch_error = _check_batch_limit(campaign_ids)
+        if batch_error:
+            return batch_error.__dict__
+        foreign_id = _get_foreign_campaign_id(campaign_ids)
+        if foreign_id:
+            return ToolError(
+                error="foreign_campaign",
+                message=(
+                    f"Campaign {foreign_id} is unavailable — belongs to another account"
+                ),
+            ).__dict__
 
-    foreign_id = _get_foreign_campaign_id(campaign_ids)
-    if foreign_id:
-        return ToolError(
-            error="foreign_campaign",
-            message=f"Campaign {foreign_id} is unavailable — belongs to another account",
-        ).__dict__
+    args = ["ads", "get", "--format", "json"]
+    if campaign_ids is not None:
+        args.extend(["--campaign-ids", campaign_ids])
+    if ids is not None:
+        batch_error = _check_batch_limit(ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--ids", ids])
+    if ad_group_ids is not None:
+        batch_error = _check_batch_limit(ad_group_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--adgroup-ids", ad_group_ids])
+    if status is not None:
+        args.extend(["--status", status])
 
     runner = get_runner()
-    return runner.run_json(
-        ["ads", "get", "--campaign-ids", campaign_ids, "--format", "json"]
-    )
+    return runner.run_json(args)
 
 
 @mcp.tool()

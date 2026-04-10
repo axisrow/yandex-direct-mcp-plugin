@@ -1,45 +1,42 @@
 """MCP tools for Yandex.Direct dictionaries."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools import get_runner, handle_cli_errors
 
-ALLOWED_DICTIONARY_TYPES = (
-    "GeographyRegions",
-    "TimeZones",
+ALLOWED_DICTIONARY_NAMES = (
     "Currencies",
+    "MetroStations",
+    "GeoRegions",
+    "TimeZones",
     "Constants",
     "AdCategories",
     "OperationSystemVersions",
-    "MobileOperatingSystemVersions",
-    "DeviceTypes",
-    "AgeRanges",
-    "Genders",
+    "ProductivityAssertions",
+    "SupplySidePlatforms",
     "Interests",
 )
 
 
 @mcp.tool()
 @handle_cli_errors
-def dictionaries_get(dictionary_type: str, locale: str | None = None) -> dict:
+def dictionaries_get(names: str) -> dict:
     """Get dictionary data.
 
     Args:
-        dictionary_type: Type of dictionary to retrieve. Must be one of:
-            GeographyRegions, TimeZones, Currencies, Constants, AdCategories,
-            OperationSystemVersions, MobileOperatingSystemVersions, DeviceTypes,
-            AgeRanges, Genders, Interests
-        locale: Optional locale code (e.g., "ru", "en").
+        names: Comma-separated dictionary names to retrieve.
+            Available: Currencies, MetroStations, GeoRegions, TimeZones,
+            Constants, AdCategories, OperationSystemVersions,
+            ProductivityAssertions, SupplySidePlatforms, Interests.
     """
-    if dictionary_type not in ALLOWED_DICTIONARY_TYPES:
-        return ToolError(
-            error="invalid_type",
-            message=f"Dictionary type must be one of {ALLOWED_DICTIONARY_TYPES}. Got: '{dictionary_type}'",
-        ).__dict__
-
     runner = get_runner()
-    cmd = ["dictionaries", "get", "--type", dictionary_type, "--format", "json"]
-    if locale is not None:
-        cmd.extend(["--locale", locale])
-
-    result = runner.run_json(cmd)
+    result = runner.run_json(
+        ["dictionaries", "get", "--names", names, "--format", "json"]
+    )
     return result
+
+
+@mcp.tool()
+@handle_cli_errors
+def dictionaries_list_names() -> list[str]:
+    """List available dictionary names."""
+    return list(ALLOWED_DICTIONARY_NAMES)

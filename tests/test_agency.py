@@ -43,18 +43,18 @@ class TestAgencyClientsList:
             result = agency_clients_list()
             assert result == mock_result
 
-    def test_list_agency_clients_with_login(self):
-        """Test listing agency clients filtered by login."""
+    def test_list_agency_clients_with_ids(self):
+        """Test listing agency clients filtered by IDs."""
         mock_result = {"Clients": [{"Login": "client1", "FirstName": "John"}]}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.agency.get_runner", return_value=runner):
-            result = agency_clients_list(login="agency1")
+            result = agency_clients_list(ids="123,456")
             runner.run_json.assert_called_once()
             call_args = runner.run_json.call_args[0][0]
-            assert "--login" in call_args
-            assert "agency1" in call_args
+            assert "--ids" in call_args
+            assert "123,456" in call_args
             assert result == mock_result
 
     def test_list_empty_agency_clients(self):
@@ -78,13 +78,14 @@ class TestAgencyClientsAdd:
             "FirstName": "Alice",
             "LastName": "Johnson",
         }
-        with patch(
-            "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            client_info = '{"FirstName": "Alice", "LastName": "Johnson"}'
-            result = agency_clients_add(login="agency1", client_info=client_info)
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            client_json = '{"FirstName": "Alice", "LastName": "Johnson"}'
+            result = agency_clients_add(client_json=client_json)
             assert result == mock_result
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
     def test_add_client_with_grants(self):
         """Test adding client with specific grants."""
@@ -96,19 +97,8 @@ class TestAgencyClientsAdd:
             "server.tools.agency.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            client_info = '{"Grants": ["CampaignManagement", "ReportManagement"]}'
-            result = agency_clients_add(login="agency1", client_info=client_info)
-            assert result == mock_result
-
-    def test_add_client_minimal_info(self):
-        """Test adding client with minimal information."""
-        mock_result = {"Login": "new_client"}
-        with patch(
-            "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            client_info = "{}"
-            result = agency_clients_add(login="agency1", client_info=client_info)
+            client_json = '{"Grants": ["CampaignManagement"]}'
+            result = agency_clients_add(client_json=client_json)
             assert result == mock_result
 
 
@@ -117,25 +107,12 @@ class TestAgencyClientsDelete:
 
     def test_delete_client_from_agency(self):
         """Test removing a client from an agency."""
-        mock_result = {"Success": True, "Login": "client1"}
-        with patch(
-            "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = agency_clients_delete(login="agency1", client_login="client1")
+        mock_result = {"Success": True}
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            result = agency_clients_delete(id="123")
             assert result == mock_result
-
-    def test_delete_client_with_result(self):
-        """Test deletion with detailed result."""
-        mock_result = {
-            "Success": True,
-            "Login": "client1",
-            "AgencyLogin": "agency1",
-        }
-        with patch(
-            "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = agency_clients_delete(login="agency1", client_login="client1")
-            assert result == mock_result
-            assert result["Success"] is True
+            call_args = runner.run_json.call_args[0][0]
+            assert "--id" in call_args
+            assert "123" in call_args

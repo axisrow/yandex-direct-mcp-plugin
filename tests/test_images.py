@@ -55,13 +55,13 @@ class TestAdimagesList:
             assert len(result) == 2
             assert result[0]["Id"] == 1
 
-    def test_list_images_empty_ids(self, mock_images):
-        """Test listing all images with empty ids string."""
+    def test_list_images_no_ids(self, mock_images):
+        """Test listing all images with no ids."""
         with patch(
             "server.tools.images.get_runner",
             return_value=_mock_runner(mock_images),
         ):
-            result = adimages_list(ids="")
+            result = adimages_list()
             assert len(result) == 2
 
     def test_list_images_empty_result(self):
@@ -77,25 +77,29 @@ class TestAdimagesAdd:
     def test_add_image_success(self):
         """Test adding image successfully."""
         mock_result = {"Id": 123, "Name": "new_image.jpg"}
-        image_data = '{"Name": "new_image.jpg", "Data": "base64_encoded_image_data"}'
+        image_json = '{"Name": "new_image.jpg", "Data": "base64data"}'
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
 
-        with patch(
-            "server.tools.images.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = adimages_add(image_data=image_data)
+        with patch("server.tools.images.get_runner", return_value=runner):
+            result = adimages_add(image_json=image_json)
             assert result["Id"] == 123
-            assert result["Name"] == "new_image.jpg"
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
 
 class TestAdimagesDelete:
     """Tests for adimages_delete tool."""
 
-    def test_delete_images_success(self):
-        """Test deleting images successfully."""
+    def test_delete_image_by_hash(self):
+        """Test deleting an image by hash."""
         mock_result = {"success": True}
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
 
-        with patch(
-            "server.tools.images.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = adimages_delete(ids="1,2")
+        with patch("server.tools.images.get_runner", return_value=runner):
+            result = adimages_delete(hash_value="abc123")
             assert result["success"] is True
+            call_args = runner.run_json.call_args[0][0]
+            assert "--hash" in call_args
+            assert "abc123" in call_args

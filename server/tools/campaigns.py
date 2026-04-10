@@ -7,11 +7,20 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_list(state: str | None = None) -> list[dict] | dict:
-    """List advertising campaigns, optionally filtered by state.
+def campaigns_list(
+    state: str | None = None,
+    ids: str | None = None,
+    status: str | None = None,
+    types: str | None = None,
+) -> list[dict] | dict:
+    """List advertising campaigns, optionally filtered.
 
     Args:
-        state: Filter by campaign state ("ON" or "OFF"). If None, returns all campaigns.
+        state: Filter by campaign state ("ON" or "OFF"). If None,
+            returns all campaigns. Applied client-side.
+        ids: Comma-separated campaign IDs (optional, max 10).
+        status: Filter by status, e.g. "ACTIVE", "SUSPENDED" (optional).
+        types: Filter by types, e.g. "TEXT_CAMPAIGN" (optional).
     """
     if state is not None and state not in ("ON", "OFF"):
         return ToolError(
@@ -19,8 +28,16 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
             message=f"State must be 'ON' or 'OFF', got '{state}'",
         ).__dict__
 
+    args = ["campaigns", "get", "--format", "json"]
+    if ids is not None:
+        args.extend(["--ids", ids])
+    if status is not None:
+        args.extend(["--status", status])
+    if types is not None:
+        args.extend(["--types", types])
+
     runner = get_runner()
-    result = runner.run_json(["campaigns", "get", "--format", "json"])
+    result = runner.run_json(args)
 
     if isinstance(result, list) and state:
         result = [c for c in result if c.get("State") == state]

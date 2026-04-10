@@ -24,7 +24,7 @@ class TestLeadsList:
     """Tests for leads_list tool."""
 
     def test_leads_list_basic(self):
-        """Test listing leads without date filter."""
+        """Test listing leads with campaign IDs."""
         mock_result = {"leads": [{"id": 1, "campaign_id": 12345}]}
         with patch(
             "server.tools.leads.get_runner", return_value=_mock_runner(mock_result)
@@ -32,15 +32,13 @@ class TestLeadsList:
             result = leads_list(campaign_ids="12345")
             assert "leads" in result
 
-    def test_leads_list_with_dates(self):
-        """Test listing leads with date range filter."""
+    def test_leads_list_no_campaign_ids(self):
+        """Test listing leads without campaign IDs (all campaigns)."""
         mock_result = {"leads": [{"id": 1, "campaign_id": 12345}]}
         with patch(
             "server.tools.leads.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = leads_list(
-                campaign_ids="12345", date_from="2024-01-01", date_to="2024-01-31"
-            )
+            result = leads_list()
             assert "leads" in result
 
     def test_leads_list_batch_limit(self):
@@ -49,3 +47,13 @@ class TestLeadsList:
         result = leads_list(campaign_ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+    def test_leads_list_passes_campaign_ids(self):
+        """Verify CLI receives --campaign-ids flag."""
+        runner = MagicMock()
+        runner.run_json.return_value = {}
+        with patch("server.tools.leads.get_runner", return_value=runner):
+            leads_list(campaign_ids="123,456")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" in call_args
+            assert "123,456" in call_args

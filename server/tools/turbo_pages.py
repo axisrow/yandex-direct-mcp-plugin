@@ -6,11 +6,31 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def turbo_pages_list(ids: str) -> dict:
-    """List turbo pages by IDs.
+def turbo_pages_list(ids: str | None = None) -> dict:
+    """List turbo pages.
 
     Args:
-        ids: Comma-separated turbo page IDs.
+        ids: Comma-separated turbo page IDs (optional).
     """
+    args = ["turbopages", "get", "--format", "json"]
+    if ids is not None:
+        args.extend(["--ids", ids])
     runner = get_runner()
-    return runner.run_json(["turbopages", "get", "--ids", ids, "--format", "json"])
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def turbo_pages_add(name: str, url: str, extra_json: str | None = None) -> dict:
+    """Add a turbo page.
+
+    Args:
+        name: Page name.
+        url: Page URL.
+        extra_json: Optional JSON string with additional parameters.
+    """
+    args = ["turbopages", "add", "--name", name, "--url", url]
+    if extra_json is not None:
+        args.extend(["--json", extra_json])
+    runner = get_runner()
+    return runner.run_json(args)

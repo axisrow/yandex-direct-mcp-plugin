@@ -111,8 +111,9 @@ EXPECTED_TOOLS = {
     "smart_ad_targets_delete",
     # Businesses (1 tool)
     "businesses_list",
-    # Dictionaries (1 tool)
+    # Dictionaries (2 tools)
     "dictionaries_get",
+    "dictionaries_list_names",
     # Changes (3 tools)
     "changes_check",
     "changes_checkcamp",
@@ -136,8 +137,9 @@ EXPECTED_TOOLS = {
     "feeds_delete",
     # Creatives (1 tool)
     "creatives_list",
-    # Turbo Pages (1 tool)
+    # Turbo Pages (2 tools)
     "turbo_pages_list",
+    "turbo_pages_add",
     # Auth (3 tools)
     "auth_status",
     "auth_setup",

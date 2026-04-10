@@ -39,18 +39,18 @@ class TestClientsGet:
             result = clients_get()
             assert result == mock_result
 
-    def test_get_client_by_login(self):
-        """Test getting specific client by login."""
-        mock_result = {"Login": "client1", "FirstName": "John", "LastName": "Doe"}
+    def test_get_client_by_ids(self):
+        """Test getting specific client by IDs."""
+        mock_result = {"Clients": [{"Login": "client1", "FirstName": "John"}]}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.clients.get_runner", return_value=runner):
-            result = clients_get(login="client1")
+            result = clients_get(ids="123")
             runner.run_json.assert_called_once()
             call_args = runner.run_json.call_args[0][0]
-            assert "--login" in call_args
-            assert "client1" in call_args
+            assert "--ids" in call_args
+            assert "123" in call_args
             assert result == mock_result
 
     def test_get_empty_clients(self):
@@ -69,33 +69,32 @@ class TestClientsUpdate:
 
     def test_update_client(self):
         """Test updating client information."""
-        mock_result = {"Login": "client1", "FirstName": "John", "LastName": "Smith"}
-        with patch(
-            "server.tools.clients.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            fields = '{"FirstName": "John", "LastName": "Smith"}'
-            result = clients_update(login="client1", fields=fields)
+        mock_result = {
+            "Login": "client1",
+            "FirstName": "John",
+            "LastName": "Smith",
+        }
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            extra_json = '{"FirstName": "John", "LastName": "Smith"}'
+            result = clients_update(client_id="123", extra_json=extra_json)
             assert result == mock_result
+            call_args = runner.run_json.call_args[0][0]
+            assert "--client-id" in call_args
+            assert "123" in call_args
+            assert "--json" in call_args
 
     def test_update_client_with_grants(self):
         """Test updating client with grants."""
-        mock_result = {"Login": "client1", "Grants": ["CampaignManagement"]}
+        mock_result = {
+            "Login": "client1",
+            "Grants": ["CampaignManagement"],
+        }
         with patch(
             "server.tools.clients.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            fields = '{"Grants": ["CampaignManagement"]}'
-            result = clients_update(login="client1", fields=fields)
-            assert result == mock_result
-
-    def test_update_client_empty_fields(self):
-        """Test updating with empty fields JSON."""
-        mock_result = {"Login": "client1"}
-        with patch(
-            "server.tools.clients.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            fields = "{}"
-            result = clients_update(login="client1", fields=fields)
+            extra_json = '{"Grants": ["CampaignManagement"]}'
+            result = clients_update(client_id="123", extra_json=extra_json)
             assert result == mock_result

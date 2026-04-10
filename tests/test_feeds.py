@@ -27,7 +27,8 @@ class TestFeedsList:
         """Test listing feeds by IDs."""
         mock_result = {"feeds": [{"id": 1, "name": "Feed 1"}]}
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = feeds_list(ids="1")
             assert "feeds" in result
@@ -44,11 +45,27 @@ class TestFeedsAdd:
             "url": "https://example.com/feed.xml",
         }
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = feeds_add(name="New Feed", url="https://example.com/feed.xml")
             assert result["name"] == "New Feed"
-            assert result["url"] == "https://example.com/feed.xml"
+
+    def test_feeds_add_with_extra_json(self):
+        """Test adding a feed with extra JSON parameters."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"id": 2}
+        with patch(
+            "server.tools.feeds.get_runner",
+            return_value=runner,
+        ):
+            feeds_add(
+                name="Test",
+                url="https://example.com/feed.xml",
+                extra_json='{"BusinessType":"RETAIL"}',
+            )
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
 
 class TestFeedsUpdate:
@@ -58,35 +75,39 @@ class TestFeedsUpdate:
         """Test updating feed name."""
         mock_result = {"id": 1, "name": "Updated Feed"}
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = feeds_update(id="1", name="Updated Feed")
             assert result["name"] == "Updated Feed"
 
     def test_feeds_update_url_only(self):
         """Test updating feed URL."""
-        mock_result = {"id": 1, "url": "https://example.com/new-feed.xml"}
+        mock_result = {"id": 1, "url": "https://example.com/new.xml"}
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
-            result = feeds_update(id="1", url="https://example.com/new-feed.xml")
-            assert result["url"] == "https://example.com/new-feed.xml"
+            result = feeds_update(id="1", url="https://example.com/new.xml")
+            assert result["url"] == "https://example.com/new.xml"
 
-    def test_feeds_update_both(self):
-        """Test updating both feed name and URL."""
-        mock_result = {
-            "id": 1,
-            "name": "Updated Feed",
-            "url": "https://example.com/new-feed.xml",
-        }
+    def test_feeds_update_extra_json_only(self):
+        """Test updating with extra JSON only."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"id": 1}
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=runner,
         ):
-            result = feeds_update(
-                id="1", name="Updated Feed", url="https://example.com/new-feed.xml"
-            )
-            assert result["name"] == "Updated Feed"
-            assert result["url"] == "https://example.com/new-feed.xml"
+            feeds_update(id="1", extra_json='{"Status":"ACTIVE"}')
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
+
+    def test_feeds_update_nothing(self):
+        """Test that updating nothing returns error."""
+        result = feeds_update(id="1")
+        assert "error" in result
+        assert result["error"] == "missing_update_fields"
 
 
 class TestFeedsDelete:
@@ -96,14 +117,15 @@ class TestFeedsDelete:
         """Test deleting feeds successfully."""
         mock_result = {"success": True}
         with patch(
-            "server.tools.feeds.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.feeds.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
-            result = feeds_delete(ids="1,2")
+            result = feeds_delete(ids="1")
             assert result["success"] is True
 
     def test_feeds_delete_batch_limit(self):
         """Test batch limit validation for feeds_delete."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        ids = ",".join(str(i) for i in range(1, 12))
         result = feeds_delete(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"

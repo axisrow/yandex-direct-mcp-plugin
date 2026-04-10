@@ -6,16 +6,16 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def agency_clients_list(login: str | None = None) -> list[dict] | dict:
+def agency_clients_list(ids: str | None = None) -> list[dict] | dict:
     """List agency clients.
 
     Args:
-        login: Optional agency login to filter by.
+        ids: Comma-separated client IDs to filter by (optional).
     """
     runner = get_runner()
     cmd = ["agencyclients", "get", "--format", "json"]
-    if login is not None:
-        cmd.extend(["--login", login])
+    if ids is not None:
+        cmd.extend(["--ids", ids])
 
     result = runner.run_json(cmd)
     return result
@@ -23,49 +23,28 @@ def agency_clients_list(login: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def agency_clients_add(login: str, client_info: str) -> dict:
+def agency_clients_add(client_json: str) -> dict:
     """Add a client to an agency.
 
     Args:
-        login: Agency login.
-        client_info: JSON string containing client information.
+        client_json: JSON string containing client information.
     """
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "agencyclients",
-            "add",
-            "--login",
-            login,
-            "--client-info",
-            client_info,
-            "--format",
-            "json",
-        ]
-    )
+    result = runner.run_json(["agencyclients", "add", "--json", client_json])
     return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def agency_clients_delete(login: str, client_login: str) -> dict:
+def agency_clients_delete(id: str) -> dict:
     """Remove a client from an agency.
 
+    Note: The Yandex Direct API does not actually support deleting
+    agency clients. This tool is kept for completeness.
+
     Args:
-        login: Agency login.
-        client_login: Client login to remove.
+        id: Client ID to remove.
     """
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "agencyclients",
-            "delete",
-            "--login",
-            login,
-            "--client-login",
-            client_login,
-            "--format",
-            "json",
-        ]
-    )
+    result = runner.run_json(["agencyclients", "delete", "--id", id])
     return result

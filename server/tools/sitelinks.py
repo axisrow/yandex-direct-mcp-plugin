@@ -2,39 +2,39 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_list(ids: str) -> list[dict] | dict:
+def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
     """List sitelinks sets.
 
     Args:
-        ids: Comma-separated sitelinks set IDs (max 10).
+        ids: Comma-separated sitelinks set IDs (optional, max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
+    cmd = ["sitelinks", "get", "--format", "json"]
+    if ids is not None:
+        batch_error = check_batch_limit(ids)
+        if batch_error:
+            return batch_error.__dict__
+        cmd.extend(["--ids", ids])
     runner = get_runner()
-    result = runner.run_json(["sitelinks", "get", "--ids", ids, "--format", "json"])
+    result = runner.run_json(cmd)
     return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_add(sitelinks_data: str) -> dict:
+def sitelinks_add(links: str) -> dict:
     """Add a sitelinks set.
 
     Args:
-        sitelinks_data: JSON string describing the sitelinks set.
+        links: JSON array of sitelink objects.
+            Example: '[{"Title":"About","Href":"https://example.com/about"}]'
     """
     runner = get_runner()
-    result = runner.run_json(
-        ["sitelinks", "add", "--data", sitelinks_data, "--format", "json"]
-    )
+    result = runner.run_json(["sitelinks", "add", "--links", links])
     return result
 
 
@@ -46,12 +46,4 @@ def sitelinks_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated sitelinks set IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["sitelinks", "delete", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "sitelinks", "delete", ids)

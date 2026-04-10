@@ -1,4 +1,9 @@
-"""MCP tools for smart target management."""
+"""MCP tools for smart target management.
+
+NOTE: The direct-cli does not expose a ``smarttargets`` subcommand.
+The CLI provides ``smartadtargets`` (see smart_ad_targets.py) instead.
+These tools are kept as placeholders until the CLI adds a matching command.
+"""
 
 import json
 

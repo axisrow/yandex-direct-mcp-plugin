@@ -1,4 +1,9 @@
-"""MCP tools for dynamic target management."""
+"""MCP tools for dynamic target management.
+
+NOTE: The direct-cli does not expose a ``dynamictargets`` subcommand.
+The CLI provides ``dynamicads`` (see dynamic_ads.py) instead.
+These tools are kept as placeholders until the CLI adds a matching command.
+"""
 
 import json
 

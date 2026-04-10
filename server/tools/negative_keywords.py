@@ -1,4 +1,10 @@
-"""MCP tools for negative keyword management."""
+"""MCP tools for negative keyword management.
+
+NOTE: The direct-cli does not expose a ``negativekeywords`` subcommand.
+The CLI only provides ``negativekeywordsharedsets`` (see
+negative_keyword_shared_sets.py).  These tools are kept as placeholders
+until the CLI adds support for campaign-level negative keywords.
+"""
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors

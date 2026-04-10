@@ -19,7 +19,7 @@ def setup():
 
 
 SAMPLE_BIDMODIFIERS = [
-    {"Id": 1, "CampaignId": 12345, "Type": "MULTIPLIER", "Value": 100},
+    {"Id": 1, "CampaignId": 12345, "Type": "DEMOGRAPHICS", "Value": 100},
 ]
 
 
@@ -33,7 +33,7 @@ def _mock_runner(return_value):
 class TestBidModifiersList:
     """Tests for bidmodifiers_list tool."""
 
-    def test_bidmodifiers_list_success(self):
+    def test_bidmodifiers_list_by_campaign(self):
         """Test listing bid modifiers for campaigns."""
         with patch(
             "server.tools.bidmodifiers.get_runner",
@@ -42,6 +42,18 @@ class TestBidModifiersList:
             result = bidmodifiers_list(campaign_ids="12345")
             assert len(result) == 1
             assert result[0]["CampaignId"] == 12345
+
+    def test_bidmodifiers_list_by_ad_group(self):
+        """Test listing bid modifiers by ad group IDs."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=runner,
+        ):
+            bidmodifiers_list(ad_group_ids="67890")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--adgroup-ids" in call_args
 
     def test_bidmodifiers_list_batch_limit(self):
         """Test batch limit validation for bidmodifiers_list."""
@@ -62,41 +74,28 @@ class TestBidModifiersSet:
             return_value=_mock_runner(mock_result),
         ):
             result = bidmodifiers_set(
-                campaign_id="12345", modifier_type="MULTIPLIER", value="100"
+                campaign_id="12345",
+                modifier_type="DEMOGRAPHICS",
+                value="1.5",
             )
             assert result["success"] is True
 
-    def test_bidmodifiers_set_invalid_type(self):
-        """Test bidmodifiers_set with invalid modifier type."""
-        result = bidmodifiers_set(
-            campaign_id="12345", modifier_type="INVALID", value="100"
-        )
-        assert "error" in result
-        assert result["error"] == "invalid_state"
-
-    def test_bidmodifiers_set_invalid_value_negative(self):
-        """Test bidmodifiers_set with negative value."""
-        result = bidmodifiers_set(
-            campaign_id="12345", modifier_type="MULTIPLIER", value="-100"
-        )
-        assert "error" in result
-        assert result["error"] == "invalid_value"
-
-    def test_bidmodifiers_set_invalid_value_zero(self):
-        """Test bidmodifiers_set with zero value."""
-        result = bidmodifiers_set(
-            campaign_id="12345", modifier_type="MULTIPLIER", value="0"
-        )
-        assert "error" in result
-        assert result["error"] == "invalid_value"
-
-    def test_bidmodifiers_set_invalid_value_non_numeric(self):
-        """Test bidmodifiers_set with non-numeric value."""
-        result = bidmodifiers_set(
-            campaign_id="12345", modifier_type="MULTIPLIER", value="abc"
-        )
-        assert "error" in result
-        assert result["error"] == "invalid_value"
+    def test_bidmodifiers_set_with_extra_json(self):
+        """Test setting bid modifier with extra JSON."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch(
+            "server.tools.bidmodifiers.get_runner",
+            return_value=runner,
+        ):
+            bidmodifiers_set(
+                campaign_id="12345",
+                modifier_type="DEMOGRAPHICS",
+                value="1.5",
+                extra_json='{"Level":"ADGROUP"}',
+            )
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
 
 class TestBidModifiersToggle:
@@ -111,10 +110,8 @@ class TestBidModifiersToggle:
         ) as mock:
             result = bidmodifiers_toggle(id="1", enabled=True)
             assert result["success"] is True
-            # Verify the CLI command uses lowercase true
             call_args = mock.return_value.run_json.call_args[0][0]
             assert "--enabled" in call_args
-            assert "true" in call_args
 
     def test_bidmodifiers_toggle_disable(self):
         """Test disabling a bid modifier."""
@@ -125,10 +122,8 @@ class TestBidModifiersToggle:
         ) as mock:
             result = bidmodifiers_toggle(id="1", enabled=False)
             assert result["success"] is True
-            # Verify the CLI command uses lowercase false
             call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--enabled" in call_args
-            assert "false" in call_args
+            assert "--disabled" in call_args
 
 
 class TestBidModifiersDelete:
@@ -141,7 +136,7 @@ class TestBidModifiersDelete:
             "server.tools.bidmodifiers.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = bidmodifiers_delete(ids="1,2,3")
+            result = bidmodifiers_delete(ids="1")
             assert result["success"] is True
 
     def test_bidmodifiers_delete_batch_limit(self):

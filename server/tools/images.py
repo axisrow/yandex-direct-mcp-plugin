@@ -6,46 +6,41 @@ from server.tools import get_runner, handle_cli_errors
 
 @mcp.tool()
 @handle_cli_errors
-def adimages_list(ids: str) -> list[dict] | dict:
+def adimages_list(ids: str | None = None) -> list[dict] | dict:
     """List ad images.
 
     Args:
-        ids: Comma-separated image IDs (empty string for all images).
+        ids: Comma-separated image IDs (optional, empty for all images).
     """
     runner = get_runner()
-    result = runner.run_json(["adimages", "get", "--ids", ids, "--format", "json"])
+    cmd = ["adimages", "get", "--format", "json"]
+    if ids is not None:
+        cmd.extend(["--ids", ids])
+    result = runner.run_json(cmd)
     return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def adimages_add(image_data: str) -> dict:
+def adimages_add(image_json: str) -> dict:
     """Add an ad image.
 
     Args:
-        image_data: JSON string with image data (base64 encoded).
+        image_json: JSON string with image data (e.g. base64-encoded).
     """
     runner = get_runner()
-    result = runner.run_json(
-        ["adimages", "add", "--data", image_data, "--format", "json"]
-    )
+    result = runner.run_json(["adimages", "add", "--json", image_json])
     return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def adimages_delete(ids: str) -> dict:
-    """Delete ad images.
+def adimages_delete(hash_value: str) -> dict:
+    """Delete an ad image by its hash.
 
     Args:
-        ids: Comma-separated image IDs (max 10).
+        hash_value: Ad image hash to delete.
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
     runner = get_runner()
-    result = runner.run_json(["adimages", "delete", "--ids", ids, "--format", "json"])
+    result = runner.run_json(["adimages", "delete", "--hash", hash_value])
     return result
