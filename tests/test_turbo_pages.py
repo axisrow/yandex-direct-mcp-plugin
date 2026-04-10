@@ -43,6 +43,17 @@ class TestTurboPagesList:
             result = turbo_pages_list()
             assert "turboPages" in result
 
+    def test_turbo_pages_list_trims_ids(self):
+        """Test turbo page IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"turboPages": []}
+        with patch("server.tools.turbo_pages.get_runner", return_value=runner):
+            turbo_pages_list(ids=" 1 ")
+
+        runner.run_json.assert_called_once_with(
+            ["turbopages", "get", "--format", "json", "--ids", "1"]
+        )
+
 
 class TestTurboPagesAdd:
     """Tests for turbo_pages_add tool."""

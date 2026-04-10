@@ -13,8 +13,9 @@ def turbo_pages_list(ids: str | None = None) -> dict:
         ids: Comma-separated turbo page IDs (optional).
     """
     args = ["turbopages", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        args.extend(["--ids", ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
     runner = get_runner()
     return runner.run_json(args)
 

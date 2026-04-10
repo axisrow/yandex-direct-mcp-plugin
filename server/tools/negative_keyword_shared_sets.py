@@ -13,8 +13,9 @@ def negative_keyword_shared_sets_list(ids: str | None = None) -> list[dict] | di
         ids: Comma-separated set IDs (optional).
     """
     args = ["negativekeywordsharedsets", "get", "--format", "json"]
-    if ids:
-        args.extend(["--ids", ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
     runner = get_runner()
     return runner.run_json(args)
 

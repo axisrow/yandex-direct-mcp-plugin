@@ -17,10 +17,12 @@ def retargeting_list(
         types: Comma-separated types to filter by (optional).
     """
     args = ["retargeting", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        args.extend(["--ids", ids])
-    if types is not None and types.strip():
-        args.extend(["--types", types])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
+    normalized_types = types.strip() if types is not None else None
+    if normalized_types:
+        args.extend(["--types", normalized_types])
     runner = get_runner()
     return runner.run_json(args)
 

@@ -14,8 +14,9 @@ def clients_get(ids: str | None = None) -> dict:
     """
     runner = get_runner()
     cmd = ["clients", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        cmd.extend(["--ids", ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        cmd.extend(["--ids", normalized_ids])
 
     result = runner.run_json(cmd)
     return result

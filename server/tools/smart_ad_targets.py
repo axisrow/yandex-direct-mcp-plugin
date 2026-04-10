@@ -12,9 +12,22 @@ def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
     Args:
         ad_group_ids: Comma-separated ad group IDs.
     """
+    normalized_ad_group_ids = ad_group_ids.strip()
+    if not normalized_ad_group_ids:
+        return ToolError(
+            error="missing_ad_group_ids",
+            message="Provide at least one ad group ID.",
+        ).__dict__
     runner = get_runner()
     return runner.run_json(
-        ["smartadtargets", "get", "--adgroup-ids", ad_group_ids, "--format", "json"]
+        [
+            "smartadtargets",
+            "get",
+            "--adgroup-ids",
+            normalized_ad_group_ids,
+            "--format",
+            "json",
+        ]
     )
 
 

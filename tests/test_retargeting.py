@@ -78,6 +78,26 @@ class TestRetargetingList:
             call_args = runner.run_json.call_args[0][0]
             assert "--types" in call_args
 
+    def test_list_retargeting_trims_filters(self):
+        """Test retargeting filters are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
+            retargeting_list(ids=" 201,202 ", types=" REMARKETING ")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "retargeting",
+                "get",
+                "--format",
+                "json",
+                "--ids",
+                "201,202",
+                "--types",
+                "REMARKETING",
+            ]
+        )
+
     def test_list_retargeting_auth_error(self):
         """Test auth error during retargeting list."""
         runner = MagicMock()

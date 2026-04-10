@@ -47,6 +47,26 @@ def test_nkss_list_with_ids():
         assert len(result) == 1
 
 
+def test_nkss_list_trims_ids():
+    runner = _mock_runner(SAMPLE_SETS)
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=runner,
+    ):
+        negative_keyword_shared_sets_list(ids=" 100 ")
+
+    runner.run_json.assert_called_once_with(
+        [
+            "negativekeywordsharedsets",
+            "get",
+            "--format",
+            "json",
+            "--ids",
+            "100",
+        ]
+    )
+
+
 def test_nkss_list_empty():
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",

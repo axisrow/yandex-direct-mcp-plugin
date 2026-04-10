@@ -14,9 +14,11 @@ def creatives_list(ids: str | None = None, campaign_ids: str | None = None) -> d
         campaign_ids: Comma-separated campaign IDs (optional).
     """
     args = ["creatives", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        args.extend(["--ids", ids])
-    if campaign_ids is not None and campaign_ids.strip():
-        args.extend(["--campaign-ids", campaign_ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
+    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    if normalized_campaign_ids:
+        args.extend(["--campaign-ids", normalized_campaign_ids])
     runner = get_runner()
     return runner.run_json(args)

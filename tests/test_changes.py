@@ -85,6 +85,28 @@ class TestChangesCheckCamp:
             )
             assert result == mock_result
 
+    def test_check_campaign_changes_trims_ids(self):
+        """Test campaign IDs are normalized before argv construction."""
+        runner = _mock_runner({"Campaigns": []})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            changes_checkcamp(
+                campaign_ids=" 12345,67890 ",
+                timestamp="2026-01-01T00:00:00Z",
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "changes",
+                "check-camp",
+                "--campaign-ids",
+                "12345,67890",
+                "--timestamp",
+                "2026-01-01T00:00:00Z",
+                "--format",
+                "json",
+            ]
+        )
+
     def test_check_campaign_changes_batch_limit(self):
         """Test batch limit validation."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
@@ -104,6 +126,11 @@ class TestChangesCheckCamp:
                 campaign_ids=ids, timestamp="2026-01-01T00:00:00Z"
             )
             assert result == mock_result
+
+    def test_check_campaign_changes_requires_ids(self):
+        """Test blank campaign IDs are rejected."""
+        result = changes_checkcamp(campaign_ids="   ", timestamp="2026-01-01T00:00:00Z")
+        assert result["error"] == "missing_campaign_ids"
 
 
 class TestChangesCheckDict:

@@ -53,6 +53,18 @@ class TestClientsGet:
             assert "123" in call_args
             assert result == mock_result
 
+    def test_get_client_trims_ids(self):
+        """Test client IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Clients": []}
+
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            clients_get(ids=" 123 ")
+
+        runner.run_json.assert_called_once_with(
+            ["clients", "get", "--format", "json", "--ids", "123"]
+        )
+
     def test_get_empty_clients(self):
         """Test with no clients."""
         mock_result = {"Clients": []}

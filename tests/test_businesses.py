@@ -44,6 +44,17 @@ def test_businesses_list_with_ids():
         assert len(result) == 1
 
 
+def test_businesses_list_trims_ids():
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_BUSINESSES
+    with patch("server.tools.businesses.get_runner", return_value=runner):
+        businesses_list(ids=" 100 ")
+
+    runner.run_json.assert_called_once_with(
+        ["businesses", "get", "--format", "json", "--ids", "100"]
+    )
+
+
 def test_businesses_list_empty():
     with patch(
         "server.tools.businesses.get_runner",

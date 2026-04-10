@@ -1,7 +1,7 @@
 """MCP tools for checking changes in Yandex.Direct."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool()
@@ -30,7 +30,13 @@ def changes_checkcamp(campaign_ids: str, timestamp: str) -> dict:
     """
     from server.tools.helpers import check_batch_limit
 
-    batch_error = check_batch_limit(campaign_ids)
+    normalized_campaign_ids = campaign_ids.strip()
+    if not normalized_campaign_ids:
+        return ToolError(
+            error="missing_campaign_ids",
+            message="Provide at least one campaign ID.",
+        ).__dict__
+    batch_error = check_batch_limit(normalized_campaign_ids)
     if batch_error:
         return batch_error.__dict__
 
@@ -40,7 +46,7 @@ def changes_checkcamp(campaign_ids: str, timestamp: str) -> dict:
             "changes",
             "check-camp",
             "--campaign-ids",
-            campaign_ids,
+            normalized_campaign_ids,
             "--timestamp",
             timestamp,
             "--format",
