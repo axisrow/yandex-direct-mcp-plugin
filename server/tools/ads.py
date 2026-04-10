@@ -68,7 +68,7 @@ def ads_list(
     args = ["ads", "get", "--format", "json"]
     if campaign_ids is not None:
         args.extend(["--campaign-ids", campaign_ids])
-    if ids is not None:
+    if ids is not None and ids.strip():
         batch_error = _check_batch_limit(ids)
         if batch_error:
             return batch_error.__dict__

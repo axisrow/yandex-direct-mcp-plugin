@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
-from server.tools.helpers import run_single_id_batch
+from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool()
@@ -17,9 +17,12 @@ def adextensions_list(
         types: Comma-separated extension types to filter (optional).
     """
     cmd = ["adextensions", "get", "--format", "json"]
-    if ids is not None:
+    if ids is not None and ids.strip():
+        batch_error = check_batch_limit(ids)
+        if batch_error:
+            return batch_error.__dict__
         cmd.extend(["--ids", ids])
-    if types is not None:
+    if types is not None and types.strip():
         cmd.extend(["--types", types])
     runner = get_runner()
     result = runner.run_json(cmd)

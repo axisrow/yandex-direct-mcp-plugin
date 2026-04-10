@@ -20,13 +20,13 @@ def negative_keywords_list(ids: str | None = None) -> list[dict] | dict:
     Args:
         ids: Comma-separated set IDs (optional, max 10).
     """
-    if ids is not None:
+    if ids is not None and ids.strip():
         batch_error = check_batch_limit(ids)
         if batch_error:
             return batch_error.__dict__
 
     args = ["negativekeywords", "get", "--format", "json"]
-    if ids:
+    if ids is not None and ids.strip():
         args.extend(["--ids", ids])
     runner = get_runner()
     return runner.run_json(args)

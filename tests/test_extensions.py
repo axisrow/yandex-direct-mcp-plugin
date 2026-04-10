@@ -64,6 +64,19 @@ class TestAdextensionsList:
             result = adextensions_list()
             assert len(result) == 2
 
+    def test_list_extensions_empty_ids_treated_as_missing_filter(self, mock_extensions):
+        """Test empty ids behaves like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_extensions
+        with patch(
+            "server.tools.adextensions.get_runner",
+            return_value=runner,
+        ):
+            result = adextensions_list(ids="   ")
+            assert len(result) == 2
+            call_args = runner.run_json.call_args[0][0]
+            assert "--ids" not in call_args
+
     def test_list_extensions_with_types(self):
         """Test listing extensions filtered by types."""
         runner = MagicMock()
@@ -136,3 +149,12 @@ class TestAdextensionsDelete:
         ):
             result = adextensions_delete(ids="1")
             assert result["success"] is True
+
+    def test_delete_extensions_rejects_empty_ids(self):
+        """Test deleting extensions rejects empty ids."""
+        with patch(
+            "server.tools.adextensions.get_runner",
+            return_value=_mock_runner({"success": True}),
+        ):
+            result = adextensions_delete(ids="   ")
+            assert result["error"] == "missing_ids"

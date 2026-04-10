@@ -14,7 +14,7 @@ def adimages_list(ids: str | None = None) -> list[dict] | dict:
     """
     runner = get_runner()
     cmd = ["adimages", "get", "--format", "json"]
-    if ids is not None:
+    if ids is not None and ids.strip():
         cmd.extend(["--ids", ids])
     result = runner.run_json(cmd)
     return result

@@ -69,6 +69,12 @@ class TestCampaignsList:
             result = campaigns_list()
             assert result == []
 
+    def test_list_campaigns_batch_limit(self):
+        """Test batch limit validation for campaign IDs."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = campaigns_list(ids=ids)
+        assert result["error"] == "batch_limit"
+
 
 class TestCampaignsUpdate:
     """Test scenarios 9-10."""

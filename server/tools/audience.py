@@ -30,7 +30,7 @@ def audience_targets_list(
         if batch_error:
             return batch_error.__dict__
         args.extend(["--adgroup-ids", ad_group_ids])
-    if ids is not None:
+    if ids is not None and ids.strip():
         batch_error = check_batch_limit(ids)
         if batch_error:
             return batch_error.__dict__

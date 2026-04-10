@@ -102,3 +102,15 @@ class TestBidsSet:
             )
             call_args = runner.run_json.call_args[0][0]
             assert "--json" in call_args
+
+    def test_bids_set_requires_update_fields(self):
+        """Test setting bid rejects empty updates before CLI call."""
+        runner = MagicMock()
+        with patch(
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            result = bids_set(campaign_id="12345")
+
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()

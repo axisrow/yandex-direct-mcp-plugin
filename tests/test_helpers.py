@@ -4,6 +4,7 @@ from server.tools import ToolError
 from server.tools.helpers import (
     check_batch_limit,
     parse_ids,
+    run_single_id_batch,
     validate_positive_int,
     validate_state,
 )
@@ -58,6 +59,18 @@ def test_check_batch_limit_custom_size():
 
 def test_check_batch_limit_empty():
     assert check_batch_limit("") is None
+
+
+def test_run_single_id_batch_rejects_empty_ids():
+    runner = object()
+    result = run_single_id_batch(runner, "vcards", "delete", "")
+    assert result["error"] == "missing_ids"
+
+
+def test_run_single_id_batch_rejects_whitespace_ids():
+    runner = object()
+    result = run_single_id_batch(runner, "vcards", "delete", "   ")
+    assert result["error"] == "missing_ids"
 
 
 # --- validate_state ---

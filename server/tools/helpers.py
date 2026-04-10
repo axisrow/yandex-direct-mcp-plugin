@@ -52,6 +52,11 @@ def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dic
         return batch_error.__dict__
 
     ids = parse_ids(ids_str)
+    if not ids:
+        return ToolError(
+            error="missing_ids",
+            message=f"Provide at least one {resource} ID.",
+        ).__dict__
     results = [runner.run_json([resource, action, "--id", item_id]) for item_id in ids]
     if len(results) == 1:
         return results[0]

@@ -1,7 +1,7 @@
 """MCP tools for bid management."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
@@ -55,6 +55,12 @@ def bids_set(
             micro-units). E.g. "15" for 15 RUB.
         extra_json: Optional JSON string with additional parameters.
     """
+    if bid is None and extra_json is None:
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: bid, extra_json",
+        ).__dict__
+
     args = ["bids", "set", "--campaign-id", campaign_id]
     if bid is not None:
         args.extend(["--bid", bid])

@@ -34,7 +34,7 @@ def adgroups_list(
         if batch_error:
             return batch_error.__dict__
         args.extend(["--campaign-ids", campaign_ids])
-    if ids is not None:
+    if ids is not None and ids.strip():
         batch_error = _check_batch_limit(ids)
         if batch_error:
             return batch_error.__dict__

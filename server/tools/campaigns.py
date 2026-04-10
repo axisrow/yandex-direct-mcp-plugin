@@ -3,6 +3,7 @@
 from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import check_batch_limit
 
 
 @mcp.tool()
@@ -29,7 +30,10 @@ def campaigns_list(
         ).__dict__
 
     args = ["campaigns", "get", "--format", "json"]
-    if ids is not None:
+    if ids is not None and ids.strip():
+        batch_error = check_batch_limit(ids)
+        if batch_error:
+            return batch_error.__dict__
         args.extend(["--ids", ids])
     if status is not None:
         args.extend(["--status", status])

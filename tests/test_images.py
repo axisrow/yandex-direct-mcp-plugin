@@ -64,6 +64,16 @@ class TestAdimagesList:
             result = adimages_list()
             assert len(result) == 2
 
+    def test_list_images_empty_ids_treated_as_missing_filter(self, mock_images):
+        """Test empty ids behaves like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_images
+        with patch("server.tools.images.get_runner", return_value=runner):
+            result = adimages_list(ids="   ")
+            assert len(result) == 2
+            call_args = runner.run_json.call_args[0][0]
+            assert "--ids" not in call_args
+
     def test_list_images_empty_result(self):
         """Test empty response returns empty list."""
         with patch("server.tools.images.get_runner", return_value=_mock_runner([])):

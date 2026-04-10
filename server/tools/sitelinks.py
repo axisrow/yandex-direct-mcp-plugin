@@ -14,7 +14,7 @@ def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
         ids: Comma-separated sitelinks set IDs (optional, max 10).
     """
     cmd = ["sitelinks", "get", "--format", "json"]
-    if ids is not None:
+    if ids is not None and ids.strip():
         batch_error = check_batch_limit(ids)
         if batch_error:
             return batch_error.__dict__
