@@ -30,19 +30,28 @@ def _mock_runner(return_value):
 
 
 def test_nkss_list():
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner(SAMPLE_SETS)):
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner(SAMPLE_SETS),
+    ):
         result = negative_keyword_shared_sets_list()
         assert len(result) == 1
 
 
 def test_nkss_list_with_ids():
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner(SAMPLE_SETS)):
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner(SAMPLE_SETS),
+    ):
         result = negative_keyword_shared_sets_list(ids="100")
         assert len(result) == 1
 
 
 def test_nkss_list_empty():
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner([])):
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner([]),
+    ):
         result = negative_keyword_shared_sets_list()
         assert result == []
 

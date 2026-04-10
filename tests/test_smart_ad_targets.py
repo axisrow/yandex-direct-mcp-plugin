@@ -19,7 +19,13 @@ def setup():
 
 
 SAMPLE_TARGETS = [
-    {"Id": 100, "CampaignId": 300, "AdGroupId": 200, "Status": "ACCEPTED", "ServingStatus": "ELIGIBLE"},
+    {
+        "Id": 100,
+        "CampaignId": 300,
+        "AdGroupId": 200,
+        "Status": "ACCEPTED",
+        "ServingStatus": "ELIGIBLE",
+    },
 ]
 
 
@@ -30,13 +36,18 @@ def _mock_runner(return_value):
 
 
 def test_smart_ad_targets_list():
-    with patch("server.tools.smart_ad_targets.get_runner", return_value=_mock_runner(SAMPLE_TARGETS)):
+    with patch(
+        "server.tools.smart_ad_targets.get_runner",
+        return_value=_mock_runner(SAMPLE_TARGETS),
+    ):
         result = smart_ad_targets_list(ad_group_ids="200")
         assert len(result) == 1
 
 
 def test_smart_ad_targets_list_empty():
-    with patch("server.tools.smart_ad_targets.get_runner", return_value=_mock_runner([])):
+    with patch(
+        "server.tools.smart_ad_targets.get_runner", return_value=_mock_runner([])
+    ):
         result = smart_ad_targets_list(ad_group_ids="200")
         assert result == []
 
