@@ -1,5 +1,7 @@
 """MCP tools for ad group management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
@@ -57,7 +59,7 @@ def adgroups_add(
     name: str,
     region_ids: str | None = None,
     type: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Create a new ad group.
 
@@ -81,7 +83,10 @@ def adgroups_add(
     if region_ids is not None:
         args.extend(["--region-ids", region_ids])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -92,7 +97,7 @@ def adgroups_update(
     id: str,
     name: str | None = None,
     status: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Update an ad group.
 
@@ -114,7 +119,10 @@ def adgroups_update(
     if status is not None:
         args.extend(["--status", status])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

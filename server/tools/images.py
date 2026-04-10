@@ -1,5 +1,7 @@
 """MCP tools for ad images management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
@@ -23,14 +25,15 @@ def adimages_list(ids: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def adimages_add(image_json: str) -> dict:
+def adimages_add(image_json: str | dict) -> dict:
     """Add an ad image.
 
     Args:
         image_json: JSON string with image data (e.g. base64-encoded).
     """
     runner = get_runner()
-    result = runner.run_json(["adimages", "add", "--json", image_json])
+    json_str = json.dumps(image_json) if isinstance(image_json, dict) else image_json
+    result = runner.run_json(["adimages", "add", "--json", json_str])
     return result
 
 

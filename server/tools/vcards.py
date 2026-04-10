@@ -1,5 +1,7 @@
 """MCP tools for vCard management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
@@ -27,14 +29,15 @@ def vcards_list(ids: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def vcards_add(vcard_json: str) -> dict:
+def vcards_add(vcard_json: str | dict) -> dict:
     """Add a vCard.
 
     Args:
         vcard_json: JSON string describing the vCard.
     """
     runner = get_runner()
-    result = runner.run_json(["vcards", "add", "--json", vcard_json])
+    json_str = json.dumps(vcard_json) if isinstance(vcard_json, dict) else vcard_json
+    result = runner.run_json(["vcards", "add", "--json", json_str])
     return result
 
 

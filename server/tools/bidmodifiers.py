@@ -1,5 +1,7 @@
 """MCP tools for bid modifier management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
@@ -41,7 +43,7 @@ def bidmodifiers_set(
     campaign_id: str,
     modifier_type: str,
     value: str,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Set bid modifier for a campaign.
 
@@ -62,7 +64,10 @@ def bidmodifiers_set(
         value,
     ]
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

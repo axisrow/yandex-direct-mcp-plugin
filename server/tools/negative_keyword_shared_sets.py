@@ -1,5 +1,7 @@
 """MCP tools for negative keyword shared sets management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -48,7 +50,7 @@ def negative_keyword_shared_sets_update(
     id: str,
     name: str | None = None,
     keywords: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Update a negative keyword shared set.
 
@@ -70,7 +72,10 @@ def negative_keyword_shared_sets_update(
     if keywords is not None:
         args.extend(["--keywords", keywords])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
