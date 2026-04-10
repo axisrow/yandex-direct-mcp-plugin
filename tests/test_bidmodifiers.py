@@ -108,6 +108,30 @@ class TestBidModifiersSet:
             call_args = runner.run_json.call_args[0][0]
             assert "--json" in call_args
 
+    def test_bidmodifiers_set_argv_composition(self):
+        """Test set passes correct argv to CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            bidmodifiers_set(
+                campaign_id="12345",
+                modifier_type="MOBILE",
+                value="1.2",
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "bidmodifiers",
+                "set",
+                "--campaign-id",
+                "12345",
+                "--type",
+                "MOBILE",
+                "--value",
+                "1.2",
+            ]
+        )
+
 
 class TestBidModifiersToggle:
     """Tests for bidmodifiers_toggle tool."""

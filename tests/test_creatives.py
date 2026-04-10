@@ -65,3 +65,22 @@ class TestCreativesList:
                 "12345",
             ]
         )
+
+    def test_creatives_list_empty_result(self):
+        """Test empty response returns empty list."""
+        with patch(
+            "server.tools.creatives.get_runner",
+            return_value=_mock_runner([]),
+        ):
+            result = creatives_list()
+            assert result == []
+
+    def test_creatives_list_ignores_blank_ids(self):
+        """Test blank ids behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.creatives.get_runner", return_value=runner):
+            creatives_list(ids="   ", campaign_ids="   ")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--ids" not in call_args
+            assert "--campaign-ids" not in call_args

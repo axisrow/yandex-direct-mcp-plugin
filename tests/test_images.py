@@ -108,6 +108,17 @@ class TestAdimagesAdd:
             call_args = runner.run_json.call_args[0][0]
             assert "--json" in call_args
 
+    def test_add_image_argv_composition(self):
+        """Test add passes correct argv to CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Id": 124}
+        with patch("server.tools.images.get_runner", return_value=runner):
+            adimages_add(image_json='{"Data":"abc"}')
+
+        runner.run_json.assert_called_once_with(
+            ["adimages", "add", "--json", '{"Data":"abc"}']
+        )
+
 
 class TestAdimagesDelete:
     """Tests for adimages_delete tool."""

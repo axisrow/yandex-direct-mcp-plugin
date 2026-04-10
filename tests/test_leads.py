@@ -67,3 +67,22 @@ class TestLeadsList:
             call_args = runner.run_json.call_args[0][0]
             assert "--campaign-ids" in call_args
             assert "123,456" in call_args
+
+    def test_leads_list_trims_ids(self):
+        """Test campaign IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"leads": []}
+        with patch("server.tools.leads.get_runner", return_value=runner):
+            leads_list(campaign_ids=" 123,456 ")
+
+        runner.run_json.assert_called_once_with(
+            ["leads", "get", "--format", "json", "--campaign-ids", "123,456"]
+        )
+
+    def test_leads_list_empty_result(self):
+        """Test empty leads response."""
+        with patch(
+            "server.tools.leads.get_runner", return_value=_mock_runner({"leads": []})
+        ):
+            result = leads_list()
+            assert result == {"leads": []}

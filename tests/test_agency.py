@@ -112,6 +112,17 @@ class TestAgencyClientsAdd:
             result = agency_clients_add(client_json=client_json)
             assert result == mock_result
 
+    def test_add_client_argv_composition(self):
+        """Test add passes correct argv to CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Login": "client"}
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            agency_clients_add(client_json='{"Login":"test"}')
+
+        runner.run_json.assert_called_once_with(
+            ["agencyclients", "add", "--json", '{"Login":"test"}']
+        )
+
 
 class TestAgencyClientsDelete:
     """Test scenarios for agency_clients_delete."""

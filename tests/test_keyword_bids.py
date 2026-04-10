@@ -172,3 +172,32 @@ class TestKeywordBidsSet:
             result = keyword_bids_set(keyword_id="111")
             assert result["error"] == "missing_update_fields"
             runner.run_json.assert_not_called()
+
+    def test_keyword_bids_set_network_bid_invalid(self):
+        """Test that non-integer network bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", network_bid="abc")
+        assert result["error"] == "invalid_value"
+
+    def test_keyword_bids_set_argv_with_search_bid(self):
+        """Test argv composition for search bid."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            keyword_bids_set(keyword_id="111", search_bid="10")
+
+        runner.run_json.assert_called_once_with(
+            ["keywordbids", "set", "--keyword-id", "111", "--search-bid", "10"]
+        )
+
+    def test_keyword_bids_list_ignores_blank_filters(self):
+        """Test blank filters behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_BIDS
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_list(
+                campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
+            )
+            assert len(result) == 1
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+            assert "--adgroup-ids" not in call_args
+            assert "--keyword-ids" not in call_args
