@@ -45,6 +45,8 @@ def ads_list(
     ids: str | None = None,
     ad_group_ids: str | None = None,
     status: str | None = None,
+    fields: str | None = None,
+    text_ad_fields: str | None = None,
 ) -> list[dict] | dict:
     """List ads.
 
@@ -53,6 +55,8 @@ def ads_list(
         ids: Comma-separated ad IDs (optional, max 10).
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
         status: Filter by status (optional).
+        fields: Comma-separated top-level field names (optional).
+        text_ad_fields: Comma-separated TextAd field names (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
@@ -85,6 +89,10 @@ def ads_list(
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])
+    if fields is not None:
+        args.extend(["--fields", fields])
+    if text_ad_fields is not None:
+        args.extend(["--text-ad-fields", text_ad_fields])
 
     runner = get_runner()
     return runner.run_json(args)
