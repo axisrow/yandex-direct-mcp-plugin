@@ -69,6 +69,17 @@ class TestVcardsList:
         assert "error" in result
         assert result["error"] == "batch_limit"
 
+    def test_list_vcards_trims_ids_before_cli(self, mock_vcards):
+        """Test vCard IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_vcards
+        with patch("server.tools.vcards.get_runner", return_value=runner):
+            vcards_list(ids=" 1,2 ")
+
+        runner.run_json.assert_called_once_with(
+            ["vcards", "get", "--format", "json", "--ids", "1,2"]
+        )
+
 
 class TestVcardsAdd:
     """Tests for vcards_add tool."""

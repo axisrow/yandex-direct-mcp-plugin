@@ -17,13 +17,15 @@ def adextensions_list(
         types: Comma-separated extension types to filter (optional).
     """
     cmd = ["adextensions", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        batch_error = check_batch_limit(ids)
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
-        cmd.extend(["--ids", ids])
-    if types is not None and types.strip():
-        cmd.extend(["--types", types])
+        cmd.extend(["--ids", normalized_ids])
+    normalized_types = types.strip() if types is not None else None
+    if normalized_types:
+        cmd.extend(["--types", normalized_types])
     runner = get_runner()
     result = runner.run_json(cmd)
     return result

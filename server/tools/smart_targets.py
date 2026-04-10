@@ -1,9 +1,9 @@
-"""MCP tools for smart ad targets (legacy aliases).
+"""Legacy compatibility wrappers for smart ad target MCP tools.
 
-These tools wrap the ``smarttargets`` CLI subcommand, which is an alias
-for ``smartadtargets``.  Prefer the canonical wrappers in
-``smart_ad_targets.py`` — the tools here are kept for backward
-compatibility with existing skill/prompt references.
+These tools preserve historical MCP names used by prompts and skills.
+The audited direct-cli surface does not guarantee a working
+``smarttargets`` subcommand, so callers should prefer the canonical
+wrappers in ``smart_ad_targets.py``.
 """
 
 from server.main import mcp

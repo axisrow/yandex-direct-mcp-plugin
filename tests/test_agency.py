@@ -67,6 +67,17 @@ class TestAgencyClientsList:
             result = agency_clients_list()
             assert result == mock_result
 
+    def test_list_agency_clients_trims_ids_before_cli(self):
+        """Test client IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Clients": []}
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            agency_clients_list(ids=" 123,456 ")
+
+        runner.run_json.assert_called_once_with(
+            ["agencyclients", "get", "--format", "json", "--ids", "123,456"]
+        )
+
 
 class TestAgencyClientsAdd:
     """Test scenarios for agency_clients_add."""

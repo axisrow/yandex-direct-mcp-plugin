@@ -90,6 +90,26 @@ class TestAdextensionsList:
             assert "--types" in call_args
             assert "CALLOUT,SITELINK" in call_args
 
+    def test_list_extensions_trims_ids_and_types(self):
+        """Test list filters are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.adextensions.get_runner", return_value=runner):
+            adextensions_list(ids=" 1,2 ", types=" CALLOUT,SITELINK ")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "adextensions",
+                "get",
+                "--format",
+                "json",
+                "--ids",
+                "1,2",
+                "--types",
+                "CALLOUT,SITELINK",
+            ]
+        )
+
     def test_list_extensions_empty_result(self):
         """Test empty response returns empty list."""
         with patch(

@@ -1,9 +1,9 @@
-"""MCP tools for negative keyword shared sets (legacy aliases).
+"""Legacy compatibility wrappers for negative keyword shared set tools.
 
-These tools wrap the ``negativekeywords`` CLI subcommand, which is an alias
-for ``negativekeywordsharedsets``.  Prefer the canonical wrappers in
-``negative_keyword_shared_sets.py`` — the tools here are kept for
-backward compatibility with existing skill/prompt references.
+These tools preserve historical MCP names used by prompts and skills.
+The audited direct-cli surface does not guarantee a working
+``negativekeywords`` subcommand, so callers should prefer the canonical
+wrappers in ``negative_keyword_shared_sets.py``.
 """
 
 from server.main import mcp

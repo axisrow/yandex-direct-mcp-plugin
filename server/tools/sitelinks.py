@@ -14,11 +14,12 @@ def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
         ids: Comma-separated sitelinks set IDs (optional, max 10).
     """
     cmd = ["sitelinks", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        batch_error = check_batch_limit(ids)
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
-        cmd.extend(["--ids", ids])
+        cmd.extend(["--ids", normalized_ids])
     runner = get_runner()
     result = runner.run_json(cmd)
     return result

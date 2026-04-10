@@ -1,9 +1,9 @@
-"""MCP tools for dynamic ad targets (legacy aliases).
+"""Legacy compatibility wrappers for dynamic ad target MCP tools.
 
-These tools wrap the ``dynamictargets`` CLI subcommand, which is an alias
-for ``dynamicads``.  Prefer the canonical wrappers in ``dynamic_ads.py``
-— the tools here are kept for backward compatibility with existing
-skill/prompt references.
+These tools preserve historical MCP names used by prompts and skills.
+The audited direct-cli surface does not guarantee a working
+``dynamictargets`` subcommand, so callers should prefer the canonical
+wrappers in ``dynamic_ads.py``.
 """
 
 from server.main import mcp

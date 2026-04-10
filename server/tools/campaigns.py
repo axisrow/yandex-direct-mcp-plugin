@@ -30,11 +30,12 @@ def campaigns_list(
         ).__dict__
 
     args = ["campaigns", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        batch_error = check_batch_limit(ids)
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
-        args.extend(["--ids", ids])
+        args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
     if types is not None:

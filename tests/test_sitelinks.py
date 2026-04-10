@@ -64,6 +64,17 @@ class TestSitelinksList:
         assert "error" in result
         assert result["error"] == "batch_limit"
 
+    def test_list_sitelinks_trims_ids_before_cli(self, mock_sitelinks):
+        """Test sitelink IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_sitelinks
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            sitelinks_list(ids=" 1 ")
+
+        runner.run_json.assert_called_once_with(
+            ["sitelinks", "get", "--format", "json", "--ids", "1"]
+        )
+
 
 class TestSitelinksAdd:
     """Tests for sitelinks_add tool."""
