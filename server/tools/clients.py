@@ -1,5 +1,7 @@
 """MCP tools for client management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
@@ -24,7 +26,7 @@ def clients_get(ids: str | None = None) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def clients_update(client_id: str, extra_json: str) -> dict:
+def clients_update(client_id: str, extra_json: str | dict) -> dict:
     """Update client information.
 
     Args:
@@ -32,6 +34,7 @@ def clients_update(client_id: str, extra_json: str) -> dict:
         extra_json: JSON string containing fields to update.
     """
     runner = get_runner()
+    json_str = json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
     result = runner.run_json(
         [
             "clients",
@@ -39,7 +42,7 @@ def clients_update(client_id: str, extra_json: str) -> dict:
             "--client-id",
             client_id,
             "--json",
-            extra_json,
+            json_str,
         ]
     )
     return result

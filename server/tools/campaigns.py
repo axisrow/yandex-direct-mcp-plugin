@@ -1,5 +1,7 @@
 """MCP tools for campaign management."""
 
+import json
+
 from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
@@ -57,7 +59,7 @@ def campaigns_update(
     name: str | None = None,
     status: str | None = None,
     budget: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Update campaign fields.
 
@@ -96,7 +98,10 @@ def campaigns_update(
         if budget_value is not None:
             args.extend(["--budget", budget_value])
         if extra_json:
-            args.extend(["--json", extra_json])
+            json_str = (
+                json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+            )
+            args.extend(["--json", json_str])
         runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
@@ -126,7 +131,7 @@ def campaigns_add(
     campaign_type: str | None = None,
     budget: str | None = None,
     end_date: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Create a new campaign.
 
@@ -159,7 +164,10 @@ def campaigns_add(
     if end_date:
         args.extend(["--end-date", end_date])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     result = runner.run_json(args)
     return result
 

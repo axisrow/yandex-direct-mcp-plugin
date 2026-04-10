@@ -1,5 +1,7 @@
 """MCP tools for sitelinks management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
@@ -27,7 +29,7 @@ def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_add(links: str) -> dict:
+def sitelinks_add(links: str | list) -> dict:
     """Add a sitelinks set.
 
     Args:
@@ -35,7 +37,8 @@ def sitelinks_add(links: str) -> dict:
             Example: '[{"Title":"About","Href":"https://example.com/about"}]'
     """
     runner = get_runner()
-    result = runner.run_json(["sitelinks", "add", "--links", links])
+    links_str = json.dumps(links) if isinstance(links, list) else links
+    result = runner.run_json(["sitelinks", "add", "--links", links_str])
     return result
 
 

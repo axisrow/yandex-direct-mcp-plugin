@@ -6,6 +6,8 @@ The audited direct-cli surface does not guarantee a working
 wrappers in ``dynamic_ads.py``.
 """
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
@@ -35,7 +37,7 @@ def dynamic_targets_list(ad_group_ids: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def dynamic_targets_add(ad_group_id: str, target_data: str) -> dict:
+def dynamic_targets_add(ad_group_id: str, target_data: str | dict) -> dict:
     """Add a dynamic ad target.
 
     Args:
@@ -43,6 +45,7 @@ def dynamic_targets_add(ad_group_id: str, target_data: str) -> dict:
         target_data: JSON string with target data (must include Name and Conditions).
     """
     runner = get_runner()
+    json_str = json.dumps(target_data) if isinstance(target_data, dict) else target_data
     return runner.run_json(
         [
             "dynamicads",
@@ -50,7 +53,7 @@ def dynamic_targets_add(ad_group_id: str, target_data: str) -> dict:
             "--adgroup-id",
             ad_group_id,
             "--json",
-            target_data,
+            json_str,
             "--format",
             "json",
         ]
@@ -59,7 +62,7 @@ def dynamic_targets_add(ad_group_id: str, target_data: str) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def dynamic_targets_update(id: str, extra_json: str) -> dict:
+def dynamic_targets_update(id: str, extra_json: str | dict) -> dict:
     """Update a dynamic ad target.
 
     Args:
@@ -67,6 +70,7 @@ def dynamic_targets_update(id: str, extra_json: str) -> dict:
         extra_json: JSON string with fields to update.
     """
     runner = get_runner()
+    json_str = json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
     return runner.run_json(
         [
             "dynamicads",
@@ -74,7 +78,7 @@ def dynamic_targets_update(id: str, extra_json: str) -> dict:
             "--id",
             id,
             "--json",
-            extra_json,
+            json_str,
             "--format",
             "json",
         ]

@@ -1,5 +1,7 @@
 """MCP tools for ad extensions management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
@@ -33,7 +35,7 @@ def adextensions_list(
 
 @mcp.tool()
 @handle_cli_errors
-def adextensions_add(extension_type: str, extra_json: str) -> dict:
+def adextensions_add(extension_type: str, extra_json: str | dict) -> dict:
     """Add an ad extension.
 
     Args:
@@ -41,6 +43,7 @@ def adextensions_add(extension_type: str, extra_json: str) -> dict:
         extra_json: JSON string describing the extension content.
     """
     runner = get_runner()
+    json_str = json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
     result = runner.run_json(
         [
             "adextensions",
@@ -48,7 +51,7 @@ def adextensions_add(extension_type: str, extra_json: str) -> dict:
             "--type",
             extension_type,
             "--json",
-            extra_json,
+            json_str,
         ]
     )
     return result

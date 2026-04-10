@@ -1,5 +1,7 @@
 """MCP tools for retargeting list management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import run_single_id_batch
@@ -32,7 +34,7 @@ def retargeting_list(
 def retargeting_add(
     name: str,
     list_type: str,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Add a retargeting list.
 
@@ -50,7 +52,10 @@ def retargeting_add(
         list_type,
     ]
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

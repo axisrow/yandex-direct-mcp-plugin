@@ -1,5 +1,7 @@
 """MCP tools for keyword management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -55,7 +57,7 @@ def keywords_update(
     bid: str | None = None,
     context_bid: str | None = None,
     status: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Update keyword fields.
 
@@ -100,7 +102,10 @@ def keywords_update(
     if status:
         args.extend(["--status", status])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner.run_json(args)
 
     result: dict[str, object] = {"success": True, "id": id}
@@ -124,7 +129,7 @@ def keywords_add(
     context_bid: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Add a keyword to an ad group.
 
@@ -147,7 +152,10 @@ def keywords_add(
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

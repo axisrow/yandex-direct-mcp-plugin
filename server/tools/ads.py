@@ -1,5 +1,7 @@
 """MCP tool for listing ads."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -96,7 +98,7 @@ def ads_add(
     title: str | None = None,
     text: str | None = None,
     href: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Create a new ad.
 
@@ -118,7 +120,10 @@ def ads_add(
     if href:
         args.extend(["--href", href])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -126,7 +131,7 @@ def ads_add(
 @mcp.tool()
 @handle_cli_errors
 def ads_update(
-    id: str, status: str | None = None, extra_json: str | None = None
+    id: str, status: str | None = None, extra_json: str | dict | None = None
 ) -> dict:
     """Update an ad.
 
@@ -145,7 +150,10 @@ def ads_update(
     if status:
         args.extend(["--status", status])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

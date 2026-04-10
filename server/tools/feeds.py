@@ -1,5 +1,7 @@
 """MCP tools for feed management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -22,7 +24,7 @@ def feeds_list(ids: str | None = None) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def feeds_add(name: str, url: str, extra_json: str | None = None) -> dict:
+def feeds_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
     """Add a new feed.
 
     Args:
@@ -32,7 +34,10 @@ def feeds_add(name: str, url: str, extra_json: str | None = None) -> dict:
     """
     args = ["feeds", "add", "--name", name, "--url", url]
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -43,7 +48,7 @@ def feeds_update(
     id: str,
     name: str | None = None,
     url: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Update an existing feed.
 
@@ -65,7 +70,10 @@ def feeds_update(
     if url is not None:
         args.extend(["--url", url])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

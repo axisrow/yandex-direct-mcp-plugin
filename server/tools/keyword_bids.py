@@ -1,5 +1,7 @@
 """MCP tools for keyword bid management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -38,7 +40,7 @@ def keyword_bids_set(
     keyword_id: str,
     search_bid: str | None = None,
     network_bid: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Set keyword bids.
 
@@ -76,6 +78,9 @@ def keyword_bids_set(
     if network_bid_value is not None:
         args.extend(["--network-bid", str(network_bid_value)])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)

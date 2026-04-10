@@ -1,5 +1,7 @@
 """MCP tools for smart ad target management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -34,7 +36,7 @@ def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
 @mcp.tool()
 @handle_cli_errors
 def smart_ad_targets_add(
-    ad_group_id: str, target_type: str, extra_json: str | None = None
+    ad_group_id: str, target_type: str, extra_json: str | dict | None = None
 ) -> dict:
     """Add a smart ad target.
 
@@ -45,7 +47,10 @@ def smart_ad_targets_add(
     """
     args = ["smartadtargets", "add", "--adgroup-id", ad_group_id, "--type", target_type]
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -53,7 +58,7 @@ def smart_ad_targets_add(
 @mcp.tool()
 @handle_cli_errors
 def smart_ad_targets_update(
-    id: str, target_type: str | None = None, extra_json: str | None = None
+    id: str, target_type: str | None = None, extra_json: str | dict | None = None
 ) -> dict:
     """Update a smart ad target.
 
@@ -72,7 +77,10 @@ def smart_ad_targets_update(
     if target_type:
         args.extend(["--type", target_type])
     if extra_json:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

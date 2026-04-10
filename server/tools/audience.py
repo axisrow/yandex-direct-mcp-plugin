@@ -1,5 +1,7 @@
 """MCP tools for audience target management."""
 
+import json
+
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
@@ -49,7 +51,7 @@ def audience_targets_add(
     ad_group_id: str,
     retargeting_list_id: str,
     bid: str | None = None,
-    extra_json: str | None = None,
+    extra_json: str | dict | None = None,
 ) -> dict:
     """Add an audience target to an ad group.
 
@@ -70,7 +72,10 @@ def audience_targets_add(
     if bid is not None:
         args.extend(["--bid", bid])
     if extra_json is not None:
-        args.extend(["--json", extra_json])
+        json_str = (
+            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
+        )
+        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
