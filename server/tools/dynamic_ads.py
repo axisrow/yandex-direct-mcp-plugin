@@ -36,8 +36,6 @@ def dynamic_ads_add(ad_group_id: str, target_data: str) -> dict:
             ad_group_id,
             "--json",
             target_data,
-            "--format",
-            "json",
         ]
     )
 
@@ -52,9 +50,7 @@ def dynamic_ads_update(id: str, extra_json: str) -> dict:
         extra_json: JSON string with fields to update.
     """
     runner = get_runner()
-    return runner.run_json(
-        ["dynamicads", "update", "--id", id, "--json", extra_json, "--format", "json"]
-    )
+    return runner.run_json(["dynamicads", "update", "--id", id, "--json", extra_json])
 
 
 @mcp.tool()
@@ -66,6 +62,4 @@ def dynamic_ads_delete(id: str) -> dict:
         id: Target ID.
     """
     runner = get_runner()
-    return runner.run_json(
-        ["dynamicads", "delete", "--id", id, "--format", "json"]
-    )
+    return runner.run_json(["dynamicads", "delete", "--id", id])

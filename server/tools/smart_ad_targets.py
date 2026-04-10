@@ -1,7 +1,7 @@
 """MCP tools for smart ad target management."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool()
@@ -20,7 +20,9 @@ def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def smart_ad_targets_add(ad_group_id: str, target_type: str, extra_json: str | None = None) -> dict:
+def smart_ad_targets_add(
+    ad_group_id: str, target_type: str, extra_json: str | None = None
+) -> dict:
     """Add a smart ad target.
 
     Args:
@@ -31,24 +33,33 @@ def smart_ad_targets_add(ad_group_id: str, target_type: str, extra_json: str | N
     args = ["smartadtargets", "add", "--adgroup-id", ad_group_id, "--type", target_type]
     if extra_json:
         args.extend(["--json", extra_json])
-    args.extend(["--format", "json"])
     runner = get_runner()
     return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def smart_ad_targets_update(id: str, extra_json: str | None = None) -> dict:
+def smart_ad_targets_update(
+    id: str, target_type: str | None = None, extra_json: str | None = None
+) -> dict:
     """Update a smart ad target.
 
     Args:
         id: Target ID.
+        target_type: Optional target type.
         extra_json: JSON string with fields to update.
     """
+    if not any((target_type, extra_json)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: target_type, extra_json",
+        ).__dict__
+
     args = ["smartadtargets", "update", "--id", id]
+    if target_type:
+        args.extend(["--type", target_type])
     if extra_json:
         args.extend(["--json", extra_json])
-    args.extend(["--format", "json"])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -62,6 +73,4 @@ def smart_ad_targets_delete(id: str) -> dict:
         id: Target ID.
     """
     runner = get_runner()
-    return runner.run_json(
-        ["smartadtargets", "delete", "--id", id, "--format", "json"]
-    )
+    return runner.run_json(["smartadtargets", "delete", "--id", id])

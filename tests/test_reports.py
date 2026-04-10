@@ -154,7 +154,9 @@ def test_reports_list_types():
         "REACH_AND_FREQUENCY_CAMPAIGN_REPORT",
         "SEARCH_QUERY_PERFORMANCE_REPORT",
     ]
-    with patch("server.tools.reports.get_runner", return_value=_mock_runner(expected_types)):
+    runner = _mock_runner(expected_types)
+    with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_list_types()
         assert len(result) == 7
         assert "CAMPAIGN_PERFORMANCE_REPORT" in result
+        runner.run_json.assert_called_once_with(["reports", "list-types"])

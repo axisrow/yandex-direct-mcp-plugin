@@ -1,6 +1,6 @@
 """Tests for keyword MCP tools."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -89,8 +89,6 @@ def test_keywords_update_argv_composition():
             "SUSPENDED",
             "--json",
             '{"StrategyPriority": "HIGH"}',
-            "--format",
-            "json",
         ]
     )
     assert result["context_bid"] == 9000000
@@ -111,21 +109,51 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add(self):
         """Test adding a keyword to an ad group."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = keywords_add(ad_group_id="1", keyword="buy shoes")
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            result = keywords_add(
+                ad_group_id="1",
+                keyword="buy shoes",
+                bid="10",
+                context_bid="5",
+                user_param_1="summer",
+                user_param_2="sale",
+                extra_json='{"Priority":"HIGH"}',
+            )
             assert result["success"] is True
+            runner.run_json.assert_called_once_with(
+                [
+                    "keywords",
+                    "add",
+                    "--adgroup-id",
+                    "1",
+                    "--keyword",
+                    "buy shoes",
+                    "--bid",
+                    "10",
+                    "--context-bid",
+                    "5",
+                    "--user-param-1",
+                    "summer",
+                    "--user-param-2",
+                    "sale",
+                    "--json",
+                    '{"Priority":"HIGH"}',
+                ]
+            )
 
     def test_keywords_delete_success(self):
         """Test deleting keywords successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_delete(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["keywords", "delete", "--id", "111"]),
+                    call(["keywords", "delete", "--id", "222"]),
+                ]
+            )
 
     def test_keywords_delete_batch_limit(self):
         """Test batch limit validation for delete."""
@@ -136,12 +164,16 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_suspend_success(self):
         """Test suspending keywords."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_suspend(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["keywords", "suspend", "--id", "111"]),
+                    call(["keywords", "suspend", "--id", "222"]),
+                ]
+            )
 
     def test_keywords_suspend_batch_limit(self):
         """Test batch limit validation for suspend."""
@@ -152,12 +184,16 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_resume_success(self):
         """Test resuming suspended keywords."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_resume(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["keywords", "resume", "--id", "111"]),
+                    call(["keywords", "resume", "--id", "222"]),
+                ]
+            )
 
     def test_keywords_resume_batch_limit(self):
         """Test batch limit validation for resume."""
@@ -168,10 +204,16 @@ class TestKeywordsCrudOperations:
 
 
 def test_keywords_archive_success():
-    mock_result = {"success": True}
-    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)):
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_archive(ids="111,222")
         assert result["success"] is True
+        runner.run_json.assert_has_calls(
+            [
+                call(["keywords", "archive", "--id", "111"]),
+                call(["keywords", "archive", "--id", "222"]),
+            ]
+        )
 
 
 def test_keywords_archive_batch_limit():
@@ -182,10 +224,16 @@ def test_keywords_archive_batch_limit():
 
 
 def test_keywords_unarchive_success():
-    mock_result = {"success": True}
-    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(mock_result)):
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_unarchive(ids="111,222")
         assert result["success"] is True
+        runner.run_json.assert_has_calls(
+            [
+                call(["keywords", "unarchive", "--id", "111"]),
+                call(["keywords", "unarchive", "--id", "222"]),
+            ]
+        )
 
 
 def test_keywords_unarchive_batch_limit():

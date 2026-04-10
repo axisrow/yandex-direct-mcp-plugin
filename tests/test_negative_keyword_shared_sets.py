@@ -49,20 +49,66 @@ def test_nkss_list_empty():
 
 def test_nkss_add():
     mock_result = {"Id": 200}
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner(mock_result)):
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner(mock_result),
+    ) as mock:
         result = negative_keyword_shared_sets_add(name="New list", keywords="bad,word")
         assert result["Id"] == 200
+        mock.return_value.run_json.assert_called_once_with(
+            [
+                "negativekeywordsharedsets",
+                "add",
+                "--name",
+                "New list",
+                "--keywords",
+                "bad,word",
+            ]
+        )
 
 
 def test_nkss_update():
     mock_result = {"success": True}
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner(mock_result)):
-        result = negative_keyword_shared_sets_update(id="100", name="Updated")
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner(mock_result),
+    ) as mock:
+        result = negative_keyword_shared_sets_update(
+            id="100", name="Updated", extra_json='{"Keywords":["bad"]}'
+        )
         assert result["success"] is True
+        mock.return_value.run_json.assert_called_once_with(
+            [
+                "negativekeywordsharedsets",
+                "update",
+                "--id",
+                "100",
+                "--name",
+                "Updated",
+                "--json",
+                '{"Keywords":["bad"]}',
+            ]
+        )
+
+
+def test_nkss_update_requires_changes():
+    runner = _mock_runner({"success": True})
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner", return_value=runner
+    ):
+        result = negative_keyword_shared_sets_update(id="100")
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()
 
 
 def test_nkss_delete():
     mock_result = {"success": True}
-    with patch("server.tools.negative_keyword_shared_sets.get_runner", return_value=_mock_runner(mock_result)):
+    with patch(
+        "server.tools.negative_keyword_shared_sets.get_runner",
+        return_value=_mock_runner(mock_result),
+    ) as mock:
         result = negative_keyword_shared_sets_delete(id="100")
         assert result["success"] is True
+        mock.return_value.run_json.assert_called_once_with(
+            ["negativekeywordsharedsets", "delete", "--id", "100"]
+        )

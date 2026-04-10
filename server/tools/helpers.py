@@ -43,3 +43,20 @@ def validate_positive_int(value: str, field_name: str) -> int | ToolError:
             error="invalid_value",
             message=f"{field_name} must be a positive integer. Got: '{value}'",
         )
+
+
+def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dict:
+    """Run a single-ID CLI mutation for a comma-separated batch of IDs."""
+    batch_error = check_batch_limit(ids_str)
+    if batch_error:
+        return batch_error.__dict__
+
+    ids = parse_ids(ids_str)
+    results = [runner.run_json([resource, action, "--id", item_id]) for item_id in ids]
+    if len(results) == 1:
+        return results[0]
+    success = all(
+        not isinstance(result, dict) or result.get("success", True) is not False
+        for result in results
+    )
+    return {"success": success, "ids": ids, "results": results}

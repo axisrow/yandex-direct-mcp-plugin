@@ -1,6 +1,6 @@
 """Tests for campaign MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -160,8 +160,6 @@ class TestCampaignsUpdate:
                 "5000",
                 "--json",
                 '{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
-                "--format",
-                "json",
             ]
         )
         assert result["budget"] == 5000
@@ -182,20 +180,48 @@ class TestCampaignsCrudOperations:
     def test_campaigns_add(self):
         """Test adding a new campaign."""
         mock_result = {"Id": 99999, "Name": "New Campaign"}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = campaigns_add(name="New Campaign", start_date="2026-01-01")
+        runner = _mock_runner(mock_result)
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_add(
+                name="New Campaign",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                budget="5000",
+                end_date="2026-12-31",
+                extra_json='{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+            )
             assert result["Id"] == 99999
+            runner.run_json.assert_called_once_with(
+                [
+                    "campaigns",
+                    "add",
+                    "--name",
+                    "New Campaign",
+                    "--start-date",
+                    "2026-01-01",
+                    "--type",
+                    "TEXT_CAMPAIGN",
+                    "--budget",
+                    "5000",
+                    "--end-date",
+                    "2026-12-31",
+                    "--json",
+                    '{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+                ]
+            )
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_delete(ids="12345,67890")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["campaigns", "delete", "--id", "12345"]),
+                    call(["campaigns", "delete", "--id", "67890"]),
+                ]
+            )
 
     def test_campaigns_delete_batch_limit(self):
         """Test batch limit validation for delete."""
@@ -206,12 +232,16 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_archive_success(self):
         """Test archiving campaigns successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_archive(ids="12345,67890")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["campaigns", "archive", "--id", "12345"]),
+                    call(["campaigns", "archive", "--id", "67890"]),
+                ]
+            )
 
     def test_campaigns_archive_batch_limit(self):
         """Test batch limit validation for archive."""
@@ -222,12 +252,16 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_unarchive_success(self):
         """Test unarchiving campaigns successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_unarchive(ids="12345,67890")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["campaigns", "unarchive", "--id", "12345"]),
+                    call(["campaigns", "unarchive", "--id", "67890"]),
+                ]
+            )
 
     def test_campaigns_unarchive_batch_limit(self):
         """Test batch limit validation for unarchive."""
@@ -238,12 +272,13 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_suspend_success(self):
         """Test suspending campaigns successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_suspend(ids="12345")
             assert result["success"] is True
+            runner.run_json.assert_called_once_with(
+                ["campaigns", "suspend", "--id", "12345"]
+            )
 
     def test_campaigns_suspend_batch_limit(self):
         """Test batch limit validation for suspend."""
@@ -254,12 +289,13 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_resume_success(self):
         """Test resuming campaigns successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.campaigns.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_resume(ids="12345")
             assert result["success"] is True
+            runner.run_json.assert_called_once_with(
+                ["campaigns", "resume", "--id", "12345"]
+            )
 
     def test_campaigns_resume_batch_limit(self):
         """Test batch limit validation for resume."""

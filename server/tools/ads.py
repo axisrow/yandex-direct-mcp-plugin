@@ -65,26 +65,33 @@ def ads_list(campaign_ids: str) -> list[dict] | dict:
 @handle_cli_errors
 def ads_add(
     ad_group_id: str,
+    ad_type: str | None = None,
     title: str | None = None,
     text: str | None = None,
     href: str | None = None,
+    extra_json: str | None = None,
 ) -> dict:
     """Create a new ad.
 
     Args:
         ad_group_id: Ad group ID to add the ad to.
+        ad_type: Ad type (optional).
         title: Ad title (optional).
         text: Ad text content (optional).
         href: Ad URL (optional).
+        extra_json: JSON string with additional parameters (optional).
     """
     args = ["ads", "add", "--adgroup-id", ad_group_id]
+    if ad_type:
+        args.extend(["--type", ad_type])
     if title:
         args.extend(["--title", title])
     if text:
         args.extend(["--text", text])
     if href:
         args.extend(["--href", href])
-    args.extend(["--format", "json"])
+    if extra_json:
+        args.extend(["--json", extra_json])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -112,7 +119,6 @@ def ads_update(
         args.extend(["--status", status])
     if extra_json:
         args.extend(["--json", extra_json])
-    args.extend(["--format", "json"])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -125,15 +131,9 @@ def ads_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "delete", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "delete", ids)
 
 
 @mcp.tool()
@@ -144,15 +144,9 @@ def ads_moderate(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "moderate", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "moderate", ids)
 
 
 @mcp.tool()
@@ -163,15 +157,9 @@ def ads_suspend(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "suspend", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "suspend", ids)
 
 
 @mcp.tool()
@@ -182,15 +170,9 @@ def ads_resume(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "resume", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "resume", ids)
 
 
 @mcp.tool()
@@ -201,15 +183,9 @@ def ads_archive(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "archive", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "archive", ids)
 
 
 @mcp.tool()
@@ -220,12 +196,6 @@ def ads_unarchive(ids: str) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["ads", "unarchive", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "ads", "unarchive", ids)

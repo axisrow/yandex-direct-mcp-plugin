@@ -1,6 +1,6 @@
 """Tests for ads MCP tool."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -76,11 +76,35 @@ class TestAdsCrudOperations:
     def test_ads_add(self):
         """Test adding a new ad."""
         mock_result = {"Id": 999, "Text": "New ad text"}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = ads_add(ad_group_id="1", text="New ad text")
+        runner = _mock_runner(mock_result)
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_add(
+                ad_group_id="1",
+                ad_type="TEXT_AD",
+                title="Title",
+                text="New ad text",
+                href="https://example.com",
+                extra_json='{"Mobile":"YES"}',
+            )
             assert result["Id"] == 999
+            runner.run_json.assert_called_once_with(
+                [
+                    "ads",
+                    "add",
+                    "--adgroup-id",
+                    "1",
+                    "--type",
+                    "TEXT_AD",
+                    "--title",
+                    "Title",
+                    "--text",
+                    "New ad text",
+                    "--href",
+                    "https://example.com",
+                    "--json",
+                    '{"Mobile":"YES"}',
+                ]
+            )
 
     def test_ads_update(self):
         """Test updating an ad."""
@@ -110,8 +134,6 @@ class TestAdsCrudOperations:
                     "SUSPENDED",
                     "--json",
                     '{"TextAd": {"Title": "New"}}',
-                    "--format",
-                    "json",
                 ]
             )
 
@@ -125,12 +147,16 @@ class TestAdsCrudOperations:
 
     def test_ads_delete_success(self):
         """Test deleting ads successfully."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_delete(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "delete", "--id", "111"]),
+                    call(["ads", "delete", "--id", "222"]),
+                ]
+            )
 
     def test_ads_delete_batch_limit(self):
         """Test batch limit validation for delete."""
@@ -141,12 +167,16 @@ class TestAdsCrudOperations:
 
     def test_ads_moderate_success(self):
         """Test submitting ads for moderation."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_moderate(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "moderate", "--id", "111"]),
+                    call(["ads", "moderate", "--id", "222"]),
+                ]
+            )
 
     def test_ads_moderate_batch_limit(self):
         """Test batch limit validation for moderate."""
@@ -157,12 +187,16 @@ class TestAdsCrudOperations:
 
     def test_ads_suspend_success(self):
         """Test suspending ads."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_suspend(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "suspend", "--id", "111"]),
+                    call(["ads", "suspend", "--id", "222"]),
+                ]
+            )
 
     def test_ads_suspend_batch_limit(self):
         """Test batch limit validation for suspend."""
@@ -173,12 +207,16 @@ class TestAdsCrudOperations:
 
     def test_ads_resume_success(self):
         """Test resuming suspended ads."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_resume(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "resume", "--id", "111"]),
+                    call(["ads", "resume", "--id", "222"]),
+                ]
+            )
 
     def test_ads_resume_batch_limit(self):
         """Test batch limit validation for resume."""
@@ -189,12 +227,16 @@ class TestAdsCrudOperations:
 
     def test_ads_archive_success(self):
         """Test archiving ads."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_archive(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "archive", "--id", "111"]),
+                    call(["ads", "archive", "--id", "222"]),
+                ]
+            )
 
     def test_ads_archive_batch_limit(self):
         """Test batch limit validation for archive."""
@@ -205,12 +247,16 @@ class TestAdsCrudOperations:
 
     def test_ads_unarchive_success(self):
         """Test unarchiving ads."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
-        ):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_unarchive(ids="111,222")
             assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["ads", "unarchive", "--id", "111"]),
+                    call(["ads", "unarchive", "--id", "222"]),
+                ]
+            )
 
     def test_ads_unarchive_batch_limit(self):
         """Test batch limit validation for unarchive."""

@@ -71,4 +71,4 @@ def reports_get(
 def reports_list_types() -> list[str] | dict:
     """List available report types."""
     runner = get_runner()
-    return runner.run_json(["reports", "list-types", "--format", "json"])
+    return runner.run_json(["reports", "list-types"])
