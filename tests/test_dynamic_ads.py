@@ -142,9 +142,7 @@ class TestDynamicAdsAuthErrors:
             patch("server.tools.dynamic_ads.get_runner", return_value=runner),
             patch("server.tools._try_refresh_token", return_value=None),
         ):
-            result = dynamic_ads_add(
-                ad_group_id="200", target_data='{"Name": "Test"}'
-            )
+            result = dynamic_ads_add(ad_group_id="200", target_data='{"Name": "Test"}')
             assert result["error"] == "auth_expired"
 
     def test_dynamic_ads_update_auth_error(self):

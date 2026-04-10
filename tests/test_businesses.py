@@ -82,6 +82,4 @@ def test_businesses_list_empty_ids():
     with patch("server.tools.businesses.get_runner", return_value=runner):
         businesses_list(ids="")
 
-    runner.run_json.assert_called_once_with(
-        ["businesses", "get", "--format", "json"]
-    )
+    runner.run_json.assert_called_once_with(["businesses", "get", "--format", "json"])

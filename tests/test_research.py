@@ -78,7 +78,14 @@ class TestKeywordsDeduplicate:
             keywords_has_volume(keywords="k1,k2")
 
         runner.run_json.assert_called_once_with(
-            ["keywordsresearch", "has-volume", "--keywords", "k1,k2", "--format", "json"]
+            [
+                "keywordsresearch",
+                "has-volume",
+                "--keywords",
+                "k1,k2",
+                "--format",
+                "json",
+            ]
         )
 
     def test_keywords_has_volume_with_region_argv(self):
