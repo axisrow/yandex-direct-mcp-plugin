@@ -1,7 +1,7 @@
 """MCP tools for keyword bid management."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool()
@@ -35,6 +35,7 @@ def keyword_bids_set(
     keyword_id: str,
     search_bid: str | None = None,
     network_bid: str | None = None,
+    extra_json: str | None = None,
 ) -> dict:
     """Set keyword bids.
 
@@ -42,12 +43,36 @@ def keyword_bids_set(
         keyword_id: Keyword ID.
         search_bid: Search bid amount (optional).
         network_bid: Network bid amount (optional).
+        extra_json: JSON string with additional parameters (optional).
     """
+    if not any((search_bid, network_bid, extra_json)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: search_bid, network_bid, extra_json",
+        ).__dict__
+
+    from server.tools.helpers import validate_positive_int
+
+    search_bid_value: int | None = None
+    if search_bid is not None:
+        result = validate_positive_int(search_bid, "search_bid")
+        if isinstance(result, ToolError):
+            return result.__dict__
+        search_bid_value = result
+
+    network_bid_value: int | None = None
+    if network_bid is not None:
+        result = validate_positive_int(network_bid, "network_bid")
+        if isinstance(result, ToolError):
+            return result.__dict__
+        network_bid_value = result
+
     args = ["keywordbids", "set", "--keyword-id", keyword_id]
-    if search_bid:
-        args.extend(["--search-bid", search_bid])
-    if network_bid:
-        args.extend(["--network-bid", network_bid])
-    args.extend(["--format", "json"])
+    if search_bid_value is not None:
+        args.extend(["--search-bid", str(search_bid_value)])
+    if network_bid_value is not None:
+        args.extend(["--network-bid", str(network_bid_value)])
+    if extra_json:
+        args.extend(["--json", extra_json])
     runner = get_runner()
     return runner.run_json(args)

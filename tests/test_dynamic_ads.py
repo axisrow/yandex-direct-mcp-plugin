@@ -51,22 +51,44 @@ def test_dynamic_ads_list_empty():
 
 def test_dynamic_ads_add():
     mock_result = {"Id": 300}
-    with patch("server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)):
+    with patch(
+        "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
+    ) as mock:
         result = dynamic_ads_add(
             ad_group_id="200", target_data='{"Name": "Test", "Conditions": []}'
         )
         assert result["Id"] == 300
+        mock.return_value.run_json.assert_called_once_with(
+            [
+                "dynamicads",
+                "add",
+                "--adgroup-id",
+                "200",
+                "--json",
+                '{"Name": "Test", "Conditions": []}',
+            ]
+        )
 
 
 def test_dynamic_ads_update():
     mock_result = {"success": True}
-    with patch("server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)):
+    with patch(
+        "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
+    ) as mock:
         result = dynamic_ads_update(id="100", extra_json='{"Conditions": []}')
         assert result["success"] is True
+        mock.return_value.run_json.assert_called_once_with(
+            ["dynamicads", "update", "--id", "100", "--json", '{"Conditions": []}']
+        )
 
 
 def test_dynamic_ads_delete():
     mock_result = {"success": True}
-    with patch("server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)):
+    with patch(
+        "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
+    ) as mock:
         result = dynamic_ads_delete(id="100")
         assert result["success"] is True
+        mock.return_value.run_json.assert_called_once_with(
+            ["dynamicads", "delete", "--id", "100"]
+        )

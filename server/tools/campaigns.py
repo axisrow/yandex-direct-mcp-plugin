@@ -30,24 +30,52 @@ def campaigns_list(state: str | None = None) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_update(id: str, state: str) -> dict:
-    """Update campaign state (enable or disable).
+def campaigns_update(
+    id: str,
+    name: str | None = None,
+    status: str | None = None,
+    budget: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
+    """Update campaign fields.
 
     Args:
         id: Campaign ID to update.
-        state: New state ("ON" to enable, "OFF" to disable).
+        name: Optional new campaign name.
+        status: Optional new campaign status.
+        budget: Optional new daily budget.
+        extra_json: Optional JSON string forwarded to direct-cli --json.
     """
-    if state not in ("ON", "OFF"):
+    if not any((name, status, budget, extra_json)):
         return ToolError(
-            error="invalid_state",
-            message=f"State must be 'ON' or 'OFF', got '{state}'",
+            error="missing_update_fields",
+            message="Provide at least one of: name, status, budget, extra_json",
         ).__dict__
+
+    budget_value: str | None = None
+    if budget is not None:
+        try:
+            if int(budget) <= 0:
+                raise ValueError("Budget must be positive")
+            budget_value = budget
+        except (ValueError, TypeError):
+            return ToolError(
+                error="invalid_budget",
+                message=f"Budget must be a positive integer. Got: '{budget}'",
+            ).__dict__
 
     runner = get_runner()
     try:
-        runner.run_json(
-            ["campaigns", "update", "--id", id, "--state", state, "--format", "json"]
-        )
+        args = ["campaigns", "update", "--id", id]
+        if name:
+            args.extend(["--name", name])
+        if status:
+            args.extend(["--status", status])
+        if budget_value is not None:
+            args.extend(["--budget", budget_value])
+        if extra_json:
+            args.extend(["--json", extra_json])
+        runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
     except Exception as exc:
@@ -56,31 +84,61 @@ def campaigns_update(id: str, state: str) -> dict:
                 error="not_found", message=f"Campaign '{id}' not found"
             ).__dict__
         raise
-    return {"success": True, "id": id, "state": state}
+    result: dict[str, object] = {"success": True, "id": id}
+    if name:
+        result["name"] = name
+    if status:
+        result["status"] = status
+    if budget_value is not None:
+        result["budget"] = int(budget_value)
+    if extra_json:
+        result["extra_json"] = extra_json
+    return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_add(name: str, start_date: str) -> dict:
+def campaigns_add(
+    name: str,
+    start_date: str,
+    campaign_type: str | None = None,
+    budget: str | None = None,
+    end_date: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
     """Create a new campaign.
 
     Args:
         name: Campaign name.
         start_date: Campaign start date in YYYY-MM-DD format.
+        campaign_type: Campaign type (optional).
+        budget: Optional daily budget.
+        end_date: Optional campaign end date in YYYY-MM-DD format.
+        extra_json: Optional JSON string forwarded to direct-cli --json.
     """
+    budget_value: str | None = None
+    if budget is not None:
+        try:
+            if int(budget) <= 0:
+                raise ValueError("Budget must be positive")
+            budget_value = budget
+        except (ValueError, TypeError):
+            return ToolError(
+                error="invalid_budget",
+                message=f"Budget must be a positive integer. Got: '{budget}'",
+            ).__dict__
+
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "campaigns",
-            "add",
-            "--name",
-            name,
-            "--start-date",
-            start_date,
-            "--format",
-            "json",
-        ]
-    )
+    args = ["campaigns", "add", "--name", name, "--start-date", start_date]
+    if campaign_type:
+        args.extend(["--type", campaign_type])
+    if budget_value is not None:
+        args.extend(["--budget", budget_value])
+    if end_date:
+        args.extend(["--end-date", end_date])
+    if extra_json:
+        args.extend(["--json", extra_json])
+    result = runner.run_json(args)
     return result
 
 
@@ -92,15 +150,9 @@ def campaigns_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["campaigns", "delete", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "campaigns", "delete", ids)
 
 
 @mcp.tool()
@@ -111,15 +163,9 @@ def campaigns_archive(ids: str) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["campaigns", "archive", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "campaigns", "archive", ids)
 
 
 @mcp.tool()
@@ -130,17 +176,9 @@ def campaigns_unarchive(ids: str) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["campaigns", "unarchive", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "campaigns", "unarchive", ids)
 
 
 @mcp.tool()
@@ -151,15 +189,9 @@ def campaigns_suspend(ids: str) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["campaigns", "suspend", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "campaigns", "suspend", ids)
 
 
 @mcp.tool()
@@ -170,12 +202,6 @@ def campaigns_resume(ids: str) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["campaigns", "resume", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "campaigns", "resume", ids)

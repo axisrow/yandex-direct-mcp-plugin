@@ -37,44 +37,104 @@ def keywords_list(campaign_ids: str) -> list[dict] | dict:
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_update(id: str, bid: str) -> dict:
-    """Update keyword bid.
+def keywords_update(
+    id: str,
+    bid: str | None = None,
+    context_bid: str | None = None,
+    status: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
+    """Update keyword fields.
 
     Args:
         id: Keyword ID.
-        bid: New bid in micro-units (e.g., 15 RUB = 15000000). Must be a positive integer.
+        bid: Optional new search bid in micro-units. Must be a positive integer.
+        context_bid: Optional new context bid in micro-units. Must be a positive integer.
+        status: Optional new keyword status.
+        extra_json: Optional JSON string forwarded to direct-cli --json.
     """
-    try:
-        bid_value = int(bid)
-        if bid_value <= 0:
-            raise ValueError("Bid must be positive")
-    except (ValueError, TypeError):
+    if not any((bid, context_bid, status, extra_json)):
         return ToolError(
-            error="invalid_bid",
-            message=f"Bid must be a positive integer in micro-units. Got: '{bid}'",
+            error="missing_update_fields",
+            message="Provide at least one of: bid, context_bid, status, extra_json",
         ).__dict__
 
+    def _parse_bid(raw_bid: str | None, field_name: str) -> int | None:
+        if raw_bid is None:
+            return None
+        try:
+            bid_value = int(raw_bid)
+            if bid_value <= 0:
+                raise ValueError("Bid must be positive")
+        except (ValueError, TypeError):
+            raise ValueError(
+                f"{field_name} must be a positive integer in micro-units. Got: '{raw_bid}'"
+            ) from None
+        return bid_value
+
+    try:
+        bid_value = _parse_bid(bid, "bid")
+        context_bid_value = _parse_bid(context_bid, "context_bid")
+    except ValueError as exc:
+        return ToolError(error="invalid_bid", message=str(exc)).__dict__
+
     runner = get_runner()
-    runner.run_json(
-        ["keywords", "update", "--id", id, "--bid", str(bid_value), "--format", "json"]
-    )
-    return {"success": True, "id": id, "bid": bid_value}
+    args = ["keywords", "update", "--id", id]
+    if bid_value is not None:
+        args.extend(["--bid", str(bid_value)])
+    if context_bid_value is not None:
+        args.extend(["--context-bid", str(context_bid_value)])
+    if status:
+        args.extend(["--status", status])
+    if extra_json:
+        args.extend(["--json", extra_json])
+    runner.run_json(args)
+
+    result: dict[str, object] = {"success": True, "id": id}
+    if bid_value is not None:
+        result["bid"] = bid_value
+    if context_bid_value is not None:
+        result["context_bid"] = context_bid_value
+    if status:
+        result["status"] = status
+    if extra_json:
+        result["extra_json"] = extra_json
+    return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_add(ad_group_id: str, keyword: str, bid: str | None = None) -> dict:
+def keywords_add(
+    ad_group_id: str,
+    keyword: str,
+    bid: str | None = None,
+    context_bid: str | None = None,
+    user_param_1: str | None = None,
+    user_param_2: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
     """Add a keyword to an ad group.
 
     Args:
         ad_group_id: Ad group ID to add the keyword to.
         keyword: Keyword text.
-        bid: Optional bid (will be converted to micro-units if numeric, e.g. 15 → 15000000).
+        bid: Optional search bid.
+        context_bid: Optional context bid.
+        user_param_1: Optional user parameter 1.
+        user_param_2: Optional user parameter 2.
+        extra_json: Optional JSON string forwarded to direct-cli --json.
     """
     args = ["keywords", "add", "--adgroup-id", ad_group_id, "--keyword", keyword]
     if bid is not None:
         args.extend(["--bid", bid])
-    args.extend(["--format", "json"])
+    if context_bid is not None:
+        args.extend(["--context-bid", context_bid])
+    if user_param_1 is not None:
+        args.extend(["--user-param-1", user_param_1])
+    if user_param_2 is not None:
+        args.extend(["--user-param-2", user_param_2])
+    if extra_json is not None:
+        args.extend(["--json", extra_json])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -87,15 +147,9 @@ def keywords_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["keywords", "delete", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "keywords", "delete", ids)
 
 
 @mcp.tool()
@@ -106,15 +160,9 @@ def keywords_suspend(ids: str) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["keywords", "suspend", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "keywords", "suspend", ids)
 
 
 @mcp.tool()
@@ -125,15 +173,9 @@ def keywords_resume(ids: str) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["keywords", "resume", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "keywords", "resume", ids)
 
 
 @mcp.tool()
@@ -144,15 +186,9 @@ def keywords_archive(ids: str) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["keywords", "archive", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "keywords", "archive", ids)
 
 
 @mcp.tool()
@@ -163,12 +199,6 @@ def keywords_unarchive(ids: str) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
+    from server.tools.helpers import run_single_id_batch
 
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(["keywords", "unarchive", "--ids", ids, "--format", "json"])
-    return result
+    return run_single_id_batch(get_runner(), "keywords", "unarchive", ids)

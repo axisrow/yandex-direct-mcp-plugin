@@ -88,8 +88,23 @@ class TestKeywordBidsSet:
             "server.tools.keyword_bids.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = keyword_bids_set(keyword_id="111", search_bid="10.5")
+            result = keyword_bids_set(keyword_id="111", search_bid="10")
             assert result["success"] is True
+
+    def test_keyword_bids_set_invalid_bid(self):
+        """Test that non-integer bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="abc")
+        assert result["error"] == "invalid_value"
+
+    def test_keyword_bids_set_negative_bid(self):
+        """Test that negative bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="-5")
+        assert result["error"] == "invalid_value"
+
+    def test_keyword_bids_set_zero_bid(self):
+        """Test that zero bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="0")
+        assert result["error"] == "invalid_value"
 
     def test_keyword_bids_set_both_bids(self):
         """Test setting both search and network bids."""
@@ -107,16 +122,27 @@ class TestKeywordBidsSet:
             assert "10" in call_args
             assert "--network-bid" in call_args
             assert "5" in call_args
+            assert "--format" not in call_args
 
-    def test_keyword_bids_set_no_optional_bids(self):
-        """Test setting keyword bid with no optional bids."""
+    def test_keyword_bids_set_with_json(self):
+        """Test setting keyword bids with additional JSON."""
         mock_result = {"success": True}
         with patch(
             "server.tools.keyword_bids.get_runner",
             return_value=_mock_runner(mock_result),
         ) as mock:
-            result = keyword_bids_set(keyword_id="111")
+            result = keyword_bids_set(
+                keyword_id="111", extra_json='{"AutoBudget":"YES"}'
+            )
             assert result["success"] is True
             call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--search-bid" not in call_args
-            assert "--network-bid" not in call_args
+            assert "--json" in call_args
+            assert '{"AutoBudget":"YES"}' in call_args
+
+    def test_keyword_bids_set_requires_changes(self):
+        """Reject no-op updates before calling CLI."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_set(keyword_id="111")
+            assert result["error"] == "missing_update_fields"
+            runner.run_json.assert_not_called()

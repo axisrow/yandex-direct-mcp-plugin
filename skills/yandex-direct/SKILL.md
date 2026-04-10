@@ -24,8 +24,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Tool | Описание | Параметры |
 |---|---|---|
 | `campaigns_list` | Список кампаний | `state?` (ON/OFF) |
-| `campaigns_update` | Изменить статус кампании | `id`, `state` (ON/OFF) |
-| `campaigns_add` | Создать кампанию | `name`, `start_date` |
+| `campaigns_update` | Обновить кампанию | `id`, `name?`, `status?`, `budget?`, `extra_json?` |
+| `campaigns_add` | Создать кампанию | `name`, `start_date`, `campaign_type?`, `budget?`, `end_date?`, `extra_json?` |
 | `campaigns_delete` | Удалить кампании | `ids` (max 10) |
 | `campaigns_archive` | Архивировать кампании | `ids` (max 10) |
 | `campaigns_unarchive` | Разархивировать кампании | `ids` (max 10) |
@@ -44,8 +44,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Tool | Описание | Параметры |
 |---|---|---|
 | `ads_list` | Список объявлений | `campaign_ids` (max 10) |
-| `ads_add` | Создать объявление | `ad_group_id`, `title?`, `text?`, `href?` |
-| `ads_update` | Обновить объявление | `id`, `extra_json?` |
+| `ads_add` | Создать объявление | `ad_group_id`, `ad_type?`, `title?`, `text?`, `href?`, `extra_json?` |
+| `ads_update` | Обновить объявление | `id`, `status?`, `extra_json?` |
 | `ads_delete` | Удалить объявления | `ids` (max 10) |
 | `ads_moderate` | Отправить на модерацию | `ids` (max 10) |
 | `ads_suspend` | Приостановить объявления | `ids` (max 10) |
@@ -57,8 +57,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Tool | Описание | Параметры |
 |---|---|---|
 | `keywords_list` | Список ключевых слов | `campaign_ids` (max 10) |
-| `keywords_update` | Изменить ставку | `id`, `bid` (micro-units) |
-| `keywords_add` | Добавить ключевое слово | `ad_group_id`, `keyword`, `bid?` |
+| `keywords_update` | Обновить ключевое слово | `id`, `bid?`, `context_bid?`, `status?`, `extra_json?` |
+| `keywords_add` | Добавить ключевое слово | `ad_group_id`, `keyword`, `bid?`, `context_bid?`, `user_param_1?`, `user_param_2?`, `extra_json?` |
 | `keywords_delete` | Удалить ключевые слова | `ids` (max 10) |
 | `keywords_suspend` | Приостановить ключевые слова | `ids` (max 10) |
 | `keywords_resume` | Возобновить ключевые слова | `ids` (max 10) |
@@ -69,7 +69,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Tool | Описание | Параметры |
 |---|---|---|
 | `keyword_bids_list` | Список ставок на ключевые слова | `campaign_ids`, `ad_group_ids?`, `keyword_ids?` |
-| `keyword_bids_set` | Установить ставку на ключевое слово | `keyword_id`, `bid?`, `context_bid?` |
+| `keyword_bids_set` | Установить ставку на ключевое слово | `keyword_id`, `search_bid?`, `network_bid?`, `extra_json?` |
 
 ### Ставки
 | Tool | Описание | Параметры |
@@ -130,11 +130,11 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | `smart_targets_delete` | Удалить смарт-таргеты | `ids` (max 10) |
 | `smart_ad_targets_list` | Список смарт-таргетов объявлений | `ad_group_ids` |
 | `smart_ad_targets_add` | Добавить смарт-таргет объявлений | `ad_group_id`, `target_type`, `extra_json?` |
-| `smart_ad_targets_update` | Обновить смарт-таргет объявлений | `id`, `extra_json` |
+| `smart_ad_targets_update` | Обновить смарт-таргет объявлений | `id`, `target_type?`, `extra_json?` |
 | `smart_ad_targets_delete` | Удалить смарт-таргет объявлений | `id` |
 | `negative_keyword_shared_sets_list` | Список наборов минус-слов | `ids?` |
 | `negative_keyword_shared_sets_add` | Добавить набор минус-слов | `name`, `keywords` |
-| `negative_keyword_shared_sets_update` | Обновить набор минус-слов | `id`, `name?`, `keywords?` |
+| `negative_keyword_shared_sets_update` | Обновить набор минус-слов | `id`, `name?`, `keywords?`, `extra_json?` |
 | `negative_keyword_shared_sets_delete` | Удалить набор минус-слов | `id` |
 | `businesses_list` | Список бизнесов | `ids?` |
 
@@ -189,8 +189,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Покажи активные кампании | `campaigns_list(state="ON")` |
 | Создай кампанию | `campaigns_add(name="...", start_date="2024-01-01")` |
 | Сколько объявлений в кампании 123? | `ads_list(campaign_ids="123")` → count |
-| Включи кампанию 456 | `campaigns_update(id="456", state="ON")` |
-| Отключи кампанию 456 | `campaigns_update(id="456", state="OFF")` |
+| Включи кампанию 456 | `campaigns_update(id="456", status="ON")` |
+| Отключи кампанию 456 | `campaigns_update(id="456", status="OFF")` |
 | Ключевые слова кампании 789 | `keywords_list(campaign_ids="789")` |
 | Изменить ставку ключевого слова на 15 руб | `keywords_update(id="99999", bid="15000000")` |
 | Статистика за последнюю неделю | `reports_get(date_from="...", date_to="...")` |
