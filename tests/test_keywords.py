@@ -44,6 +44,23 @@ def test_keywords_list():
         assert result[0]["Id"] == 99999
 
 
+def test_keywords_list_trims_campaign_ids():
+    """Test campaign IDs are normalized before argv construction."""
+    runner = _mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_list(campaign_ids=" 12345 ")
+
+    runner.run_json.assert_called_once_with(
+        ["keywords", "get", "--campaign-ids", "12345", "--format", "json"]
+    )
+
+
+def test_keywords_list_requires_campaign_ids():
+    """Test blank campaign IDs are rejected."""
+    result = keywords_list(campaign_ids="   ")
+    assert result["error"] == "missing_campaign_ids"
+
+
 def test_keywords_update():
     """Test 15: Update bid."""
     with patch("server.tools.keywords.get_runner", return_value=_mock_runner({})):

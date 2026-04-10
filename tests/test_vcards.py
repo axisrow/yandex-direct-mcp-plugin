@@ -53,6 +53,15 @@ class TestVcardsList:
             assert len(result) == 2
             assert result[0]["Id"] == 1
 
+    def test_list_vcards_no_ids(self, mock_vcards):
+        """Test listing all vCards with no IDs."""
+        with patch(
+            "server.tools.vcards.get_runner",
+            return_value=_mock_runner(mock_vcards),
+        ):
+            result = vcards_list()
+            assert len(result) == 2
+
     def test_list_vcards_batch_limit(self):
         """Test batch limit validation for list."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
@@ -60,11 +69,16 @@ class TestVcardsList:
         assert "error" in result
         assert result["error"] == "batch_limit"
 
-    def test_list_vcards_empty_result(self):
-        """Test empty response returns empty list."""
-        with patch("server.tools.vcards.get_runner", return_value=_mock_runner([])):
-            result = vcards_list(ids="1")
-            assert result == []
+    def test_list_vcards_trims_ids_before_cli(self, mock_vcards):
+        """Test vCard IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_vcards
+        with patch("server.tools.vcards.get_runner", return_value=runner):
+            vcards_list(ids=" 1,2 ")
+
+        runner.run_json.assert_called_once_with(
+            ["vcards", "get", "--format", "json", "--ids", "1,2"]
+        )
 
 
 class TestVcardsAdd:
@@ -73,14 +87,15 @@ class TestVcardsAdd:
     def test_add_vcard_success(self):
         """Test adding vCard successfully."""
         mock_result = {"Id": 123, "CompanyAddress": "789 Pine Rd"}
-        vcard_data = '{"CompanyAddress": "789 Pine Rd", "ContactPhone": "+79991112233"}'
+        vcard_json = '{"CompanyAddress": "789 Pine Rd"}'
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
 
-        with patch(
-            "server.tools.vcards.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = vcards_add(vcard_data=vcard_data)
+        with patch("server.tools.vcards.get_runner", return_value=runner):
+            result = vcards_add(vcard_json=vcard_json)
             assert result["Id"] == 123
-            assert result["CompanyAddress"] == "789 Pine Rd"
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
 
 class TestVcardsDelete:
@@ -91,9 +106,10 @@ class TestVcardsDelete:
         mock_result = {"success": True}
 
         with patch(
-            "server.tools.vcards.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.vcards.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
-            result = vcards_delete(ids="1,2")
+            result = vcards_delete(ids="1")
             assert result["success"] is True
 
     def test_delete_vcards_batch_limit(self):

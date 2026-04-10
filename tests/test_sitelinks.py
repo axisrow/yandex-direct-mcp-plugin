@@ -20,18 +20,9 @@ def mock_sitelinks():
     return [
         {
             "Id": 1,
-            "Name": "Quick Links",
-            "Links": [
+            "Sitelinks": [
                 {"Title": "About", "Href": "https://example.com/about"},
                 {"Title": "Contact", "Href": "https://example.com/contact"},
-            ],
-        },
-        {
-            "Id": 2,
-            "Name": "Products",
-            "Links": [
-                {"Title": "Product A", "Href": "https://example.com/a"},
-                {"Title": "Product B", "Href": "https://example.com/b"},
             ],
         },
     ]
@@ -53,9 +44,18 @@ class TestSitelinksList:
             "server.tools.sitelinks.get_runner",
             return_value=_mock_runner(mock_sitelinks),
         ):
-            result = sitelinks_list(ids="1,2")
-            assert len(result) == 2
+            result = sitelinks_list(ids="1")
+            assert len(result) == 1
             assert result[0]["Id"] == 1
+
+    def test_list_sitelinks_no_ids(self, mock_sitelinks):
+        """Test listing sitelinks with no IDs returns all."""
+        with patch(
+            "server.tools.sitelinks.get_runner",
+            return_value=_mock_runner(mock_sitelinks),
+        ):
+            result = sitelinks_list()
+            assert len(result) == 1
 
     def test_list_sitelinks_batch_limit(self):
         """Test batch limit validation for list."""
@@ -64,11 +64,16 @@ class TestSitelinksList:
         assert "error" in result
         assert result["error"] == "batch_limit"
 
-    def test_list_sitelinks_empty_result(self):
-        """Test empty response returns empty list."""
-        with patch("server.tools.sitelinks.get_runner", return_value=_mock_runner([])):
-            result = sitelinks_list(ids="1")
-            assert result == []
+    def test_list_sitelinks_trims_ids_before_cli(self, mock_sitelinks):
+        """Test sitelink IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_sitelinks
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            sitelinks_list(ids=" 1 ")
+
+        runner.run_json.assert_called_once_with(
+            ["sitelinks", "get", "--format", "json", "--ids", "1"]
+        )
 
 
 class TestSitelinksAdd:
@@ -76,15 +81,19 @@ class TestSitelinksAdd:
 
     def test_add_sitelinks_success(self):
         """Test adding sitelinks successfully."""
-        mock_result = {"Id": 123, "Name": "New Sitelinks"}
-        sitelinks_data = '{"Name": "New Sitelinks", "Links": [{"Title": "Link", "Href": "https://example.com"}]}'
+        mock_result = {"Id": 123}
+        links = '[{"Title":"About","Href":"https://example.com/about"}]'
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
 
         with patch(
-            "server.tools.sitelinks.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.sitelinks.get_runner",
+            return_value=runner,
         ):
-            result = sitelinks_add(sitelinks_data=sitelinks_data)
+            result = sitelinks_add(links=links)
             assert result["Id"] == 123
-            assert result["Name"] == "New Sitelinks"
+            call_args = runner.run_json.call_args[0][0]
+            assert "--links" in call_args
 
 
 class TestSitelinksDelete:
@@ -95,9 +104,10 @@ class TestSitelinksDelete:
         mock_result = {"success": True}
 
         with patch(
-            "server.tools.sitelinks.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.sitelinks.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
-            result = sitelinks_delete(ids="1,2")
+            result = sitelinks_delete(ids="1")
             assert result["success"] is True
 
     def test_delete_sitelinks_batch_limit(self):

@@ -19,12 +19,15 @@ def keyword_bids_list(
         keyword_ids: Comma-separated keyword IDs (optional).
     """
     args = ["keywordbids", "get", "--format", "json"]
-    if campaign_ids:
-        args.extend(["--campaign-ids", campaign_ids])
-    if ad_group_ids:
-        args.extend(["--adgroup-ids", ad_group_ids])
-    if keyword_ids:
-        args.extend(["--keyword-ids", keyword_ids])
+    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    if normalized_campaign_ids:
+        args.extend(["--campaign-ids", normalized_campaign_ids])
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
+    if normalized_ad_group_ids:
+        args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
+    if normalized_keyword_ids:
+        args.extend(["--keyword-ids", normalized_keyword_ids])
     runner = get_runner()
     return runner.run_json(args)
 

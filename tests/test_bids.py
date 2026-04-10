@@ -31,11 +31,50 @@ class TestBidsList:
     def test_bids_list_success(self):
         """Test listing bids for campaigns."""
         with patch(
-            "server.tools.bids.get_runner", return_value=_mock_runner(SAMPLE_BIDS)
+            "server.tools.bids.get_runner",
+            return_value=_mock_runner(SAMPLE_BIDS),
         ):
             result = bids_list(campaign_ids="12345")
             assert len(result) == 1
             assert result[0]["CampaignId"] == 12345
+
+    def test_bids_list_by_ad_group(self):
+        """Test listing bids by ad group IDs."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch(
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            bids_list(ad_group_ids="67890")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--adgroup-ids" in call_args
+
+    def test_bids_list_by_keyword(self):
+        """Test listing bids by keyword IDs."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch(
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            bids_list(keyword_ids="111,222")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--keyword-ids" in call_args
+
+    def test_bids_list_ignores_blank_filters(self):
+        """Test blank filters behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_BIDS
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(
+                campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
+            )
+            assert len(result) == 1
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+            assert "--adgroup-ids" not in call_args
+            assert "--keyword-ids" not in call_args
 
     def test_bids_list_batch_limit(self):
         """Test batch limit validation for bids_list."""
@@ -51,47 +90,41 @@ class TestBidsSet:
     def test_bids_set_success(self):
         """Test setting bid successfully."""
         mock_result = {"success": True}
+        runner = MagicMock()
+        runner.run_json.return_value = mock_result
         with patch(
-            "server.tools.bids.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.bids.get_runner",
+            return_value=runner,
         ):
-            result = bids_set(campaign_id="12345", bid="15000000")
+            result = bids_set(campaign_id="12345", bid="15")
             assert result["success"] is True
+            call_args = runner.run_json.call_args[0][0]
+            assert "--bid" in call_args
 
-    def test_bids_set_with_context_bid(self):
-        """Test setting bid with context bid."""
-        mock_result = {"success": True}
+    def test_bids_set_with_extra_json(self):
+        """Test setting bid with extra JSON parameters."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
         with patch(
-            "server.tools.bids.get_runner", return_value=_mock_runner(mock_result)
-        ) as mock:
-            result = bids_set(
-                campaign_id="12345", bid="15000000", context_bid="12000000"
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            bids_set(
+                campaign_id="12345",
+                bid="15",
+                extra_json='{"ContextBid":12000000}',
             )
-            assert result["success"] is True
-            # Verify the CLI command includes context bid
-            call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--context-bid" in call_args
-            assert "12000000" in call_args
+            call_args = runner.run_json.call_args[0][0]
+            assert "--json" in call_args
 
-    def test_bids_set_invalid_bid_negative(self):
-        """Test bids_set with negative bid."""
-        result = bids_set(campaign_id="12345", bid="-100")
-        assert "error" in result
-        assert result["error"] == "invalid_value"
+    def test_bids_set_requires_update_fields(self):
+        """Test setting bid rejects empty updates before CLI call."""
+        runner = MagicMock()
+        with patch(
+            "server.tools.bids.get_runner",
+            return_value=runner,
+        ):
+            result = bids_set(campaign_id="12345")
 
-    def test_bids_set_invalid_bid_zero(self):
-        """Test bids_set with zero bid."""
-        result = bids_set(campaign_id="12345", bid="0")
-        assert "error" in result
-        assert result["error"] == "invalid_value"
-
-    def test_bids_set_invalid_bid_non_numeric(self):
-        """Test bids_set with non-numeric bid."""
-        result = bids_set(campaign_id="12345", bid="abc")
-        assert "error" in result
-        assert result["error"] == "invalid_value"
-
-    def test_bids_set_invalid_context_bid(self):
-        """Test bids_set with invalid context bid."""
-        result = bids_set(campaign_id="12345", bid="15000000", context_bid="invalid")
-        assert "error" in result
-        assert result["error"] == "invalid_value"
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()

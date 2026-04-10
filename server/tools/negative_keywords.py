@@ -1,93 +1,98 @@
-"""MCP tools for negative keyword management."""
+"""Legacy compatibility wrappers for negative keyword shared set tools.
+
+These tools preserve historical MCP names used by prompts and skills.
+The audited direct-cli surface does not guarantee a working
+``negativekeywords`` subcommand, so callers should prefer the canonical
+wrappers in ``negative_keyword_shared_sets.py``.
+"""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool()
 @handle_cli_errors
-def negative_keywords_list(campaign_ids: str) -> list[dict] | dict:
-    """List negative keywords in specified campaigns.
+def negative_keywords_list(ids: str | None = None) -> list[dict] | dict:
+    """List negative keyword shared sets.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated set IDs (optional, max 10).
     """
-    batch_error = check_batch_limit(campaign_ids)
-    if batch_error:
-        return batch_error.__dict__
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
+        if batch_error:
+            return batch_error.__dict__
 
+    args = ["negativekeywordsharedsets", "get", "--format", "json"]
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keywords_add(name: str, keywords: str) -> dict:
+    """Add a negative keyword shared set.
+
+    Args:
+        name: Set name.
+        keywords: Comma-separated negative keywords.
+    """
     runner = get_runner()
     return runner.run_json(
-        ["negativekeywords", "get", "--campaign-ids", campaign_ids, "--format", "json"]
-    )
-
-
-@mcp.tool()
-@handle_cli_errors
-def negative_keywords_add(campaign_id: str, keywords: str) -> dict:
-    """Add negative keywords to a campaign.
-
-    Args:
-        campaign_id: Campaign ID.
-        keywords: Comma-separated keyword list to add as negative keywords.
-    """
-    runner = get_runner()
-    result = runner.run_json(
         [
-            "negativekeywords",
+            "negativekeywordsharedsets",
             "add",
-            "--campaign-id",
-            campaign_id,
+            "--name",
+            name,
             "--keywords",
             keywords,
             "--format",
             "json",
         ]
     )
-    return result
 
 
 @mcp.tool()
 @handle_cli_errors
-def negative_keywords_update(id: str, keywords: str) -> dict:
-    """Update negative keyword set.
+def negative_keywords_update(
+    id: str,
+    name: str | None = None,
+    keywords: str | None = None,
+) -> dict:
+    """Update a negative keyword shared set.
 
     Args:
-        id: Negative keyword set ID.
-        keywords: Comma-separated keyword list to set as negative keywords.
+        id: Set ID.
+        name: New set name (optional).
+        keywords: New comma-separated negative keywords (optional).
     """
+    if not any((name, keywords)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: name, keywords",
+        ).__dict__
+
+    args = ["negativekeywordsharedsets", "update", "--id", id]
+    if name is not None:
+        args.extend(["--name", name])
+    if keywords is not None:
+        args.extend(["--keywords", keywords])
+    args.extend(["--format", "json"])
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "negativekeywords",
-            "update",
-            "--id",
-            id,
-            "--keywords",
-            keywords,
-            "--format",
-            "json",
-        ]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
 def negative_keywords_delete(ids: str) -> dict:
-    """Delete negative keyword sets.
+    """Delete negative keyword shared sets.
 
     Args:
-        ids: Comma-separated negative keyword set IDs (max 10).
+        ids: Comma-separated set IDs (max 10).
     """
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["negativekeywords", "delete", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "negativekeywordsharedsets", "delete", ids)

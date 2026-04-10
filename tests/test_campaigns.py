@@ -69,6 +69,23 @@ class TestCampaignsList:
             result = campaigns_list()
             assert result == []
 
+    def test_list_campaigns_batch_limit(self):
+        """Test batch limit validation for campaign IDs."""
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = campaigns_list(ids=ids)
+        assert result["error"] == "batch_limit"
+
+    def test_list_campaigns_trims_ids_before_cli(self, mock_campaigns):
+        """Test campaign IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_campaigns
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_list(ids=" 12345,67890 ")
+
+        runner.run_json.assert_called_once_with(
+            ["campaigns", "get", "--format", "json", "--ids", "12345,67890"]
+        )
+
 
 class TestCampaignsUpdate:
     """Test scenarios 9-10."""

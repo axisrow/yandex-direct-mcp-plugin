@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.dictionaries import dictionaries_get
+from server.tools.dictionaries import dictionaries_get, dictionaries_list_names
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +31,7 @@ class TestDictionariesGet:
             "server.tools.dictionaries.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = dictionaries_get(dictionary_type="GeographyRegions")
+            result = dictionaries_get(names="GeoRegions")
             assert result == mock_result
 
     def test_get_time_zones(self):
@@ -41,7 +41,7 @@ class TestDictionariesGet:
             "server.tools.dictionaries.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = dictionaries_get(dictionary_type="TimeZones")
+            result = dictionaries_get(names="TimeZones")
             assert result == mock_result
 
     def test_get_currencies(self):
@@ -51,7 +51,7 @@ class TestDictionariesGet:
             "server.tools.dictionaries.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = dictionaries_get(dictionary_type="Currencies")
+            result = dictionaries_get(names="Currencies")
             assert result == mock_result
 
     def test_get_constants(self):
@@ -61,49 +61,40 @@ class TestDictionariesGet:
             "server.tools.dictionaries.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = dictionaries_get(dictionary_type="Constants")
+            result = dictionaries_get(names="Constants")
             assert result == mock_result
 
-    def test_get_with_locale(self):
-        """Test getting dictionary with locale parameter."""
-        mock_result = {"Regions": [{"Id": 1, "Name": "Москва"}]}
+    def test_get_multiple_dictionaries(self):
+        """Test getting multiple dictionaries at once."""
+        mock_result = {"Currencies": [], "GeoRegions": []}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.dictionaries.get_runner", return_value=runner):
-            dictionaries_get(dictionary_type="GeographyRegions", locale="ru")
-            runner.run_json.assert_called_once()
+            result = dictionaries_get(names="Currencies,GeoRegions")
+            assert result == mock_result
             call_args = runner.run_json.call_args[0][0]
-            assert "--locale" in call_args
-            assert "ru" in call_args
+            assert "--names" in call_args
+            assert "Currencies,GeoRegions" in call_args
 
-    def test_invalid_dictionary_type(self):
-        """Test with invalid dictionary type."""
-        result = dictionaries_get(dictionary_type="InvalidType")
-        assert "error" in result
-        assert result["error"] == "invalid_type"
+    def test_passes_names_flag(self):
+        """Verify the CLI flag --names is used."""
+        runner = MagicMock()
+        runner.run_json.return_value = {}
 
-    def test_all_valid_dictionary_types(self):
-        """Test all valid dictionary types are accepted."""
-        valid_types = (
-            "GeographyRegions",
-            "TimeZones",
-            "Currencies",
-            "Constants",
-            "AdCategories",
-            "OperationSystemVersions",
-            "MobileOperatingSystemVersions",
-            "DeviceTypes",
-            "AgeRanges",
-            "Genders",
-            "Interests",
-        )
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            dictionaries_get(names="Currencies")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--names" in call_args
+            assert "Currencies" in call_args
 
-        for dict_type in valid_types:
-            mock_result = {"Test": "data"}
-            with patch(
-                "server.tools.dictionaries.get_runner",
-                return_value=_mock_runner(mock_result),
-            ):
-                result = dictionaries_get(dictionary_type=dict_type)
-                assert result == mock_result
+
+class TestDictionariesListNames:
+    """Test scenarios for dictionaries_list_names."""
+
+    def test_returns_list_of_names(self):
+        result = dictionaries_list_names()
+        assert isinstance(result, list)
+        assert "Currencies" in result
+        assert "GeoRegions" in result
+        assert "TimeZones" in result

@@ -43,6 +43,28 @@ def test_dynamic_ads_list():
         assert len(result) == 1
 
 
+def test_dynamic_ads_list_trims_ids():
+    runner = _mock_runner(SAMPLE_TARGETS)
+    with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
+        dynamic_ads_list(ad_group_ids=" 200 ")
+
+    runner.run_json.assert_called_once_with(
+        [
+            "dynamicads",
+            "get",
+            "--adgroup-ids",
+            "200",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_dynamic_ads_list_requires_ids():
+    result = dynamic_ads_list(ad_group_ids="   ")
+    assert result["error"] == "missing_ad_group_ids"
+
+
 def test_dynamic_ads_list_empty():
     with patch("server.tools.dynamic_ads.get_runner", return_value=_mock_runner([])):
         result = dynamic_ads_list(ad_group_ids="200")

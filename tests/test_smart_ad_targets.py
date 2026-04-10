@@ -44,6 +44,28 @@ def test_smart_ad_targets_list():
         assert len(result) == 1
 
 
+def test_smart_ad_targets_list_trims_ids():
+    runner = _mock_runner(SAMPLE_TARGETS)
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        smart_ad_targets_list(ad_group_ids=" 200 ")
+
+    runner.run_json.assert_called_once_with(
+        [
+            "smartadtargets",
+            "get",
+            "--adgroup-ids",
+            "200",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_smart_ad_targets_list_requires_ids():
+    result = smart_ad_targets_list(ad_group_ids="   ")
+    assert result["error"] == "missing_ad_group_ids"
+
+
 def test_smart_ad_targets_list_empty():
     with patch(
         "server.tools.smart_ad_targets.get_runner", return_value=_mock_runner([])

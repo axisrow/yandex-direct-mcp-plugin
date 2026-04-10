@@ -2,55 +2,77 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool()
 @handle_cli_errors
-def audience_targets_list(campaign_ids: str) -> list[dict] | dict:
-    """List audience targets for specified campaigns.
+def audience_targets_list(
+    campaign_ids: str | None = None,
+    ad_group_ids: str | None = None,
+    ids: str | None = None,
+) -> list[dict] | dict:
+    """List audience targets.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (optional, max 10).
+        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
+        ids: Comma-separated audience target IDs (optional, max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(campaign_ids)
-    if batch_error:
-        return batch_error.__dict__
+    args = ["audiencetargets", "get", "--format", "json"]
+    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    if normalized_campaign_ids:
+        batch_error = check_batch_limit(normalized_campaign_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--campaign-ids", normalized_campaign_ids])
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
+    if normalized_ad_group_ids:
+        batch_error = check_batch_limit(normalized_ad_group_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--ids", normalized_ids])
 
     runner = get_runner()
-    result = runner.run_json(
-        ["audiencetargets", "get", "--campaign-ids", campaign_ids, "--format", "json"]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def audience_targets_add(campaign_id: str, ad_group_id: str, audience_id: str) -> dict:
-    """Add an audience target to a campaign ad group.
+def audience_targets_add(
+    ad_group_id: str,
+    retargeting_list_id: str,
+    bid: str | None = None,
+    extra_json: str | None = None,
+) -> dict:
+    """Add an audience target to an ad group.
 
     Args:
-        campaign_id: Campaign ID to add target to.
         ad_group_id: Ad group ID to add target to.
-        audience_id: Audience segment ID to target.
+        retargeting_list_id: Retargeting list ID to target.
+        bid: Optional bid amount passed directly to the CLI.
+        extra_json: Optional JSON string with additional parameters.
     """
+    args = [
+        "audiencetargets",
+        "add",
+        "--adgroup-id",
+        ad_group_id,
+        "--retargeting-list-id",
+        retargeting_list_id,
+    ]
+    if bid is not None:
+        args.extend(["--bid", bid])
+    if extra_json is not None:
+        args.extend(["--json", extra_json])
     runner = get_runner()
-    result = runner.run_json(
-        [
-            "audiencetargets",
-            "add",
-            "--campaign-id",
-            campaign_id,
-            "--ad-group-id",
-            ad_group_id,
-            "--audience-id",
-            audience_id,
-            "--format",
-            "json",
-        ]
-    )
-    return result
+    return runner.run_json(args)
 
 
 @mcp.tool()
@@ -61,17 +83,7 @@ def audience_targets_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated audience target IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["audiencetargets", "delete", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "audiencetargets", "delete", ids)
 
 
 @mcp.tool()
@@ -82,17 +94,7 @@ def audience_targets_suspend(ids: str) -> dict:
     Args:
         ids: Comma-separated audience target IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["audiencetargets", "suspend", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "audiencetargets", "suspend", ids)
 
 
 @mcp.tool()
@@ -103,14 +105,4 @@ def audience_targets_resume(ids: str) -> dict:
     Args:
         ids: Comma-separated audience target IDs (max 10).
     """
-    from server.tools.helpers import check_batch_limit
-
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["audiencetargets", "resume", "--ids", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "audiencetargets", "resume", ids)

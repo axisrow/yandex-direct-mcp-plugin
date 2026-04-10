@@ -27,7 +27,41 @@ class TestCreativesList:
         """Test listing creatives by IDs."""
         mock_result = {"creatives": [{"id": 1, "name": "Creative 1"}]}
         with patch(
-            "server.tools.creatives.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.creatives.get_runner",
+            return_value=_mock_runner(mock_result),
         ):
             result = creatives_list(ids="1")
             assert "creatives" in result
+
+    def test_creatives_list_by_campaign(self):
+        """Test listing creatives by campaign IDs."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch(
+            "server.tools.creatives.get_runner",
+            return_value=runner,
+        ):
+            creatives_list(campaign_ids="12345")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" in call_args
+            assert "12345" in call_args
+
+    def test_creatives_list_trims_filters(self):
+        """Test creative filters are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.creatives.get_runner", return_value=runner):
+            creatives_list(ids=" 1 ", campaign_ids=" 12345 ")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "creatives",
+                "get",
+                "--format",
+                "json",
+                "--ids",
+                "1",
+                "--campaign-ids",
+                "12345",
+            ]
+        )

@@ -1,5 +1,11 @@
 """Shared helpers for MCP tool modules."""
 
+from server.cli.runner import (
+    CliAuthError,
+    CliNotFoundError,
+    CliRegistrationError,
+    CliTimeoutError,
+)
 from server.tools import ToolError
 
 MAX_BATCH_SIZE = 10
@@ -52,11 +58,30 @@ def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dic
         return batch_error.__dict__
 
     ids = parse_ids(ids_str)
-    results = [runner.run_json([resource, action, "--id", item_id]) for item_id in ids]
+    if not ids:
+        return ToolError(
+            error="missing_ids",
+            message=f"Provide at least one {resource} ID.",
+        ).__dict__
+    results = []
+    succeeded = []
+    failed = []
+    for item_id in ids:
+        try:
+            result = runner.run_json([resource, action, "--id", item_id])
+            results.append(result)
+            succeeded.append(item_id)
+        except (CliAuthError, CliNotFoundError, CliRegistrationError, CliTimeoutError):
+            raise
+        except Exception as e:
+            results.append({"success": False, "id": item_id, "error": str(e)})
+            failed.append(item_id)
     if len(results) == 1:
         return results[0]
-    success = all(
-        not isinstance(result, dict) or result.get("success", True) is not False
-        for result in results
-    )
-    return {"success": success, "ids": ids, "results": results}
+    return {
+        "success": len(failed) == 0,
+        "ids": ids,
+        "succeeded": succeeded,
+        "failed": failed,
+        "results": results,
+    }

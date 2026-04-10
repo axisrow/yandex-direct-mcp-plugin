@@ -25,13 +25,26 @@ def keywords_list(campaign_ids: str) -> list[dict] | dict:
     Args:
         campaign_ids: Comma-separated campaign IDs (max 10).
     """
-    batch_error = _check_batch_limit(campaign_ids)
+    normalized_campaign_ids = campaign_ids.strip()
+    if not normalized_campaign_ids:
+        return ToolError(
+            error="missing_campaign_ids",
+            message="Provide at least one campaign ID.",
+        ).__dict__
+    batch_error = _check_batch_limit(normalized_campaign_ids)
     if batch_error:
         return batch_error.__dict__
 
     runner = get_runner()
     return runner.run_json(
-        ["keywords", "get", "--campaign-ids", campaign_ids, "--format", "json"]
+        [
+            "keywords",
+            "get",
+            "--campaign-ids",
+            normalized_campaign_ids,
+            "--format",
+            "json",
+        ]
     )
 
 

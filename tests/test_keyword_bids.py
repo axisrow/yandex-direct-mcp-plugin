@@ -77,6 +77,32 @@ class TestKeywordBidsList:
             assert "--adgroup-ids" in call_args
             assert "222" in call_args
 
+    def test_keyword_bids_list_trims_filters(self):
+        """Test keyword bid filters are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            keyword_bids_list(
+                campaign_ids=" 333 ",
+                ad_group_ids=" 222 ",
+                keyword_ids=" 111 ",
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "keywordbids",
+                "get",
+                "--format",
+                "json",
+                "--campaign-ids",
+                "333",
+                "--adgroup-ids",
+                "222",
+                "--keyword-ids",
+                "111",
+            ]
+        )
+
 
 class TestKeywordBidsSet:
     """Tests for keyword_bids_set tool."""

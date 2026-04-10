@@ -48,6 +48,19 @@ def test_ads_list_success():
         assert len(result) == 2
 
 
+def test_ads_list_ignores_blank_filters():
+    """Test blank filters behave like no filter."""
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_ADS
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_list(campaign_ids="   ", ad_group_ids="   ", ids="   ")
+        assert len(result) == 2
+        call_args = runner.run_json.call_args[0][0]
+        assert "--campaign-ids" not in call_args
+        assert "--adgroup-ids" not in call_args
+        assert "--ids" not in call_args
+
+
 def test_ads_foreign_campaign():
     """Test 12: Campaign belongs to second account (73-77M range)."""
     result = ads_list(campaign_ids="75000001")
