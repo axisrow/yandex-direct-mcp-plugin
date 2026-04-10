@@ -265,7 +265,7 @@ Just ask in natural language — the plugin handles the rest:
   → ads_list(campaign_ids="12345") → count
 
 > отключи кампанию 67890
-  → campaigns_update(id="67890", state="OFF")
+  → campaigns_update(id="67890", status="OFF")
 
 > покажи ключевые слова кампании 12345
   → keywords_list(campaign_ids="12345")
@@ -297,8 +297,8 @@ mcp__yandex_direct__ads_list(campaign_ids="12345")
 # → [{"Id": 111, "Title": "Доставка пиццы", "Title2": "За 30 минут", "State": "ON"}, ...]
 
 # Включить/отключить кампанию
-mcp__yandex_direct__campaigns_update(id="67890", state="OFF")
-# → {"success": True, "id": 67890, "state": "OFF"}
+mcp__yandex_direct__campaigns_update(id="67890", status="OFF")
+# → {"success": True, "id": 67890, "status": "OFF"}
 
 # Ключевые слова
 mcp__yandex_direct__keywords_list(campaign_ids="12345")
@@ -341,7 +341,7 @@ mcp__yandex_direct__auth_setup(code="0000000")
 # → {"error": "invalid_grant", "message": "Неверный или просроченный код. Код действует 10 минут."}
 
 # Кампания не найдена
-mcp__yandex_direct__campaigns_update(id="999", state="ON")
+mcp__yandex_direct__campaigns_update(id="999", status="ON")
 # → {"error": "not_found", "message": "Кампания 999 не найдена в аккаунте ksamatadirect"}
 
 # Кампания принадлежит второму аккаунту (ID ~73-77М)
@@ -395,7 +395,7 @@ pytest
 | **Campaigns** |
 | 7 | Список всех кампаний | `campaigns_list()` | Массив кампаний с Id, Name, State |
 | 8 | Фильтр по статусу | `campaigns_list(state="ON")` | Только кампании с State=ON |
-| 9 | Включить кампанию | `campaigns_update(id=..., state="ON")` | `{"success": True}` |
+| 9 | Включить кампанию | `campaigns_update(id=..., status="ON")` | `{"success": True}` |
 | 10 | Несуществующая кампания | `campaigns_update(id="999")` | `{"error": "not_found"}` |
 | **Ads** |
 | 11 | Объявления в кампании | `ads_list(campaign_ids="12345")` | Массив объявлений |

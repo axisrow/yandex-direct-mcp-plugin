@@ -45,14 +45,14 @@ def test_live_campaigns_update_rolls_back(live_token_getter):
     )
 
     try:
-        update_result = campaigns_update(id=campaign_id, state="ON")
+        update_result = campaigns_update(id=campaign_id, status="ON")
         assert update_result.get("success") is True, update_result
 
         updated = _find_campaign(campaign_id)
         assert updated.get("State") == "ON", updated
     finally:
         try:
-            rollback = campaigns_update(id=campaign_id, state="OFF")
+            rollback = campaigns_update(id=campaign_id, status="OFF")
             assert rollback.get("success") is True, rollback
             restored = _find_campaign(campaign_id)
             assert restored.get("State") == "OFF", restored
