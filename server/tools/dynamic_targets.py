@@ -26,7 +26,7 @@ def dynamic_targets_list(ad_group_ids: str | None = None) -> list[dict] | dict:
         if batch_error:
             return batch_error.__dict__
 
-    args = ["dynamictargets", "get", "--format", "json"]
+    args = ["dynamicads", "get", "--format", "json"]
     if normalized_ad_group_ids:
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     runner = get_runner()
@@ -45,7 +45,7 @@ def dynamic_targets_add(ad_group_id: str, target_data: str) -> dict:
     runner = get_runner()
     return runner.run_json(
         [
-            "dynamictargets",
+            "dynamicads",
             "add",
             "--adgroup-id",
             ad_group_id,
@@ -69,7 +69,7 @@ def dynamic_targets_update(id: str, extra_json: str) -> dict:
     runner = get_runner()
     return runner.run_json(
         [
-            "dynamictargets",
+            "dynamicads",
             "update",
             "--id",
             id,
@@ -89,4 +89,4 @@ def dynamic_targets_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated target IDs (max 10).
     """
-    return run_single_id_batch(get_runner(), "dynamictargets", "delete", ids)
+    return run_single_id_batch(get_runner(), "dynamicads", "delete", ids)

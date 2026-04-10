@@ -38,6 +38,22 @@ class TestDynamicTargetsList:
             result = dynamic_targets_list(ad_group_ids="67890")
             assert len(result) == 1
 
+    def test_dynamic_targets_use_canonical_cli_surface(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.dynamic_targets.get_runner", return_value=runner):
+            dynamic_targets_list(ad_group_ids="67890")
+            dynamic_targets_add(
+                ad_group_id="67892", target_data='{"Name": "Test", "Conditions": []}'
+            )
+            dynamic_targets_update(id="301", extra_json='{"Conditions": []}')
+            dynamic_targets_delete(ids="301")
+
+        assert runner.run_json.call_args_list[0][0][0][0] == "dynamicads"
+        assert runner.run_json.call_args_list[1][0][0][0] == "dynamicads"
+        assert runner.run_json.call_args_list[2][0][0][0] == "dynamicads"
+        assert runner.run_json.call_args_list[3][0][0][0] == "dynamicads"
+
     def test_list_dynamic_targets_ignores_blank_ids(self):
         runner = MagicMock()
         runner.run_json.return_value = SAMPLE_TARGETS
@@ -90,7 +106,7 @@ class TestDynamicTargetsUpdate:
             dynamic_targets_update(id="301", extra_json='{"Conditions": []}')
             runner.run_json.assert_called_once_with(
                 [
-                    "dynamictargets",
+                    "dynamicads",
                     "update",
                     "--id",
                     "301",
@@ -121,8 +137,8 @@ class TestDynamicTargetsDelete:
         assert result["success"] is True
         assert result["ids"] == ["301", "302"]
         assert runner.run_json.call_args_list == [
-            call(["dynamictargets", "delete", "--id", "301"]),
-            call(["dynamictargets", "delete", "--id", "302"]),
+            call(["dynamicads", "delete", "--id", "301"]),
+            call(["dynamicads", "delete", "--id", "302"]),
         ]
 
     def test_delete_dynamic_targets_batch_limit(self):

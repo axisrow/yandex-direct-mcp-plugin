@@ -26,7 +26,7 @@ def negative_keywords_list(ids: str | None = None) -> list[dict] | dict:
         if batch_error:
             return batch_error.__dict__
 
-    args = ["negativekeywords", "get", "--format", "json"]
+    args = ["negativekeywordsharedsets", "get", "--format", "json"]
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
     runner = get_runner()
@@ -45,7 +45,7 @@ def negative_keywords_add(name: str, keywords: str) -> dict:
     runner = get_runner()
     return runner.run_json(
         [
-            "negativekeywords",
+            "negativekeywordsharedsets",
             "add",
             "--name",
             name,
@@ -71,7 +71,7 @@ def negative_keywords_update(
         name: New set name (optional).
         keywords: New comma-separated negative keywords (optional).
     """
-    args = ["negativekeywords", "update", "--id", id]
+    args = ["negativekeywordsharedsets", "update", "--id", id]
     if name is not None:
         args.extend(["--name", name])
     if keywords is not None:
@@ -89,4 +89,4 @@ def negative_keywords_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated set IDs (max 10).
     """
-    return run_single_id_batch(get_runner(), "negativekeywords", "delete", ids)
+    return run_single_id_batch(get_runner(), "negativekeywordsharedsets", "delete", ids)

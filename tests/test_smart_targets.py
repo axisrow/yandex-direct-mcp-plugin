@@ -39,6 +39,22 @@ def test_smart_targets_list():
         assert len(result) == 1
 
 
+def test_smart_targets_use_canonical_cli_surface():
+    """Legacy wrapper should call canonical smartadtargets command."""
+    runner = MagicMock()
+    runner.run_json.return_value = {"success": True}
+    with patch("server.tools.smart_targets.get_runner", return_value=runner):
+        smart_targets_list(ad_group_ids="100")
+        smart_targets_add(ad_group_id="100", target_type="RETARGETING")
+        smart_targets_update(id="1", extra_json='{"Condition":"URL_CONTAINS"}')
+        smart_targets_delete(ids="1")
+
+    assert runner.run_json.call_args_list[0][0][0][0] == "smartadtargets"
+    assert runner.run_json.call_args_list[1][0][0][0] == "smartadtargets"
+    assert runner.run_json.call_args_list[2][0][0][0] == "smartadtargets"
+    assert runner.run_json.call_args_list[3][0][0][0] == "smartadtargets"
+
+
 def test_smart_targets_list_ignores_blank_ids():
     """Test blank ad group IDs behave like no filter."""
     runner = MagicMock()
@@ -103,8 +119,8 @@ class TestSmartTargetsDelete:
         assert result["success"] is True
         assert result["ids"] == ["1", "2"]
         assert runner.run_json.call_args_list == [
-            call(["smarttargets", "delete", "--id", "1"]),
-            call(["smarttargets", "delete", "--id", "2"]),
+            call(["smartadtargets", "delete", "--id", "1"]),
+            call(["smartadtargets", "delete", "--id", "2"]),
         ]
 
     def test_smart_targets_delete_batch_limit(self):

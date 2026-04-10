@@ -26,7 +26,7 @@ def smart_targets_list(ad_group_ids: str | None = None) -> list[dict] | dict:
         if batch_error:
             return batch_error.__dict__
 
-    args = ["smarttargets", "get", "--format", "json"]
+    args = ["smartadtargets", "get", "--format", "json"]
     if normalized_ad_group_ids:
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     runner = get_runner()
@@ -46,7 +46,7 @@ def smart_targets_add(
         extra_json: Additional JSON parameters (optional).
     """
     args = [
-        "smarttargets",
+        "smartadtargets",
         "add",
         "--adgroup-id",
         ad_group_id,
@@ -72,7 +72,7 @@ def smart_targets_update(
         target_type: New target type (optional).
         extra_json: JSON string with fields to update (optional).
     """
-    args = ["smarttargets", "update", "--id", id]
+    args = ["smartadtargets", "update", "--id", id]
     if target_type:
         args.extend(["--type", target_type])
     if extra_json:
@@ -90,4 +90,4 @@ def smart_targets_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated target IDs (max 10).
     """
-    return run_single_id_batch(get_runner(), "smarttargets", "delete", ids)
+    return run_single_id_batch(get_runner(), "smartadtargets", "delete", ids)

@@ -72,6 +72,20 @@ def test_negative_keywords_add():
         assert result["Id"] == 1
 
 
+def test_negative_keywords_use_canonical_cli_surface():
+    """Legacy wrapper should call canonical shared-set command."""
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_SETS
+    with patch("server.tools.negative_keywords.get_runner", return_value=runner):
+        negative_keywords_list(ids="1")
+        negative_keywords_add(name="Bad words", keywords="bad, awful")
+        negative_keywords_update(id="1", name="Updated")
+
+    assert runner.run_json.call_args_list[0][0][0][0] == "negativekeywordsharedsets"
+    assert runner.run_json.call_args_list[1][0][0][0] == "negativekeywordsharedsets"
+    assert runner.run_json.call_args_list[2][0][0][0] == "negativekeywordsharedsets"
+
+
 def test_negative_keywords_update():
     """Test updating a negative keyword set."""
     mock_result = {"success": True}
@@ -104,8 +118,8 @@ class TestNegativeKeywordsDelete:
         assert result["success"] is True
         assert result["ids"] == ["1", "2"]
         assert runner.run_json.call_args_list == [
-            call(["negativekeywords", "delete", "--id", "1"]),
-            call(["negativekeywords", "delete", "--id", "2"]),
+            call(["negativekeywordsharedsets", "delete", "--id", "1"]),
+            call(["negativekeywordsharedsets", "delete", "--id", "2"]),
         ]
 
     def test_negative_keywords_delete_batch_limit(self):

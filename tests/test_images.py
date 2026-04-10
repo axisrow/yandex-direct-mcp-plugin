@@ -80,6 +80,17 @@ class TestAdimagesList:
             result = adimages_list(ids="999")
             assert result == []
 
+    def test_list_images_trims_ids_before_cli(self, mock_images):
+        """Test image IDs are normalized before argv construction."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_images
+        with patch("server.tools.images.get_runner", return_value=runner):
+            adimages_list(ids=" 1,2 ")
+
+        runner.run_json.assert_called_once_with(
+            ["adimages", "get", "--format", "json", "--ids", "1,2"]
+        )
+
 
 class TestAdimagesAdd:
     """Tests for adimages_add tool."""
