@@ -44,6 +44,16 @@ class TestAdgroupsList:
             assert len(result) == 2
             assert result[0]["Id"] == 1
 
+    def test_adgroups_list_ignores_blank_campaign_ids(self):
+        """Test blank campaign IDs behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_ADGROUPS
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_list(campaign_ids="   ")
+            assert len(result) == 2
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+
     def test_adgroups_list_empty(self):
         """Test empty ad groups list."""
         with patch(

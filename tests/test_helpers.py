@@ -73,6 +73,20 @@ def test_run_single_id_batch_rejects_whitespace_ids():
     assert result["error"] == "missing_ids"
 
 
+def test_run_single_id_batch_batches_multiple_ids():
+    runner = type("Runner", (), {})()
+    runner.run_json = lambda args: {"success": True, "args": args}
+
+    result = run_single_id_batch(runner, "vcards", "delete", "1,2")
+
+    assert result["success"] is True
+    assert result["ids"] == ["1", "2"]
+    assert result["results"] == [
+        {"success": True, "args": ["vcards", "delete", "--id", "1"]},
+        {"success": True, "args": ["vcards", "delete", "--id", "2"]},
+    ]
+
+
 # --- validate_state ---
 
 

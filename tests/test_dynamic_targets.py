@@ -1,6 +1,6 @@
 """Tests for dynamic targets MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -37,6 +37,15 @@ class TestDynamicTargetsList:
         ):
             result = dynamic_targets_list(ad_group_ids="67890")
             assert len(result) == 1
+
+    def test_list_dynamic_targets_ignores_blank_ids(self):
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_TARGETS
+        with patch("server.tools.dynamic_targets.get_runner", return_value=runner):
+            result = dynamic_targets_list(ad_group_ids="   ")
+            assert len(result) == 1
+            call_args = runner.run_json.call_args[0][0]
+            assert "--adgroup-ids" not in call_args
 
     def test_list_dynamic_targets_no_ids(self):
         with patch(
@@ -102,6 +111,19 @@ class TestDynamicTargetsDelete:
         ):
             result = dynamic_targets_delete(ids="301")
             assert result["success"] is True
+
+    def test_delete_dynamic_targets_batches_multiple_ids(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.dynamic_targets.get_runner", return_value=runner):
+            result = dynamic_targets_delete(ids="301,302")
+
+        assert result["success"] is True
+        assert result["ids"] == ["301", "302"]
+        assert runner.run_json.call_args_list == [
+            call(["dynamictargets", "delete", "--id", "301"]),
+            call(["dynamictargets", "delete", "--id", "302"]),
+        ]
 
     def test_delete_dynamic_targets_batch_limit(self):
         ids = ",".join(str(i) for i in range(1, 12))

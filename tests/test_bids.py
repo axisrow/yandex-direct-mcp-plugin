@@ -62,6 +62,18 @@ class TestBidsList:
             call_args = runner.run_json.call_args[0][0]
             assert "--keyword-ids" in call_args
 
+    def test_bids_list_ignores_blank_filters(self):
+        """Test blank filters behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_BIDS
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(campaign_ids="   ", ad_group_ids="   ", keyword_ids="   ")
+            assert len(result) == 1
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+            assert "--adgroup-ids" not in call_args
+            assert "--keyword-ids" not in call_args
+
     def test_bids_list_batch_limit(self):
         """Test batch limit validation for bids_list."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs

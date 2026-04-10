@@ -52,11 +52,14 @@ def ads_list(
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
         status: Filter by status (optional).
     """
-    if campaign_ids is not None:
-        batch_error = _check_batch_limit(campaign_ids)
+    normalized_campaign_ids = (
+        campaign_ids.strip() if campaign_ids is not None else None
+    )
+    if normalized_campaign_ids:
+        batch_error = _check_batch_limit(normalized_campaign_ids)
         if batch_error:
             return batch_error.__dict__
-        foreign_id = _get_foreign_campaign_id(campaign_ids)
+        foreign_id = _get_foreign_campaign_id(normalized_campaign_ids)
         if foreign_id:
             return ToolError(
                 error="foreign_campaign",
@@ -66,18 +69,22 @@ def ads_list(
             ).__dict__
 
     args = ["ads", "get", "--format", "json"]
-    if campaign_ids is not None:
-        args.extend(["--campaign-ids", campaign_ids])
-    if ids is not None and ids.strip():
-        batch_error = _check_batch_limit(ids)
+    if normalized_campaign_ids:
+        args.extend(["--campaign-ids", normalized_campaign_ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = _check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
-        args.extend(["--ids", ids])
-    if ad_group_ids is not None:
-        batch_error = _check_batch_limit(ad_group_ids)
+        args.extend(["--ids", normalized_ids])
+    normalized_ad_group_ids = (
+        ad_group_ids.strip() if ad_group_ids is not None else None
+    )
+    if normalized_ad_group_ids:
+        batch_error = _check_batch_limit(normalized_ad_group_ids)
         if batch_error:
             return batch_error.__dict__
-        args.extend(["--adgroup-ids", ad_group_ids])
+        args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])
 

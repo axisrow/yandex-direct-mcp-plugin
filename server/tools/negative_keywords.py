@@ -9,7 +9,7 @@ backward compatibility with existing skill/prompt references.
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool()
@@ -20,14 +20,15 @@ def negative_keywords_list(ids: str | None = None) -> list[dict] | dict:
     Args:
         ids: Comma-separated set IDs (optional, max 10).
     """
-    if ids is not None and ids.strip():
-        batch_error = check_batch_limit(ids)
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
 
     args = ["negativekeywords", "get", "--format", "json"]
-    if ids is not None and ids.strip():
-        args.extend(["--ids", ids])
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -88,12 +89,4 @@ def negative_keywords_delete(ids: str) -> dict:
     Args:
         ids: Comma-separated set IDs (max 10).
     """
-    batch_error = check_batch_limit(ids)
-    if batch_error:
-        return batch_error.__dict__
-
-    runner = get_runner()
-    result = runner.run_json(
-        ["negativekeywords", "delete", "--id", ids, "--format", "json"]
-    )
-    return result
+    return run_single_id_batch(get_runner(), "negativekeywords", "delete", ids)

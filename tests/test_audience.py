@@ -82,6 +82,20 @@ class TestAudienceTargetsList:
             call_args = runner.run_json.call_args[0][0]
             assert "--ids" in call_args
 
+    def test_list_audience_targets_ignores_blank_ids(self, mock_audience_targets):
+        """Test blank filters behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_audience_targets
+        with patch("server.tools.audience.get_runner", return_value=runner):
+            result = audience_targets_list(
+                campaign_ids="   ", ad_group_ids="   ", ids="   "
+            )
+            assert len(result) == 2
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+            assert "--adgroup-ids" not in call_args
+            assert "--ids" not in call_args
+
     def test_list_audience_targets_batch_limit(self):
         """Test batch limit validation for list."""
         ids = ",".join(str(i) for i in range(1, 12))

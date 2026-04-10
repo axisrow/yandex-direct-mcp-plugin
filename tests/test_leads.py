@@ -32,6 +32,16 @@ class TestLeadsList:
             result = leads_list(campaign_ids="12345")
             assert "leads" in result
 
+    def test_leads_list_ignores_blank_campaign_ids(self):
+        """Test blank campaign IDs behave like no filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"leads": []}
+        with patch("server.tools.leads.get_runner", return_value=runner):
+            result = leads_list(campaign_ids="   ")
+            assert "leads" in result
+            call_args = runner.run_json.call_args[0][0]
+            assert "--campaign-ids" not in call_args
+
     def test_leads_list_no_campaign_ids(self):
         """Test listing leads without campaign IDs (all campaigns)."""
         mock_result = {"leads": [{"id": 1, "campaign_id": 12345}]}

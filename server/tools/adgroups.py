@@ -29,16 +29,20 @@ def adgroups_list(
         types: Filter by types (optional).
     """
     args = ["adgroups", "get", "--format", "json"]
-    if campaign_ids is not None:
-        batch_error = _check_batch_limit(campaign_ids)
+    normalized_campaign_ids = (
+        campaign_ids.strip() if campaign_ids is not None else None
+    )
+    if normalized_campaign_ids:
+        batch_error = _check_batch_limit(normalized_campaign_ids)
         if batch_error:
             return batch_error.__dict__
-        args.extend(["--campaign-ids", campaign_ids])
-    if ids is not None and ids.strip():
-        batch_error = _check_batch_limit(ids)
+        args.extend(["--campaign-ids", normalized_campaign_ids])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = _check_batch_limit(normalized_ids)
         if batch_error:
             return batch_error.__dict__
-        args.extend(["--ids", ids])
+        args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
     if types is not None:

@@ -1,6 +1,6 @@
 """Tests for negative keyword MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -50,6 +50,17 @@ def test_negative_keywords_list_no_ids():
         assert len(result) == 1
 
 
+def test_negative_keywords_list_ignores_blank_ids():
+    """Test blank ids behave like no filter."""
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_SETS
+    with patch("server.tools.negative_keywords.get_runner", return_value=runner):
+        result = negative_keywords_list(ids="   ")
+        assert len(result) == 1
+        call_args = runner.run_json.call_args[0][0]
+        assert "--ids" not in call_args
+
+
 def test_negative_keywords_add():
     """Test adding a negative keyword set."""
     mock_result = {"Id": 1}
@@ -83,6 +94,19 @@ class TestNegativeKeywordsDelete:
         ):
             result = negative_keywords_delete(ids="1")
             assert result["success"] is True
+
+    def test_negative_keywords_delete_batches_multiple_ids(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.negative_keywords.get_runner", return_value=runner):
+            result = negative_keywords_delete(ids="1,2")
+
+        assert result["success"] is True
+        assert result["ids"] == ["1", "2"]
+        assert runner.run_json.call_args_list == [
+            call(["negativekeywords", "delete", "--id", "1"]),
+            call(["negativekeywords", "delete", "--id", "2"]),
+        ]
 
     def test_negative_keywords_delete_batch_limit(self):
         ids = ",".join(str(i) for i in range(1, 12))

@@ -1,6 +1,6 @@
 """Tests for smart target MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -37,6 +37,17 @@ def test_smart_targets_list():
     ):
         result = smart_targets_list(ad_group_ids="100")
         assert len(result) == 1
+
+
+def test_smart_targets_list_ignores_blank_ids():
+    """Test blank ad group IDs behave like no filter."""
+    runner = MagicMock()
+    runner.run_json.return_value = SAMPLE_TARGETS
+    with patch("server.tools.smart_targets.get_runner", return_value=runner):
+        result = smart_targets_list(ad_group_ids="   ")
+        assert len(result) == 1
+        call_args = runner.run_json.call_args[0][0]
+        assert "--adgroup-ids" not in call_args
 
 
 def test_smart_targets_list_no_ids():
@@ -82,6 +93,19 @@ class TestSmartTargetsDelete:
         ):
             result = smart_targets_delete(ids="1")
             assert result["success"] is True
+
+    def test_smart_targets_delete_batches_multiple_ids(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.smart_targets.get_runner", return_value=runner):
+            result = smart_targets_delete(ids="1,2")
+
+        assert result["success"] is True
+        assert result["ids"] == ["1", "2"]
+        assert runner.run_json.call_args_list == [
+            call(["smarttargets", "delete", "--id", "1"]),
+            call(["smarttargets", "delete", "--id", "2"]),
+        ]
 
     def test_smart_targets_delete_batch_limit(self):
         ids = ",".join(str(i) for i in range(1, 12))
