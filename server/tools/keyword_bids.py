@@ -51,11 +51,27 @@ def keyword_bids_set(
             message="Provide at least one of: search_bid, network_bid, extra_json",
         ).__dict__
 
+    from server.tools.helpers import validate_positive_int
+
+    search_bid_value: int | None = None
+    if search_bid is not None:
+        result = validate_positive_int(search_bid, "search_bid")
+        if isinstance(result, ToolError):
+            return result.__dict__
+        search_bid_value = result
+
+    network_bid_value: int | None = None
+    if network_bid is not None:
+        result = validate_positive_int(network_bid, "network_bid")
+        if isinstance(result, ToolError):
+            return result.__dict__
+        network_bid_value = result
+
     args = ["keywordbids", "set", "--keyword-id", keyword_id]
-    if search_bid:
-        args.extend(["--search-bid", search_bid])
-    if network_bid:
-        args.extend(["--network-bid", network_bid])
+    if search_bid_value is not None:
+        args.extend(["--search-bid", str(search_bid_value)])
+    if network_bid_value is not None:
+        args.extend(["--network-bid", str(network_bid_value)])
     if extra_json:
         args.extend(["--json", extra_json])
     runner = get_runner()

@@ -88,8 +88,23 @@ class TestKeywordBidsSet:
             "server.tools.keyword_bids.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = keyword_bids_set(keyword_id="111", search_bid="10.5")
+            result = keyword_bids_set(keyword_id="111", search_bid="10")
             assert result["success"] is True
+
+    def test_keyword_bids_set_invalid_bid(self):
+        """Test that non-integer bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="abc")
+        assert result["error"] == "invalid_value"
+
+    def test_keyword_bids_set_negative_bid(self):
+        """Test that negative bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="-5")
+        assert result["error"] == "invalid_value"
+
+    def test_keyword_bids_set_zero_bid(self):
+        """Test that zero bid is rejected."""
+        result = keyword_bids_set(keyword_id="111", search_bid="0")
+        assert result["error"] == "invalid_value"
 
     def test_keyword_bids_set_both_bids(self):
         """Test setting both search and network bids."""
