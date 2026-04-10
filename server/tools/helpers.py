@@ -1,5 +1,11 @@
 """Shared helpers for MCP tool modules."""
 
+from server.cli.runner import (
+    CliAuthError,
+    CliNotFoundError,
+    CliRegistrationError,
+    CliTimeoutError,
+)
 from server.tools import ToolError
 
 MAX_BATCH_SIZE = 10
@@ -65,6 +71,8 @@ def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dic
             result = runner.run_json([resource, action, "--id", item_id])
             results.append(result)
             succeeded.append(item_id)
+        except (CliAuthError, CliNotFoundError, CliRegistrationError, CliTimeoutError):
+            raise
         except Exception as e:
             results.append({"success": False, "id": item_id, "error": str(e)})
             failed.append(item_id)
