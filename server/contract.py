@@ -33,13 +33,47 @@ ToolDrift = Literal["aligned", "transport_blocked"]
 class ContractTool:
     public_name: str
     cli_service: str | None
+    # MCP-normalised snake_case method name used to derive the public tool name
+    # via ``{cli_service}_{cli_method}``.  This is *not* the raw CLI subcommand
+    # string — use the ``cli_subcommand`` property for that (kebab-case).
+    # E.g. cli_method="set_auto" → CLI subcommand "set-auto".
     cli_method: str | None
     authority: ToolAuthority
     classification: ToolClassification
-    # tapi_name is set when the tapi-yandex-direct canonical name differs from
-    # the cli_method snake_case form.  None means they are identical.
+    # Explicit tapi-yandex-direct canonical method name when it cannot be
+    # derived automatically from cli_method.  None means the auto-derived
+    # camelCase form (``tapi_canonical`` property) is correct.
     tapi_name: str | None = field(default=None)
     drift: ToolDrift = field(default="aligned")
+
+    @property
+    def cli_subcommand(self) -> str | None:
+        """Raw direct-cli subcommand in kebab-case.
+
+        Converts the stored snake_case ``cli_method`` to the kebab-case string
+        expected by the ``direct`` binary, e.g. ``set_bids`` → ``set-bids``.
+        Use this when constructing actual CLI invocations or validating parity
+        against the CLI transport layer.
+        """
+        if self.cli_method is None:
+            return None
+        return self.cli_method.replace("_", "-")
+
+    @property
+    def tapi_canonical(self) -> str | None:
+        """tapi-yandex-direct canonical method name (camelCase).
+
+        Returns the explicit ``tapi_name`` when set; otherwise auto-derives it
+        from ``cli_method`` by converting snake_case to camelCase, e.g.
+        ``set_auto`` → ``setAuto``, ``has_search_volume`` → ``hasSearchVolume``.
+        Returns ``None`` when there is no CLI method (plugin tools).
+        """
+        if self.cli_method is None:
+            return None
+        if self.tapi_name is not None:
+            return self.tapi_name
+        parts = self.cli_method.split("_")
+        return parts[0] + "".join(p.capitalize() for p in parts[1:])
 
 
 DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
