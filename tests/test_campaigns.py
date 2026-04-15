@@ -209,6 +209,12 @@ class TestCampaignsUpdate:
         assert result["error"] == "invalid_json"
         assert "notification" in result["message"]
 
+    def test_campaigns_update_notification_non_dict_json(self):
+        """Test that a non-object JSON value for notification returns a clear error."""
+        result = campaigns_update(id="12345", notification="[1, 2, 3]")
+        assert result["error"] == "invalid_json"
+        assert "JSON object" in result["message"]
+
     def test_campaigns_update_requires_changes(self):
         """Test that empty updates are rejected before CLI call."""
         runner = _mock_runner({"Id": 12345})
@@ -280,6 +286,16 @@ class TestCampaignsCrudOperations:
         )
         assert result["error"] == "invalid_json"
         assert "bidding_strategy" in result["message"]
+
+    def test_campaigns_add_bidding_strategy_non_dict_json(self):
+        """Test that a non-object JSON value for bidding_strategy returns a clear error."""
+        result = campaigns_add(
+            name="New Campaign",
+            start_date="2026-01-01",
+            bidding_strategy="123",
+        )
+        assert result["error"] == "invalid_json"
+        assert "JSON object" in result["message"]
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""

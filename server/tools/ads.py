@@ -142,7 +142,7 @@ def ads_update(
     if not status:
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: status",
+            message="Provide: status",
         ).__dict__
 
     args = ["ads", "update", "--id", id, "--status", status]

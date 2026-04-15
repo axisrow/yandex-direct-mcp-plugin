@@ -85,7 +85,7 @@ def retargeting_update(
     id: str,
     name: str | None = None,
     list_type: str | None = None,
-    rule: str | None = None,
+    rule: str | dict | None = None,
 ) -> dict:
     """Update a retargeting list.
 
@@ -93,7 +93,7 @@ def retargeting_update(
         id: Retargeting list ID to update.
         name: New name for the list (optional).
         list_type: New list type, e.g. "AUDIENCE_SEGMENT" (optional).
-        rule: JSON string with updated targeting rule conditions (optional).
+        rule: Targeting rule conditions as a dict or JSON string (optional).
     """
     if not any((name, list_type, rule)):
         return ToolError(
@@ -101,13 +101,27 @@ def retargeting_update(
             message="Provide at least one of: name, list_type, rule",
         ).__dict__
 
+    rule_str: str | None = None
+    if rule is not None:
+        if isinstance(rule, dict):
+            rule_str = json.dumps(rule)
+        else:
+            try:
+                json.loads(rule)
+            except json.JSONDecodeError:
+                return ToolError(
+                    error="invalid_json",
+                    message=f"rule is not valid JSON: '{rule}'",
+                ).__dict__
+            rule_str = rule
+
     args = ["retargeting", "update", "--id", id]
     if name is not None:
         args.extend(["--name", name])
     if list_type is not None:
         args.extend(["--type", list_type])
-    if rule is not None:
-        args.extend(["--rule", rule])
+    if rule_str is not None:
+        args.extend(["--rule", rule_str])
 
     runner = get_runner()
     return runner.run_json(args)
