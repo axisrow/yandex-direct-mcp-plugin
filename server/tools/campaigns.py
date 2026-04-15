@@ -89,6 +89,7 @@ def campaigns_update(
             ).__dict__
 
     runner = get_runner()
+    notification_val: dict | None = None
     try:
         args = ["campaigns", "update", "--id", id]
         if name:
@@ -125,8 +126,8 @@ def campaigns_update(
         result["status"] = status
     if budget_value is not None:
         result["budget"] = int(budget_value)
-    if notification is not None:
-        result["notification"] = notification
+    if notification_val is not None:
+        result["notification"] = notification_val
     return result
 
 

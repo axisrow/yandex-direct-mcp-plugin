@@ -53,8 +53,8 @@ def ads_list(
         ids: Comma-separated ad IDs (optional, max 10).
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
         status: Filter by status (optional).
-        fields: Comma-separated top-level field names (optional).
-        text_ad_fields: Comma-separated TextAd field names (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
+        fields: Comma-separated WSDL FieldNames selectors (optional).
+        text_ad_fields: Comma-separated WSDL TextAdFieldNames selectors (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
@@ -142,7 +142,7 @@ def ads_update(
     if not status:
         return ToolError(
             error="missing_update_fields",
-            message="Provide status",
+            message="Provide at least one of: status",
         ).__dict__
 
     args = ["ads", "update", "--id", id, "--status", status]
