@@ -1,8 +1,15 @@
-"""Public MCP contract metadata aligned to the direct-cli surface."""
+"""Public MCP contract metadata aligned to the direct-cli surface.
+
+Tool count (derived from the structures below):
+- Direct API tools: 104
+- CLI helper tools:   4
+- Plugin tools:       3
+Total:              111
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 # ``wsdl``: canonical SOAP/WSDL-backed Direct API operation.
@@ -16,6 +23,11 @@ ToolAuthority = Literal["wsdl", "reports-spec", "cli-extra", "plugin"]
 # ``plugin``: plugin-only tool unrelated to Direct service parity.
 ToolClassification = Literal["direct_api", "cli_helper", "plugin"]
 
+# ``aligned``: MCP name matches tapi/WSDL canonical; CLI transport confirmed.
+# ``transport_blocked``: operation exists in WSDL/tapi surface but
+#   ``direct-cli`` has no matching subcommand yet; not exposed in MCP.
+ToolDrift = Literal["aligned", "transport_blocked"]
+
 
 @dataclass(frozen=True)
 class ContractTool:
@@ -24,6 +36,10 @@ class ContractTool:
     cli_method: str | None
     authority: ToolAuthority
     classification: ToolClassification
+    # tapi_name is set when the tapi-yandex-direct canonical name differs from
+    # the cli_method snake_case form.  None means they are identical.
+    tapi_name: str | None = field(default=None)
+    drift: ToolDrift = field(default="aligned")
 
 
 DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
@@ -108,61 +124,87 @@ CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 
 PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login")
 
-REMOVED_LEGACY_PUBLIC_NAMES = frozenset(
-    {
-        "campaigns_list",
-        "adgroups_list",
-        "ads_list",
-        "keyword_bids_list",
-        "keyword_bids_set",
-        "audience_targets_list",
-        "audience_targets_add",
-        "audience_targets_delete",
-        "audience_targets_suspend",
-        "audience_targets_resume",
-        "agency_clients_list",
-        "agency_clients_add",
-        "agency_clients_delete",
-        "businesses_list",
-        "changes_checkcamp",
-        "changes_checkdict",
-        "creatives_list",
-        "dynamic_ads_list",
-        "dynamic_ads_add",
-        "dynamic_ads_update",
-        "dynamic_ads_delete",
-        "dynamic_targets_list",
-        "dynamic_targets_add",
-        "dynamic_targets_update",
-        "dynamic_targets_delete",
-        "feeds_list",
-        "keywords_has_volume",
-        "keywords_deduplicate",
-        "leads_list",
-        "negative_keyword_shared_sets_list",
-        "negative_keyword_shared_sets_add",
-        "negative_keyword_shared_sets_update",
-        "negative_keyword_shared_sets_delete",
-        "negative_keywords_list",
-        "negative_keywords_add",
-        "negative_keywords_update",
-        "negative_keywords_delete",
-        "smart_ad_targets_list",
-        "smart_ad_targets_add",
-        "smart_ad_targets_update",
-        "smart_ad_targets_delete",
-        "smart_targets_list",
-        "smart_targets_add",
-        "smart_targets_update",
-        "smart_targets_delete",
-        "turbo_pages_list",
-        "turbo_pages_add",
-        "vcards_list",
-        "adimages_list",
-        "adextensions_list",
-        "sitelinks_list",
-    }
-)
+# Operations that exist in the WSDL/tapi surface but cannot be exposed
+# in MCP because direct-cli has no matching transport subcommand.
+# When the CLI gap is closed these entries should move into
+# DIRECT_API_SERVICE_METHODS.
+#
+# Format: { "<service>_<method>": "<reason>" }
+TRANSPORT_BLOCKED_OPERATIONS: dict[str, str] = {
+    "dynamicads_update": (
+        "direct-cli has no `dynamicads update` subcommand; "
+        "the operation is WSDL-backed (DynamicTextAdTargets.update) but "
+        "not yet wired in the CLI transport layer."
+    ),
+    "negativekeywords_*": (
+        "`negativekeywords` is not a registered direct-cli service. "
+        "Per-adgroup negative keywords are part of the AdGroups WSDL payload "
+        "(NegativeKeywords field) rather than a standalone service. "
+        "The legacy `negative_keywords_*` MCP tools were removed because they "
+        "had no valid CLI transport; manage them via the adgroups payload or "
+        "via NegativeKeywordSharedSets."
+    ),
+}
+
+# Mapping of removed legacy public names to their canonical replacements.
+# Used for generating migration docs and for asserting no regressions.
+# ``None`` as a value means the old name was removed without a 1:1 replacement
+# (transport-blocked or absorbed into another service's payload).
+RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
+    "campaigns_list": "campaigns_get",
+    "adgroups_list": "adgroups_get",
+    "ads_list": "ads_get",
+    "keyword_bids_list": "keywordbids_get",
+    "keyword_bids_set": "keywordbids_set",
+    "audience_targets_list": "audiencetargets_get",
+    "audience_targets_add": "audiencetargets_add",
+    "audience_targets_delete": "audiencetargets_delete",
+    "audience_targets_suspend": "audiencetargets_suspend",
+    "audience_targets_resume": "audiencetargets_resume",
+    "agency_clients_list": "agencyclients_get",
+    "agency_clients_add": "agencyclients_add",
+    "agency_clients_delete": "agencyclients_delete",
+    "businesses_list": "businesses_get",
+    "changes_checkcamp": "changes_check_campaigns",
+    "changes_checkdict": "changes_check_dictionaries",
+    "creatives_list": "creatives_get",
+    "dynamic_ads_list": "dynamicads_get",
+    "dynamic_ads_add": "dynamicads_add",
+    "dynamic_ads_update": None,  # transport-blocked; see TRANSPORT_BLOCKED_OPERATIONS
+    "dynamic_ads_delete": "dynamicads_delete",
+    "dynamic_targets_list": "dynamicads_get",
+    "dynamic_targets_add": "dynamicads_add",
+    "dynamic_targets_update": None,  # transport-blocked
+    "dynamic_targets_delete": "dynamicads_delete",
+    "feeds_list": "feeds_get",
+    "keywords_has_volume": "keywordsresearch_has_search_volume",
+    "keywords_deduplicate": "keywordsresearch_deduplicate",
+    "leads_list": "leads_get",
+    "negative_keyword_shared_sets_list": "negativekeywordsharedsets_get",
+    "negative_keyword_shared_sets_add": "negativekeywordsharedsets_add",
+    "negative_keyword_shared_sets_update": "negativekeywordsharedsets_update",
+    "negative_keyword_shared_sets_delete": "negativekeywordsharedsets_delete",
+    "negative_keywords_list": None,  # transport-blocked; see TRANSPORT_BLOCKED_OPERATIONS
+    "negative_keywords_add": None,
+    "negative_keywords_update": None,
+    "negative_keywords_delete": None,
+    "smart_ad_targets_list": "smartadtargets_get",
+    "smart_ad_targets_add": "smartadtargets_add",
+    "smart_ad_targets_update": "smartadtargets_update",
+    "smart_ad_targets_delete": "smartadtargets_delete",
+    "smart_targets_list": "smartadtargets_get",
+    "smart_targets_add": "smartadtargets_add",
+    "smart_targets_update": "smartadtargets_update",
+    "smart_targets_delete": "smartadtargets_delete",
+    "turbo_pages_list": "turbopages_get",
+    "turbo_pages_add": None,  # no add subcommand in CLI
+    "vcards_list": "vcards_get",
+    "adimages_list": "adimages_get",
+    "adextensions_list": "adextensions_get",
+    "sitelinks_list": "sitelinks_get",
+}
+
+REMOVED_LEGACY_PUBLIC_NAMES = frozenset(RENAMED_TOOL_MIGRATION.keys())
 
 
 def _tool_name(service: str, method: str) -> str:
@@ -208,14 +250,10 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = tuple(
 
 PUBLIC_TOOL_NAMES = frozenset(tool.public_name for tool in PUBLIC_CONTRACT)
 DIRECT_API_TOOL_NAMES = frozenset(
-    tool.public_name
-    for tool in PUBLIC_CONTRACT
-    if tool.classification == "direct_api"
+    tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "direct_api"
 )
 CLI_HELPER_TOOL_NAMES = frozenset(
-    tool.public_name
-    for tool in PUBLIC_CONTRACT
-    if tool.classification == "cli_helper"
+    tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "cli_helper"
 )
 PLUGIN_ONLY_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "plugin"

@@ -99,7 +99,16 @@ def agency_clients_add_passport_organization(
     send_account_news: bool | None = None,
     send_warnings: bool | None = None,
 ) -> dict:
-    """Add a passport organization agency client."""
+    """Add a new agency client backed by a Passport organization.
+
+    Args:
+        name: Display name for the new client account.
+        currency: Account currency code, e.g. "RUB".
+        notification_email: Email address for system notifications (optional).
+        notification_lang: Notification language code, e.g. "RU" (optional).
+        send_account_news: Whether to send account news emails (optional).
+        send_warnings: Whether to send warning emails (optional).
+    """
     args = [
         "agencyclients",
         "add-passport-organization",
@@ -113,9 +122,11 @@ def agency_clients_add_passport_organization(
     if notification_lang is not None:
         args.extend(["--notification-lang", notification_lang])
     if send_account_news is not None:
-        args.append("--send-account-news" if send_account_news else "--no-send-account-news")
+        flag = "--send-account-news" if send_account_news else "--no-send-account-news"
+        args.append(flag)
     if send_warnings is not None:
-        args.append("--send-warnings" if send_warnings else "--no-send-warnings")
+        flag = "--send-warnings" if send_warnings else "--no-send-warnings"
+        args.append(flag)
 
     runner = get_runner()
     return runner.run_json(args)
@@ -129,7 +140,14 @@ def agency_clients_add_passport_organization_member(
     invite_email: str | None = None,
     invite_phone: str | None = None,
 ) -> dict:
-    """Invite a user to a passport organization."""
+    """Invite a user to a Passport organization client account.
+
+    Args:
+        passport_organization_login: Login of the Passport organization to invite to.
+        role: Role to assign to the invited user, e.g. "CHIEF".
+        invite_email: Email address to send the invitation to (optional).
+        invite_phone: Phone number to send the invitation to (optional).
+    """
     args = [
         "agencyclients",
         "add-passport-organization-member",

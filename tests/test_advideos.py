@@ -44,3 +44,8 @@ def test_advideos_add_url():
 def test_advideos_add_requires_exactly_one_source():
     result = advideos_add()
     assert result["error"] == "invalid_video_source"
+
+
+def test_advideos_add_rejects_both_sources():
+    result = advideos_add(url="https://example.com/video.mp4", video_data="abc123")
+    assert result["error"] == "invalid_video_source"

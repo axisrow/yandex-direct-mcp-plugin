@@ -79,7 +79,14 @@ def retargeting_update(
     list_type: str | None = None,
     rule: str | None = None,
 ) -> dict:
-    """Update a retargeting list."""
+    """Update a retargeting list.
+
+    Args:
+        id: Retargeting list ID to update.
+        name: New name for the list (optional).
+        list_type: New list type, e.g. "AUDIENCE_SEGMENT" (optional).
+        rule: JSON string with updated targeting rule conditions (optional).
+    """
     if not any((name, list_type, rule)):
         return ToolError(
             error="missing_update_fields",
