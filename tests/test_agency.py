@@ -8,7 +8,10 @@ import server.tools
 from server.tools.agency import (
     agency_clients_list,
     agency_clients_add,
+    agency_clients_add_passport_organization,
+    agency_clients_add_passport_organization_member,
     agency_clients_delete,
+    agency_clients_update,
 )
 
 
@@ -138,3 +141,87 @@ class TestAgencyClientsDelete:
             call_args = runner.run_json.call_args[0][0]
             assert "--id" in call_args
             assert "123" in call_args
+
+
+class TestAgencyClientsUpdate:
+    """Test scenarios for agency_clients_update."""
+
+    def test_update_client(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            result = agency_clients_update(
+                client_id="123",
+                email="test@example.com",
+                clear_grants=True,
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "agencyclients",
+                "update",
+                "--client-id",
+                "123",
+                "--email",
+                "test@example.com",
+                "--clear-grants",
+            ]
+        )
+
+    def test_update_client_requires_changes(self):
+        result = agency_clients_update(client_id="123")
+        assert result["error"] == "missing_update_fields"
+
+
+class TestAgencyClientsPassportOrganization:
+    """Test passport organization helper wrappers."""
+
+    def test_add_passport_organization(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            result = agency_clients_add_passport_organization(
+                name="Org",
+                currency="RUB",
+                send_account_news=True,
+                send_warnings=False,
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "agencyclients",
+                "add-passport-organization",
+                "--name",
+                "Org",
+                "--currency",
+                "RUB",
+                "--send-account-news",
+                "--no-send-warnings",
+            ]
+        )
+
+    def test_add_passport_organization_member(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            result = agency_clients_add_passport_organization_member(
+                passport_organization_login="org-login",
+                role="ADMIN",
+                invite_email="member@example.com",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "agencyclients",
+                "add-passport-organization-member",
+                "--passport-organization-login",
+                "org-login",
+                "--role",
+                "ADMIN",
+                "--invite-email",
+                "member@example.com",
+            ]
+        )

@@ -14,7 +14,7 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
     return check_batch_limit(ids_str, MAX_BATCH_SIZE)
 
 
-@mcp.tool()
+@mcp.tool(name="adgroups_get")
 @handle_cli_errors
 def adgroups_list(
     campaign_ids: str | None = None,

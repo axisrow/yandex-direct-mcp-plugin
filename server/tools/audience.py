@@ -3,11 +3,11 @@
 import json
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
-@mcp.tool()
+@mcp.tool(name="audiencetargets_get")
 @handle_cli_errors
 def audience_targets_list(
     campaign_ids: str | None = None,
@@ -45,7 +45,7 @@ def audience_targets_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="audiencetargets_add")
 @handle_cli_errors
 def audience_targets_add(
     ad_group_id: str,
@@ -80,7 +80,7 @@ def audience_targets_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="audiencetargets_delete")
 @handle_cli_errors
 def audience_targets_delete(ids: str) -> dict:
     """Delete audience targets.
@@ -91,7 +91,7 @@ def audience_targets_delete(ids: str) -> dict:
     return run_single_id_batch(get_runner(), "audiencetargets", "delete", ids)
 
 
-@mcp.tool()
+@mcp.tool(name="audiencetargets_suspend")
 @handle_cli_errors
 def audience_targets_suspend(ids: str) -> dict:
     """Suspend audience targets.
@@ -102,7 +102,7 @@ def audience_targets_suspend(ids: str) -> dict:
     return run_single_id_batch(get_runner(), "audiencetargets", "suspend", ids)
 
 
-@mcp.tool()
+@mcp.tool(name="audiencetargets_resume")
 @handle_cli_errors
 def audience_targets_resume(ids: str) -> dict:
     """Resume suspended audience targets.
@@ -111,3 +111,48 @@ def audience_targets_resume(ids: str) -> dict:
         ids: Comma-separated audience target IDs (max 10).
     """
     return run_single_id_batch(get_runner(), "audiencetargets", "resume", ids)
+
+
+@mcp.tool(name="audiencetargets_set_bids")
+@handle_cli_errors
+def audience_targets_set_bids(
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
+    context_bid: str | None = None,
+    priority: str | None = None,
+) -> dict:
+    """Set audience target bids.
+
+    Args:
+        id: Audience target ID.
+        ad_group_id: Ad group ID.
+        campaign_id: Campaign ID.
+        context_bid: Context bid.
+        priority: Strategy priority.
+    """
+    if not any((id, ad_group_id, campaign_id)):
+        return ToolError(
+            error="missing_target_scope",
+            message="Provide at least one of: id, ad_group_id, campaign_id",
+        ).__dict__
+    if not any((context_bid, priority)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: context_bid, priority",
+        ).__dict__
+
+    args = ["audiencetargets", "set-bids"]
+    if id is not None:
+        args.extend(["--id", id])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", ad_group_id])
+    if campaign_id is not None:
+        args.extend(["--campaign-id", campaign_id])
+    if context_bid is not None:
+        args.extend(["--context-bid", context_bid])
+    if priority is not None:
+        args.extend(["--priority", priority])
+
+    runner = get_runner()
+    return runner.run_json(args)

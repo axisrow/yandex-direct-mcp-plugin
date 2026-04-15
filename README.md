@@ -138,115 +138,78 @@ OAuth-приложение само по себе не даёт доступ к 
 
 Или через переменные окружения `CLAUDE_PLUGIN_OPTION_client_id` / `CLAUDE_PLUGIN_OPTION_client_secret`.
 
-## MCP Tools (105 total)
+## MCP contract (111 tools)
 
-| Tool | Description |
+The public contract is now defined as:
+
+`MCP -> direct-cli -> tapi-yandex-direct -> Yandex.Direct API`
+
+- MCP never calls Yandex.Direct directly.
+- `direct-cli` remains the only execution/transport boundary.
+- `tapi-yandex-direct` naming is the default source reused by the CLI.
+- WSDL / Reports spec wins when old CLI convenience names drift.
+
+The machine-readable parity source lives in
+[`server/contract.py`](server/contract.py).
+
+### Naming rules
+
+- Direct operations use canonical `service_method` names borrowed from the CLI:
+  - `campaigns_get`, `ads_get`, `adgroups_get`
+  - `agencyclients_get`, `audiencetargets_set_bids`
+  - `keywordbids_set_auto`, `bids_set_auto`
+- Old `*_list` names became `*_get`.
+- Kebab CLI methods become snake_case in MCP:
+  - `check-campaigns` → `changes_check_campaigns`
+  - `check-dictionaries` → `changes_check_dictionaries`
+  - `has-search-volume` → `keywordsresearch_has_search_volume`
+  - `set-auto` → `*_set_auto`
+  - `set-bids` → `*_set_bids`
+
+### Surface classification
+
+| Surface | Examples | Notes |
+|---|---|---|
+| Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `smartadtargets_resume`, `retargeting_update` | Canonical CLI-mediated Direct contract |
+| CLI helper tools | `agencyclients_delete`, `bidmodifiers_toggle`, `dictionaries_list_names`, `reports_list_types` | Public, but explicitly not 1:1 Direct API methods |
+| Plugin tools | `auth_status`, `auth_setup`, `auth_login` | Plugin-only auth flows, not Direct operations |
+
+### Breaking-change migration highlights
+
+| Old name | New name / status |
 |---|---|
-| `campaigns_list` | List campaigns (filter by state) |
-| `campaigns_update` | Enable/disable campaigns |
-| `campaigns_add` | Create campaign |
-| `campaigns_delete` | Delete campaigns |
-| `campaigns_archive` | Archive campaigns |
-| `campaigns_unarchive` | Unarchive campaigns |
-| `campaigns_suspend` | Suspend campaigns |
-| `campaigns_resume` | Resume campaigns |
-| `adgroups_list` | List ad groups |
-| `adgroups_add` | Create ad group |
-| `adgroups_update` | Update ad group |
-| `adgroups_delete` | Delete ad groups |
-| `ads_list` | List ads in a campaign |
-| `ads_add` | Create ad |
-| `ads_update` | Update ad |
-| `ads_delete` | Delete ads |
-| `ads_moderate` | Submit ads for moderation |
-| `ads_suspend` | Suspend ads |
-| `ads_resume` | Resume ads |
-| `ads_archive` | Archive ads |
-| `ads_unarchive` | Unarchive ads |
-| `keywords_list` | List keywords in a campaign |
-| `keywords_update` | Update keyword bids |
-| `keywords_add` | Add keywords |
-| `keywords_delete` | Delete keywords |
-| `keywords_suspend` | Suspend keywords |
-| `keywords_resume` | Resume keywords |
-| `keywords_archive` | Archive keywords |
-| `keywords_unarchive` | Unarchive keywords |
-| `keyword_bids_list` | List keyword bids |
-| `keyword_bids_set` | Set keyword bids |
-| `bids_list` | List bids |
-| `bids_set` | Set bid for campaign |
-| `bidmodifiers_list` | List bid modifiers |
-| `bidmodifiers_set` | Set bid modifier |
-| `bidmodifiers_toggle` | Toggle modifier on/off |
-| `bidmodifiers_delete` | Delete bid modifiers |
-| `sitelinks_list` | List sitelinks sets |
-| `sitelinks_add` | Add sitelinks set |
-| `sitelinks_delete` | Delete sitelinks |
-| `vcards_list` | List vCards |
-| `vcards_add` | Add vCard |
-| `vcards_delete` | Delete vCards |
-| `adimages_list` | List ad images |
-| `adimages_add` | Add ad image |
-| `adimages_delete` | Delete images |
-| `adextensions_list` | List ad extensions |
-| `adextensions_add` | Add extension |
-| `adextensions_delete` | Delete extensions |
-| `audience_targets_list` | List audience targets |
-| `audience_targets_add` | Add audience target |
-| `audience_targets_delete` | Delete targets |
-| `audience_targets_suspend` | Suspend targets |
-| `audience_targets_resume` | Resume targets |
-| `retargeting_list` | List retargeting lists |
-| `retargeting_add` | Add retargeting list |
-| `retargeting_delete` | Delete retargeting lists |
-| `dynamic_targets_list` | List dynamic targets |
-| `dynamic_targets_add` | Add dynamic target |
-| `dynamic_targets_update` | Update dynamic target |
-| `dynamic_targets_delete` | Delete dynamic targets |
-| `dynamic_ads_list` | List dynamic ads |
-| `dynamic_ads_add` | Add dynamic ad |
-| `dynamic_ads_update` | Update dynamic ad |
-| `dynamic_ads_delete` | Delete dynamic ads |
-| `negative_keywords_list` | List negative keywords |
-| `negative_keywords_add` | Add negative keywords |
-| `negative_keywords_update` | Update negative keywords |
-| `negative_keywords_delete` | Delete negative keywords |
-| `negative_keyword_shared_sets_list` | List negative keyword shared sets |
-| `negative_keyword_shared_sets_add` | Add negative keyword shared set |
-| `negative_keyword_shared_sets_update` | Update negative keyword shared set |
-| `negative_keyword_shared_sets_delete` | Delete negative keyword shared set |
-| `smart_targets_list` | List smart targets |
-| `smart_targets_add` | Add smart target |
-| `smart_targets_update` | Update smart target |
-| `smart_targets_delete` | Delete smart targets |
-| `smart_ad_targets_list` | List smart ad targets |
-| `smart_ad_targets_add` | Add smart ad target |
-| `smart_ad_targets_update` | Update smart ad target |
-| `smart_ad_targets_delete` | Delete smart ad targets |
-| `businesses_list` | List businesses |
-| `dictionaries_get` | Get dictionary data |
-| `changes_check` | Check changes since timestamp |
-| `changes_checkcamp` | Check campaign changes |
-| `changes_checkdict` | Check dictionary changes |
-| `clients_get` | Get client info |
-| `clients_update` | Update client |
-| `agency_clients_list` | List agency clients |
-| `agency_clients_add` | Add client to agency |
-| `agency_clients_delete` | Remove client from agency |
-| `keywords_has_volume` | Check keyword search volume |
-| `keywords_deduplicate` | Deduplicate keywords |
-| `leads_list` | List leads |
-| `feeds_list` | List feeds |
-| `feeds_add` | Add feed |
-| `feeds_update` | Update feed |
-| `feeds_delete` | Delete feeds |
-| `creatives_list` | List creatives |
-| `turbo_pages_list` | List turbo pages |
-| `reports_get` | Get campaign statistics |
-| `reports_list_types` | List available report types |
-| `auth_status` | Check OAuth token status |
-| `auth_setup` | Submit authorization code or direct token |
-| `auth_login` | Interactive OAuth flow (browser + code input via elicitation) |
+| `campaigns_list` | `campaigns_get` |
+| `adgroups_list` | `adgroups_get` |
+| `ads_list` | `ads_get` |
+| `keyword_bids_*` | `keywordbids_*` |
+| `audience_targets_*` | `audiencetargets_*` |
+| `agency_clients_*` | `agencyclients_*` |
+| `smart_ad_targets_*` | `smartadtargets_*` |
+| `dynamic_ads_*` | `dynamicads_*` |
+| `negative_keyword_shared_sets_*` | `negativekeywordsharedsets_*` |
+| `changes_checkcamp` | `changes_check_campaigns` |
+| `changes_checkdict` | `changes_check_dictionaries` |
+| `keywords_has_volume` | `keywordsresearch_has_search_volume` |
+| `keywords_deduplicate` | `keywordsresearch_deduplicate` |
+| `turbo_pages_list` | `turbopages_get` |
+| `dynamic_targets_*`, `smart_targets_*`, `negative_keywords_*` | removed legacy aliases |
+| `turbo_pages_add`, `dynamic_ads_update` | removed from the public contract because current `direct-cli` does not expose them |
+
+### Newly exposed CLI-backed operations
+
+- `advideos_get`, `advideos_add`
+- `agencyclients_update`
+- `agencyclients_add_passport_organization`
+- `agencyclients_add_passport_organization_member`
+- `bidmodifiers_add`
+- `bids_set_auto`
+- `creatives_add`
+- `dictionaries_get_geo_regions`
+- `keywordbids_set_auto`
+- `retargeting_update`
+- `audiencetargets_set_bids`
+- `dynamicads_suspend`, `dynamicads_resume`, `dynamicads_set_bids`
+- `smartadtargets_suspend`, `smartadtargets_resume`, `smartadtargets_set_bids`
 
 ## Skills
 
@@ -259,16 +222,16 @@ Just ask in natural language — the plugin handles the rest:
 
 ```
 > покажи активные кампании
-  → campaigns_list(state="ON")
+  → campaigns_get(state="ON")
 
 > сколько объявлений в кампании 12345?
-  → ads_list(campaign_ids="12345") → count
+  → ads_get(campaign_ids="12345") → count
 
 > отключи кампанию 67890
   → campaigns_update(id="67890", status="OFF")
 
 > покажи ключевые слова кампании 12345
-  → keywords_list(campaign_ids="12345")
+  → keywords_get(campaign_ids="12345")
 
 > поставь ставку 15 руб на ключевое слово 99999
   → keywords_update(id="99999", bid="15000000")
@@ -289,11 +252,11 @@ Direct MCP tool invocations that Claude makes under the hood:
 
 ```python
 # Список активных кампаний
-mcp__yandex_direct__campaigns_list(state="ON")
+mcp__yandex_direct__campaigns_get(state="ON")
 # → [{"Id": 12345, "Name": "Кампания 1", "State": "ON", "DailyBudget": 5000}, ...]
 
 # Объявления в кампании
-mcp__yandex_direct__ads_list(campaign_ids="12345")
+mcp__yandex_direct__ads_get(campaign_ids="12345")
 # → [{"Id": 111, "Title": "Доставка пиццы", "Title2": "За 30 минут", "State": "ON"}, ...]
 
 # Включить/отключить кампанию
@@ -301,7 +264,7 @@ mcp__yandex_direct__campaigns_update(id="67890", status="OFF")
 # → {"success": True, "id": 67890, "status": "OFF"}
 
 # Ключевые слова
-mcp__yandex_direct__keywords_list(campaign_ids="12345")
+mcp__yandex_direct__keywords_get(campaign_ids="12345")
 # → [{"Id": 99999, "Keyword": "пицца доставка", "Bid": 12000000}, ...]
 
 # Изменить ставку (в микроюнитах: 15 руб = 15000000)
@@ -327,12 +290,12 @@ mcp__yandex_direct__auth_setup(code="1234567")
 
 ```python
 # Токен истёк → MCP-сервер обновит автоматически через refresh_token
-mcp__yandex_direct__campaigns_list(state="ON")
+mcp__yandex_direct__campaigns_get(state="ON")
 # 1) access_token expired → POST /token {grant_type: "refresh_token"}
 # 2) новый access_token сохранён → повторный запрос → результат
 
 # Токен невалиден (refresh тоже протух)
-mcp__yandex_direct__campaigns_list(state="ON")
+mcp__yandex_direct__campaigns_get(state="ON")
 # → {"error": "auth_expired", "message": "Требуется повторная авторизация",
 #    "auth_url": "https://oauth.yandex.ru/authorize?client_id=..."}
 
@@ -345,19 +308,19 @@ mcp__yandex_direct__campaigns_update(id="999", status="ON")
 # → {"error": "not_found", "message": "Кампания 999 не найдена в аккаунте ksamatadirect"}
 
 # Кампания принадлежит второму аккаунту (ID ~73-77М)
-mcp__yandex_direct__ads_list(campaign_ids="75000001")
+mcp__yandex_direct__ads_get(campaign_ids="75000001")
 # → {"error": "foreign_campaign", "message": "Кампания 75000001 недоступна — принадлежит другому аккаунту"}
 
 # Лимит API (слишком много ID за раз)
-mcp__yandex_direct__ads_list(campaign_ids="1,2,3,4,5,6,7,8,9,10,11")
+mcp__yandex_direct__ads_get(campaign_ids="1,2,3,4,5,6,7,8,9,10,11")
 # → {"error": "batch_limit", "message": "Максимум 10 ID за запрос. Передано: 11"}
 
 # direct-cli не установлен или не в PATH
-mcp__yandex_direct__campaigns_list()
+mcp__yandex_direct__campaigns_get()
 # → {"error": "cli_not_found", "message": "direct-cli не найден. Установите: https://github.com/axisrow/direct-cli"}
 
 # Заявка на доступ к API не подана или отклонена (ошибка 58)
-mcp__yandex_direct__campaigns_list()
+mcp__yandex_direct__campaigns_get()
 # → {"error": "incomplete_registration", "message": "Незаконченная регистрация. Вам нужно подать или переподать заявку..."}
 ```
 
@@ -393,16 +356,16 @@ pytest
 | 5 | Refresh тоже протух | Оба токена невалидны | `{"error": "auth_expired", "auth_url"}` |
 | 6 | Статус токена | `auth_status()` | `{"valid": True/False, "expires_in", "login"}` |
 | **Campaigns** |
-| 7 | Список всех кампаний | `campaigns_list()` | Массив кампаний с Id, Name, State |
-| 8 | Фильтр по статусу | `campaigns_list(state="ON")` | Только кампании с State=ON |
+| 7 | Список всех кампаний | `campaigns_get()` | Массив кампаний с Id, Name, State |
+| 8 | Фильтр по статусу | `campaigns_get(state="ON")` | Только кампании с State=ON |
 | 9 | Включить кампанию | `campaigns_update(id=..., status="ON")` | `{"success": True}` |
 | 10 | Несуществующая кампания | `campaigns_update(id="999")` | `{"error": "not_found"}` |
 | **Ads** |
-| 11 | Объявления в кампании | `ads_list(campaign_ids="12345")` | Массив объявлений |
-| 12 | Кампания второго аккаунта | `ads_list(campaign_ids="75000001")` | `{"error": "foreign_campaign"}` |
-| 13 | Превышение лимита ID | `ads_list(campaign_ids="1,2,...,11")` | `{"error": "batch_limit"}` |
+| 11 | Объявления в кампании | `ads_get(campaign_ids="12345")` | Массив объявлений |
+| 12 | Кампания второго аккаунта | `ads_get(campaign_ids="75000001")` | `{"error": "foreign_campaign"}` |
+| 13 | Превышение лимита ID | `ads_get(campaign_ids="1,2,...,11")` | `{"error": "batch_limit"}` |
 | **Keywords** |
-| 14 | Ключевые слова | `keywords_list(campaign_ids="12345")` | Массив ключевых слов |
+| 14 | Ключевые слова | `keywords_get(campaign_ids="12345")` | Массив ключевых слов |
 | 15 | Изменить ставку | `keywords_update(id=..., bid=...)` | `{"success": True}` |
 | **Reports** |
 | 16 | Статистика за период | `reports_get(date_from=..., date_to=...)` | Массив с CampaignName, Impressions, Clicks, Cost, Conversions |

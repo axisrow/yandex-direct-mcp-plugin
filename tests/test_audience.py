@@ -10,6 +10,7 @@ from server.tools.audience import (
     audience_targets_delete,
     audience_targets_list,
     audience_targets_resume,
+    audience_targets_set_bids,
     audience_targets_suspend,
 )
 
@@ -209,3 +210,35 @@ class TestAudienceTargetsResume:
         result = audience_targets_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+class TestAudienceTargetsSetBids:
+    """Tests for audience_targets_set_bids."""
+
+    def test_set_bids_success(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.audience.get_runner", return_value=runner):
+            result = audience_targets_set_bids(
+                id="101",
+                context_bid="1.5",
+                priority="HIGH",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "audiencetargets",
+                "set-bids",
+                "--id",
+                "101",
+                "--context-bid",
+                "1.5",
+                "--priority",
+                "HIGH",
+            ]
+        )
+
+    def test_set_bids_requires_scope(self):
+        result = audience_targets_set_bids(context_bid="1.5")
+        assert result["error"] == "missing_target_scope"

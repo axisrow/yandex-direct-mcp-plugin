@@ -34,7 +34,7 @@ def _resolve_report_dates(
     return (today - timedelta(days=DEFAULT_WINDOW_DAYS)).isoformat(), today.isoformat()
 
 
-@mcp.tool()
+@mcp.tool(name="reports_get")
 @handle_cli_errors
 def reports_get(
     date_from: str | None = None, date_to: str | None = None

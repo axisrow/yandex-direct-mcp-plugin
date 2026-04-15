@@ -7,7 +7,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
-@mcp.tool()
+@mcp.tool(name="bids_get")
 @handle_cli_errors
 def bids_list(
     campaign_ids: str | None = None,
@@ -45,7 +45,7 @@ def bids_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="bids_set")
 @handle_cli_errors
 def bids_set(
     campaign_id: str,
@@ -74,5 +74,66 @@ def bids_set(
             json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
         )
         args.extend(["--json", json_str])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool(name="bids_set_auto")
+@handle_cli_errors
+def bids_set_auto(
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
+    keyword_id: str | None = None,
+    max_bid: str | None = None,
+    position: str | None = None,
+    increase_percent: str | None = None,
+    calculate_by: str | None = None,
+    context_coverage: str | None = None,
+    scope: str | None = None,
+) -> dict:
+    """Configure automatic bidding."""
+    if not any((campaign_id, ad_group_id, keyword_id)):
+        return ToolError(
+            error="missing_target_scope",
+            message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
+        ).__dict__
+    if not any(
+        (
+            max_bid,
+            position,
+            increase_percent,
+            calculate_by,
+            context_coverage,
+            scope,
+        )
+    ):
+        return ToolError(
+            error="missing_update_fields",
+            message=(
+                "Provide at least one of: max_bid, position, increase_percent, "
+                "calculate_by, context_coverage, scope"
+            ),
+        ).__dict__
+
+    args = ["bids", "set-auto"]
+    if campaign_id is not None:
+        args.extend(["--campaign-id", campaign_id])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", ad_group_id])
+    if keyword_id is not None:
+        args.extend(["--keyword-id", keyword_id])
+    if max_bid is not None:
+        args.extend(["--max-bid", max_bid])
+    if position is not None:
+        args.extend(["--position", position])
+    if increase_percent is not None:
+        args.extend(["--increase-percent", increase_percent])
+    if calculate_by is not None:
+        args.extend(["--calculate-by", calculate_by])
+    if context_coverage is not None:
+        args.extend(["--context-coverage", context_coverage])
+    if scope is not None:
+        args.extend(["--scope", scope])
+
     runner = get_runner()
     return runner.run_json(args)

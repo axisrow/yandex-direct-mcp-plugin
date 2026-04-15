@@ -6,7 +6,7 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="turbopages_get")
 @handle_cli_errors
 def turbo_pages_list(ids: str | None = None) -> dict:
     """List turbo pages.
@@ -22,7 +22,6 @@ def turbo_pages_list(ids: str | None = None) -> dict:
     return runner.run_json(args)
 
 
-@mcp.tool()
 @handle_cli_errors
 def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
     """Add a turbo page.

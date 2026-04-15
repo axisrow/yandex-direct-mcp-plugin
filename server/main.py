@@ -16,6 +16,7 @@ mcp = FastMCP("yandex-direct-mcp", json_response=True)
 import server.tools.adextensions  # noqa: E402, F401
 import server.tools.adgroups  # noqa: E402, F401
 import server.tools.ads  # noqa: E402, F401
+import server.tools.advideos  # noqa: E402, F401
 import server.tools.agency  # noqa: E402, F401
 import server.tools.audience  # noqa: E402, F401
 import server.tools.auth_tools  # noqa: E402, F401
@@ -28,20 +29,17 @@ import server.tools.clients  # noqa: E402, F401
 import server.tools.creatives  # noqa: E402, F401
 import server.tools.dictionaries  # noqa: E402, F401
 import server.tools.dynamic_ads  # noqa: E402, F401
-import server.tools.dynamic_targets  # noqa: E402, F401
 import server.tools.feeds  # noqa: E402, F401
 import server.tools.images  # noqa: E402, F401
 import server.tools.keyword_bids  # noqa: E402, F401
 import server.tools.keywords  # noqa: E402, F401
 import server.tools.leads  # noqa: E402, F401
 import server.tools.negative_keyword_shared_sets  # noqa: E402, F401
-import server.tools.negative_keywords  # noqa: E402, F401
 import server.tools.reports  # noqa: E402, F401
 import server.tools.research  # noqa: E402, F401
 import server.tools.retargeting  # noqa: E402, F401
 import server.tools.sitelinks  # noqa: E402, F401
 import server.tools.smart_ad_targets  # noqa: E402, F401
-import server.tools.smart_targets  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401
 

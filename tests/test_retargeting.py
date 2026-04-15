@@ -9,6 +9,7 @@ from server.tools.retargeting import (
     retargeting_add,
     retargeting_delete,
     retargeting_list,
+    retargeting_update,
 )
 from server.cli.runner import CliAuthError
 
@@ -189,3 +190,35 @@ class TestRetargetingDelete:
         result = retargeting_delete(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+class TestRetargetingUpdate:
+    """Tests for retargeting_update."""
+
+    def test_update_retargeting_success(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
+            result = retargeting_update(
+                id="201",
+                name="Updated",
+                list_type="AUDIENCE",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "retargeting",
+                "update",
+                "--id",
+                "201",
+                "--name",
+                "Updated",
+                "--type",
+                "AUDIENCE",
+            ]
+        )
+
+    def test_update_retargeting_requires_changes(self):
+        result = retargeting_update(id="201")
+        assert result["error"] == "missing_update_fields"

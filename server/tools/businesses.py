@@ -4,7 +4,7 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="businesses_get")
 @handle_cli_errors
 def businesses_list(ids: str | None = None) -> list[dict] | dict:
     """List businesses.

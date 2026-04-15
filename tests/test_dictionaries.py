@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.dictionaries import dictionaries_get, dictionaries_list_names
+from server.tools.dictionaries import (
+    dictionaries_get,
+    dictionaries_get_geo_regions,
+    dictionaries_list_names,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -98,3 +102,36 @@ class TestDictionariesListNames:
         assert "Currencies" in result
         assert "GeoRegions" in result
         assert "TimeZones" in result
+
+
+class TestDictionariesGetGeoRegions:
+    """Test scenarios for dictionaries_get_geo_regions."""
+
+    def test_passes_geo_region_args(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"GeoRegions": []}
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            result = dictionaries_get_geo_regions(
+                fields="Id,Name",
+                name="Москва",
+                region_ids="213",
+                exact_names="Москва",
+            )
+
+        assert result == {"GeoRegions": []}
+        runner.run_json.assert_called_once_with(
+            [
+                "dictionaries",
+                "get-geo-regions",
+                "--fields",
+                "Id,Name",
+                "--format",
+                "json",
+                "--name",
+                "Москва",
+                "--region-ids",
+                "213",
+                "--exact-names",
+                "Москва",
+            ]
+        )
