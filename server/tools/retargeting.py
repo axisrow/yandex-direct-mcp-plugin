@@ -39,7 +39,7 @@ def retargeting_add(
     Args:
         name: Name for the retargeting list.
         list_type: List type (e.g. "AUDIENCE_SEGMENT").
-        rule: Optional JSON string with targeting rule conditions (optional).
+        rule: JSON string with targeting rule conditions (e.g. {"conditions": [...]}).
     """
     args = [
         "retargeting",

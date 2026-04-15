@@ -145,9 +145,7 @@ def ads_update(
             message="Provide status",
         ).__dict__
 
-    args = ["ads", "update", "--id", id]
-    if status:
-        args.extend(["--status", status])
+    args = ["ads", "update", "--id", id, "--status", status]
     runner = get_runner()
     return runner.run_json(args)
 

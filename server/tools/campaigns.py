@@ -98,11 +98,16 @@ def campaigns_update(
         if budget_value is not None:
             args.extend(["--budget", budget_value])
         if notification is not None:
-            notification_val = (
-                notification
-                if isinstance(notification, dict)
-                else json.loads(notification)
-            )
+            if isinstance(notification, dict):
+                notification_val = notification
+            else:
+                try:
+                    notification_val = json.loads(notification)
+                except json.JSONDecodeError:
+                    return ToolError(
+                        error="invalid_json",
+                        message=f"notification is not valid JSON: '{notification}'",
+                    ).__dict__
             args.extend(["--json", json.dumps({"Notification": notification_val})])
         runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
@@ -120,6 +125,8 @@ def campaigns_update(
         result["status"] = status
     if budget_value is not None:
         result["budget"] = int(budget_value)
+    if notification is not None:
+        result["notification"] = notification
     return result
 
 
@@ -164,11 +171,16 @@ def campaigns_add(
     if end_date:
         args.extend(["--end-date", end_date])
     if bidding_strategy is not None:
-        bs_val = (
-            bidding_strategy
-            if isinstance(bidding_strategy, dict)
-            else json.loads(bidding_strategy)
-        )
+        if isinstance(bidding_strategy, dict):
+            bs_val = bidding_strategy
+        else:
+            try:
+                bs_val = json.loads(bidding_strategy)
+            except json.JSONDecodeError:
+                return ToolError(
+                    error="invalid_json",
+                    message=f"bidding_strategy is not valid JSON: '{bidding_strategy}'",
+                ).__dict__
         args.extend(["--json", json.dumps({"BiddingStrategy": bs_val})])
     result = runner.run_json(args)
     return result
