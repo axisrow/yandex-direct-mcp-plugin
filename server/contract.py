@@ -5,7 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+# ``wsdl``: canonical SOAP/WSDL-backed Direct API operation.
+# ``reports-spec``: canonical Reports API operation validated against reports spec.
+# ``cli-extra``: public CLI helper intentionally outside the 1:1 API surface.
+# ``plugin``: plugin-only auth/utility tool, not a Direct API operation.
 ToolAuthority = Literal["wsdl", "reports-spec", "cli-extra", "plugin"]
+
+# ``direct_api``: public Direct operation exposed through CLI transport.
+# ``cli_helper``: public helper kept separate from the Direct API contract.
+# ``plugin``: plugin-only tool unrelated to Direct service parity.
 ToolClassification = Literal["direct_api", "cli_helper", "plugin"]
 
 

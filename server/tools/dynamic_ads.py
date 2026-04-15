@@ -61,11 +61,12 @@ def dynamic_ads_add(ad_group_id: str, target_data: str | dict) -> dict:
 def dynamic_ads_update(id: str, extra_json: str | dict) -> dict:
     """Internal-only legacy helper for dynamic ad target updates.
 
-    Kept for direct Python callers/tests-only compatibility and still wrapped
-    in ``handle_cli_errors`` so those internal callers get the same structured
-    error payloads as public tools. It is intentionally not registered as a
-    public MCP tool because the current direct-cli contract does not expose
-    the ``direct dynamicads update`` subcommand.
+    Kept for direct Python callers/tests-only compatibility (see
+    ``tests/test_dynamic_ads.py``) and still wrapped in ``handle_cli_errors``
+    so those internal callers get the same structured error payloads as
+    public tools. It is intentionally not registered as a public MCP tool
+    because the current direct-cli contract does not expose the
+    ``direct dynamicads update`` subcommand.
 
     Args:
         id: Target ID.

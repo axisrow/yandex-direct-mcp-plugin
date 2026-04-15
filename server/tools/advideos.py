@@ -35,7 +35,7 @@ def advideos_add(
         name: Optional video name.
     """
     args = ["advideos", "add"]
-    if bool(url) == bool(video_data):
+    if (url is None) == (video_data is None):
         return ToolError(
             error="invalid_video_source",
             message="Provide exactly one of: url, video_data",

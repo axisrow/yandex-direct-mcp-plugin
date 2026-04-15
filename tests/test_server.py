@@ -212,3 +212,33 @@ def test_mcp_server_tools_call_campaigns_get_accepts_valid_state():
     finally:
         proc.terminate()
         proc.wait(timeout=5)
+
+
+def test_mcp_server_tools_call_rejects_removed_campaigns_list_alias():
+    proc = _start_server()
+    try:
+        _initialize(proc)
+        assert proc.stdin is not None
+        proc.stdin.write(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "campaigns_list",
+                        "arguments": {"state": "ON"},
+                    },
+                }
+            )
+            + "\n"
+        )
+        proc.stdin.flush()
+
+        resp = _read_response(proc)
+        assert resp["id"] == 2
+        assert resp["result"]["isError"] is True
+        assert "campaigns_list" in resp["result"]["content"][0]["text"]
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
