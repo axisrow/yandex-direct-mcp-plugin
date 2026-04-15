@@ -191,7 +191,7 @@ class TestCampaignsUpdate:
                 notification='{"SmsSettings": {"Events": ["MONITORING"]}}',
             )
         assert result["success"] is True
-        assert result["notification"] == '{"SmsSettings": {"Events": ["MONITORING"]}}'
+        assert result["notification"] == {"SmsSettings": {"Events": ["MONITORING"]}}
         runner.run_json.assert_called_once_with(
             [
                 "campaigns",
@@ -233,7 +233,9 @@ class TestCampaignsCrudOperations:
                 campaign_type="TEXT_CAMPAIGN",
                 budget="5000",
                 end_date="2026-12-31",
-                bidding_strategy={"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}},
+                bidding_strategy={
+                    "Search": {"BiddingStrategyType": "HIGHEST_POSITION"}
+                },
             )
             assert result["Id"] == 99999
             runner.run_json.assert_called_once_with(

@@ -1,5 +1,7 @@
 """MCP tools for retargeting list management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import run_single_id_batch
@@ -32,14 +34,14 @@ def retargeting_list(
 def retargeting_add(
     name: str,
     list_type: str,
-    rule: str | None = None,
+    rule: str | dict | None = None,
 ) -> dict:
     """Add a retargeting list.
 
     Args:
         name: Name for the retargeting list.
         list_type: List type (e.g. "AUDIENCE_SEGMENT").
-        rule: JSON string with targeting rule conditions (e.g. {"conditions": [...]}).
+        rule: Targeting rule conditions as a dict or JSON string (e.g. {"conditions": [...]}).
     """
     args = [
         "retargeting",
@@ -50,7 +52,18 @@ def retargeting_add(
         list_type,
     ]
     if rule is not None:
-        args.extend(["--rule", rule])
+        if isinstance(rule, dict):
+            rule_str = json.dumps(rule)
+        else:
+            try:
+                json.loads(rule)
+            except json.JSONDecodeError:
+                return ToolError(
+                    error="invalid_json",
+                    message=f"rule is not valid JSON: '{rule}'",
+                ).__dict__
+            rule_str = rule
+        args.extend(["--rule", rule_str])
     runner = get_runner()
     return runner.run_json(args)
 
