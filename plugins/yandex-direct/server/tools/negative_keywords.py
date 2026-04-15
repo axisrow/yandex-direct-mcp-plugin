@@ -1,0 +1,98 @@
+"""Legacy compatibility wrappers for negative keyword shared set tools.
+
+These tools preserve historical MCP names used by prompts and skills.
+The audited direct-cli surface does not guarantee a working
+``negativekeywords`` subcommand, so callers should prefer the canonical
+wrappers in ``negative_keyword_shared_sets.py``.
+"""
+
+from server.main import mcp
+from server.tools import ToolError, get_runner, handle_cli_errors
+
+from server.tools.helpers import check_batch_limit, run_single_id_batch
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keywords_list(ids: str | None = None) -> list[dict] | dict:
+    """List negative keyword shared sets.
+
+    Args:
+        ids: Comma-separated set IDs (optional, max 10).
+    """
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
+        if batch_error:
+            return batch_error.__dict__
+
+    args = ["negativekeywordsharedsets", "get", "--format", "json"]
+    if normalized_ids:
+        args.extend(["--ids", normalized_ids])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keywords_add(name: str, keywords: str) -> dict:
+    """Add a negative keyword shared set.
+
+    Args:
+        name: Set name.
+        keywords: Comma-separated negative keywords.
+    """
+    runner = get_runner()
+    return runner.run_json(
+        [
+            "negativekeywordsharedsets",
+            "add",
+            "--name",
+            name,
+            "--keywords",
+            keywords,
+            "--format",
+            "json",
+        ]
+    )
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keywords_update(
+    id: str,
+    name: str | None = None,
+    keywords: str | None = None,
+) -> dict:
+    """Update a negative keyword shared set.
+
+    Args:
+        id: Set ID.
+        name: New set name (optional).
+        keywords: New comma-separated negative keywords (optional).
+    """
+    if not any((name, keywords)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: name, keywords",
+        ).__dict__
+
+    args = ["negativekeywordsharedsets", "update", "--id", id]
+    if name is not None:
+        args.extend(["--name", name])
+    if keywords is not None:
+        args.extend(["--keywords", keywords])
+    args.extend(["--format", "json"])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool()
+@handle_cli_errors
+def negative_keywords_delete(ids: str) -> dict:
+    """Delete negative keyword shared sets.
+
+    Args:
+        ids: Comma-separated set IDs (max 10).
+    """
+    return run_single_id_batch(get_runner(), "negativekeywordsharedsets", "delete", ids)
