@@ -24,7 +24,10 @@ def turbo_pages_list(ids: str | None = None) -> dict:
 
 @handle_cli_errors
 def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
-    """Add a turbo page.
+    """Legacy internal helper for turbo page creation.
+
+    Not registered as a public MCP tool because the current direct-cli
+    contract does not expose ``turbopages add``.
 
     Args:
         name: Page name.
