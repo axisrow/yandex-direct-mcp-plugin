@@ -6,6 +6,7 @@ import pytest
 
 import server.tools
 from server.tools.bidmodifiers import (
+    bidmodifiers_add,
     bidmodifiers_list,
     bidmodifiers_set,
     bidmodifiers_toggle,
@@ -131,6 +132,41 @@ class TestBidModifiersSet:
                 "1.2",
             ]
         )
+
+
+class TestBidModifiersAdd:
+    """Tests for bidmodifiers_add tool."""
+
+    def test_bidmodifiers_add_success(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            result = bidmodifiers_add(
+                campaign_id="12345",
+                modifier_type="MOBILE_ADJUSTMENT",
+                value="120",
+                region_id="213",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "bidmodifiers",
+                "add",
+                "--type",
+                "MOBILE_ADJUSTMENT",
+                "--value",
+                "120",
+                "--campaign-id",
+                "12345",
+                "--region-id",
+                "213",
+            ]
+        )
+
+    def test_bidmodifiers_add_requires_scope(self):
+        result = bidmodifiers_add(modifier_type="MOBILE_ADJUSTMENT", value="120")
+        assert result["error"] == "missing_target_scope"
 
 
 class TestBidModifiersToggle:

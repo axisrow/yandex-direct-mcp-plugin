@@ -15,15 +15,30 @@ direct (Python CLI)         — talks to Yandex.Direct API
        ↑
 server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
+server/contract.py          — machine-readable parity layer (111 tools)
 server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 105 MCP tools across 31 modules
+server/tools/               — 111 MCP tools across 30 active modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
 .claude-plugin/plugin.json  — plugin manifest
 .mcp.json                   — MCP server config
 ```
+
+### Contract hierarchy
+
+```
+MCP → direct-cli → tapi-yandex-direct → Yandex.Direct API
+```
+
+- MCP **never** calls Yandex.Direct directly.
+- `direct-cli` is the only execution/transport boundary.
+- `tapi-yandex-direct` naming is the default source reused by the CLI.
+- WSDL / Reports spec wins when CLI convenience names drift.
+
+The machine-readable parity source is `server/contract.py`
+(`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
 
 ## Tech Stack
 
@@ -135,6 +150,7 @@ yandex-direct-mcp-plugin/
 ├── pyproject.toml               # Dependencies and build config
 ├── server/
 │   ├── main.py                  # FastMCP entry point (stdio)
+│   ├── contract.py              # Machine-readable parity (PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS, RENAMED_TOOL_MIGRATION)
 │   ├── auth/
 │   │   ├── storage.py           # FileTokenStorage + TokenData
 │   │   └── oauth.py             # OAuthManager (exchange, refresh, status)
@@ -143,37 +159,37 @@ yandex-direct-mcp-plugin/
 │   └── tools/
 │       ├── __init__.py          # ToolError dataclass, handle_cli_errors, get_runner
 │       ├── helpers.py           # Shared validation (parse_ids, check_batch_limit)
-│       ├── adextensions.py      # adextensions_list/add/delete
-│       ├── adgroups.py          # adgroups_list/add/update/delete
-│       ├── ads.py               # ads_list/add/update/delete/moderate/suspend/resume/archive/unarchive
-│       ├── images.py            # adimages_list/add/delete
-│       ├── agency.py            # agency_clients_list/add/delete
-│       ├── audience.py          # audience_targets_list/add/delete/suspend/resume
+│       ├── adextensions.py      # adextensions_get/add/delete
+│       ├── adgroups.py          # adgroups_get/add/update/delete
+│       ├── ads.py               # ads_get/add/update/delete/moderate/suspend/resume/archive/unarchive
+│       ├── advideos.py          # advideos_get/add
+│       ├── images.py            # adimages_get/add/delete
+│       ├── agency.py            # agencyclients_get/add/update/delete + add_passport_organization[_member]
+│       ├── audience.py          # audiencetargets_get/add/delete/suspend/resume/set_bids
 │       ├── auth_tools.py        # auth_status, auth_setup, auth_login
-│       ├── bids.py              # bids_list/set
-│       ├── businesses.py        # businesses_list
-│       ├── keyword_bids.py      # keyword_bids_list/set
-│       ├── bidmodifiers.py      # bidmodifiers_list/set/toggle/delete
-│       ├── campaigns.py         # campaigns_list/update/add/delete/archive/unarchive/suspend/resume
-│       ├── changes.py           # changes_check/checkcamp/checkdict
+│       ├── bids.py              # bids_get/set/set_auto
+│       ├── businesses.py        # businesses_get
+│       ├── keyword_bids.py      # keywordbids_get/set/set_auto
+│       ├── bidmodifiers.py      # bidmodifiers_get/add/set/delete/toggle
+│       ├── campaigns.py         # campaigns_get/update/add/delete/archive/unarchive/suspend/resume
+│       ├── changes.py           # changes_check/check_campaigns/check_dictionaries
 │       ├── clients.py           # clients_get/update
-│       ├── creatives.py         # creatives_list
-│       ├── dictionaries.py      # dictionaries_get
-│       ├── dynamic_targets.py   # dynamic_targets_list/add/update/delete
-│       ├── dynamic_ads.py       # dynamic_ads_list/add/update/delete
-│       ├── feeds.py             # feeds_list/add/update/delete
-│       ├── keywords.py          # keywords_list/update/add/delete/suspend/resume/archive/unarchive
-│       ├── leads.py             # leads_list
-│       ├── negative_keyword_shared_sets.py # negative_keyword_shared_sets_list/add/update/delete
-│       ├── negative_keywords.py # negative_keywords_list/add/update/delete
+│       ├── creatives.py         # creatives_get/add
+│       ├── dictionaries.py      # dictionaries_get/get_geo_regions/list_names
+│       ├── dynamic_ads.py       # dynamicads_get/add/delete/suspend/resume/set_bids (update transport-blocked)
+│       ├── feeds.py             # feeds_get/add/update/delete
+│       ├── keywords.py          # keywords_get/update/add/delete/suspend/resume/archive/unarchive
+│       ├── leads.py             # leads_get
+│       ├── negative_keyword_shared_sets.py  # negativekeywordsharedsets_get/add/update/delete
 │       ├── reports.py           # reports_get/list_types
-│       ├── research.py          # keywords_has_volume/deduplicate
-│       ├── retargeting.py       # retargeting_list/add/delete
-│       ├── sitelinks.py         # sitelinks_list/add/delete
-│       ├── smart_targets.py     # smart_targets_list/add/update/delete
-│       ├── smart_ad_targets.py  # smart_ad_targets_list/add/update/delete
-│       ├── turbo_pages.py       # turbo_pages_list
-│       └── vcards.py            # vcards_list/add/delete
+│       ├── research.py          # keywordsresearch_has_search_volume/deduplicate
+│       ├── retargeting.py       # retargeting_get/add/update/delete
+│       ├── sitelinks.py         # sitelinks_get/add/delete
+│       ├── smart_ad_targets.py  # smartadtargets_get/add/update/delete/suspend/resume/set_bids
+│       ├── turbo_pages.py       # turbopages_get
+│       └── vcards.py            # vcards_get/add/delete
+│   # Orphaned (not imported — kept for git history):
+│   #   dynamic_targets.py, smart_targets.py, negative_keywords.py
 ├── skills/
 │   ├── yandex-direct/SKILL.md   # Campaign management skill
 │   └── direct-ads/SKILL.md      # Ad copywriting skill
@@ -189,23 +205,29 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (105 total) + 1 Prompt
+## MCP Tools (111 total) + 1 Prompt
+
+The canonical source of truth for tool names is `server/contract.py`.
+Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
+WSDL/reports spec wins when there is drift.
+
+### Direct API tools (104)
 
 | Tool | Purpose |
 |---|---|
-| `campaigns_list` | List campaigns, optional state filter |
-| `campaigns_update` | Enable/disable campaign |
+| `campaigns_get` | List campaigns, optional state/status/type filter |
+| `campaigns_update` | Update campaign fields |
 | `campaigns_add` | Create campaign |
 | `campaigns_delete` | Delete campaigns |
 | `campaigns_archive` | Archive campaigns |
 | `campaigns_unarchive` | Unarchive campaigns |
 | `campaigns_suspend` | Suspend campaigns |
 | `campaigns_resume` | Resume campaigns |
-| `adgroups_list` | List ad groups |
+| `adgroups_get` | List ad groups |
 | `adgroups_add` | Create ad group |
 | `adgroups_update` | Update ad group |
 | `adgroups_delete` | Delete ad groups |
-| `ads_list` | List ads by campaign IDs |
+| `ads_get` | List ads by campaign IDs |
 | `ads_add` | Create ad |
 | `ads_update` | Update ad |
 | `ads_delete` | Delete ads |
@@ -214,7 +236,15 @@ yandex-direct-mcp-plugin/
 | `ads_resume` | Resume suspended ads |
 | `ads_archive` | Archive ads |
 | `ads_unarchive` | Unarchive ads |
-| `keywords_list` | List keywords by campaign IDs |
+| `advideos_get` | List ad videos |
+| `advideos_add` | Add ad video (url or video_data) |
+| `adimages_get` | List ad images |
+| `adimages_add` | Add ad image |
+| `adimages_delete` | Delete images |
+| `adextensions_get` | List ad extensions |
+| `adextensions_add` | Add extension |
+| `adextensions_delete` | Delete extensions |
+| `keywords_get` | List keywords by campaign IDs |
 | `keywords_update` | Update keyword bid (micro-units) |
 | `keywords_add` | Add keywords |
 | `keywords_delete` | Delete keywords |
@@ -222,79 +252,91 @@ yandex-direct-mcp-plugin/
 | `keywords_resume` | Resume keywords |
 | `keywords_archive` | Archive keywords |
 | `keywords_unarchive` | Unarchive keywords |
-| `keyword_bids_list` | List keyword bids |
-| `keyword_bids_set` | Set keyword bids |
-| `bids_list` | List bids |
+| `keywordbids_get` | List keyword bids |
+| `keywordbids_set` | Set keyword bids |
+| `keywordbids_set_auto` | Set keyword bids to auto strategy |
+| `bids_get` | List bids |
 | `bids_set` | Set bid for campaign |
-| `bidmodifiers_list` | List bid modifiers |
+| `bids_set_auto` | Set bids to auto strategy |
+| `bidmodifiers_get` | List bid modifiers |
+| `bidmodifiers_add` | Add bid modifier |
 | `bidmodifiers_set` | Set bid modifier |
-| `bidmodifiers_toggle` | Toggle modifier on/off |
 | `bidmodifiers_delete` | Delete bid modifiers |
-| `sitelinks_list` | List sitelinks sets |
+| `sitelinks_get` | List sitelinks sets |
 | `sitelinks_add` | Add sitelinks set |
 | `sitelinks_delete` | Delete sitelinks |
-| `vcards_list` | List vCards |
+| `vcards_get` | List vCards |
 | `vcards_add` | Add vCard |
 | `vcards_delete` | Delete vCards |
-| `adimages_list` | List ad images |
-| `adimages_add` | Add ad image |
-| `adimages_delete` | Delete images |
-| `adextensions_list` | List ad extensions |
-| `adextensions_add` | Add extension |
-| `adextensions_delete` | Delete extensions |
-| `audience_targets_list` | List audience targets |
-| `audience_targets_add` | Add audience target |
-| `audience_targets_delete` | Delete targets |
-| `audience_targets_suspend` | Suspend targets |
-| `audience_targets_resume` | Resume targets |
-| `retargeting_list` | List retargeting lists |
+| `audiencetargets_get` | List audience targets |
+| `audiencetargets_add` | Add audience target |
+| `audiencetargets_delete` | Delete targets |
+| `audiencetargets_suspend` | Suspend targets |
+| `audiencetargets_resume` | Resume targets |
+| `audiencetargets_set_bids` | Set bids for audience targets |
+| `retargeting_get` | List retargeting lists |
 | `retargeting_add` | Add retargeting list |
+| `retargeting_update` | Update retargeting list |
 | `retargeting_delete` | Delete retargeting lists |
-| `dynamic_targets_list` | List dynamic targets |
-| `dynamic_targets_add` | Add dynamic target |
-| `dynamic_targets_update` | Update dynamic target |
-| `dynamic_targets_delete` | Delete dynamic targets |
-| `dynamic_ads_list` | List dynamic ads |
-| `dynamic_ads_add` | Add dynamic ad |
-| `dynamic_ads_update` | Update dynamic ad |
-| `dynamic_ads_delete` | Delete dynamic ads |
-| `negative_keywords_list` | List negative keywords |
-| `negative_keywords_add` | Add negative keywords |
-| `negative_keywords_update` | Update negative keywords |
-| `negative_keywords_delete` | Delete negative keywords |
-| `negative_keyword_shared_sets_list` | List negative keyword shared sets |
-| `negative_keyword_shared_sets_add` | Add negative keyword shared set |
-| `negative_keyword_shared_sets_update` | Update negative keyword shared set |
-| `negative_keyword_shared_sets_delete` | Delete negative keyword shared set |
-| `smart_targets_list` | List smart targets |
-| `smart_targets_add` | Add smart target |
-| `smart_targets_update` | Update smart target |
-| `smart_targets_delete` | Delete smart targets |
-| `smart_ad_targets_list` | List smart ad targets |
-| `smart_ad_targets_add` | Add smart ad target |
-| `smart_ad_targets_update` | Update smart ad target |
-| `smart_ad_targets_delete` | Delete smart ad targets |
-| `businesses_list` | List businesses |
+| `dynamicads_get` | List dynamic ad targets (webpages) |
+| `dynamicads_add` | Add dynamic ad target |
+| `dynamicads_delete` | Delete dynamic ad targets |
+| `dynamicads_suspend` | Suspend dynamic ad targets |
+| `dynamicads_resume` | Resume dynamic ad targets |
+| `dynamicads_set_bids` | Set bids for dynamic ad targets |
+| `smartadtargets_get` | List smart ad targets |
+| `smartadtargets_add` | Add smart ad target |
+| `smartadtargets_update` | Update smart ad target |
+| `smartadtargets_delete` | Delete smart ad targets |
+| `smartadtargets_suspend` | Suspend smart ad targets |
+| `smartadtargets_resume` | Resume smart ad targets |
+| `smartadtargets_set_bids` | Set bids for smart ad targets |
+| `negativekeywordsharedsets_get` | List negative keyword shared sets |
+| `negativekeywordsharedsets_add` | Add negative keyword shared set |
+| `negativekeywordsharedsets_update` | Update negative keyword shared set |
+| `negativekeywordsharedsets_delete` | Delete negative keyword shared set |
+| `agencyclients_get` | List agency clients |
+| `agencyclients_add` | Add client to agency |
+| `agencyclients_update` | Update agency client |
+| `agencyclients_add_passport_organization` | Add agency client backed by Passport org |
+| `agencyclients_add_passport_organization_member` | Invite user to Passport org client |
+| `businesses_get` | List businesses |
 | `dictionaries_get` | Get dictionary data |
+| `dictionaries_get_geo_regions` | Get geo regions dictionary |
 | `changes_check` | Check changes since timestamp |
-| `changes_checkcamp` | Check campaign changes |
-| `changes_checkdict` | Check dictionary changes |
+| `changes_check_campaigns` | Check campaign changes |
+| `changes_check_dictionaries` | Check dictionary changes |
 | `clients_get` | Get client info |
 | `clients_update` | Update client |
-| `agency_clients_list` | List agency clients |
-| `agency_clients_add` | Add client to agency |
-| `agency_clients_delete` | Remove client from agency |
-| `keywords_has_volume` | Check keyword search volume |
-| `keywords_deduplicate` | Deduplicate keywords |
-| `leads_list` | List leads |
-| `feeds_list` | List feeds |
+| `keywordsresearch_has_search_volume` | Check keyword search volume |
+| `keywordsresearch_deduplicate` | Deduplicate keywords |
+| `leads_get` | List leads |
+| `feeds_get` | List feeds |
 | `feeds_add` | Add feed |
 | `feeds_update` | Update feed |
 | `feeds_delete` | Delete feeds |
-| `creatives_list` | List creatives |
-| `turbo_pages_list` | List turbo pages |
+| `creatives_get` | List creatives |
+| `creatives_add` | Add creative |
+| `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
+
+### CLI helper tools (4)
+
+These are public but explicitly not 1:1 Direct API methods.
+
+| Tool | Purpose |
+|---|---|
+| `agencyclients_delete` | Remove client from agency (no API backing) |
+| `bidmodifiers_toggle` | Toggle bid modifier on/off |
+| `dictionaries_list_names` | List available dictionary names |
 | `reports_list_types` | List available report types |
+
+### Plugin tools (3)
+
+Auth/utility tools unrelated to Direct API parity.
+
+| Tool | Purpose |
+|---|---|
 | `auth_status` | Check OAuth token validity |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
@@ -302,6 +344,16 @@ yandex-direct-mcp-plugin/
 | Prompt | Purpose |
 |---|---|
 | `oauth_login` | Start OAuth PKCE authorization flow |
+
+### Transport-blocked operations
+
+Operations in the WSDL/tapi surface that have no `direct-cli` subcommand.
+See `server/contract.py` → `TRANSPORT_BLOCKED_OPERATIONS` for details.
+
+| Operation | Reason |
+|---|---|
+| `dynamicads_update` | `direct dynamicads update` subcommand does not exist in CLI |
+| `negativekeywords_*` | `negativekeywords` is not a CLI service; use AdGroups payload or `negativekeywordsharedsets_*` |
 
 ## Testing Model
 
@@ -312,6 +364,8 @@ Three test modes:
 
 Cassette lifecycle: record → sanitize (strip secrets/commercial data) → commit → replay in tests. Audit script blocks commits containing leaked tokens or PII.
 
+New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `retargeting_update`, etc.) currently have mock-only tests. Cassette recording is a tracked follow-up.
+
 ## Domain Notes
 
 - Bids use micro-units: 15 RUB = 15,000,000
@@ -320,3 +374,27 @@ Cassette lifecycle: record → sanitize (strip secrets/commercial data) → comm
 - OAuth tokens stored in `${CLAUDE_PLUGIN_DATA}/tokens.json` (gitignored)
 - CLI binary: `direct` (installed via `pip install direct-cli`)
 - Language: project docs in Russian, code identifiers in English
+
+## Breaking Changes (v1 → v2 migration)
+
+See `server/contract.py` → `RENAMED_TOOL_MIGRATION` for the full old→new name mapping.
+Key renames:
+
+| Old name | New name |
+|---|---|
+| `campaigns_list` | `campaigns_get` |
+| `ads_list` | `ads_get` |
+| `adgroups_list` | `adgroups_get` |
+| `keyword_bids_*` | `keywordbids_*` |
+| `agency_clients_*` | `agencyclients_*` |
+| `audience_targets_*` | `audiencetargets_*` |
+| `smart_ad_targets_*` | `smartadtargets_*` |
+| `dynamic_ads_*` | `dynamicads_*` |
+| `negative_keyword_shared_sets_*` | `negativekeywordsharedsets_*` |
+| `changes_checkcamp` | `changes_check_campaigns` |
+| `changes_checkdict` | `changes_check_dictionaries` |
+| `keywords_has_volume` | `keywordsresearch_has_search_volume` |
+| `keywords_deduplicate` | `keywordsresearch_deduplicate` |
+| `negative_keywords_*` | removed (transport-blocked) |
+| `dynamic_targets_*` | merged into `dynamicads_*` |
+| `smart_targets_*` | merged into `smartadtargets_*` |

@@ -3,11 +3,11 @@
 import json
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
-@mcp.tool()
+@mcp.tool(name="bidmodifiers_get")
 @handle_cli_errors
 def bidmodifiers_list(
     campaign_ids: str | None = None,
@@ -37,7 +37,7 @@ def bidmodifiers_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="bidmodifiers_set")
 @handle_cli_errors
 def bidmodifiers_set(
     campaign_id: str,
@@ -72,7 +72,7 @@ def bidmodifiers_set(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="bidmodifiers_toggle")
 @handle_cli_errors
 def bidmodifiers_toggle(id: str, enabled: bool = True) -> dict:
     """Toggle bid modifier on/off.
@@ -86,7 +86,7 @@ def bidmodifiers_toggle(id: str, enabled: bool = True) -> dict:
     return runner.run_json(["bidmodifiers", "toggle", "--id", id, flag])
 
 
-@mcp.tool()
+@mcp.tool(name="bidmodifiers_delete")
 @handle_cli_errors
 def bidmodifiers_delete(ids: str) -> dict:
     """Delete bid modifiers.
@@ -97,3 +97,46 @@ def bidmodifiers_delete(ids: str) -> dict:
     from server.tools.helpers import run_single_id_batch
 
     return run_single_id_batch(get_runner(), "bidmodifiers", "delete", ids)
+
+
+@mcp.tool(name="bidmodifiers_add")
+@handle_cli_errors
+def bidmodifiers_add(
+    modifier_type: str,
+    value: str,
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
+    gender: str | None = None,
+    age: str | None = None,
+    retargeting_condition_id: str | None = None,
+    region_id: str | None = None,
+    serp_layout: str | None = None,
+    income_grade: str | None = None,
+) -> dict:
+    """Add a bid modifier."""
+    if not any((campaign_id, ad_group_id)):
+        return ToolError(
+            error="missing_target_scope",
+            message="Provide at least one of: campaign_id, ad_group_id",
+        ).__dict__
+
+    args = ["bidmodifiers", "add", "--type", modifier_type, "--value", value]
+    if campaign_id is not None:
+        args.extend(["--campaign-id", campaign_id])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", ad_group_id])
+    if gender is not None:
+        args.extend(["--gender", gender])
+    if age is not None:
+        args.extend(["--age", age])
+    if retargeting_condition_id is not None:
+        args.extend(["--retargeting-condition-id", retargeting_condition_id])
+    if region_id is not None:
+        args.extend(["--region-id", region_id])
+    if serp_layout is not None:
+        args.extend(["--serp-layout", serp_layout])
+    if income_grade is not None:
+        args.extend(["--income-grade", income_grade])
+
+    runner = get_runner()
+    return runner.run_json(args)

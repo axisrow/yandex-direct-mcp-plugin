@@ -1,150 +1,17 @@
 """Smoke test: MCP server registers all tools when started via __main__."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_TOOLS = {
-    # Ad Groups (4 tools)
-    "adgroups_list",
-    "adgroups_add",
-    "adgroups_update",
-    "adgroups_delete",
-    # Campaigns (8 tools)
-    "campaigns_list",
-    "campaigns_update",
-    "campaigns_add",
-    "campaigns_delete",
-    "campaigns_archive",
-    "campaigns_unarchive",
-    "campaigns_suspend",
-    "campaigns_resume",
-    # Ads (9 tools)
-    "ads_list",
-    "ads_add",
-    "ads_update",
-    "ads_delete",
-    "ads_moderate",
-    "ads_suspend",
-    "ads_resume",
-    "ads_archive",
-    "ads_unarchive",
-    # Keywords (8 tools)
-    "keywords_list",
-    "keywords_update",
-    "keywords_add",
-    "keywords_delete",
-    "keywords_suspend",
-    "keywords_resume",
-    "keywords_archive",
-    "keywords_unarchive",
-    # Keyword Bids (2 tools)
-    "keyword_bids_list",
-    "keyword_bids_set",
-    # Reports (2 tools)
-    "reports_get",
-    "reports_list_types",
-    # Bids (2 tools)
-    "bids_list",
-    "bids_set",
-    # Bid Modifiers (4 tools)
-    "bidmodifiers_list",
-    "bidmodifiers_set",
-    "bidmodifiers_toggle",
-    "bidmodifiers_delete",
-    # Sitelinks (3 tools)
-    "sitelinks_list",
-    "sitelinks_add",
-    "sitelinks_delete",
-    # VCards (3 tools)
-    "vcards_list",
-    "vcards_add",
-    "vcards_delete",
-    # Ad Images (3 tools)
-    "adimages_list",
-    "adimages_add",
-    "adimages_delete",
-    # Ad Extensions (3 tools)
-    "adextensions_list",
-    "adextensions_add",
-    "adextensions_delete",
-    # Audience Targets (5 tools)
-    "audience_targets_list",
-    "audience_targets_add",
-    "audience_targets_delete",
-    "audience_targets_suspend",
-    "audience_targets_resume",
-    # Retargeting (3 tools)
-    "retargeting_list",
-    "retargeting_add",
-    "retargeting_delete",
-    # Dynamic Targets (4 tools)
-    "dynamic_targets_list",
-    "dynamic_targets_add",
-    "dynamic_targets_update",
-    "dynamic_targets_delete",
-    # Dynamic Ads (4 tools)
-    "dynamic_ads_list",
-    "dynamic_ads_add",
-    "dynamic_ads_update",
-    "dynamic_ads_delete",
-    # Negative Keywords (4 tools)
-    "negative_keywords_list",
-    "negative_keywords_add",
-    "negative_keywords_update",
-    "negative_keywords_delete",
-    # Negative Keyword Shared Sets (4 tools)
-    "negative_keyword_shared_sets_list",
-    "negative_keyword_shared_sets_add",
-    "negative_keyword_shared_sets_update",
-    "negative_keyword_shared_sets_delete",
-    # Smart Targets (4 tools)
-    "smart_targets_list",
-    "smart_targets_add",
-    "smart_targets_update",
-    "smart_targets_delete",
-    # Smart Ad Targets (4 tools)
-    "smart_ad_targets_list",
-    "smart_ad_targets_add",
-    "smart_ad_targets_update",
-    "smart_ad_targets_delete",
-    # Businesses (1 tool)
-    "businesses_list",
-    # Dictionaries (2 tools)
-    "dictionaries_get",
-    "dictionaries_list_names",
-    # Changes (3 tools)
-    "changes_check",
-    "changes_checkcamp",
-    "changes_checkdict",
-    # Clients (2 tools)
-    "clients_get",
-    "clients_update",
-    # Agency (3 tools)
-    "agency_clients_list",
-    "agency_clients_add",
-    "agency_clients_delete",
-    # Research (2 tools)
-    "keywords_has_volume",
-    "keywords_deduplicate",
-    # Leads (1 tool)
-    "leads_list",
-    # Feeds (4 tools)
-    "feeds_list",
-    "feeds_add",
-    "feeds_update",
-    "feeds_delete",
-    # Creatives (1 tool)
-    "creatives_list",
-    # Turbo Pages (2 tools)
-    "turbo_pages_list",
-    "turbo_pages_add",
-    # Auth (3 tools)
-    "auth_status",
-    "auth_setup",
-    "auth_login",
-}
+from server.contract import (
+    CLI_HELPER_TOOL_NAMES,
+    PLUGIN_ONLY_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+    REMOVED_LEGACY_PUBLIC_NAMES,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -157,7 +24,7 @@ def _read_response(proc: subprocess.Popen[str]) -> dict:
     return json.loads(line)
 
 
-def _start_server() -> subprocess.Popen[str]:
+def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [sys.executable, str(PROJECT_ROOT / "server" / "main.py")],
         stdin=subprocess.PIPE,
@@ -165,6 +32,7 @@ def _start_server() -> subprocess.Popen[str]:
         stderr=subprocess.PIPE,
         text=True,
         cwd=str(PROJECT_ROOT),
+        env=env,
     )
 
 
@@ -213,10 +81,43 @@ def test_mcp_server_registers_all_tools():
         assert resp["id"] == 2
 
         tool_names = {t["name"] for t in resp["result"]["tools"]}
-        assert tool_names == EXPECTED_TOOLS, (
-            f"Missing tools: {EXPECTED_TOOLS - tool_names}, "
-            f"extra tools: {tool_names - EXPECTED_TOOLS}"
+        assert tool_names == PUBLIC_TOOL_NAMES, (
+            f"Missing tools: {PUBLIC_TOOL_NAMES - tool_names}, "
+            f"extra tools: {tool_names - PUBLIC_TOOL_NAMES}"
         )
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_mcp_server_keeps_helper_and_plugin_tools_separate():
+    assert CLI_HELPER_TOOL_NAMES <= PUBLIC_TOOL_NAMES
+    assert PLUGIN_ONLY_TOOL_NAMES <= PUBLIC_TOOL_NAMES
+    assert CLI_HELPER_TOOL_NAMES.isdisjoint(PLUGIN_ONLY_TOOL_NAMES)
+
+
+def test_mcp_server_does_not_expose_removed_legacy_aliases():
+    proc = _start_server()
+    try:
+        _initialize(proc)
+        assert proc.stdin is not None
+        proc.stdin.write(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/list",
+                    "params": {},
+                }
+            )
+            + "\n"
+        )
+        proc.stdin.flush()
+
+        resp = _read_response(proc)
+        assert resp["id"] == 2
+        tool_names = {t["name"] for t in resp["result"]["tools"]}
+        assert tool_names.isdisjoint(REMOVED_LEGACY_PUBLIC_NAMES)
     finally:
         proc.terminate()
         proc.wait(timeout=5)
@@ -262,7 +163,7 @@ def test_mcp_server_tools_call_returns_structured_tool_error():
                     "id": 2,
                     "method": "tools/call",
                     "params": {
-                        "name": "campaigns_list",
+                        "name": "campaigns_get",
                         "arguments": {"state": "BAD"},
                     },
                 }
@@ -277,6 +178,67 @@ def test_mcp_server_tools_call_returns_structured_tool_error():
         structured = resp["result"]["structuredContent"]["result"]
         assert structured["error"] == "invalid_state"
         assert "got 'BAD'" in structured["message"]
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_mcp_server_tools_call_campaigns_get_accepts_valid_state():
+    proc = _start_server(env={**os.environ, "PATH": ""})
+    try:
+        _initialize(proc)
+        assert proc.stdin is not None
+        proc.stdin.write(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "campaigns_get",
+                        "arguments": {"state": "ON"},
+                    },
+                }
+            )
+            + "\n"
+        )
+        proc.stdin.flush()
+
+        resp = _read_response(proc)
+        assert resp["id"] == 2
+        assert resp["result"]["isError"] is False
+        structured = resp["result"]["structuredContent"]["result"]
+        assert structured["error"] != "invalid_state"
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_mcp_server_tools_call_rejects_removed_campaigns_list_alias():
+    proc = _start_server()
+    try:
+        _initialize(proc)
+        assert proc.stdin is not None
+        proc.stdin.write(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "campaigns_list",
+                        "arguments": {"state": "ON"},
+                    },
+                }
+            )
+            + "\n"
+        )
+        proc.stdin.flush()
+
+        resp = _read_response(proc)
+        assert resp["id"] == 2
+        assert resp["result"]["isError"] is True
+        assert "campaigns_list" in resp["result"]["content"][0]["text"]
     finally:
         proc.terminate()
         proc.wait(timeout=5)

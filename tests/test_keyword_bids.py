@@ -5,7 +5,11 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 import server.tools
-from server.tools.keyword_bids import keyword_bids_list, keyword_bids_set
+from server.tools.keyword_bids import (
+    keyword_bids_list,
+    keyword_bids_set,
+    keyword_bids_set_auto,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -201,3 +205,34 @@ class TestKeywordBidsSet:
             assert "--campaign-ids" not in call_args
             assert "--adgroup-ids" not in call_args
             assert "--keyword-ids" not in call_args
+
+
+class TestKeywordBidsSetAuto:
+    """Tests for keyword_bids_set_auto tool."""
+
+    def test_keyword_bids_set_auto(self):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_set_auto(
+                keyword_id="111",
+                target_traffic_volume="80",
+                increase_percent="10",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "keywordbids",
+                "set-auto",
+                "--keyword-id",
+                "111",
+                "--target-traffic-volume",
+                "80",
+                "--increase-percent",
+                "10",
+            ]
+        )
+
+    def test_keyword_bids_set_auto_requires_scope(self):
+        result = keyword_bids_set_auto(target_traffic_volume="80")
+        assert result["error"] == "missing_target_scope"

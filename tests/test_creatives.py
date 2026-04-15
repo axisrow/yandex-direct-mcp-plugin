@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import server.tools
-from server.tools.creatives import creatives_list
+from server.tools.creatives import creatives_add, creatives_list
 
 
 @pytest.fixture(autouse=True)
@@ -84,3 +84,18 @@ class TestCreativesList:
             call_args = runner.run_json.call_args[0][0]
             assert "--ids" not in call_args
             assert "--campaign-ids" not in call_args
+
+
+class TestCreativesAdd:
+    """Tests for creatives_add tool."""
+
+    def test_creatives_add(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"Id": 10}
+        with patch("server.tools.creatives.get_runner", return_value=runner):
+            result = creatives_add(video_id="video-1")
+
+        assert result == {"Id": 10}
+        runner.run_json.assert_called_once_with(
+            ["creatives", "add", "--video-id", "video-1"]
+        )

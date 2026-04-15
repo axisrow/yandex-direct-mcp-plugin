@@ -7,7 +7,7 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
-@mcp.tool()
+@mcp.tool(name="adextensions_get")
 @handle_cli_errors
 def adextensions_list(
     ids: str | None = None, types: str | None = None

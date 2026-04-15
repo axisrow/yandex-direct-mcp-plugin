@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 import server.tools
-from server.tools.bids import bids_list, bids_set
+from server.tools.bids import bids_list, bids_set, bids_set_auto
 
 
 @pytest.fixture(autouse=True)
@@ -159,3 +159,35 @@ class TestBidsSet:
         result = bids_list(keyword_ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+class TestBidsSetAuto:
+    """Tests for bids_set_auto tool."""
+
+    def test_bids_set_auto_success(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_set_auto(
+                campaign_id="12345",
+                max_bid="10.5",
+                position="PREMIUM",
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "bids",
+                "set-auto",
+                "--campaign-id",
+                "12345",
+                "--max-bid",
+                "10.5",
+                "--position",
+                "PREMIUM",
+            ]
+        )
+
+    def test_bids_set_auto_requires_scope(self):
+        result = bids_set_auto(max_bid="10.5")
+        assert result["error"] == "missing_target_scope"

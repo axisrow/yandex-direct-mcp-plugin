@@ -5,7 +5,7 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
-@mcp.tool()
+@mcp.tool(name="leads_get")
 @handle_cli_errors
 def leads_list(campaign_ids: str | None = None) -> dict:
     """List leads for specified campaigns.

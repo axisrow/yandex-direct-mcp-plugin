@@ -10,6 +10,9 @@ from server.tools.dynamic_ads import (
     dynamic_ads_add,
     dynamic_ads_update,
     dynamic_ads_delete,
+    dynamic_ads_resume,
+    dynamic_ads_set_bids,
+    dynamic_ads_suspend,
 )
 
 
@@ -114,6 +117,51 @@ def test_dynamic_ads_delete():
         mock.return_value.run_json.assert_called_once_with(
             ["dynamicads", "delete", "--id", "100"]
         )
+
+
+def test_dynamic_ads_suspend_batches_ids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
+        result = dynamic_ads_suspend(ids="100,101")
+
+    assert result["success"] is True
+    assert result["ids"] == ["100", "101"]
+
+
+def test_dynamic_ads_resume_batches_ids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
+        result = dynamic_ads_resume(ids="100,101")
+
+    assert result["success"] is True
+    assert result["ids"] == ["100", "101"]
+
+
+def test_dynamic_ads_set_bids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
+        result = dynamic_ads_set_bids(
+            id="100",
+            bid="1.5",
+            context_bid="1.2",
+            priority="HIGH",
+        )
+
+    assert result["success"] is True
+    runner.run_json.assert_called_once_with(
+        [
+            "dynamicads",
+            "set-bids",
+            "--id",
+            "100",
+            "--bid",
+            "1.5",
+            "--context-bid",
+            "1.2",
+            "--priority",
+            "HIGH",
+        ]
+    )
 
 
 class TestDynamicAdsAuthErrors:

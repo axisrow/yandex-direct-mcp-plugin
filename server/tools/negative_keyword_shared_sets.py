@@ -6,7 +6,7 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="negativekeywordsharedsets_get")
 @handle_cli_errors
 def negative_keyword_shared_sets_list(ids: str | None = None) -> list[dict] | dict:
     """List negative keyword shared sets.
@@ -22,7 +22,7 @@ def negative_keyword_shared_sets_list(ids: str | None = None) -> list[dict] | di
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="negativekeywordsharedsets_add")
 @handle_cli_errors
 def negative_keyword_shared_sets_add(name: str, keywords: str) -> dict:
     """Add a negative keyword shared set.
@@ -44,7 +44,7 @@ def negative_keyword_shared_sets_add(name: str, keywords: str) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(name="negativekeywordsharedsets_update")
 @handle_cli_errors
 def negative_keyword_shared_sets_update(
     id: str,
@@ -80,7 +80,7 @@ def negative_keyword_shared_sets_update(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="negativekeywordsharedsets_delete")
 @handle_cli_errors
 def negative_keyword_shared_sets_delete(id: str) -> dict:
     """Delete a negative keyword shared set.

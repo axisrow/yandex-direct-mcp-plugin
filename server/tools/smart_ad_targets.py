@@ -4,9 +4,10 @@ import json
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import run_single_id_batch
 
 
-@mcp.tool()
+@mcp.tool(name="smartadtargets_get")
 @handle_cli_errors
 def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
     """List smart ad targets.
@@ -33,7 +34,7 @@ def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(name="smartadtargets_add")
 @handle_cli_errors
 def smart_ad_targets_add(
     ad_group_id: str, target_type: str, extra_json: str | dict | None = None
@@ -55,7 +56,7 @@ def smart_ad_targets_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="smartadtargets_update")
 @handle_cli_errors
 def smart_ad_targets_update(
     id: str, target_type: str | None = None, extra_json: str | dict | None = None
@@ -85,7 +86,7 @@ def smart_ad_targets_update(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="smartadtargets_delete")
 @handle_cli_errors
 def smart_ad_targets_delete(id: str) -> dict:
     """Delete a smart ad target.
@@ -95,3 +96,57 @@ def smart_ad_targets_delete(id: str) -> dict:
     """
     runner = get_runner()
     return runner.run_json(["smartadtargets", "delete", "--id", id])
+
+
+@mcp.tool(name="smartadtargets_suspend")
+@handle_cli_errors
+def smart_ad_targets_suspend(ids: str) -> dict:
+    """Suspend smart ad targets."""
+    return run_single_id_batch(get_runner(), "smartadtargets", "suspend", ids)
+
+
+@mcp.tool(name="smartadtargets_resume")
+@handle_cli_errors
+def smart_ad_targets_resume(ids: str) -> dict:
+    """Resume smart ad targets."""
+    return run_single_id_batch(get_runner(), "smartadtargets", "resume", ids)
+
+
+@mcp.tool(name="smartadtargets_set_bids")
+@handle_cli_errors
+def smart_ad_targets_set_bids(
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
+    average_cpc: str | None = None,
+    average_cpa: str | None = None,
+    priority: str | None = None,
+) -> dict:
+    """Set smart ad target bids."""
+    if not any((id, ad_group_id, campaign_id)):
+        return ToolError(
+            error="missing_target_scope",
+            message="Provide at least one of: id, ad_group_id, campaign_id",
+        ).__dict__
+    if not any((average_cpc, average_cpa, priority)):
+        return ToolError(
+            error="missing_update_fields",
+            message="Provide at least one of: average_cpc, average_cpa, priority",
+        ).__dict__
+
+    args = ["smartadtargets", "set-bids"]
+    if id is not None:
+        args.extend(["--id", id])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", ad_group_id])
+    if campaign_id is not None:
+        args.extend(["--campaign-id", campaign_id])
+    if average_cpc is not None:
+        args.extend(["--average-cpc", average_cpc])
+    if average_cpa is not None:
+        args.extend(["--average-cpa", average_cpa])
+    if priority is not None:
+        args.extend(["--priority", priority])
+
+    runner = get_runner()
+    return runner.run_json(args)

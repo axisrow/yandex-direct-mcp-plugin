@@ -4,7 +4,7 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="keywordsresearch_has_search_volume")
 @handle_cli_errors
 def keywords_has_volume(keywords: str, region_id: str | None = None) -> dict:
     """Check if keywords have search volume.
@@ -16,7 +16,7 @@ def keywords_has_volume(keywords: str, region_id: str | None = None) -> dict:
     runner = get_runner()
     args = [
         "keywordsresearch",
-        "has-volume",
+        "has-search-volume",
         "--keywords",
         keywords,
         "--format",
@@ -27,7 +27,7 @@ def keywords_has_volume(keywords: str, region_id: str | None = None) -> dict:
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="keywordsresearch_deduplicate")
 @handle_cli_errors
 def keywords_deduplicate(keywords: str) -> dict:
     """Deduplicate keywords.

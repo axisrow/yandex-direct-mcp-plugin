@@ -6,7 +6,7 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="keywordbids_get")
 @handle_cli_errors
 def keyword_bids_list(
     campaign_ids: str | None = None,
@@ -34,7 +34,7 @@ def keyword_bids_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(name="keywordbids_set")
 @handle_cli_errors
 def keyword_bids_set(
     keyword_id: str,
@@ -82,5 +82,51 @@ def keyword_bids_set(
             json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
         )
         args.extend(["--json", json_str])
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool(name="keywordbids_set_auto")
+@handle_cli_errors
+def keyword_bids_set_auto(
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
+    keyword_id: str | None = None,
+    target_traffic_volume: str | None = None,
+    target_coverage: str | None = None,
+    increase_percent: str | None = None,
+    bid_ceiling: str | None = None,
+) -> dict:
+    """Configure automatic keyword bidding."""
+    if not any((campaign_id, ad_group_id, keyword_id)):
+        return ToolError(
+            error="missing_target_scope",
+            message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
+        ).__dict__
+    if not any((target_traffic_volume, target_coverage, increase_percent, bid_ceiling)):
+        return ToolError(
+            error="missing_update_fields",
+            message=(
+                "Provide at least one of: target_traffic_volume, "
+                "target_coverage, increase_percent, bid_ceiling"
+            ),
+        ).__dict__
+
+    args = ["keywordbids", "set-auto"]
+    if campaign_id is not None:
+        args.extend(["--campaign-id", campaign_id])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", ad_group_id])
+    if keyword_id is not None:
+        args.extend(["--keyword-id", keyword_id])
+    if target_traffic_volume is not None:
+        args.extend(["--target-traffic-volume", target_traffic_volume])
+    if target_coverage is not None:
+        args.extend(["--target-coverage", target_coverage])
+    if increase_percent is not None:
+        args.extend(["--increase-percent", increase_percent])
+    if bid_ceiling is not None:
+        args.extend(["--bid-ceiling", bid_ceiling])
+
     runner = get_runner()
     return runner.run_json(args)

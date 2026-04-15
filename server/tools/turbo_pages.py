@@ -6,7 +6,7 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="turbopages_get")
 @handle_cli_errors
 def turbo_pages_list(ids: str | None = None) -> dict:
     """List turbo pages.
@@ -22,10 +22,16 @@ def turbo_pages_list(ids: str | None = None) -> dict:
     return runner.run_json(args)
 
 
-@mcp.tool()
 @handle_cli_errors
 def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
-    """Add a turbo page.
+    """Internal-only legacy helper for turbo page creation.
+
+    Kept for direct Python callers/tests-only compatibility (see
+    ``tests/test_turbo_pages.py``) and still wrapped in ``handle_cli_errors``
+    so those internal callers get the same structured error payloads as
+    public tools. It is intentionally not registered as a public MCP tool
+    because the current direct-cli contract does not expose the
+    ``direct turbopages add`` subcommand.
 
     Args:
         name: Page name.

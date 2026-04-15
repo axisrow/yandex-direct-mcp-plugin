@@ -80,7 +80,7 @@ class TestKeywordsDeduplicate:
         runner.run_json.assert_called_once_with(
             [
                 "keywordsresearch",
-                "has-volume",
+                "has-search-volume",
                 "--keywords",
                 "k1,k2",
                 "--format",
@@ -98,7 +98,7 @@ class TestKeywordsDeduplicate:
         runner.run_json.assert_called_once_with(
             [
                 "keywordsresearch",
-                "has-volume",
+                "has-search-volume",
                 "--keywords",
                 "k1",
                 "--format",

@@ -8,7 +8,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
-@mcp.tool()
+@mcp.tool(name="campaigns_get")
 @handle_cli_errors
 def campaigns_list(
     state: str | None = None,

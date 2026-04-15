@@ -19,7 +19,7 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
     return None
 
 
-@mcp.tool()
+@mcp.tool(name="keywords_get")
 @handle_cli_errors
 def keywords_list(campaign_ids: str) -> list[dict] | dict:
     """List keywords in specified campaigns.

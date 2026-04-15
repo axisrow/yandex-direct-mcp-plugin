@@ -38,7 +38,7 @@ def _get_foreign_campaign_id(ids_str: str) -> str | None:
     return None
 
 
-@mcp.tool()
+@mcp.tool(name="ads_get")
 @handle_cli_errors
 def ads_list(
     campaign_ids: str | None = None,

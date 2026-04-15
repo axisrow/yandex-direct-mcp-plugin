@@ -10,6 +10,9 @@ from server.tools.smart_ad_targets import (
     smart_ad_targets_add,
     smart_ad_targets_update,
     smart_ad_targets_delete,
+    smart_ad_targets_resume,
+    smart_ad_targets_set_bids,
+    smart_ad_targets_suspend,
 )
 
 
@@ -145,3 +148,48 @@ def test_smart_ad_targets_delete():
         mock.return_value.run_json.assert_called_once_with(
             ["smartadtargets", "delete", "--id", "100"]
         )
+
+
+def test_smart_ad_targets_suspend_batches_ids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        result = smart_ad_targets_suspend(ids="100,101")
+
+    assert result["success"] is True
+    assert result["ids"] == ["100", "101"]
+
+
+def test_smart_ad_targets_resume_batches_ids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        result = smart_ad_targets_resume(ids="100,101")
+
+    assert result["success"] is True
+    assert result["ids"] == ["100", "101"]
+
+
+def test_smart_ad_targets_set_bids():
+    runner = _mock_runner({"success": True})
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        result = smart_ad_targets_set_bids(
+            id="100",
+            average_cpc="2.5",
+            average_cpa="10",
+            priority="MEDIUM",
+        )
+
+    assert result["success"] is True
+    runner.run_json.assert_called_once_with(
+        [
+            "smartadtargets",
+            "set-bids",
+            "--id",
+            "100",
+            "--average-cpc",
+            "2.5",
+            "--average-cpa",
+            "10",
+            "--priority",
+            "MEDIUM",
+        ]
+    )

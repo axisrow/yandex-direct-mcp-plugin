@@ -97,7 +97,7 @@ class TestChangesCheckCamp:
         runner.run_json.assert_called_once_with(
             [
                 "changes",
-                "check-camp",
+                "check-campaigns",
                 "--campaign-ids",
                 "12345,67890",
                 "--timestamp",
@@ -158,3 +158,20 @@ class TestChangesCheckDict:
         ):
             result = changes_checkdict(timestamp="2026-01-01T00:00:00Z")
             assert result == mock_result
+
+    def test_check_dictionary_changes_argv(self):
+        """Test dictionary checks use the canonical CLI command."""
+        runner = _mock_runner({"Dictionaries": []})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            changes_checkdict(timestamp="2026-01-01T00:00:00Z")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "changes",
+                "check-dictionaries",
+                "--timestamp",
+                "2026-01-01T00:00:00Z",
+                "--format",
+                "json",
+            ]
+        )

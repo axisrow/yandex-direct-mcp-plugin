@@ -6,7 +6,7 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool()
+@mcp.tool(name="feeds_get")
 @handle_cli_errors
 def feeds_list(ids: str | None = None) -> dict:
     """List feeds.

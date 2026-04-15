@@ -19,7 +19,7 @@ def changes_check(timestamp: str) -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(name="changes_check_campaigns")
 @handle_cli_errors
 def changes_checkcamp(campaign_ids: str, timestamp: str) -> dict:
     """Check campaign changes since timestamp.
@@ -44,7 +44,7 @@ def changes_checkcamp(campaign_ids: str, timestamp: str) -> dict:
     result = runner.run_json(
         [
             "changes",
-            "check-camp",
+            "check-campaigns",
             "--campaign-ids",
             normalized_campaign_ids,
             "--timestamp",
@@ -56,7 +56,7 @@ def changes_checkcamp(campaign_ids: str, timestamp: str) -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(name="changes_check_dictionaries")
 @handle_cli_errors
 def changes_checkdict(timestamp: str) -> dict:
     """Check dictionary changes since timestamp.
@@ -66,6 +66,6 @@ def changes_checkdict(timestamp: str) -> dict:
     """
     runner = get_runner()
     result = runner.run_json(
-        ["changes", "check-dict", "--timestamp", timestamp, "--format", "json"]
+        ["changes", "check-dictionaries", "--timestamp", timestamp, "--format", "json"]
     )
     return result
