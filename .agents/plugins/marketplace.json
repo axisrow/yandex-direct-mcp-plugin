@@ -1,0 +1,20 @@
+{
+  "name": "axisrow-local",
+  "interface": {
+    "displayName": "Axisrow Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "yandex-direct",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yandex-direct"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -29,13 +29,18 @@ Plugin (.claude-plugin) — контейнер, объединяющий MCP + �
 
 ## Installation
 
-```bash
-# From local path (development)
-claude --plugin-dir ./yandex-direct-mcp-plugin
+### Codex installable plugin
 
-# From GitHub
-/plugin marketplace add axisrow/yandex-direct-mcp-plugin
-/plugin install yandex-direct@axisrow-yandex-direct-mcp-plugin
+This repository now includes a Codex marketplace entry and installable plugin bundle:
+
+- Marketplace manifest: `.agents/plugins/marketplace.json`
+- Plugin bundle: `plugins/yandex-direct/.codex-plugin/plugin.json`
+
+### Local development
+
+```bash
+# Run the MCP server directly from the repo
+python -m server.main
 ```
 
 ## Authentication

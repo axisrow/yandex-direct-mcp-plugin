@@ -1,0 +1,41 @@
+{
+  "name": "yandex-direct",
+  "version": "1.0.0",
+  "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
+  "author": {
+    "name": "axisrow",
+    "url": "https://github.com/axisrow/yandex-direct-mcp-plugin"
+  },
+  "homepage": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+  "repository": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+  "license": "MIT",
+  "keywords": [
+    "yandex",
+    "direct",
+    "advertising",
+    "oauth",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Yandex Direct",
+    "shortDescription": "Manage Yandex.Direct campaigns through MCP tools.",
+    "longDescription": "Codex plugin for managing Yandex.Direct campaigns, ads, keywords, bids, and OAuth-based authentication from a single installable package.",
+    "developerName": "axisrow",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+    "privacyPolicyURL": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+    "termsOfServiceURL": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+    "defaultPrompt": [
+      "Show my active Yandex.Direct campaigns.",
+      "Pause underperforming ads and review bids.",
+      "Check auth status and help me finish OAuth setup."
+    ],
+    "brandColor": "#FFCC00"
+  }
+}
