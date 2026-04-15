@@ -24,9 +24,10 @@ def turbo_pages_list(ids: str | None = None) -> dict:
 
 @handle_cli_errors
 def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
-    """Legacy internal helper for turbo page creation.
+    """Internal-only legacy helper for turbo page creation.
 
-    Not registered as a public MCP tool because the current direct-cli
+    Kept for internal/tests-only compatibility and intentionally not
+    registered as a public MCP tool because the current direct-cli
     contract does not expose the ``direct turbopages add`` subcommand.
 
     Args:

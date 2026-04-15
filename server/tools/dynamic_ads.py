@@ -59,9 +59,10 @@ def dynamic_ads_add(ad_group_id: str, target_data: str | dict) -> dict:
 
 @handle_cli_errors
 def dynamic_ads_update(id: str, extra_json: str | dict) -> dict:
-    """Legacy internal helper for dynamic ad target updates.
+    """Internal-only legacy helper for dynamic ad target updates.
 
-    Not registered as a public MCP tool because the current direct-cli
+    Kept for internal/tests-only compatibility and intentionally not
+    registered as a public MCP tool because the current direct-cli
     contract does not expose the ``direct dynamicads update`` subcommand.
 
     Args:
