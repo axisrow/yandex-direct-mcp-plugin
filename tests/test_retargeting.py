@@ -140,8 +140,8 @@ class TestRetargetingAdd:
             assert "--name" in call_args
             assert "--type" in call_args
 
-    def test_add_retargeting_with_extra_json(self):
-        """Test adding with extra JSON parameters."""
+    def test_add_retargeting_with_rule(self):
+        """Test adding with targeting rule conditions."""
         runner = MagicMock()
         runner.run_json.return_value = {"Id": 204}
         with patch(
@@ -151,10 +151,11 @@ class TestRetargetingAdd:
             retargeting_add(
                 name="Test",
                 list_type="AUDIENCE_SEGMENT",
-                extra_json='{"Description":"test"}',
+                rule='{"Goal":{"Id":123}}',
             )
             call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+            assert "--rule" in call_args
+            assert '{"Goal":{"Id":123}}' in call_args
 
     def test_add_retargeting_auth_error(self):
         """Test auth error during retargeting add."""

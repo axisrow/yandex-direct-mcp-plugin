@@ -160,7 +160,7 @@ class TestCampaignsUpdate:
                 name="Renamed",
                 status="SUSPENDED",
                 budget="5000",
-                extra_json='{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
+                notification={"SmsSettings": {"Events": ["MONITORING"]}},
             )
 
         runner.run_json.assert_called_once_with(
@@ -205,7 +205,7 @@ class TestCampaignsCrudOperations:
                 campaign_type="TEXT_CAMPAIGN",
                 budget="5000",
                 end_date="2026-12-31",
-                extra_json='{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+                bidding_strategy={"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}},
             )
             assert result["Id"] == 99999
             runner.run_json.assert_called_once_with(
@@ -223,7 +223,7 @@ class TestCampaignsCrudOperations:
                     "--end-date",
                     "2026-12-31",
                     "--json",
-                    '{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+                    '{"BiddingStrategy": {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}}',
                 ]
             )
 

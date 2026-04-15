@@ -154,21 +154,6 @@ class TestKeywordBidsSet:
             assert "5" in call_args
             assert "--format" not in call_args
 
-    def test_keyword_bids_set_with_json(self):
-        """Test setting keyword bids with additional JSON."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(mock_result),
-        ) as mock:
-            result = keyword_bids_set(
-                keyword_id="111", extra_json='{"AutoBudget":"YES"}'
-            )
-            assert result["success"] is True
-            call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--json" in call_args
-            assert '{"AutoBudget":"YES"}' in call_args
-
     def test_keyword_bids_set_requires_changes(self):
         """Reject no-op updates before calling CLI."""
         runner = _mock_runner({"success": True})

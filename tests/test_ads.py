@@ -97,7 +97,6 @@ class TestAdsCrudOperations:
                 title="Title",
                 text="New ad text",
                 href="https://example.com",
-                extra_json='{"Mobile":"YES"}',
             )
             assert result["Id"] == 999
             runner.run_json.assert_called_once_with(
@@ -114,8 +113,6 @@ class TestAdsCrudOperations:
                     "New ad text",
                     "--href",
                     "https://example.com",
-                    "--json",
-                    '{"Mobile":"YES"}',
                 ]
             )
 
@@ -135,7 +132,6 @@ class TestAdsCrudOperations:
             ads_update(
                 id="111",
                 status="SUSPENDED",
-                extra_json='{"TextAd": {"Title": "New"}}',
             )
             runner.run_json.assert_called_once_with(
                 [
@@ -145,8 +141,6 @@ class TestAdsCrudOperations:
                     "111",
                     "--status",
                     "SUSPENDED",
-                    "--json",
-                    '{"TextAd": {"Title": "New"}}',
                 ]
             )
 
