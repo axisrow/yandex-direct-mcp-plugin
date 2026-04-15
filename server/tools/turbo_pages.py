@@ -26,9 +26,11 @@ def turbo_pages_list(ids: str | None = None) -> dict:
 def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
     """Internal-only legacy helper for turbo page creation.
 
-    Kept for internal/tests-only compatibility and intentionally not
-    registered as a public MCP tool because the current direct-cli
-    contract does not expose the ``direct turbopages add`` subcommand.
+    Kept for direct Python callers/tests-only compatibility and still wrapped
+    in ``handle_cli_errors`` so those internal callers get the same structured
+    error payloads as public tools. It is intentionally not registered as a
+    public MCP tool because the current direct-cli contract does not expose
+    the ``direct turbopages add`` subcommand.
 
     Args:
         name: Page name.
