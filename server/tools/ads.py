@@ -1,7 +1,5 @@
 """MCP tool for listing ads."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -55,8 +53,8 @@ def ads_list(
         ids: Comma-separated ad IDs (optional, max 10).
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
         status: Filter by status (optional).
-        fields: Comma-separated top-level field names (optional).
-        text_ad_fields: Comma-separated TextAd field names (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
+        fields: Comma-separated WSDL FieldNames selectors (optional).
+        text_ad_fields: Comma-separated WSDL TextAdFieldNames selectors (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
@@ -106,7 +104,6 @@ def ads_add(
     title: str | None = None,
     text: str | None = None,
     href: str | None = None,
-    extra_json: str | dict | None = None,
 ) -> dict:
     """Create a new ad.
 
@@ -116,7 +113,6 @@ def ads_add(
         title: Ad title (optional).
         text: Ad text content (optional).
         href: Ad URL (optional).
-        extra_json: JSON string with additional parameters (optional).
     """
     args = ["ads", "add", "--adgroup-id", ad_group_id]
     if ad_type:
@@ -127,11 +123,6 @@ def ads_add(
         args.extend(["--text", text])
     if href:
         args.extend(["--href", href])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -139,29 +130,22 @@ def ads_add(
 @mcp.tool()
 @handle_cli_errors
 def ads_update(
-    id: str, status: str | None = None, extra_json: str | dict | None = None
+    id: str,
+    status: str | None = None,
 ) -> dict:
     """Update an ad.
 
     Args:
         id: Ad ID to update.
         status: Optional new ad status.
-        extra_json: JSON string with fields to update (e.g. '{"TextAd": {"Title": "New"}}').
     """
-    if not status and not extra_json:
+    if not status:
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: status, extra_json",
+            message="Provide: status",
         ).__dict__
 
-    args = ["ads", "update", "--id", id]
-    if status:
-        args.extend(["--status", status])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    args = ["ads", "update", "--id", id, "--status", status]
     runner = get_runner()
     return runner.run_json(args)
 

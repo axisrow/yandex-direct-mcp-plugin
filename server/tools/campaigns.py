@@ -59,7 +59,7 @@ def campaigns_update(
     name: str | None = None,
     status: str | None = None,
     budget: str | None = None,
-    extra_json: str | dict | None = None,
+    notification: str | dict | None = None,
 ) -> dict:
     """Update campaign fields.
 
@@ -68,12 +68,12 @@ def campaigns_update(
         name: Optional new campaign name.
         status: Optional new campaign status.
         budget: Optional new daily budget.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        notification: Optional notification settings (e.g. {"SmsSettings": {"Events": ["MONITORING"]}}).
     """
-    if not any((name, status, budget, extra_json)):
+    if not any((name, status, budget, notification)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, status, budget, extra_json",
+            message="Provide at least one of: name, status, budget, notification",
         ).__dict__
 
     budget_value: str | None = None
@@ -88,20 +88,36 @@ def campaigns_update(
                 message=f"Budget must be a positive integer. Got: '{budget}'",
             ).__dict__
 
+    notification_val: dict | None = None
+    if notification is not None:
+        if isinstance(notification, dict):
+            notification_val = notification
+        else:
+            try:
+                notification_val = json.loads(notification)
+            except json.JSONDecodeError:
+                return ToolError(
+                    error="invalid_json",
+                    message=f"notification is not valid JSON: '{notification}'",
+                ).__dict__
+            if not isinstance(notification_val, dict):
+                return ToolError(
+                    error="invalid_json",
+                    message="notification must be a JSON object",
+                ).__dict__
+
+    args = ["campaigns", "update", "--id", id]
+    if name:
+        args.extend(["--name", name])
+    if status:
+        args.extend(["--status", status])
+    if budget_value is not None:
+        args.extend(["--budget", budget_value])
+    if notification_val is not None:
+        args.extend(["--json", json.dumps({"Notification": notification_val})])
+
     runner = get_runner()
     try:
-        args = ["campaigns", "update", "--id", id]
-        if name:
-            args.extend(["--name", name])
-        if status:
-            args.extend(["--status", status])
-        if budget_value is not None:
-            args.extend(["--budget", budget_value])
-        if extra_json:
-            json_str = (
-                json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-            )
-            args.extend(["--json", json_str])
         runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
@@ -118,8 +134,8 @@ def campaigns_update(
         result["status"] = status
     if budget_value is not None:
         result["budget"] = int(budget_value)
-    if extra_json:
-        result["extra_json"] = extra_json
+    if notification_val is not None:
+        result["notification"] = notification_val
     return result
 
 
@@ -131,7 +147,7 @@ def campaigns_add(
     campaign_type: str | None = None,
     budget: str | None = None,
     end_date: str | None = None,
-    extra_json: str | dict | None = None,
+    bidding_strategy: str | dict | None = None,
 ) -> dict:
     """Create a new campaign.
 
@@ -141,7 +157,7 @@ def campaigns_add(
         campaign_type: Campaign type (optional).
         budget: Optional daily budget.
         end_date: Optional campaign end date in YYYY-MM-DD format.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        bidding_strategy: Optional bidding strategy (e.g. {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}).
     """
     budget_value: str | None = None
     if budget is not None:
@@ -155,7 +171,24 @@ def campaigns_add(
                 message=f"Budget must be a positive integer. Got: '{budget}'",
             ).__dict__
 
-    runner = get_runner()
+    bs_val: dict | None = None
+    if bidding_strategy is not None:
+        if isinstance(bidding_strategy, dict):
+            bs_val = bidding_strategy
+        else:
+            try:
+                bs_val = json.loads(bidding_strategy)
+            except json.JSONDecodeError:
+                return ToolError(
+                    error="invalid_json",
+                    message=f"bidding_strategy is not valid JSON: '{bidding_strategy}'",
+                ).__dict__
+            if not isinstance(bs_val, dict):
+                return ToolError(
+                    error="invalid_json",
+                    message="bidding_strategy must be a JSON object",
+                ).__dict__
+
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
     if campaign_type:
         args.extend(["--type", campaign_type])
@@ -163,13 +196,10 @@ def campaigns_add(
         args.extend(["--budget", budget_value])
     if end_date:
         args.extend(["--end-date", end_date])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
-    result = runner.run_json(args)
-    return result
+    if bs_val is not None:
+        args.extend(["--json", json.dumps({"BiddingStrategy": bs_val})])
+    runner = get_runner()
+    return runner.run_json(args)
 
 
 @mcp.tool()

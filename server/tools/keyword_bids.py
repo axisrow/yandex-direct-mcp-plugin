@@ -1,7 +1,5 @@
 """MCP tools for keyword bid management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -40,7 +38,6 @@ def keyword_bids_set(
     keyword_id: str,
     search_bid: str | None = None,
     network_bid: str | None = None,
-    extra_json: str | dict | None = None,
 ) -> dict:
     """Set keyword bids.
 
@@ -48,12 +45,11 @@ def keyword_bids_set(
         keyword_id: Keyword ID.
         search_bid: Search bid amount (optional).
         network_bid: Network bid amount (optional).
-        extra_json: JSON string with additional parameters (optional).
     """
-    if not any((search_bid, network_bid, extra_json)):
+    if not any((search_bid, network_bid)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: search_bid, network_bid, extra_json",
+            message="Provide at least one of: search_bid, network_bid",
         ).__dict__
 
     from server.tools.helpers import validate_positive_int
@@ -77,11 +73,6 @@ def keyword_bids_set(
         args.extend(["--search-bid", str(search_bid_value)])
     if network_bid_value is not None:
         args.extend(["--network-bid", str(network_bid_value)])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
     runner = get_runner()
     return runner.run_json(args)
 

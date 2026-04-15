@@ -160,7 +160,7 @@ class TestCampaignsUpdate:
                 name="Renamed",
                 status="SUSPENDED",
                 budget="5000",
-                extra_json='{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
+                notification={"SmsSettings": {"Events": ["MONITORING"]}},
             )
 
         runner.run_json.assert_called_once_with(
@@ -180,6 +180,40 @@ class TestCampaignsUpdate:
             ]
         )
         assert result["budget"] == 5000
+        assert result["notification"] == {"SmsSettings": {"Events": ["MONITORING"]}}
+
+    def test_campaigns_update_notification_as_string(self):
+        """Test that notification accepts a JSON string and wraps it correctly."""
+        runner = _mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(
+                id="12345",
+                notification='{"SmsSettings": {"Events": ["MONITORING"]}}',
+            )
+        assert result["success"] is True
+        assert result["notification"] == {"SmsSettings": {"Events": ["MONITORING"]}}
+        runner.run_json.assert_called_once_with(
+            [
+                "campaigns",
+                "update",
+                "--id",
+                "12345",
+                "--json",
+                '{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
+            ]
+        )
+
+    def test_campaigns_update_notification_invalid_json(self):
+        """Test that an invalid JSON string for notification returns a clear error."""
+        result = campaigns_update(id="12345", notification="not-valid-json")
+        assert result["error"] == "invalid_json"
+        assert "notification" in result["message"]
+
+    def test_campaigns_update_notification_non_dict_json(self):
+        """Test that a non-object JSON value for notification returns a clear error."""
+        result = campaigns_update(id="12345", notification="[1, 2, 3]")
+        assert result["error"] == "invalid_json"
+        assert "JSON object" in result["message"]
 
     def test_campaigns_update_requires_changes(self):
         """Test that empty updates are rejected before CLI call."""
@@ -205,7 +239,9 @@ class TestCampaignsCrudOperations:
                 campaign_type="TEXT_CAMPAIGN",
                 budget="5000",
                 end_date="2026-12-31",
-                extra_json='{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+                bidding_strategy={
+                    "Search": {"BiddingStrategyType": "HIGHEST_POSITION"}
+                },
             )
             assert result["Id"] == 99999
             runner.run_json.assert_called_once_with(
@@ -223,9 +259,43 @@ class TestCampaignsCrudOperations:
                     "--end-date",
                     "2026-12-31",
                     "--json",
-                    '{"BiddingStrategy":{"Search":{"BiddingStrategyType":"HIGHEST_POSITION"}}}',
+                    '{"BiddingStrategy": {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}}',
                 ]
             )
+
+    def test_campaigns_add_bidding_strategy_as_string(self):
+        """Test that bidding_strategy accepts a JSON string."""
+        mock_result = {"Id": 99999}
+        runner = _mock_runner(mock_result)
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_add(
+                name="New Campaign",
+                start_date="2026-01-01",
+                bidding_strategy='{"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}',
+            )
+        assert result["Id"] == 99999
+        call_args = runner.run_json.call_args[0][0]
+        assert "--json" in call_args
+
+    def test_campaigns_add_bidding_strategy_invalid_json(self):
+        """Test that an invalid JSON string for bidding_strategy returns a clear error."""
+        result = campaigns_add(
+            name="New Campaign",
+            start_date="2026-01-01",
+            bidding_strategy="not-valid-json",
+        )
+        assert result["error"] == "invalid_json"
+        assert "bidding_strategy" in result["message"]
+
+    def test_campaigns_add_bidding_strategy_non_dict_json(self):
+        """Test that a non-object JSON value for bidding_strategy returns a clear error."""
+        result = campaigns_add(
+            name="New Campaign",
+            start_date="2026-01-01",
+            bidding_strategy="123",
+        )
+        assert result["error"] == "invalid_json"
+        assert "JSON object" in result["message"]
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""
