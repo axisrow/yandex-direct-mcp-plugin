@@ -27,7 +27,7 @@ def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -
     """Legacy internal helper for turbo page creation.
 
     Not registered as a public MCP tool because the current direct-cli
-    contract does not expose ``turbopages add``.
+    contract does not expose the ``direct turbopages add`` subcommand.
 
     Args:
         name: Page name.
