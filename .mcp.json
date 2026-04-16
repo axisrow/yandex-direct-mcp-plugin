@@ -1,12 +1,10 @@
 {
-  "mcpServers": {
-    "yandex-direct-mcp": {
-      "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/server/main.py"],
-      "env": {
-        "PYTHONPATH": "${CLAUDE_PLUGIN_ROOT}",
-        "PATH": "${HOME}/.local/bin:${HOME}/direct-cli-venv/bin:/usr/local/bin:/usr/bin:/bin"
-      }
+  "yandex-direct-mcp": {
+    "command": "python3",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/server/main.py"],
+    "env": {
+      "PYTHONPATH": "${CLAUDE_PLUGIN_ROOT}",
+      "PATH": "${HOME}/.local/bin:${HOME}/direct-cli-venv/bin:/usr/local/bin:/usr/bin:/bin"
     }
   }
 }

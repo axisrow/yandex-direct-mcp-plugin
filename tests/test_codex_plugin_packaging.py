@@ -7,6 +7,7 @@ PLUGIN_ROOT = REPO_ROOT / "plugins" / "yandex-direct"
 PLUGIN_MANIFEST = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE_MANIFEST = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 MCP_MANIFEST = PLUGIN_ROOT / ".mcp.json"
+ROOT_MCP_MANIFEST = REPO_ROOT / ".mcp.json"
 SERVER_ENTRYPOINT = PLUGIN_ROOT / "server" / "main.py"
 
 
@@ -19,6 +20,7 @@ def test_codex_plugin_bundle_exists() -> None:
     assert PLUGIN_MANIFEST.exists()
     assert MARKETPLACE_MANIFEST.exists()
     assert MCP_MANIFEST.exists()
+    assert ROOT_MCP_MANIFEST.exists()
     assert SERVER_ENTRYPOINT.exists()
 
 
@@ -49,6 +51,15 @@ def test_plugin_manifest_matches_bundle_layout() -> None:
     assert plugin["mcpServers"] == "./.mcp.json"
     assert plugin["interface"]["displayName"] == "Yandex Direct"
 
-    server = mcp["mcpServers"]["yandex-direct-mcp"]
+    server = mcp["yandex-direct-mcp"]
+    assert server["command"] == "python3"
+    assert server["args"] == ["${CLAUDE_PLUGIN_ROOT}/server/main.py"]
+
+
+def test_root_mcp_manifest_uses_flat_server_mapping() -> None:
+    mcp = _load_json(ROOT_MCP_MANIFEST)
+
+    assert "mcpServers" not in mcp
+    server = mcp["yandex-direct-mcp"]
     assert server["command"] == "python3"
     assert server["args"] == ["${CLAUDE_PLUGIN_ROOT}/server/main.py"]
