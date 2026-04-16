@@ -1,10 +1,37 @@
 """Direct CLI runner — subprocess wrapper for the `direct` command."""
 
 import json
+import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Protocol
+
+
+def _find_direct() -> str | None:
+    """Locate the `direct` binary across common install locations.
+
+    Search order:
+    1. YANDEX_DIRECT_CLI_PATH env var (explicit override)
+    2. System PATH (shutil.which)
+    3. ~/.local/bin/direct (pip install --user)
+    4. ~/direct-cli-venv/bin/direct (venv install)
+    """
+    if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
+        return explicit if Path(explicit).is_file() else None
+
+    if found := shutil.which("direct"):
+        return found
+
+    for candidate in (
+        Path.home() / ".local" / "bin" / "direct",
+        Path.home() / "direct-cli-venv" / "bin" / "direct",
+    ):
+        if candidate.is_file():
+            return str(candidate)
+
+    return None
 
 
 class CliRunner(Protocol):
@@ -50,12 +77,13 @@ class DirectCliRunner:
         """
         effective_timeout = timeout if timeout is not None else self._timeout
 
-        if not self.is_available():
+        direct_bin = _find_direct()
+        if not direct_bin:
             raise CliNotFoundError(
                 "direct-cli not found. Install: https://github.com/axisrow/direct-cli"
             )
 
-        cmd = ["direct", "--token", self._token, *args]
+        cmd = [direct_bin, "--token", self._token, *args]
 
         try:
             result = subprocess.run(
@@ -75,8 +103,8 @@ class DirectCliRunner:
             )
 
     def is_available(self) -> bool:
-        """Check if the `direct` binary is available in PATH."""
-        return shutil.which("direct") is not None
+        """Check if the `direct` binary is available."""
+        return _find_direct() is not None
 
     def run_json(
         self, args: list[str], *, timeout: int | None = None
