@@ -1,6 +1,7 @@
 """MCP tools and prompts for OAuth authentication management."""
 
 import time
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -94,7 +95,7 @@ def auth_setup(code: str) -> dict:
 class AuthMethodChoice(BaseModel):
     """Schema for choosing authentication method."""
 
-    method: str = Field(
+    method: Literal["pkce", "token"] = Field(
         description="Выберите метод: 'pkce' (авторизация через браузер, рекомендуется) "
         "или 'token' (вставить готовый OAuth-токен)"
     )
@@ -128,12 +129,6 @@ async def auth_login(ctx: Context) -> dict:
     )
     if choice.action != "accept" or not choice.data:
         return {"cancelled": True, "message": "Авторизация отменена."}
-
-    if choice.data.method not in ("pkce", "token"):
-        return {
-            "error": "invalid_method",
-            "message": "Метод должен быть 'pkce' или 'token'.",
-        }
 
     # Step 2a: Direct token
     if choice.data.method == "token":
