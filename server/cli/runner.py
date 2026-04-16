@@ -8,48 +8,56 @@ import subprocess
 from pathlib import Path
 from typing import Protocol
 
+_DIRECT_INSTALL_HINT = (
+    "direct not found. Install package direct-cli and run `direct`: "
+    "https://github.com/axisrow/direct-cli"
+)
+
 
 def _find_direct() -> str | None:
     """Locate the `direct` binary across common install locations.
 
     Search order:
     1. YANDEX_DIRECT_CLI_PATH env var (explicit override)
-    2. System PATH (shutil.which)
-    3. ~/.local/bin/direct (pip install --user)
-    4. ~/direct-cli-venv/bin/direct (venv install)
+    2. CLAUDE_PLUGIN_DATA/venv/bin/direct (plugin-managed venv)
+    3. System PATH (shutil.which)
+    4. ~/.local/bin/direct (pip install --user, macOS)
     """
     if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
         return explicit if Path(explicit).is_file() else None
 
+    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    if plugin_data:
+        venv_direct = Path(plugin_data) / "venv" / "bin" / "direct"
+        if venv_direct.is_file():
+            return str(venv_direct)
+
     if found := shutil.which("direct"):
         return found
 
-    for candidate in (
-        Path.home() / ".local" / "bin" / "direct",
-        Path.home() / "direct-cli-venv" / "bin" / "direct",
-    ):
-        if candidate.is_file():
-            return str(candidate)
+    candidate = Path.home() / ".local" / "bin" / "direct"
+    if candidate.is_file():
+        return str(candidate)
 
     return None
 
 
 class CliRunner(Protocol):
-    """Protocol for executing direct-cli commands as subprocesses."""
+    """Protocol for executing `direct` commands as subprocesses."""
 
     def run(
         self, args: list[str], *, timeout: int = 30
     ) -> subprocess.CompletedProcess[str]:
-        """Run a direct-cli command with the given arguments."""
+        """Run a `direct` command with the given arguments."""
         ...
 
     def is_available(self) -> bool:
-        """Check if the direct-cli binary is available in PATH."""
+        """Check if the `direct` binary is available in PATH."""
         ...
 
 
 class DirectCliRunner:
-    """Executes direct-cli commands as subprocesses.
+    """Executes `direct` commands as subprocesses.
 
     The `direct` binary is installed via `pip install direct-cli`.
     It is invoked as: direct --token <token> <subcommand> [args] --format json
@@ -79,9 +87,7 @@ class DirectCliRunner:
 
         direct_bin = _find_direct()
         if not direct_bin:
-            raise CliNotFoundError(
-                "direct-cli not found. Install: https://github.com/axisrow/direct-cli"
-            )
+            raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
         cmd = [direct_bin, "--token", self._token, *args]
 
@@ -94,13 +100,9 @@ class DirectCliRunner:
             )
             return result
         except subprocess.TimeoutExpired as e:
-            raise CliTimeoutError(
-                f"direct-cli timed out after {effective_timeout}s"
-            ) from e
+            raise CliTimeoutError(f"direct timed out after {effective_timeout}s") from e
         except FileNotFoundError:
-            raise CliNotFoundError(
-                "direct-cli not found. Install: https://github.com/axisrow/direct-cli"
-            )
+            raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
     def is_available(self) -> bool:
         """Check if the `direct` binary is available."""
@@ -130,7 +132,7 @@ class DirectCliRunner:
                     "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
                 )
             raise CliError(
-                f"direct-cli failed (exit {result.returncode}): {stderr or result.stdout[:200]}"
+                f"direct failed (exit {result.returncode}): {stderr or result.stdout[:200]}"
             )
 
         output = result.stdout.strip()

@@ -1,4 +1,4 @@
-"""Public MCP contract metadata aligned to the direct-cli surface.
+"""Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
 - Direct API tools: 104
@@ -25,7 +25,7 @@ ToolClassification = Literal["direct_api", "cli_helper", "plugin"]
 
 # ``aligned``: MCP name matches tapi/WSDL canonical; CLI transport confirmed.
 # ``transport_blocked``: operation exists in WSDL/tapi surface but
-#   ``direct-cli`` has no matching subcommand yet; not exposed in MCP.
+#   ``direct`` has no matching subcommand yet; not exposed in MCP.
 ToolDrift = Literal["aligned", "transport_blocked"]
 
 
@@ -159,19 +159,19 @@ CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login")
 
 # Operations that exist in the WSDL/tapi surface but cannot be exposed
-# in MCP because direct-cli has no matching transport subcommand.
+# in MCP because `direct` has no matching transport subcommand.
 # When the CLI gap is closed these entries should move into
 # DIRECT_API_SERVICE_METHODS.
 #
 # Format: { "<service>_<method>": "<reason>" }
 TRANSPORT_BLOCKED_OPERATIONS: dict[str, str] = {
     "dynamicads_update": (
-        "direct-cli has no `dynamicads update` subcommand; "
+        "`direct` has no `dynamicads update` subcommand; "
         "the operation is WSDL-backed (DynamicTextAdTargets.update) but "
         "not yet wired in the CLI transport layer."
     ),
     "negativekeywords_*": (
-        "`negativekeywords` is not a registered direct-cli service. "
+        "`negativekeywords` is not a registered `direct` service. "
         "Per-adgroup negative keywords are part of the AdGroups WSDL payload "
         "(NegativeKeywords field) rather than a standalone service. "
         "The legacy `negative_keywords_*` MCP tools were removed because they "
