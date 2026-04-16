@@ -1,7 +1,6 @@
 """MCP tools and prompts for OAuth authentication management."""
 
 import time
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -92,20 +91,11 @@ def auth_setup(code: str) -> dict:
     return _exchange_or_set_token(code)
 
 
-class AuthMethodChoice(BaseModel):
-    """Schema for choosing authentication method."""
-
-    method: Literal["pkce", "token"] = Field(
-        description="Выберите метод: 'pkce' (авторизация через браузер, рекомендуется) "
-        "или 'token' (вставить готовый OAuth-токен)"
-    )
-
-
 class AuthCredential(BaseModel):
     """Schema for eliciting an authorization code or token from user."""
 
     value: str = Field(
-        description="Код авторизации (буквы и цифры) или OAuth-токен (y0_...)"
+        description="Код авторизации с сайта Яндекса (буквы и цифры) или готовый OAuth-токен (y0_...)"
     )
 
 
@@ -122,33 +112,18 @@ async def auth_login(ctx: Context) -> dict:
         status["expires_in_human"] = _human_readable_time(status.get("expires_in", 0))
         return {"already_authenticated": True, **status}
 
-    # Step 1: Ask how to authenticate
-    choice = await ctx.elicit(
-        message="Как хотите авторизоваться в Яндекс.Директ?",
-        schema=AuthMethodChoice,
-    )
-    if choice.action != "accept" or not choice.data:
-        return {"cancelled": True, "message": "Авторизация отменена."}
-
-    # Step 2a: Direct token
-    if choice.data.method == "token":
-        result = await ctx.elicit(
-            message="Вставьте OAuth-токен (начинается с y0_)",
-            schema=AuthCredential,
-        )
-        if result.action != "accept" or not result.data:
-            return {"cancelled": True, "message": "Ввод токена отменён."}
-        return _exchange_or_set_token(result.data.value)
-
-    # Step 2b: PKCE flow — show URL, collect code
+    # Generate PKCE auth URL and ask for code or token in one step
     auth_url = _oauth.start_auth_flow()
     result = await ctx.elicit(
-        message=f"Перейдите по ссылке для авторизации:\n{auth_url}\n\n"
-        f"После разрешения введите код авторизации.",
+        message=(
+            f"Авторизуйтесь в Яндекс.Директ:\n{auth_url}\n\n"
+            "После разрешения введите код авторизации (буквы и цифры) "
+            "или вставьте готовый OAuth-токен (y0_...)."
+        ),
         schema=AuthCredential,
     )
     if result.action != "accept" or not result.data:
-        return {"cancelled": True, "message": "Ввод кода отменён."}
+        return {"cancelled": True, "message": "Авторизация отменена."}
 
     return _exchange_or_set_token(result.data.value)
 
