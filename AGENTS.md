@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Core code lives in `server/`. Use `server/main.py` as the MCP entrypoint, `server/tools/` for tool handlers (`campaigns.py`, `ads.py`, `keywords.py`, `reports.py`), `server/auth/` for OAuth/PKCE and token storage, and `server/cli/` for `direct-cli` execution. Tests live in `tests/`, with cassette fixtures under `tests/recordings/` and shared setup in `tests/conftest.py` and `tests/cli_recorder.py`. Documentation is in `docs/`, and skill definitions are in `skills/`.
+Core code lives in `server/`. Use `server/main.py` as the MCP entrypoint, `server/tools/` for tool handlers (`campaigns.py`, `ads.py`, `keywords.py`, `reports.py`), `server/auth/` for OAuth/PKCE and token storage, and `server/cli/` for `direct` execution (installed via the `direct-cli` package). Tests live in `tests/`, with cassette fixtures under `tests/recordings/` and shared setup in `tests/conftest.py` and `tests/cli_recorder.py`. Documentation is in `docs/`, and skill definitions are in `skills/`.
 
 ## Build, Test, and Development Commands
 Install dev dependencies with `pip install -e '.[dev]'`. Run the server locally with `python -m server.main`. Use `pytest` for the default cassette-replay suite, `pytest --record` to refresh cassettes from the live CLI, `pytest -m mocks` for subprocess edge cases, and `pytest -m integration` for live-token checks. Run `ruff check .`, `ruff format .`, and `mypy .` before opening a PR. For docs, use `make -C docs html`.

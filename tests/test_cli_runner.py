@@ -56,8 +56,11 @@ class TestRun:
     def test_cli_not_found(self, runner):
         """Test 17: direct-cli not in PATH."""
         with patch("server.cli.runner.shutil.which", return_value=None):
-            with pytest.raises(CliNotFoundError):
+            with pytest.raises(CliNotFoundError) as exc_info:
                 runner.run(["campaigns", "get"])
+            assert "Install package direct-cli and run `direct`" in str(
+                exc_info.value
+            )
 
     def test_cli_not_found_file_not_found(self, runner):
         """Test 17: FileNotFoundError from subprocess."""
@@ -77,8 +80,9 @@ class TestRun:
                 side_effect=subprocess.TimeoutExpired("direct", 30),
             ),
         ):
-            with pytest.raises(CliTimeoutError):
+            with pytest.raises(CliTimeoutError) as exc_info:
                 runner.run(["campaigns", "get"])
+            assert "direct timed out after 30s" in str(exc_info.value)
 
 
 @pytest.mark.mocks

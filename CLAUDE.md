@@ -29,11 +29,11 @@ skills/                     — domain knowledge (SKILL.md files)
 ### Contract hierarchy
 
 ```
-MCP → direct-cli → tapi-yandex-direct → Yandex.Direct API
+MCP → direct → tapi-yandex-direct → Yandex.Direct API
 ```
 
 - MCP **never** calls Yandex.Direct directly.
-- `direct-cli` is the only execution/transport boundary.
+- `direct` is the only execution/transport boundary.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when CLI convenience names drift.
 
