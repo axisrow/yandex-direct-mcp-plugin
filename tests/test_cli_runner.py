@@ -1,6 +1,8 @@
 """Tests for DirectCliRunner — edge cases (mock-based)."""
 
+import os
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,6 +13,7 @@ from server.cli.runner import (
     CliRegistrationError,
     CliTimeoutError,
     DirectCliRunner,
+    _find_direct,
 )
 
 
@@ -31,6 +34,59 @@ class TestIsAvailable:
 
 
 @pytest.mark.mocks
+class TestFindDirect:
+    def test_explicit_env_var(self, tmp_path):
+        direct_bin = tmp_path / "direct"
+        direct_bin.touch()
+        with patch.dict(os.environ, {"YANDEX_DIRECT_CLI_PATH": str(direct_bin)}):
+            assert _find_direct() == str(direct_bin)
+
+    def test_plugin_venv(self, tmp_path):
+        venv_bin = tmp_path / "venv" / "bin" / "direct"
+        venv_bin.parent.mkdir(parents=True)
+        venv_bin.touch()
+        with (
+            patch.dict(os.environ, {"CLAUDE_PLUGIN_DATA": str(tmp_path)}),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
+            assert _find_direct() == str(venv_bin)
+
+    def test_system_path(self):
+        with (
+            patch.dict(os.environ, {"CLAUDE_PLUGIN_DATA": ""}, clear=False),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+        ):
+            assert _find_direct() == "/usr/bin/direct"
+
+    def test_user_local_bin(self, tmp_path):
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+        with (
+            patch.dict(os.environ, {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""}, clear=False),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
+            assert _find_direct() == str(local_bin)
+
+    def test_not_found(self, tmp_path):
+        with (
+            patch.dict(os.environ, {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""}, clear=False),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
+            assert _find_direct() is None
+
+    def test_plugin_venv_takes_priority_over_system(self, tmp_path):
+        venv_bin = tmp_path / "venv" / "bin" / "direct"
+        venv_bin.parent.mkdir(parents=True)
+        venv_bin.touch()
+        with (
+            patch.dict(os.environ, {"CLAUDE_PLUGIN_DATA": str(tmp_path)}),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+        ):
+            assert _find_direct() == str(venv_bin)
+
+
+@pytest.mark.mocks
 class TestRun:
     def test_successful_run(self, runner):
         mock_result = MagicMock()
@@ -48,7 +104,7 @@ class TestRun:
 
             mock_run.assert_called_once()
             cmd = mock_run.call_args[0][0]
-            assert cmd[0] == "direct"
+            assert cmd[0] == "/usr/bin/direct"
             assert "--token" in cmd
             assert "test-token" in cmd
             assert "campaigns" in cmd

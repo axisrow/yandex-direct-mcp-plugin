@@ -19,22 +19,25 @@ def _find_direct() -> str | None:
 
     Search order:
     1. YANDEX_DIRECT_CLI_PATH env var (explicit override)
-    2. System PATH (shutil.which)
-    3. ~/.local/bin/direct (pip install --user)
-    4. ~/direct-cli-venv/bin/direct (venv install)
+    2. CLAUDE_PLUGIN_DATA/venv/bin/direct (plugin-managed venv)
+    3. System PATH (shutil.which)
+    4. ~/.local/bin/direct (pip install --user, macOS)
     """
     if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
         return explicit if Path(explicit).is_file() else None
 
+    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    if plugin_data:
+        venv_direct = Path(plugin_data) / "venv" / "bin" / "direct"
+        if venv_direct.is_file():
+            return str(venv_direct)
+
     if found := shutil.which("direct"):
         return found
 
-    for candidate in (
-        Path.home() / ".local" / "bin" / "direct",
-        Path.home() / "direct-cli-venv" / "bin" / "direct",
-    ):
-        if candidate.is_file():
-            return str(candidate)
+    candidate = Path.home() / ".local" / "bin" / "direct"
+    if candidate.is_file():
+        return str(candidate)
 
     return None
 
