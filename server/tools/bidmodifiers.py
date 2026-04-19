@@ -72,7 +72,6 @@ def bidmodifiers_set(
     return runner.run_json(args)
 
 
-
 @mcp.tool(name="bidmodifiers_delete")
 @handle_cli_errors
 def bidmodifiers_delete(ids: str) -> dict:

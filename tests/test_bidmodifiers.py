@@ -168,7 +168,6 @@ class TestBidModifiersAdd:
         assert result["error"] == "missing_target_scope"
 
 
-
 class TestBidModifiersDelete:
     """Tests for bidmodifiers_delete tool."""
 
