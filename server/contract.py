@@ -239,6 +239,7 @@ RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
     "adimages_list": "adimages_get",
     "adextensions_list": "adextensions_get",
     "sitelinks_list": "sitelinks_get",
+    "bidmodifiers_toggle": None,  # CLI 0.2.8 removed toggle; see TRANSPORT_BLOCKED_OPERATIONS
 }
 
 REMOVED_LEGACY_PUBLIC_NAMES = frozenset(RENAMED_TOOL_MIGRATION.keys())
