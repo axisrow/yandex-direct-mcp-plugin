@@ -151,7 +151,6 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 
 CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "agencyclients": ("delete",),
-    "bidmodifiers": ("toggle",),
     "dictionaries": ("list_names",),
     "reports": ("list_types",),
 }
@@ -177,6 +176,10 @@ TRANSPORT_BLOCKED_OPERATIONS: dict[str, str] = {
         "The legacy `negative_keywords_*` MCP tools were removed because they "
         "had no valid CLI transport; manage them via the adgroups payload or "
         "via NegativeKeywordSharedSets."
+    ),
+    "bidmodifiers_toggle": (
+        "`direct bidmodifiers toggle` removed in CLI 0.2.8; "
+        "Yandex deprecated this API operation on 2025-11-13."
     ),
 }
 
@@ -236,6 +239,7 @@ RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
     "adimages_list": "adimages_get",
     "adextensions_list": "adextensions_get",
     "sitelinks_list": "sitelinks_get",
+    "bidmodifiers_toggle": None,  # CLI 0.2.8 removed toggle; see TRANSPORT_BLOCKED_OPERATIONS
 }
 
 REMOVED_LEGACY_PUBLIC_NAMES = frozenset(RENAMED_TOOL_MIGRATION.keys())
