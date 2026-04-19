@@ -62,14 +62,22 @@ class TestFindDirect:
         local_bin.parent.mkdir(parents=True)
         local_bin.touch()
         with (
-            patch.dict(os.environ, {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""}, clear=False),
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
             patch("server.cli.runner.shutil.which", return_value=None),
         ):
             assert _find_direct() == str(local_bin)
 
     def test_not_found(self, tmp_path):
         with (
-            patch.dict(os.environ, {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""}, clear=False),
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
             patch("server.cli.runner.shutil.which", return_value=None),
         ):
             assert _find_direct() is None
@@ -113,9 +121,7 @@ class TestRun:
         with patch("server.cli.runner.shutil.which", return_value=None):
             with pytest.raises(CliNotFoundError) as exc_info:
                 runner.run(["campaigns", "get"])
-            assert "Install package direct-cli and run `direct`" in str(
-                exc_info.value
-            )
+            assert "Install package direct-cli and run `direct`" in str(exc_info.value)
 
     def test_cli_not_found_file_not_found(self, runner):
         """Test 17: FileNotFoundError from subprocess."""
