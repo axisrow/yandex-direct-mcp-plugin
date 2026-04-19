@@ -29,7 +29,9 @@ class FileTokenStorage:
                 self._path = Path(plugin_data) / "tokens.json"
             else:
                 # Fallback: store relative to plugin root (predictable for manual runs)
-                self._path = Path(__file__).parent.parent.parent / "data" / "tokens.json"
+                self._path = (
+                    Path(__file__).parent.parent.parent / "data" / "tokens.json"
+                )
 
     @property
     def path(self) -> Path:
