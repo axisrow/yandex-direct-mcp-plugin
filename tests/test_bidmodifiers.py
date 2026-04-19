@@ -9,7 +9,6 @@ from server.tools.bidmodifiers import (
     bidmodifiers_add,
     bidmodifiers_list,
     bidmodifiers_set,
-    bidmodifiers_toggle,
     bidmodifiers_delete,
 )
 
@@ -88,7 +87,7 @@ class TestBidModifiersSet:
             result = bidmodifiers_set(
                 campaign_id="12345",
                 modifier_type="DEMOGRAPHICS",
-                value="1.5",
+                value=150,
             )
             assert result["success"] is True
 
@@ -103,7 +102,7 @@ class TestBidModifiersSet:
             bidmodifiers_set(
                 campaign_id="12345",
                 modifier_type="DEMOGRAPHICS",
-                value="1.5",
+                value=150,
                 extra_json='{"Level":"ADGROUP"}',
             )
             call_args = runner.run_json.call_args[0][0]
@@ -117,7 +116,7 @@ class TestBidModifiersSet:
             bidmodifiers_set(
                 campaign_id="12345",
                 modifier_type="MOBILE",
-                value="1.2",
+                value=120,
             )
 
         runner.run_json.assert_called_once_with(
@@ -129,7 +128,7 @@ class TestBidModifiersSet:
                 "--type",
                 "MOBILE",
                 "--value",
-                "1.2",
+                "120",
             ]
         )
 
@@ -144,7 +143,7 @@ class TestBidModifiersAdd:
             result = bidmodifiers_add(
                 campaign_id="12345",
                 modifier_type="MOBILE_ADJUSTMENT",
-                value="120",
+                value=120,
                 region_id="213",
             )
 
@@ -165,36 +164,9 @@ class TestBidModifiersAdd:
         )
 
     def test_bidmodifiers_add_requires_scope(self):
-        result = bidmodifiers_add(modifier_type="MOBILE_ADJUSTMENT", value="120")
+        result = bidmodifiers_add(modifier_type="MOBILE_ADJUSTMENT", value=120)
         assert result["error"] == "missing_target_scope"
 
-
-class TestBidModifiersToggle:
-    """Tests for bidmodifiers_toggle tool."""
-
-    def test_bidmodifiers_toggle_enable(self):
-        """Test enabling a bid modifier."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.bidmodifiers.get_runner",
-            return_value=_mock_runner(mock_result),
-        ) as mock:
-            result = bidmodifiers_toggle(id="1", enabled=True)
-            assert result["success"] is True
-            call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--enabled" in call_args
-
-    def test_bidmodifiers_toggle_disable(self):
-        """Test disabling a bid modifier."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.bidmodifiers.get_runner",
-            return_value=_mock_runner(mock_result),
-        ) as mock:
-            result = bidmodifiers_toggle(id="1", enabled=False)
-            assert result["success"] is True
-            call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--disabled" in call_args
 
 
 class TestBidModifiersDelete:
