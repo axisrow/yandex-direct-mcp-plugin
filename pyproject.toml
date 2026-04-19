@@ -14,6 +14,10 @@ requires = ["setuptools>=75"]
 [tool.setuptools.packages.find]
 include = ["server*"]
 
+[tool.mypy]
+python_version = "3.11"
+exclude = ["^plugins/"]
+
 [tool.pytest.ini_options]
 markers = [
     "mocks: tests using unittest.mock instead of cassettes",
