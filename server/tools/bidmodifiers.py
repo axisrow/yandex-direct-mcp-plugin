@@ -101,7 +101,7 @@ def bidmodifiers_add(
     income_grade: str | None = None,
 ) -> dict:
     """Add a bid modifier."""
-    if not any((campaign_id, ad_group_id)):
+    if campaign_id is None and ad_group_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: campaign_id, ad_group_id",

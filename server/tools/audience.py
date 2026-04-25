@@ -133,12 +133,12 @@ def audience_targets_set_bids(
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         priority: Strategy priority.
     """
-    if not any((id, ad_group_id, campaign_id)):
+    if id is None and ad_group_id is None and campaign_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: id, ad_group_id, campaign_id",
         ).__dict__
-    if not any((context_bid, priority)):
+    if context_bid is None and priority is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: context_bid, priority",

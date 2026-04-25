@@ -127,12 +127,12 @@ def dynamic_ads_set_bids(
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         priority: Strategy priority.
     """
-    if not any((id, ad_group_id, campaign_id)):
+    if id is None and ad_group_id is None and campaign_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: id, ad_group_id, campaign_id",
         ).__dict__
-    if not any((bid, context_bid, priority)):
+    if bid is None and context_bid is None and priority is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: bid, context_bid, priority",

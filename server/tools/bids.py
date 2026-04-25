@@ -105,20 +105,18 @@ def bids_set_auto(
         context_coverage: Network coverage value.
         scope: Bidding scope.
     """
-    if not any((campaign_id, ad_group_id, keyword_id)):
+    if campaign_id is None and ad_group_id is None and keyword_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
         ).__dict__
-    if not any(
-        (
-            max_bid,
-            position,
-            increase_percent,
-            calculate_by,
-            context_coverage,
-            scope,
-        )
+    if (
+        max_bid is None
+        and position is None
+        and increase_percent is None
+        and calculate_by is None
+        and context_coverage is None
+        and scope is None
     ):
         return ToolError(
             error="missing_update_fields",

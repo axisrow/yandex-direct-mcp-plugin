@@ -71,7 +71,7 @@ def campaigns_update(
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         notification: Optional notification settings (e.g. {"SmsSettings": {"Events": ["MONITORING"]}}).
     """
-    if not any((name, status, budget, notification)):
+    if name is None and status is None and budget is None and notification is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: name, status, budget, notification",

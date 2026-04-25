@@ -143,12 +143,12 @@ def smart_ad_targets_set_bids(
         average_cpa: Optional average CPA in micro-units (same rules as `average_cpc`).
         priority: Strategy priority.
     """
-    if not any((id, ad_group_id, campaign_id)):
+    if id is None and ad_group_id is None and campaign_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: id, ad_group_id, campaign_id",
         ).__dict__
-    if not any((average_cpc, average_cpa, priority)):
+    if average_cpc is None and average_cpa is None and priority is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: average_cpc, average_cpa, priority",

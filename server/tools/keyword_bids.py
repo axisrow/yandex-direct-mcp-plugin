@@ -47,7 +47,7 @@ def keyword_bids_set(
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         network_bid: Optional network bid in micro-units (same rules as `search_bid`).
     """
-    if not any((search_bid, network_bid)):
+    if search_bid is None and network_bid is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: search_bid, network_bid",
@@ -85,12 +85,17 @@ def keyword_bids_set_auto(
         bid_ceiling: Optional bidding rule bid ceiling in micro-units (RUB × 1,000,000);
             CLI 0.2.10+ rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
     """
-    if not any((campaign_id, ad_group_id, keyword_id)):
+    if campaign_id is None and ad_group_id is None and keyword_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
         ).__dict__
-    if not any((target_traffic_volume, target_coverage, increase_percent, bid_ceiling)):
+    if (
+        target_traffic_volume is None
+        and target_coverage is None
+        and increase_percent is None
+        and bid_ceiling is None
+    ):
         return ToolError(
             error="missing_update_fields",
             message=(

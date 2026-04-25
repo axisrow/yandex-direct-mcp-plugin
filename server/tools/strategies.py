@@ -99,7 +99,14 @@ def strategies_update(
         priority_goals: Optional priority goals as a JSON list/string.
         attribution_model: Optional attribution model code.
     """
-    if not any((name, type, params, counter_ids, priority_goals, attribution_model)):
+    if (
+        name is None
+        and type is None
+        and params is None
+        and counter_ids is None
+        and priority_goals is None
+        and attribution_model is None
+    ):
         return ToolError(
             error="missing_update_fields",
             message=(
