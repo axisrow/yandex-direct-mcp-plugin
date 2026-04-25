@@ -48,9 +48,9 @@ def audience_targets_list(
 @mcp.tool(name="audiencetargets_add")
 @handle_cli_errors
 def audience_targets_add(
-    ad_group_id: str,
-    retargeting_list_id: str,
-    bid: str | None = None,
+    ad_group_id: int,
+    retargeting_list_id: int,
+    bid: int | None = None,
     extra_json: str | dict | None = None,
 ) -> dict:
     """Add an audience target to an ad group.
@@ -58,19 +58,20 @@ def audience_targets_add(
     Args:
         ad_group_id: Ad group ID to add target to.
         retargeting_list_id: Retargeting list ID to target.
-        bid: Optional bid amount passed directly to the CLI.
+        bid: Optional context bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         extra_json: Optional JSON string with additional parameters.
     """
     args = [
         "audiencetargets",
         "add",
         "--adgroup-id",
-        ad_group_id,
+        str(ad_group_id),
         "--retargeting-list-id",
-        retargeting_list_id,
+        str(retargeting_list_id),
     ]
     if bid is not None:
-        args.extend(["--bid", bid])
+        args.extend(["--bid", str(bid)])
     if extra_json is not None:
         json_str = (
             json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
@@ -116,10 +117,10 @@ def audience_targets_resume(ids: str) -> dict:
 @mcp.tool(name="audiencetargets_set_bids")
 @handle_cli_errors
 def audience_targets_set_bids(
-    id: str | None = None,
-    ad_group_id: str | None = None,
-    campaign_id: str | None = None,
-    context_bid: str | None = None,
+    id: int | None = None,
+    ad_group_id: int | None = None,
+    campaign_id: int | None = None,
+    context_bid: int | None = None,
     priority: str | None = None,
 ) -> dict:
     """Set audience target bids.
@@ -128,15 +129,16 @@ def audience_targets_set_bids(
         id: Audience target ID.
         ad_group_id: Ad group ID.
         campaign_id: Campaign ID.
-        context_bid: Context bid.
+        context_bid: Context bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         priority: Strategy priority.
     """
-    if not any((id, ad_group_id, campaign_id)):
+    if id is None and ad_group_id is None and campaign_id is None:
         return ToolError(
             error="missing_target_scope",
             message="Provide at least one of: id, ad_group_id, campaign_id",
         ).__dict__
-    if not any((context_bid, priority)):
+    if context_bid is None and priority is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: context_bid, priority",
@@ -144,13 +146,13 @@ def audience_targets_set_bids(
 
     args = ["audiencetargets", "set-bids"]
     if id is not None:
-        args.extend(["--id", id])
+        args.extend(["--id", str(id)])
     if ad_group_id is not None:
-        args.extend(["--adgroup-id", ad_group_id])
+        args.extend(["--adgroup-id", str(ad_group_id)])
     if campaign_id is not None:
-        args.extend(["--campaign-id", campaign_id])
+        args.extend(["--campaign-id", str(campaign_id)])
     if context_bid is not None:
-        args.extend(["--context-bid", context_bid])
+        args.extend(["--context-bid", str(context_bid)])
     if priority is not None:
         args.extend(["--priority", priority])
 

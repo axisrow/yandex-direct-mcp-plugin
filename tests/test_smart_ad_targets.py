@@ -84,7 +84,7 @@ def test_smart_ad_targets_add():
         return_value=_mock_runner(mock_result),
     ) as mock:
         result = smart_ad_targets_add(
-            ad_group_id="200",
+            ad_group_id=200,
             target_type="RETARGETING",
             extra_json='{"Condition":"URL_CONTAINS"}',
         )
@@ -110,7 +110,7 @@ def test_smart_ad_targets_update():
         return_value=_mock_runner(mock_result),
     ) as mock:
         result = smart_ad_targets_update(
-            id="100",
+            id=100,
             target_type="RETARGETING",
             extra_json='{"Condition":"URL_CONTAINS"}',
         )
@@ -132,7 +132,7 @@ def test_smart_ad_targets_update():
 def test_smart_ad_targets_update_requires_changes():
     runner = _mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
-        result = smart_ad_targets_update(id="100")
+        result = smart_ad_targets_update(id=100)
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
 
@@ -143,7 +143,7 @@ def test_smart_ad_targets_delete():
         "server.tools.smart_ad_targets.get_runner",
         return_value=_mock_runner(mock_result),
     ) as mock:
-        result = smart_ad_targets_delete(id="100")
+        result = smart_ad_targets_delete(id=100)
         assert result["success"] is True
         mock.return_value.run_json.assert_called_once_with(
             ["smartadtargets", "delete", "--id", "100"]
@@ -172,9 +172,9 @@ def test_smart_ad_targets_set_bids():
     runner = _mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_set_bids(
-            id="100",
-            average_cpc="2.5",
-            average_cpa="10",
+            id=100,
+            average_cpc=2500000,
+            average_cpa=10000000,
             priority="MEDIUM",
         )
 
@@ -186,9 +186,9 @@ def test_smart_ad_targets_set_bids():
             "--id",
             "100",
             "--average-cpc",
-            "2.5",
+            "2500000",
             "--average-cpa",
-            "10",
+            "10000000",
             "--priority",
             "MEDIUM",
         ]

@@ -103,7 +103,7 @@ def test_nkss_update():
         return_value=_mock_runner(mock_result),
     ) as mock:
         result = negative_keyword_shared_sets_update(
-            id="100", name="Updated", extra_json='{"Keywords":["bad"]}'
+            id=100, name="Updated", extra_json='{"Keywords":["bad"]}'
         )
         assert result["success"] is True
         mock.return_value.run_json.assert_called_once_with(
@@ -125,7 +125,7 @@ def test_nkss_update_requires_changes():
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner", return_value=runner
     ):
-        result = negative_keyword_shared_sets_update(id="100")
+        result = negative_keyword_shared_sets_update(id=100)
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
 
@@ -136,7 +136,7 @@ def test_nkss_delete():
         "server.tools.negative_keyword_shared_sets.get_runner",
         return_value=_mock_runner(mock_result),
     ) as mock:
-        result = negative_keyword_shared_sets_delete(id="100")
+        result = negative_keyword_shared_sets_delete(id=100)
         assert result["success"] is True
         mock.return_value.run_json.assert_called_once_with(
             ["negativekeywordsharedsets", "delete", "--id", "100"]

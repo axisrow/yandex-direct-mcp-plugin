@@ -15,10 +15,10 @@ direct (Python CLI)         — talks to Yandex.Direct API
        ↑
 server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
-server/contract.py          — machine-readable parity layer (111 tools)
+server/contract.py          — machine-readable parity layer (121 tools)
 server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 111 MCP tools across 30 active modules
+server/tools/               — 121 MCP tools across 32 active modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
@@ -205,13 +205,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (111 total) + 1 Prompt
+## MCP Tools (121 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (104)
+### Direct API tools (115)
 
 | Tool | Purpose |
 |---|---|
@@ -245,7 +245,7 @@ WSDL/reports spec wins when there is drift.
 | `adextensions_add` | Add extension |
 | `adextensions_delete` | Delete extensions |
 | `keywords_get` | List keywords by campaign IDs |
-| `keywords_update` | Update keyword bid (micro-units) |
+| `keywords_update` | Update keyword text or user params (use `keyword_bids_set` for bids) |
 | `keywords_add` | Add keywords |
 | `keywords_delete` | Delete keywords |
 | `keywords_suspend` | Suspend keywords |
@@ -260,7 +260,7 @@ WSDL/reports spec wins when there is drift.
 | `bids_set_auto` | Set bids to auto strategy |
 | `bidmodifiers_get` | List bid modifiers |
 | `bidmodifiers_add` | Add bid modifier |
-| `bidmodifiers_set` | Set bid modifier |
+| `bidmodifiers_set` | Update existing bid modifier by `id` (use `bidmodifiers_add` to create) |
 | `bidmodifiers_delete` | Delete bid modifiers |
 | `sitelinks_get` | List sitelinks sets |
 | `sitelinks_add` | Add sitelinks set |
@@ -284,6 +284,12 @@ WSDL/reports spec wins when there is drift.
 | `dynamicads_suspend` | Suspend dynamic ad targets |
 | `dynamicads_resume` | Resume dynamic ad targets |
 | `dynamicads_set_bids` | Set bids for dynamic ad targets |
+| `dynamicfeedadtargets_get` | List dynamic feed ad targets |
+| `dynamicfeedadtargets_add` | Add dynamic feed ad target |
+| `dynamicfeedadtargets_delete` | Delete dynamic feed ad target |
+| `dynamicfeedadtargets_suspend` | Suspend dynamic feed ad targets |
+| `dynamicfeedadtargets_resume` | Resume dynamic feed ad targets |
+| `dynamicfeedadtargets_set_bids` | Set bids for dynamic feed ad targets |
 | `smartadtargets_get` | List smart ad targets |
 | `smartadtargets_add` | Add smart ad target |
 | `smartadtargets_update` | Update smart ad target |
@@ -291,6 +297,11 @@ WSDL/reports spec wins when there is drift.
 | `smartadtargets_suspend` | Suspend smart ad targets |
 | `smartadtargets_resume` | Resume smart ad targets |
 | `smartadtargets_set_bids` | Set bids for smart ad targets |
+| `strategies_get` | List bidding strategies |
+| `strategies_add` | Add bidding strategy |
+| `strategies_update` | Update bidding strategy |
+| `strategies_archive` | Archive bidding strategy |
+| `strategies_unarchive` | Unarchive bidding strategy |
 | `negativekeywordsharedsets_get` | List negative keyword shared sets |
 | `negativekeywordsharedsets_add` | Add negative keyword shared set |
 | `negativekeywordsharedsets_update` | Update negative keyword shared set |
@@ -320,14 +331,13 @@ WSDL/reports spec wins when there is drift.
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
 
-### CLI helper tools (4)
+### CLI helper tools (3)
 
 These are public but explicitly not 1:1 Direct API methods.
 
 | Tool | Purpose |
 |---|---|
 | `agencyclients_delete` | Remove client from agency (no API backing) |
-| `bidmodifiers_toggle` | Toggle bid modifier on/off |
 | `dictionaries_list_names` | List available dictionary names |
 | `reports_list_types` | List available report types |
 
@@ -354,6 +364,7 @@ See `server/contract.py` → `TRANSPORT_BLOCKED_OPERATIONS` for details.
 |---|---|
 | `dynamicads_update` | `direct dynamicads update` subcommand does not exist in CLI |
 | `negativekeywords_*` | `negativekeywords` is not a CLI service; use AdGroups payload or `negativekeywordsharedsets_*` |
+| `bidmodifiers_toggle` | `direct bidmodifiers toggle` removed in CLI 0.2.8; Yandex deprecated this API operation on 2025-11-13 |
 
 ## Testing Model
 
@@ -368,7 +379,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 
 ## Domain Notes
 
-- Bids use micro-units: 15 RUB = 15,000,000
+- All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens stored in `${CLAUDE_PLUGIN_DATA}/tokens.json` (gitignored)
@@ -398,3 +409,27 @@ Key renames:
 | `negative_keywords_*` | removed (transport-blocked) |
 | `dynamic_targets_*` | merged into `dynamicads_*` |
 | `smart_targets_*` | merged into `smartadtargets_*` |
+
+## Breaking Changes (CLI 0.2.10 alignment)
+
+- **`bidmodifiers_set`**: signature changed to `(id: int, value: int, extra_json?)`.
+  Removed `campaign_id` and `modifier_type` — those were the legacy "broken by design"
+  form (CLI itself documents that the API rejects it with `required field Id is omitted`).
+  Use the `Id` returned by `bidmodifiers_add` to update an existing modifier.
+- **`keywords_update`**: removed `bid` / `context_bid` parameters — CLI's
+  `keywords update` does not accept bid flags. Use `keyword_bids_set` for bid changes.
+  New params: `keyword`, `user_param_1`, `user_param_2`.
+- **Parameter types**: all single-id parameters (`id`, `campaign_id`, `ad_group_id`, `keyword_id`,
+  `client_id`, `region_id`, `retargeting_condition_id`, etc.) and money parameters
+  (`bid`, `context_bid`, `search_bid`, `network_bid`, `max_bid`, `bid_ceiling`, `budget`,
+  `filter_average_cpc`, `average_cpc`, `average_cpa`) migrated from `str | None` to
+  `int | None`. Comma-separated batch params (`*_ids`) keep `str` (CLI requires the
+  `"1,2,3"` format).
+- **`bidmodifiers_get`**: new optional `levels` parameter (`"campaign"` or `"ad_group"`).
+- **`campaigns_add`**: new optional `filter_average_cpc: int` and `counter_id: int`
+  parameters (CLI 0.2.10 Smart campaigns).
+- **`bidmodifiers_toggle`**: tool removed (CLI 0.2.8 deprecated; API removed 2025-11-13).
+- **New tools**: 5 `strategies_*` (get/add/update/archive/unarchive) and 6
+  `dynamicfeedadtargets_*` (get/add/delete/suspend/resume/set_bids).
+- **Validation**: plugin no longer pre-validates money values — CLI's `MICRO_RUBLES`
+  type now owns the contract (rejects `0 < x < 100_000` with a "did you mean × 1_000_000" hint).

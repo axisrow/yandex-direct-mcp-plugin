@@ -37,7 +37,7 @@ def agency_clients_add(client_json: str) -> dict:
 
 @mcp.tool(name="agencyclients_delete")
 @handle_cli_errors
-def agency_clients_delete(id: str) -> dict:
+def agency_clients_delete(id: int) -> dict:
     """Remove a client from an agency.
 
     Note: The Yandex Direct API does not actually support deleting
@@ -47,14 +47,14 @@ def agency_clients_delete(id: str) -> dict:
         id: Client ID to remove.
     """
     runner = get_runner()
-    result = runner.run_json(["agencyclients", "delete", "--id", id])
+    result = runner.run_json(["agencyclients", "delete", "--id", str(id)])
     return result
 
 
 @mcp.tool(name="agencyclients_update")
 @handle_cli_errors
 def agency_clients_update(
-    client_id: str,
+    client_id: int,
     phone: str | None = None,
     email: str | None = None,
     grant: str | None = None,
@@ -75,7 +75,7 @@ def agency_clients_update(
             message="Provide at least one of: phone, email, grant, clear_grants",
         ).__dict__
 
-    args = ["agencyclients", "update", "--client-id", client_id]
+    args = ["agencyclients", "update", "--client-id", str(client_id)]
     if phone is not None:
         args.extend(["--phone", phone])
     if email is not None:

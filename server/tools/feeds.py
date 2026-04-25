@@ -45,7 +45,7 @@ def feeds_add(name: str, url: str, extra_json: str | dict | None = None) -> dict
 @mcp.tool()
 @handle_cli_errors
 def feeds_update(
-    id: str,
+    id: int,
     name: str | None = None,
     url: str | None = None,
     extra_json: str | dict | None = None,
@@ -64,7 +64,7 @@ def feeds_update(
             message="Provide at least one of: name, url, extra_json",
         ).__dict__
 
-    args = ["feeds", "update", "--id", id]
+    args = ["feeds", "update", "--id", str(id)]
     if name is not None:
         args.extend(["--name", name])
     if url is not None:

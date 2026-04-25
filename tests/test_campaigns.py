@@ -96,7 +96,7 @@ class TestCampaignsUpdate:
             "server.tools.campaigns.get_runner",
             return_value=_mock_runner({"Id": 67890, "State": "ON"}),
         ):
-            result = campaigns_update(id="67890", status="ON")
+            result = campaigns_update(id=67890, status="ON")
             assert result["success"] is True
             assert result["status"] == "ON"
 
@@ -106,21 +106,15 @@ class TestCampaignsUpdate:
             "server.tools.campaigns.get_runner",
             return_value=_mock_runner({"Id": 12345, "State": "OFF"}),
         ):
-            result = campaigns_update(id="12345", status="OFF")
+            result = campaigns_update(id=12345, status="OFF")
             assert result["success"] is True
-
-    def test_invalid_budget(self):
-        """Test: Invalid budget value."""
-        result = campaigns_update(id="12345", budget="-1")
-        assert "error" in result
-        assert result["error"] == "invalid_budget"
 
     def test_not_found_campaign(self):
         """Test 10: Nonexistent campaign."""
         runner = MagicMock()
         runner.run_json.side_effect = Exception("Campaign 999 not found")
         with patch("server.tools.campaigns.get_runner", return_value=runner):
-            result = campaigns_update(id="999", status="ON")
+            result = campaigns_update(id=999, status="ON")
             assert "error" in result
             assert result["error"] == "not_found"
 
@@ -132,7 +126,7 @@ class TestCampaignsUpdate:
             patch("server.tools.campaigns.get_runner", return_value=runner),
             patch("server.tools._try_refresh_token", return_value=None),
         ):
-            result = campaigns_update(id="12345", status="ON")
+            result = campaigns_update(id=12345, status="ON")
             assert result["error"] == "auth_expired"
 
     def test_auth_error_refresh_retries(self):
@@ -148,7 +142,7 @@ class TestCampaignsUpdate:
             ),
             patch("server.tools._try_refresh_token", return_value="new-token"),
         ):
-            result = campaigns_update(id="12345", status="ON")
+            result = campaigns_update(id=12345, status="ON")
             assert result["success"] is True
 
     def test_campaigns_update_argv_composition(self):
@@ -156,10 +150,10 @@ class TestCampaignsUpdate:
         runner = _mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(
-                id="12345",
+                id=12345,
                 name="Renamed",
                 status="SUSPENDED",
-                budget="5000",
+                budget=5000,
                 notification={"SmsSettings": {"Events": ["MONITORING"]}},
             )
 
@@ -187,7 +181,7 @@ class TestCampaignsUpdate:
         runner = _mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(
-                id="12345",
+                id=12345,
                 notification='{"SmsSettings": {"Events": ["MONITORING"]}}',
             )
         assert result["success"] is True
@@ -205,13 +199,13 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_notification_invalid_json(self):
         """Test that an invalid JSON string for notification returns a clear error."""
-        result = campaigns_update(id="12345", notification="not-valid-json")
+        result = campaigns_update(id=12345, notification="not-valid-json")
         assert result["error"] == "invalid_json"
         assert "notification" in result["message"]
 
     def test_campaigns_update_notification_non_dict_json(self):
         """Test that a non-object JSON value for notification returns a clear error."""
-        result = campaigns_update(id="12345", notification="[1, 2, 3]")
+        result = campaigns_update(id=12345, notification="[1, 2, 3]")
         assert result["error"] == "invalid_json"
         assert "JSON object" in result["message"]
 
@@ -219,7 +213,7 @@ class TestCampaignsUpdate:
         """Test that empty updates are rejected before CLI call."""
         runner = _mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
-            result = campaigns_update(id="12345")
+            result = campaigns_update(id=12345)
 
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
@@ -237,7 +231,7 @@ class TestCampaignsCrudOperations:
                 name="New Campaign",
                 start_date="2026-01-01",
                 campaign_type="TEXT_CAMPAIGN",
-                budget="5000",
+                budget=5000,
                 end_date="2026-12-31",
                 bidding_strategy={
                     "Search": {"BiddingStrategyType": "HIGHEST_POSITION"}

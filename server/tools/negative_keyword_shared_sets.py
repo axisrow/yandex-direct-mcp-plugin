@@ -47,7 +47,7 @@ def negative_keyword_shared_sets_add(name: str, keywords: str) -> dict:
 @mcp.tool(name="negativekeywordsharedsets_update")
 @handle_cli_errors
 def negative_keyword_shared_sets_update(
-    id: str,
+    id: int,
     name: str | None = None,
     keywords: str | None = None,
     extra_json: str | dict | None = None,
@@ -66,7 +66,7 @@ def negative_keyword_shared_sets_update(
             message="Provide at least one of: name, keywords, extra_json",
         ).__dict__
 
-    args = ["negativekeywordsharedsets", "update", "--id", id]
+    args = ["negativekeywordsharedsets", "update", "--id", str(id)]
     if name is not None:
         args.extend(["--name", name])
     if keywords is not None:
@@ -82,11 +82,11 @@ def negative_keyword_shared_sets_update(
 
 @mcp.tool(name="negativekeywordsharedsets_delete")
 @handle_cli_errors
-def negative_keyword_shared_sets_delete(id: str) -> dict:
+def negative_keyword_shared_sets_delete(id: int) -> dict:
     """Delete a negative keyword shared set.
 
     Args:
         id: Set ID.
     """
     runner = get_runner()
-    return runner.run_json(["negativekeywordsharedsets", "delete", "--id", id])
+    return runner.run_json(["negativekeywordsharedsets", "delete", "--id", str(id)])

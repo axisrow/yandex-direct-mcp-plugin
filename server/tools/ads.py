@@ -99,7 +99,7 @@ def ads_list(
 @mcp.tool()
 @handle_cli_errors
 def ads_add(
-    ad_group_id: str,
+    ad_group_id: int,
     ad_type: str | None = None,
     title: str | None = None,
     text: str | None = None,
@@ -114,7 +114,7 @@ def ads_add(
         text: Ad text content (optional).
         href: Ad URL (optional).
     """
-    args = ["ads", "add", "--adgroup-id", ad_group_id]
+    args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
         args.extend(["--type", ad_type])
     if title:
@@ -130,7 +130,7 @@ def ads_add(
 @mcp.tool()
 @handle_cli_errors
 def ads_update(
-    id: str,
+    id: int,
     status: str | None = None,
 ) -> dict:
     """Update an ad.
@@ -145,7 +145,7 @@ def ads_update(
             message="Provide: status",
         ).__dict__
 
-    args = ["ads", "update", "--id", id, "--status", status]
+    args = ["ads", "update", "--id", str(id), "--status", status]
     runner = get_runner()
     return runner.run_json(args)
 

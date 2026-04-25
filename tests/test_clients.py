@@ -90,7 +90,7 @@ class TestClientsUpdate:
         runner.run_json.return_value = mock_result
         with patch("server.tools.clients.get_runner", return_value=runner):
             extra_json = '{"FirstName": "John", "LastName": "Smith"}'
-            result = clients_update(client_id="123", extra_json=extra_json)
+            result = clients_update(client_id=123, extra_json=extra_json)
             assert result == mock_result
             call_args = runner.run_json.call_args[0][0]
             assert "--client-id" in call_args
@@ -108,7 +108,7 @@ class TestClientsUpdate:
             return_value=_mock_runner(mock_result),
         ):
             extra_json = '{"Grants": ["CampaignManagement"]}'
-            result = clients_update(client_id="123", extra_json=extra_json)
+            result = clients_update(client_id=123, extra_json=extra_json)
             assert result == mock_result
 
     def test_update_client_argv_composition(self):
@@ -116,7 +116,7 @@ class TestClientsUpdate:
         runner = MagicMock()
         runner.run_json.return_value = {"Login": "client1"}
         with patch("server.tools.clients.get_runner", return_value=runner):
-            clients_update(client_id="123", extra_json='{"FirstName":"Bob"}')
+            clients_update(client_id=123, extra_json='{"FirstName":"Bob"}')
 
         runner.run_json.assert_called_once_with(
             [

@@ -62,33 +62,22 @@ def test_keywords_list_requires_campaign_ids():
 
 
 def test_keywords_update():
-    """Test 15: Update bid."""
-    with patch("server.tools.keywords.get_runner", return_value=_mock_runner({})):
-        result = keywords_update(id="99999", bid="15000000")
+    """Test updating keyword text."""
+    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(None)):
+        result = keywords_update(id=99999, keyword="new keyword text")
         assert result["success"] is True
-        assert result["bid"] == 15000000
-
-
-def test_keywords_update_invalid_bid():
-    """Invalid bid value."""
-    result = keywords_update(id="99999", bid="-100")
-    assert "error" in result
-    assert result["error"] == "invalid_bid"
-
-    result = keywords_update(id="99999", bid="abc")
-    assert "error" in result
-    assert result["error"] == "invalid_bid"
+        assert result["keyword"] == "new keyword text"
 
 
 def test_keywords_update_argv_composition():
     """Test that update passes the expanded CLI surface."""
-    runner = _mock_runner({})
+    runner = _mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_update(
-            id="99999",
-            bid="15000000",
-            context_bid="9000000",
-            status="SUSPENDED",
+            id=99999,
+            keyword="updated kw",
+            user_param_1="val1",
+            user_param_2="val2",
             extra_json='{"StrategyPriority": "HIGH"}',
         )
 
@@ -98,24 +87,24 @@ def test_keywords_update_argv_composition():
             "update",
             "--id",
             "99999",
-            "--bid",
-            "15000000",
-            "--context-bid",
-            "9000000",
-            "--status",
-            "SUSPENDED",
+            "--keyword",
+            "updated kw",
+            "--user-param-1",
+            "val1",
+            "--user-param-2",
+            "val2",
             "--json",
             '{"StrategyPriority": "HIGH"}',
         ]
     )
-    assert result["context_bid"] == 9000000
+    assert result["user_param_1"] == "val1"
 
 
 def test_keywords_update_requires_changes():
     """Test that empty updates are rejected before CLI call."""
-    runner = _mock_runner({})
+    runner = _mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
-        result = keywords_update(id="99999")
+        result = keywords_update(id=99999)
 
     assert result["error"] == "missing_update_fields"
     runner.run_json.assert_not_called()
@@ -129,10 +118,10 @@ class TestKeywordsCrudOperations:
         runner = _mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(
-                ad_group_id="1",
+                ad_group_id=1,
                 keyword="buy shoes",
-                bid="10",
-                context_bid="5",
+                bid=10000000,
+                context_bid=5000000,
                 user_param_1="summer",
                 user_param_2="sale",
                 extra_json='{"Priority":"HIGH"}',
@@ -147,9 +136,9 @@ class TestKeywordsCrudOperations:
                     "--keyword",
                     "buy shoes",
                     "--bid",
-                    "10",
+                    "10000000",
                     "--context-bid",
-                    "5",
+                    "5000000",
                     "--user-param-1",
                     "summer",
                     "--user-param-2",

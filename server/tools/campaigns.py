@@ -55,10 +55,10 @@ def campaigns_list(
 @mcp.tool()
 @handle_cli_errors
 def campaigns_update(
-    id: str,
+    id: int,
     name: str | None = None,
     status: str | None = None,
-    budget: str | None = None,
+    budget: int | None = None,
     notification: str | dict | None = None,
 ) -> dict:
     """Update campaign fields.
@@ -67,26 +67,15 @@ def campaigns_update(
         id: Campaign ID to update.
         name: Optional new campaign name.
         status: Optional new campaign status.
-        budget: Optional new daily budget.
+        budget: Optional new daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         notification: Optional notification settings (e.g. {"SmsSettings": {"Events": ["MONITORING"]}}).
     """
-    if not any((name, status, budget, notification)):
+    if name is None and status is None and budget is None and notification is None:
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one of: name, status, budget, notification",
         ).__dict__
-
-    budget_value: str | None = None
-    if budget is not None:
-        try:
-            if int(budget) <= 0:
-                raise ValueError("Budget must be positive")
-            budget_value = budget
-        except (ValueError, TypeError):
-            return ToolError(
-                error="invalid_budget",
-                message=f"Budget must be a positive integer. Got: '{budget}'",
-            ).__dict__
 
     notification_val: dict | None = None
     if notification is not None:
@@ -106,13 +95,13 @@ def campaigns_update(
                     message="notification must be a JSON object",
                 ).__dict__
 
-    args = ["campaigns", "update", "--id", id]
+    args = ["campaigns", "update", "--id", str(id)]
     if name:
         args.extend(["--name", name])
     if status:
         args.extend(["--status", status])
-    if budget_value is not None:
-        args.extend(["--budget", budget_value])
+    if budget is not None:
+        args.extend(["--budget", str(budget)])
     if notification_val is not None:
         args.extend(["--json", json.dumps({"Notification": notification_val})])
 
@@ -132,8 +121,8 @@ def campaigns_update(
         result["name"] = name
     if status:
         result["status"] = status
-    if budget_value is not None:
-        result["budget"] = int(budget_value)
+    if budget is not None:
+        result["budget"] = budget
     if notification_val is not None:
         result["notification"] = notification_val
     return result
@@ -145,9 +134,11 @@ def campaigns_add(
     name: str,
     start_date: str,
     campaign_type: str | None = None,
-    budget: str | None = None,
+    budget: int | None = None,
     end_date: str | None = None,
     bidding_strategy: str | dict | None = None,
+    filter_average_cpc: int | None = None,
+    counter_id: int | None = None,
 ) -> dict:
     """Create a new campaign.
 
@@ -155,22 +146,14 @@ def campaigns_add(
         name: Campaign name.
         start_date: Campaign start date in YYYY-MM-DD format.
         campaign_type: Campaign type (optional).
-        budget: Optional daily budget.
+        budget: Optional daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         end_date: Optional campaign end date in YYYY-MM-DD format.
         bidding_strategy: Optional bidding strategy (e.g. {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}).
+        filter_average_cpc: Optional Smart campaign filter average CPC in micro-units
+            (RUB × 1,000,000); CLI 0.2.10+ rejects values 0 < x < 100_000.
+        counter_id: Optional Smart campaign Metrica counter ID.
     """
-    budget_value: str | None = None
-    if budget is not None:
-        try:
-            if int(budget) <= 0:
-                raise ValueError("Budget must be positive")
-            budget_value = budget
-        except (ValueError, TypeError):
-            return ToolError(
-                error="invalid_budget",
-                message=f"Budget must be a positive integer. Got: '{budget}'",
-            ).__dict__
-
     bs_val: dict | None = None
     if bidding_strategy is not None:
         if isinstance(bidding_strategy, dict):
@@ -192,10 +175,14 @@ def campaigns_add(
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
     if campaign_type:
         args.extend(["--type", campaign_type])
-    if budget_value is not None:
-        args.extend(["--budget", budget_value])
+    if budget is not None:
+        args.extend(["--budget", str(budget)])
     if end_date:
         args.extend(["--end-date", end_date])
+    if filter_average_cpc is not None:
+        args.extend(["--filter-average-cpc", str(filter_average_cpc)])
+    if counter_id is not None:
+        args.extend(["--counter-id", str(counter_id)])
     if bs_val is not None:
         args.extend(["--json", json.dumps({"BiddingStrategy": bs_val})])
     runner = get_runner()

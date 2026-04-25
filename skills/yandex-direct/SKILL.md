@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (111 tools)
+## Доступный MCP-контракт (121 tools)
 
 Контракт теперь следует иерархии:
 
@@ -49,7 +49,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Кампании | `campaigns_get/add/update/delete/archive/unarchive/suspend/resume` |
 | Группы / объявления / ключи | `adgroups_get/add/update/delete`, `ads_get/add/update/delete/moderate/suspend/resume/archive/unarchive`, `keywords_get/add/update/delete/suspend/resume/archive/unarchive` |
 | Ставки | `keywordbids_get/set/set_auto`, `bids_get/set/set_auto`, `bidmodifiers_get/add/set/delete` |
-| Таргетинг | `audiencetargets_get/add/delete/suspend/resume/set_bids`, `retargeting_get/add/update/delete`, `dynamicads_get/add/delete/suspend/resume/set_bids`, `smartadtargets_get/add/update/delete/suspend/resume/set_bids` |
+| Таргетинг | `audiencetargets_get/add/delete/suspend/resume/set_bids`, `retargeting_get/add/update/delete`, `dynamicads_get/add/delete/suspend/resume/set_bids`, `dynamicfeedadtargets_get/add/delete/suspend/resume/set_bids`, `smartadtargets_get/add/update/delete/suspend/resume/set_bids` |
+| Стратегии | `strategies_get/add/update/archive/unarchive` |
 | Медиа и расширения | `adimages_get/add/delete`, `advideos_get/add`, `adextensions_get/add/delete`, `sitelinks_get/add/delete`, `vcards_get/add/delete`, `creatives_get/add` |
 | Справочники / изменения / отчёты | `dictionaries_get`, `dictionaries_get_geo_regions`, `changes_check`, `changes_check_campaigns`, `changes_check_dictionaries`, `reports_get` |
 | Прочее | `clients_get/update`, `agencyclients_get/add/update/add_passport_organization/add_passport_organization_member`, `businesses_get`, `feeds_get/add/update/delete`, `leads_get`, `negativekeywordsharedsets_get/add/update/delete`, `keywordsresearch_has_search_volume`, `keywordsresearch_deduplicate`, `turbopages_get` |
@@ -59,7 +60,6 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 Эти tools публичные, но не являются 1:1 Direct API методами:
 
 - `agencyclients_delete`
-- `bidmodifiers_toggle`
 - `dictionaries_list_names`
 - `reports_list_types`
 
@@ -77,12 +77,15 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Покажи активные кампании | `campaigns_get(state="ON")` |
 | Создай кампанию | `campaigns_add(name="...", start_date="2024-01-01")` |
 | Сколько объявлений в кампании 123? | `ads_get(campaign_ids="123")` → count |
-| Включи кампанию 456 | `campaigns_update(id="456", status="ON")` |
-| Отключи кампанию 456 | `campaigns_update(id="456", status="OFF")` |
+| Включи кампанию 456 | `campaigns_update(id=456, status="ON")` |
+| Отключи кампанию 456 | `campaigns_update(id=456, status="OFF")` |
 | Ключевые слова кампании 789 | `keywords_get(campaign_ids="789")` |
-| Изменить ставку ключевого слова на 15 руб | `keywords_update(id="99999", bid="15000000")` |
+| Изменить ставку ключевого слова на 15 руб | `keyword_bids_set(keyword_id=99999, search_bid=15000000)` |
+| Установить дневной бюджет 500 руб | `campaigns_update(id=456, budget=500000000)` |
+| Установить ставку 10 руб на кампанию | `bids_set(campaign_id=123, bid=10000000)` |
+| Ставка показа на dynamic-target | `dynamic_ads_set_bids(id=42, bid=5000000)` |
+| Средняя CPC для smart-таргета | `smart_ad_targets_set_bids(id=42, average_cpc=8000000)` |
 | Статистика за последнюю неделю | `reports_get(date_from="...", date_to="...")` |
-| Установить ставку 10 руб на кампанию | `bids_set(campaign_id="123", bid="10000000")` |
 | Проверить есть ли изменения в кампаниях | `changes_check_campaigns(campaign_ids="123", timestamp="...")` |
 | Показать группы объявлений | `adgroups_get(campaign_ids="123")` |
 | Токен живой? | `auth_status()` |
@@ -90,7 +93,15 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 ## Важные детали
 
 ### Микроюниты для ставок
-Ставки передаются в микроюнитах: **15 RUB = 15,000,000**. Всегда умножайте рубли на 1,000,000.
+Все money-параметры (ставки, бюджеты, CPC/CPA, потолки) передаются в **микрорублях**:
+**15 RUB = 15,000,000**. Умножайте рубли на 1,000,000.
+
+CLI 0.2.10+ отвергает значения в диапазоне `0 < x < 100_000` (меньше 0.1 ₽) с подсказкой
+«did you mean × 1_000_000?» — обычная защита от того, что вы случайно передали рубли вместо микрорублей.
+
+Все идентификаторы (`id`, `campaign_id`, `ad_group_id`, `keyword_id`, `client_id`, `region_id` и т.д.)
+и money-параметры — целые числа (`int`), а **не строки**. Списки идентификаторов через запятую
+(`*_ids`) — наоборот, передаются строкой `"1,2,3"`.
 
 ### API-лимиты и батчинг
 - Максимум **10 ID** за запрос для list/delete операций
