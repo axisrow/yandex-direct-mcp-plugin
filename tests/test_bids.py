@@ -96,7 +96,7 @@ class TestBidsSet:
             "server.tools.bids.get_runner",
             return_value=runner,
         ):
-            result = bids_set(campaign_id="12345", bid="15")
+            result = bids_set(campaign_id=12345, bid=15000000)
             assert result["success"] is True
             call_args = runner.run_json.call_args[0][0]
             assert "--bid" in call_args
@@ -110,8 +110,8 @@ class TestBidsSet:
             return_value=runner,
         ):
             bids_set(
-                campaign_id="12345",
-                bid="15",
+                campaign_id=12345,
+                bid=15000000,
                 extra_json='{"ContextBid":12000000}',
             )
             call_args = runner.run_json.call_args[0][0]
@@ -124,7 +124,7 @@ class TestBidsSet:
             "server.tools.bids.get_runner",
             return_value=runner,
         ):
-            result = bids_set(campaign_id="12345")
+            result = bids_set(campaign_id=12345)
 
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
@@ -138,7 +138,7 @@ class TestBidsSet:
             return_value=runner,
         ):
             result = bids_set(
-                campaign_id="12345",
+                campaign_id=12345,
                 extra_json='{"ContextBid":12000000}',
             )
             assert result["success"] is True
@@ -169,8 +169,8 @@ class TestBidsSetAuto:
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.bids.get_runner", return_value=runner):
             result = bids_set_auto(
-                campaign_id="12345",
-                max_bid="10.5",
+                campaign_id=12345,
+                max_bid=10500000,
                 position="PREMIUM",
             )
 
@@ -182,12 +182,12 @@ class TestBidsSetAuto:
                 "--campaign-id",
                 "12345",
                 "--max-bid",
-                "10.5",
+                "10500000",
                 "--position",
                 "PREMIUM",
             ]
         )
 
     def test_bids_set_auto_requires_scope(self):
-        result = bids_set_auto(max_bid="10.5")
+        result = bids_set_auto(max_bid=10500000)
         assert result["error"] == "missing_target_scope"

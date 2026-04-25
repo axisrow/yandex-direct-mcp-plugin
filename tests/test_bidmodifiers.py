@@ -73,6 +73,16 @@ class TestBidModifiersList:
         assert "error" in result
         assert result["error"] == "batch_limit"
 
+    def test_bidmodifiers_list_with_levels(self):
+        """Test listing bid modifiers with levels filter."""
+        runner = MagicMock()
+        runner.run_json.return_value = SAMPLE_BIDMODIFIERS
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            bidmodifiers_list(campaign_ids="12345", levels="campaign")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--levels" in call_args
+            assert "campaign" in call_args
+
 
 class TestBidModifiersSet:
     """Tests for bidmodifiers_set tool."""
@@ -84,11 +94,7 @@ class TestBidModifiersSet:
             "server.tools.bidmodifiers.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = bidmodifiers_set(
-                campaign_id="12345",
-                modifier_type="DEMOGRAPHICS",
-                value=150,
-            )
+            result = bidmodifiers_set(id=12345, value=150)
             assert result["success"] is True
 
     def test_bidmodifiers_set_with_extra_json(self):
@@ -100,8 +106,7 @@ class TestBidModifiersSet:
             return_value=runner,
         ):
             bidmodifiers_set(
-                campaign_id="12345",
-                modifier_type="DEMOGRAPHICS",
+                id=12345,
                 value=150,
                 extra_json='{"Level":"ADGROUP"}',
             )
@@ -113,20 +118,14 @@ class TestBidModifiersSet:
         runner = MagicMock()
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
-            bidmodifiers_set(
-                campaign_id="12345",
-                modifier_type="MOBILE",
-                value=120,
-            )
+            bidmodifiers_set(id=67890, value=120)
 
         runner.run_json.assert_called_once_with(
             [
                 "bidmodifiers",
                 "set",
-                "--campaign-id",
-                "12345",
-                "--type",
-                "MOBILE",
+                "--id",
+                "67890",
                 "--value",
                 "120",
             ]
@@ -141,10 +140,10 @@ class TestBidModifiersAdd:
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             result = bidmodifiers_add(
-                campaign_id="12345",
+                campaign_id=12345,
                 modifier_type="MOBILE_ADJUSTMENT",
                 value=120,
-                region_id="213",
+                region_id=213,
             )
 
         assert result["success"] is True

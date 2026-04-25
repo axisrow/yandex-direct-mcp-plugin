@@ -107,76 +107,6 @@ class TestKeywordBidsList:
             ]
         )
 
-
-class TestKeywordBidsSet:
-    """Tests for keyword_bids_set tool."""
-
-    def test_keyword_bids_set_search_bid(self):
-        """Test setting keyword search bid."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = keyword_bids_set(keyword_id="111", search_bid="10")
-            assert result["success"] is True
-
-    def test_keyword_bids_set_invalid_bid(self):
-        """Test that non-integer bid is rejected."""
-        result = keyword_bids_set(keyword_id="111", search_bid="abc")
-        assert result["error"] == "invalid_value"
-
-    def test_keyword_bids_set_negative_bid(self):
-        """Test that negative bid is rejected."""
-        result = keyword_bids_set(keyword_id="111", search_bid="-5")
-        assert result["error"] == "invalid_value"
-
-    def test_keyword_bids_set_zero_bid(self):
-        """Test that zero bid is rejected."""
-        result = keyword_bids_set(keyword_id="111", search_bid="0")
-        assert result["error"] == "invalid_value"
-
-    def test_keyword_bids_set_both_bids(self):
-        """Test setting both search and network bids."""
-        mock_result = {"success": True}
-        with patch(
-            "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(mock_result),
-        ) as mock:
-            result = keyword_bids_set(
-                keyword_id="111", search_bid="10", network_bid="5"
-            )
-            assert result["success"] is True
-            call_args = mock.return_value.run_json.call_args[0][0]
-            assert "--search-bid" in call_args
-            assert "10" in call_args
-            assert "--network-bid" in call_args
-            assert "5" in call_args
-            assert "--format" not in call_args
-
-    def test_keyword_bids_set_requires_changes(self):
-        """Reject no-op updates before calling CLI."""
-        runner = _mock_runner({"success": True})
-        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
-            result = keyword_bids_set(keyword_id="111")
-            assert result["error"] == "missing_update_fields"
-            runner.run_json.assert_not_called()
-
-    def test_keyword_bids_set_network_bid_invalid(self):
-        """Test that non-integer network bid is rejected."""
-        result = keyword_bids_set(keyword_id="111", network_bid="abc")
-        assert result["error"] == "invalid_value"
-
-    def test_keyword_bids_set_argv_with_search_bid(self):
-        """Test argv composition for search bid."""
-        runner = _mock_runner({"success": True})
-        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
-            keyword_bids_set(keyword_id="111", search_bid="10")
-
-        runner.run_json.assert_called_once_with(
-            ["keywordbids", "set", "--keyword-id", "111", "--search-bid", "10"]
-        )
-
     def test_keyword_bids_list_ignores_blank_filters(self):
         """Test blank filters behave like no filter."""
         runner = MagicMock()
@@ -192,6 +122,56 @@ class TestKeywordBidsSet:
             assert "--keyword-ids" not in call_args
 
 
+class TestKeywordBidsSet:
+    """Tests for keyword_bids_set tool."""
+
+    def test_keyword_bids_set_search_bid(self):
+        """Test setting keyword search bid."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.keyword_bids.get_runner",
+            return_value=_mock_runner(mock_result),
+        ):
+            result = keyword_bids_set(keyword_id=111, search_bid=10000000)
+            assert result["success"] is True
+
+    def test_keyword_bids_set_both_bids(self):
+        """Test setting both search and network bids."""
+        mock_result = {"success": True}
+        with patch(
+            "server.tools.keyword_bids.get_runner",
+            return_value=_mock_runner(mock_result),
+        ) as mock:
+            result = keyword_bids_set(
+                keyword_id=111, search_bid=10000000, network_bid=5000000
+            )
+            assert result["success"] is True
+            call_args = mock.return_value.run_json.call_args[0][0]
+            assert "--search-bid" in call_args
+            assert "10000000" in call_args
+            assert "--network-bid" in call_args
+            assert "5000000" in call_args
+            assert "--format" not in call_args
+
+    def test_keyword_bids_set_requires_changes(self):
+        """Reject no-op updates before calling CLI."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_set(keyword_id=111)
+            assert result["error"] == "missing_update_fields"
+            runner.run_json.assert_not_called()
+
+    def test_keyword_bids_set_argv_with_search_bid(self):
+        """Test argv composition for search bid."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            keyword_bids_set(keyword_id=111, search_bid=10000000)
+
+        runner.run_json.assert_called_once_with(
+            ["keywordbids", "set", "--keyword-id", "111", "--search-bid", "10000000"]
+        )
+
+
 class TestKeywordBidsSetAuto:
     """Tests for keyword_bids_set_auto tool."""
 
@@ -199,9 +179,9 @@ class TestKeywordBidsSetAuto:
         runner = _mock_runner({"success": True})
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             result = keyword_bids_set_auto(
-                keyword_id="111",
-                target_traffic_volume="80",
-                increase_percent="10",
+                keyword_id=111,
+                target_traffic_volume=80,
+                increase_percent=10,
             )
 
         assert result["success"] is True
@@ -219,5 +199,5 @@ class TestKeywordBidsSetAuto:
         )
 
     def test_keyword_bids_set_auto_requires_scope(self):
-        result = keyword_bids_set_auto(target_traffic_volume="80")
+        result = keyword_bids_set_auto(target_traffic_volume=80)
         assert result["error"] == "missing_target_scope"

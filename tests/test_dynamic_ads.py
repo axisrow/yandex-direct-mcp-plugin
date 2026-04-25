@@ -80,7 +80,7 @@ def test_dynamic_ads_add():
         "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
     ) as mock:
         result = dynamic_ads_add(
-            ad_group_id="200", target_data='{"Name": "Test", "Conditions": []}'
+            ad_group_id=200, target_data='{"Name": "Test", "Conditions": []}'
         )
         assert result["Id"] == 300
         mock.return_value.run_json.assert_called_once_with(
@@ -100,7 +100,7 @@ def test_dynamic_ads_update():
     with patch(
         "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
     ) as mock:
-        result = dynamic_ads_update(id="100", extra_json='{"Conditions": []}')
+        result = dynamic_ads_update(id=100, extra_json='{"Conditions": []}')
         assert result["success"] is True
         mock.return_value.run_json.assert_called_once_with(
             ["dynamicads", "update", "--id", "100", "--json", '{"Conditions": []}']
@@ -112,7 +112,7 @@ def test_dynamic_ads_delete():
     with patch(
         "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(mock_result)
     ) as mock:
-        result = dynamic_ads_delete(id="100")
+        result = dynamic_ads_delete(id=100)
         assert result["success"] is True
         mock.return_value.run_json.assert_called_once_with(
             ["dynamicads", "delete", "--id", "100"]
@@ -141,9 +141,9 @@ def test_dynamic_ads_set_bids():
     runner = _mock_runner({"success": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_set_bids(
-            id="100",
-            bid="1.5",
-            context_bid="1.2",
+            id=100,
+            bid=1500000,
+            context_bid=1200000,
             priority="HIGH",
         )
 
@@ -155,9 +155,9 @@ def test_dynamic_ads_set_bids():
             "--id",
             "100",
             "--bid",
-            "1.5",
+            "1500000",
             "--context-bid",
-            "1.2",
+            "1200000",
             "--priority",
             "HIGH",
         ]
@@ -190,7 +190,7 @@ class TestDynamicAdsAuthErrors:
             patch("server.tools.dynamic_ads.get_runner", return_value=runner),
             patch("server.tools._try_refresh_token", return_value=None),
         ):
-            result = dynamic_ads_add(ad_group_id="200", target_data='{"Name": "Test"}')
+            result = dynamic_ads_add(ad_group_id=200, target_data='{"Name": "Test"}')
             assert result["error"] == "auth_expired"
 
     def test_dynamic_ads_update_auth_error(self):
@@ -203,7 +203,7 @@ class TestDynamicAdsAuthErrors:
             patch("server.tools.dynamic_ads.get_runner", return_value=runner),
             patch("server.tools._try_refresh_token", return_value=None),
         ):
-            result = dynamic_ads_update(id="100", extra_json='{"Name": "Test"}')
+            result = dynamic_ads_update(id=100, extra_json='{"Name": "Test"}')
             assert result["error"] == "auth_expired"
 
     def test_dynamic_ads_delete_auth_error(self):
@@ -216,5 +216,5 @@ class TestDynamicAdsAuthErrors:
             patch("server.tools.dynamic_ads.get_runner", return_value=runner),
             patch("server.tools._try_refresh_token", return_value=None),
         ):
-            result = dynamic_ads_delete(id="100")
+            result = dynamic_ads_delete(id=100)
             assert result["error"] == "auth_expired"

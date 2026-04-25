@@ -92,7 +92,7 @@ class TestAdsCrudOperations:
         runner = _mock_runner(mock_result)
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_add(
-                ad_group_id="1",
+                ad_group_id=1,
                 ad_type="TEXT_AD",
                 title="Title",
                 text="New ad text",
@@ -122,7 +122,7 @@ class TestAdsCrudOperations:
         with patch(
             "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = ads_update(id="111", status="SUSPENDED")
+            result = ads_update(id=111, status="SUSPENDED")
             assert result["Id"] == 111
 
     def test_ads_update_argv_composition(self):
@@ -130,7 +130,7 @@ class TestAdsCrudOperations:
         runner = _mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(
-                id="111",
+                id=111,
                 status="SUSPENDED",
             )
             runner.run_json.assert_called_once_with(
@@ -148,7 +148,7 @@ class TestAdsCrudOperations:
         """Test that empty updates are rejected before CLI call."""
         runner = _mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
-            result = ads_update(id="111")
+            result = ads_update(id=111)
             assert result["error"] == "missing_update_fields"
             runner.run_json.assert_not_called()
 

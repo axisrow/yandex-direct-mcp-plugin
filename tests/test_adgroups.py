@@ -81,7 +81,7 @@ class TestAdgroupsAdd:
             "server.tools.adgroups.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = adgroups_add(campaign_id="12345", name="New Ad Group")
+            result = adgroups_add(campaign_id=12345, name="New Ad Group")
             assert result["Id"] == 123
 
     def test_adgroups_add_with_type(self):
@@ -93,7 +93,7 @@ class TestAdgroupsAdd:
             return_value=runner,
         ):
             adgroups_add(
-                campaign_id="12345",
+                campaign_id=12345,
                 name="Test",
                 type="MOBILE_AD_GROUP",
             )
@@ -112,12 +112,12 @@ class TestAdgroupsUpdate:
             "server.tools.adgroups.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = adgroups_update(id="123", name="Updated Name")
+            result = adgroups_update(id=123, name="Updated Name")
             assert result["Id"] == 123
 
     def test_adgroups_update_requires_fields(self):
         """Test that updating with no fields returns error."""
-        result = adgroups_update(id="123")
+        result = adgroups_update(id=123)
         assert "error" in result
         assert result["error"] == "missing_update_fields"
 
@@ -129,7 +129,7 @@ class TestAdgroupsUpdate:
             "server.tools.adgroups.get_runner",
             return_value=runner,
         ):
-            adgroups_update(id="123", status="SUSPENDED")
+            adgroups_update(id=123, status="SUSPENDED")
             call_args = runner.run_json.call_args[0][0]
             assert "--status" in call_args
             assert "SUSPENDED" in call_args

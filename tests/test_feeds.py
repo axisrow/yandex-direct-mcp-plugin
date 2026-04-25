@@ -100,7 +100,7 @@ class TestFeedsUpdate:
             "server.tools.feeds.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = feeds_update(id="1", name="Updated Feed")
+            result = feeds_update(id=1, name="Updated Feed")
             assert result["name"] == "Updated Feed"
 
     def test_feeds_update_url_only(self):
@@ -110,7 +110,7 @@ class TestFeedsUpdate:
             "server.tools.feeds.get_runner",
             return_value=_mock_runner(mock_result),
         ):
-            result = feeds_update(id="1", url="https://example.com/new.xml")
+            result = feeds_update(id=1, url="https://example.com/new.xml")
             assert result["url"] == "https://example.com/new.xml"
 
     def test_feeds_update_extra_json_only(self):
@@ -121,13 +121,13 @@ class TestFeedsUpdate:
             "server.tools.feeds.get_runner",
             return_value=runner,
         ):
-            feeds_update(id="1", extra_json='{"Status":"ACTIVE"}')
+            feeds_update(id=1, extra_json='{"Status":"ACTIVE"}')
             call_args = runner.run_json.call_args[0][0]
             assert "--json" in call_args
 
     def test_feeds_update_nothing(self):
         """Test that updating nothing returns error."""
-        result = feeds_update(id="1")
+        result = feeds_update(id=1)
         assert "error" in result
         assert result["error"] == "missing_update_fields"
 

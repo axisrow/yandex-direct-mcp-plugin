@@ -226,7 +226,7 @@ class TestRetargetingUpdate:
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             result = retargeting_update(
-                id="201",
+                id=201,
                 name="Updated",
                 list_type="AUDIENCE",
             )
@@ -246,7 +246,7 @@ class TestRetargetingUpdate:
         )
 
     def test_update_retargeting_requires_changes(self):
-        result = retargeting_update(id="201")
+        result = retargeting_update(id=201)
         assert result["error"] == "missing_update_fields"
 
     def test_update_retargeting_rule_as_dict(self):
@@ -254,13 +254,13 @@ class TestRetargetingUpdate:
         runner = MagicMock()
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.retargeting.get_runner", return_value=runner):
-            retargeting_update(id="201", rule={"Goal": {"Id": 123}})
+            retargeting_update(id=201, rule={"Goal": {"Id": 123}})
             call_args = runner.run_json.call_args[0][0]
             assert "--rule" in call_args
             assert '{"Goal": {"Id": 123}}' in call_args
 
     def test_update_retargeting_rule_invalid_json(self):
         """Test that an invalid JSON string for rule returns a clear error."""
-        result = retargeting_update(id="201", rule="not-valid-json")
+        result = retargeting_update(id=201, rule="not-valid-json")
         assert result["error"] == "invalid_json"
         assert "rule" in result["message"]

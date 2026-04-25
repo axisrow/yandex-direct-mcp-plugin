@@ -123,8 +123,8 @@ class TestAudienceTargetsAdd:
             return_value=runner,
         ):
             result = audience_targets_add(
-                ad_group_id="67892",
-                retargeting_list_id="557",
+                ad_group_id=67892,
+                retargeting_list_id=557,
             )
             assert result["Id"] == 103
             call_args = runner.run_json.call_args[0][0]
@@ -140,13 +140,13 @@ class TestAudienceTargetsAdd:
             return_value=runner,
         ):
             audience_targets_add(
-                ad_group_id="67892",
-                retargeting_list_id="557",
-                bid="15.5",
+                ad_group_id=67892,
+                retargeting_list_id=557,
+                bid=15500000,
             )
             call_args = runner.run_json.call_args[0][0]
             assert "--bid" in call_args
-            assert "15.5" in call_args
+            assert "15500000" in call_args
 
 
 class TestAudienceTargetsDelete:
@@ -220,8 +220,8 @@ class TestAudienceTargetsSetBids:
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.audience.get_runner", return_value=runner):
             result = audience_targets_set_bids(
-                id="101",
-                context_bid="1.5",
+                id=101,
+                context_bid=1500000,
                 priority="HIGH",
             )
 
@@ -233,12 +233,12 @@ class TestAudienceTargetsSetBids:
                 "--id",
                 "101",
                 "--context-bid",
-                "1.5",
+                "1500000",
                 "--priority",
                 "HIGH",
             ]
         )
 
     def test_set_bids_requires_scope(self):
-        result = audience_targets_set_bids(context_bid="1.5")
+        result = audience_targets_set_bids(context_bid=1500000)
         assert result["error"] == "missing_target_scope"
