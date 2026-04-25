@@ -48,16 +48,16 @@ def bids_list(
 @mcp.tool(name="bids_set")
 @handle_cli_errors
 def bids_set(
-    campaign_id: str,
-    bid: str | None = None,
+    campaign_id: int,
+    bid: int | None = None,
     extra_json: str | dict | None = None,
 ) -> dict:
     """Set bid for a campaign.
 
     Args:
         campaign_id: Campaign ID.
-        bid: Bid value passed directly to the CLI. Use the units and
-            format expected by the underlying command.
+        bid: Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
+            0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         extra_json: Optional JSON string with additional parameters.
     """
     if bid is None and extra_json is None:
@@ -66,9 +66,9 @@ def bids_set(
             message="Provide at least one of: bid, extra_json",
         ).__dict__
 
-    args = ["bids", "set", "--campaign-id", campaign_id]
+    args = ["bids", "set", "--campaign-id", str(campaign_id)]
     if bid is not None:
-        args.extend(["--bid", bid])
+        args.extend(["--bid", str(bid)])
     if extra_json is not None:
         json_str = (
             json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
@@ -81,17 +81,30 @@ def bids_set(
 @mcp.tool(name="bids_set_auto")
 @handle_cli_errors
 def bids_set_auto(
-    campaign_id: str | None = None,
-    ad_group_id: str | None = None,
-    keyword_id: str | None = None,
-    max_bid: str | None = None,
+    campaign_id: int | None = None,
+    ad_group_id: int | None = None,
+    keyword_id: int | None = None,
+    max_bid: int | None = None,
     position: str | None = None,
     increase_percent: str | None = None,
     calculate_by: str | None = None,
     context_coverage: str | None = None,
     scope: str | None = None,
 ) -> dict:
-    """Configure automatic bidding."""
+    """Configure automatic bidding.
+
+    Args:
+        campaign_id: Campaign ID.
+        ad_group_id: Ad group ID.
+        keyword_id: Keyword ID.
+        max_bid: Optional maximum bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        position: Strategy position.
+        increase_percent: Bid increase percent.
+        calculate_by: Bid calculation method.
+        context_coverage: Network coverage value.
+        scope: Bidding scope.
+    """
     if not any((campaign_id, ad_group_id, keyword_id)):
         return ToolError(
             error="missing_target_scope",
@@ -117,13 +130,13 @@ def bids_set_auto(
 
     args = ["bids", "set-auto"]
     if campaign_id is not None:
-        args.extend(["--campaign-id", campaign_id])
+        args.extend(["--campaign-id", str(campaign_id)])
     if ad_group_id is not None:
-        args.extend(["--adgroup-id", ad_group_id])
+        args.extend(["--adgroup-id", str(ad_group_id)])
     if keyword_id is not None:
-        args.extend(["--keyword-id", keyword_id])
+        args.extend(["--keyword-id", str(keyword_id)])
     if max_bid is not None:
-        args.extend(["--max-bid", max_bid])
+        args.extend(["--max-bid", str(max_bid)])
     if position is not None:
         args.extend(["--position", position])
     if increase_percent is not None:

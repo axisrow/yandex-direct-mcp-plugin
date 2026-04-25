@@ -26,7 +26,7 @@ def clients_get(ids: str | None = None) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def clients_update(client_id: str, extra_json: str | dict) -> dict:
+def clients_update(client_id: int, extra_json: str | dict) -> dict:
     """Update client information.
 
     Args:
@@ -40,7 +40,7 @@ def clients_update(client_id: str, extra_json: str | dict) -> dict:
             "clients",
             "update",
             "--client-id",
-            client_id,
+            str(client_id),
             "--json",
             json_str,
         ]

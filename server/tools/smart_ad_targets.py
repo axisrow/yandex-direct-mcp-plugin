@@ -37,16 +37,25 @@ def smart_ad_targets_list(ad_group_ids: str) -> list[dict] | dict:
 @mcp.tool(name="smartadtargets_add")
 @handle_cli_errors
 def smart_ad_targets_add(
-    ad_group_id: str, target_type: str, extra_json: str | dict | None = None
+    ad_group_id: int, target_type: str, extra_json: str | dict | None = None
 ) -> dict:
     """Add a smart ad target.
 
     Args:
         ad_group_id: Ad group ID.
         target_type: Target type.
-        extra_json: Optional JSON string with additional parameters.
+        extra_json: Optional JSON string with additional parameters. Any
+            average-cpc / average-cpa fields inside this JSON are micro-units
+            (RUB × 1,000,000).
     """
-    args = ["smartadtargets", "add", "--adgroup-id", ad_group_id, "--type", target_type]
+    args = [
+        "smartadtargets",
+        "add",
+        "--adgroup-id",
+        str(ad_group_id),
+        "--type",
+        target_type,
+    ]
     if extra_json:
         json_str = (
             json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
@@ -59,14 +68,15 @@ def smart_ad_targets_add(
 @mcp.tool(name="smartadtargets_update")
 @handle_cli_errors
 def smart_ad_targets_update(
-    id: str, target_type: str | None = None, extra_json: str | dict | None = None
+    id: int, target_type: str | None = None, extra_json: str | dict | None = None
 ) -> dict:
     """Update a smart ad target.
 
     Args:
         id: Target ID.
         target_type: Optional target type.
-        extra_json: JSON string with fields to update.
+        extra_json: JSON string with fields to update. Any average-cpc /
+            average-cpa fields inside this JSON are micro-units (RUB × 1,000,000).
     """
     if not any((target_type, extra_json)):
         return ToolError(
@@ -74,7 +84,7 @@ def smart_ad_targets_update(
             message="Provide at least one of: target_type, extra_json",
         ).__dict__
 
-    args = ["smartadtargets", "update", "--id", id]
+    args = ["smartadtargets", "update", "--id", str(id)]
     if target_type:
         args.extend(["--type", target_type])
     if extra_json:
@@ -88,14 +98,14 @@ def smart_ad_targets_update(
 
 @mcp.tool(name="smartadtargets_delete")
 @handle_cli_errors
-def smart_ad_targets_delete(id: str) -> dict:
+def smart_ad_targets_delete(id: int) -> dict:
     """Delete a smart ad target.
 
     Args:
         id: Target ID.
     """
     runner = get_runner()
-    return runner.run_json(["smartadtargets", "delete", "--id", id])
+    return runner.run_json(["smartadtargets", "delete", "--id", str(id)])
 
 
 @mcp.tool(name="smartadtargets_suspend")
@@ -115,14 +125,24 @@ def smart_ad_targets_resume(ids: str) -> dict:
 @mcp.tool(name="smartadtargets_set_bids")
 @handle_cli_errors
 def smart_ad_targets_set_bids(
-    id: str | None = None,
-    ad_group_id: str | None = None,
-    campaign_id: str | None = None,
-    average_cpc: str | None = None,
-    average_cpa: str | None = None,
+    id: int | None = None,
+    ad_group_id: int | None = None,
+    campaign_id: int | None = None,
+    average_cpc: int | None = None,
+    average_cpa: int | None = None,
     priority: str | None = None,
 ) -> dict:
-    """Set smart ad target bids."""
+    """Set smart ad target bids.
+
+    Args:
+        id: Target ID.
+        ad_group_id: Ad group ID.
+        campaign_id: Campaign ID.
+        average_cpc: Optional average CPC in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        average_cpa: Optional average CPA in micro-units (same rules as `average_cpc`).
+        priority: Strategy priority.
+    """
     if not any((id, ad_group_id, campaign_id)):
         return ToolError(
             error="missing_target_scope",
@@ -136,15 +156,15 @@ def smart_ad_targets_set_bids(
 
     args = ["smartadtargets", "set-bids"]
     if id is not None:
-        args.extend(["--id", id])
+        args.extend(["--id", str(id)])
     if ad_group_id is not None:
-        args.extend(["--adgroup-id", ad_group_id])
+        args.extend(["--adgroup-id", str(ad_group_id)])
     if campaign_id is not None:
-        args.extend(["--campaign-id", campaign_id])
+        args.extend(["--campaign-id", str(campaign_id)])
     if average_cpc is not None:
-        args.extend(["--average-cpc", average_cpc])
+        args.extend(["--average-cpc", str(average_cpc)])
     if average_cpa is not None:
-        args.extend(["--average-cpa", average_cpa])
+        args.extend(["--average-cpa", str(average_cpa)])
     if priority is not None:
         args.extend(["--priority", priority])
 

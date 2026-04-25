@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 104
-- CLI helper tools:   4
+- Direct API tools: 115
+- CLI helper tools:   3
 - Plugin tools:       3
-Total:              111
+Total:              121
 """
 
 from __future__ import annotations
@@ -118,6 +118,14 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "creatives": ("get", "add"),
     "dictionaries": ("get", "get_geo_regions"),
     "dynamicads": ("get", "add", "delete", "suspend", "resume", "set_bids"),
+    "dynamicfeedadtargets": (
+        "get",
+        "add",
+        "delete",
+        "suspend",
+        "resume",
+        "set_bids",
+    ),
     "feeds": ("get", "add", "update", "delete"),
     "keywordbids": ("get", "set", "set_auto"),
     "keywords": (
@@ -145,6 +153,7 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
         "resume",
         "set_bids",
     ),
+    "strategies": ("get", "add", "update", "archive", "unarchive"),
     "turbopages": ("get",),
     "vcards": ("get", "add", "delete"),
 }
@@ -240,6 +249,18 @@ RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
     "adextensions_list": "adextensions_get",
     "sitelinks_list": "sitelinks_get",
     "bidmodifiers_toggle": None,  # CLI 0.2.8 removed toggle; see TRANSPORT_BLOCKED_OPERATIONS
+}
+
+# Public tools whose parameter shape changed in a backwards-incompatible way.
+# The replacement string describes the new signature so callers can migrate.
+PARAMETER_BREAKING_CHANGES: dict[str, str] = {
+    "bidmodifiers_set": (
+        "Signature changed in CLI 0.2.10 alignment: now (id: int, value: int, "
+        "extra_json?). Removed campaign_id and modifier_type — those were the "
+        "legacy form which CLI itself documents as 'broken by design' "
+        "(API rejects with 'required field Id is omitted'). Use the Id "
+        "returned by `bidmodifiers_add` to update an existing modifier."
+    ),
 }
 
 REMOVED_LEGACY_PUBLIC_NAMES = frozenset(RENAMED_TOOL_MIGRATION.keys())

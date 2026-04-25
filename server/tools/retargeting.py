@@ -82,7 +82,7 @@ def retargeting_delete(ids: str) -> dict:
 @mcp.tool(name="retargeting_update")
 @handle_cli_errors
 def retargeting_update(
-    id: str,
+    id: int,
     name: str | None = None,
     list_type: str | None = None,
     rule: str | dict | None = None,
@@ -115,7 +115,7 @@ def retargeting_update(
                 ).__dict__
             rule_str = rule
 
-    args = ["retargeting", "update", "--id", id]
+    args = ["retargeting", "update", "--id", str(id)]
     if name is not None:
         args.extend(["--name", name])
     if list_type is not None:

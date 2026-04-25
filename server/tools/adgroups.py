@@ -55,7 +55,7 @@ def adgroups_list(
 @mcp.tool()
 @handle_cli_errors
 def adgroups_add(
-    campaign_id: str,
+    campaign_id: int,
     name: str,
     region_ids: str | None = None,
     type: str | None = None,
@@ -74,7 +74,7 @@ def adgroups_add(
         "adgroups",
         "add",
         "--campaign-id",
-        campaign_id,
+        str(campaign_id),
         "--name",
         name,
     ]
@@ -94,7 +94,7 @@ def adgroups_add(
 @mcp.tool()
 @handle_cli_errors
 def adgroups_update(
-    id: str,
+    id: int,
     name: str | None = None,
     status: str | None = None,
     extra_json: str | dict | None = None,
@@ -113,7 +113,7 @@ def adgroups_update(
             message="Provide at least one of: name, status, extra_json",
         ).__dict__
 
-    args = ["adgroups", "update", "--id", id]
+    args = ["adgroups", "update", "--id", str(id)]
     if name is not None:
         args.extend(["--name", name])
     if status is not None:

@@ -35,16 +35,17 @@ def keyword_bids_list(
 @mcp.tool(name="keywordbids_set")
 @handle_cli_errors
 def keyword_bids_set(
-    keyword_id: str,
-    search_bid: str | None = None,
-    network_bid: str | None = None,
+    keyword_id: int,
+    search_bid: int | None = None,
+    network_bid: int | None = None,
 ) -> dict:
     """Set keyword bids.
 
     Args:
         keyword_id: Keyword ID.
-        search_bid: Search bid amount (optional).
-        network_bid: Network bid amount (optional).
+        search_bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
+            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        network_bid: Optional network bid in micro-units (same rules as `search_bid`).
     """
     if not any((search_bid, network_bid)):
         return ToolError(
@@ -52,27 +53,11 @@ def keyword_bids_set(
             message="Provide at least one of: search_bid, network_bid",
         ).__dict__
 
-    from server.tools.helpers import validate_positive_int
-
-    search_bid_value: int | None = None
+    args = ["keywordbids", "set", "--keyword-id", str(keyword_id)]
     if search_bid is not None:
-        result = validate_positive_int(search_bid, "search_bid")
-        if isinstance(result, ToolError):
-            return result.__dict__
-        search_bid_value = result
-
-    network_bid_value: int | None = None
+        args.extend(["--search-bid", str(search_bid)])
     if network_bid is not None:
-        result = validate_positive_int(network_bid, "network_bid")
-        if isinstance(result, ToolError):
-            return result.__dict__
-        network_bid_value = result
-
-    args = ["keywordbids", "set", "--keyword-id", keyword_id]
-    if search_bid_value is not None:
-        args.extend(["--search-bid", str(search_bid_value)])
-    if network_bid_value is not None:
-        args.extend(["--network-bid", str(network_bid_value)])
+        args.extend(["--network-bid", str(network_bid)])
     runner = get_runner()
     return runner.run_json(args)
 
@@ -80,15 +65,26 @@ def keyword_bids_set(
 @mcp.tool(name="keywordbids_set_auto")
 @handle_cli_errors
 def keyword_bids_set_auto(
-    campaign_id: str | None = None,
-    ad_group_id: str | None = None,
-    keyword_id: str | None = None,
-    target_traffic_volume: str | None = None,
-    target_coverage: str | None = None,
-    increase_percent: str | None = None,
-    bid_ceiling: str | None = None,
+    campaign_id: int | None = None,
+    ad_group_id: int | None = None,
+    keyword_id: int | None = None,
+    target_traffic_volume: int | None = None,
+    target_coverage: int | None = None,
+    increase_percent: int | None = None,
+    bid_ceiling: int | None = None,
 ) -> dict:
-    """Configure automatic keyword bidding."""
+    """Configure automatic keyword bidding.
+
+    Args:
+        campaign_id: Campaign ID.
+        ad_group_id: Ad group ID.
+        keyword_id: Keyword ID.
+        target_traffic_volume: WbMaximumClicks target traffic volume.
+        target_coverage: NetworkByCoverage target coverage value.
+        increase_percent: Bidding rule IncreasePercent.
+        bid_ceiling: Optional bidding rule bid ceiling in micro-units (RUB × 1,000,000);
+            CLI 0.2.10+ rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+    """
     if not any((campaign_id, ad_group_id, keyword_id)):
         return ToolError(
             error="missing_target_scope",
@@ -105,19 +101,19 @@ def keyword_bids_set_auto(
 
     args = ["keywordbids", "set-auto"]
     if campaign_id is not None:
-        args.extend(["--campaign-id", campaign_id])
+        args.extend(["--campaign-id", str(campaign_id)])
     if ad_group_id is not None:
-        args.extend(["--adgroup-id", ad_group_id])
+        args.extend(["--adgroup-id", str(ad_group_id)])
     if keyword_id is not None:
-        args.extend(["--keyword-id", keyword_id])
+        args.extend(["--keyword-id", str(keyword_id)])
     if target_traffic_volume is not None:
-        args.extend(["--target-traffic-volume", target_traffic_volume])
+        args.extend(["--target-traffic-volume", str(target_traffic_volume)])
     if target_coverage is not None:
-        args.extend(["--target-coverage", target_coverage])
+        args.extend(["--target-coverage", str(target_coverage)])
     if increase_percent is not None:
-        args.extend(["--increase-percent", increase_percent])
+        args.extend(["--increase-percent", str(increase_percent)])
     if bid_ceiling is not None:
-        args.extend(["--bid-ceiling", bid_ceiling])
+        args.extend(["--bid-ceiling", str(bid_ceiling)])
 
     runner = get_runner()
     return runner.run_json(args)

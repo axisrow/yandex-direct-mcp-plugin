@@ -12,12 +12,14 @@ from server.tools.helpers import check_batch_limit
 def bidmodifiers_list(
     campaign_ids: str | None = None,
     ad_group_ids: str | None = None,
+    levels: str | None = None,
 ) -> list[dict] | dict:
     """List bid modifiers.
 
     Args:
         campaign_ids: Comma-separated campaign IDs (optional, max 10).
         ad_group_ids: Comma-separated ad group IDs (optional, max 10).
+        levels: Optional level filter, "campaign" or "ad_group".
     """
     args = ["bidmodifiers", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
@@ -32,6 +34,8 @@ def bidmodifiers_list(
         if batch_error:
             return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    if levels is not None:
+        args.extend(["--levels", levels])
 
     runner = get_runner()
     return runner.run_json(args)
@@ -40,26 +44,23 @@ def bidmodifiers_list(
 @mcp.tool(name="bidmodifiers_set")
 @handle_cli_errors
 def bidmodifiers_set(
-    campaign_id: str,
-    modifier_type: str,
+    id: int,
     value: int,
     extra_json: str | dict | None = None,
 ) -> dict:
-    """Set bid modifier for a campaign.
+    """Update an existing bid modifier by ID.
 
     Args:
-        campaign_id: Campaign ID.
-        modifier_type: Type of modifier (e.g., "DEMOGRAPHICS", "MOBILE").
+        id: Existing BidModifier ID returned by `bidmodifiers_add`.
         value: Modifier percentage integer (0–1300, e.g. 150 for +50%).
+            Not money/micro-units.
         extra_json: Optional JSON string with additional parameters.
     """
     args = [
         "bidmodifiers",
         "set",
-        "--campaign-id",
-        campaign_id,
-        "--type",
-        modifier_type,
+        "--id",
+        str(id),
         "--value",
         str(value),
     ]
@@ -90,12 +91,12 @@ def bidmodifiers_delete(ids: str) -> dict:
 def bidmodifiers_add(
     modifier_type: str,
     value: int,
-    campaign_id: str | None = None,
-    ad_group_id: str | None = None,
+    campaign_id: int | None = None,
+    ad_group_id: int | None = None,
     gender: str | None = None,
     age: str | None = None,
-    retargeting_condition_id: str | None = None,
-    region_id: str | None = None,
+    retargeting_condition_id: int | None = None,
+    region_id: int | None = None,
     serp_layout: str | None = None,
     income_grade: str | None = None,
 ) -> dict:
@@ -108,17 +109,17 @@ def bidmodifiers_add(
 
     args = ["bidmodifiers", "add", "--type", modifier_type, "--value", str(value)]
     if campaign_id is not None:
-        args.extend(["--campaign-id", campaign_id])
+        args.extend(["--campaign-id", str(campaign_id)])
     if ad_group_id is not None:
-        args.extend(["--adgroup-id", ad_group_id])
+        args.extend(["--adgroup-id", str(ad_group_id)])
     if gender is not None:
         args.extend(["--gender", gender])
     if age is not None:
         args.extend(["--age", age])
     if retargeting_condition_id is not None:
-        args.extend(["--retargeting-condition-id", retargeting_condition_id])
+        args.extend(["--retargeting-condition-id", str(retargeting_condition_id)])
     if region_id is not None:
-        args.extend(["--region-id", region_id])
+        args.extend(["--region-id", str(region_id)])
     if serp_layout is not None:
         args.extend(["--serp-layout", serp_layout])
     if income_grade is not None:
