@@ -136,7 +136,7 @@ class TestAgencyClientsDelete:
         runner = MagicMock()
         runner.run_json.return_value = mock_result
         with patch("server.tools.agency.get_runner", return_value=runner):
-            result = agency_clients_delete(id="123")
+            result = agency_clients_delete(id=123)
             assert result == mock_result
             call_args = runner.run_json.call_args[0][0]
             assert "--id" in call_args
@@ -151,7 +151,7 @@ class TestAgencyClientsUpdate:
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_update(
-                client_id="123",
+                client_id=123,
                 email="test@example.com",
                 clear_grants=True,
             )
@@ -170,7 +170,7 @@ class TestAgencyClientsUpdate:
         )
 
     def test_update_client_requires_changes(self):
-        result = agency_clients_update(client_id="123")
+        result = agency_clients_update(client_id=123)
         assert result["error"] == "missing_update_fields"
 
 
