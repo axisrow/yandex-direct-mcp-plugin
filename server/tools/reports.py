@@ -9,6 +9,8 @@ Both wrap ``direct reports get`` from direct-cli but expose different
 parameter sets to the LLM so the right tool is picked unambiguously.
 """
 
+import os
+import tempfile
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -24,19 +26,6 @@ DEFAULT_REPORT_FIELDS = (
 DEFAULT_WINDOW_DAYS = 8
 
 CUSTOM_REPORT_TIMEOUT_SECONDS = 120
-
-VALID_REPORT_TYPES = frozenset(
-    {
-        "ACCOUNT_PERFORMANCE_REPORT",
-        "CAMPAIGN_PERFORMANCE_REPORT",
-        "ADGROUP_PERFORMANCE_REPORT",
-        "AD_PERFORMANCE_REPORT",
-        "CRITERIA_PERFORMANCE_REPORT",
-        "CUSTOM_REPORT",
-        "REACH_AND_FREQUENCY_PERFORMANCE_REPORT",
-        "SEARCH_QUERY_PERFORMANCE_REPORT",
-    }
-)
 
 VALID_RESPONSE_FORMATS = frozenset({"json", "tsv", "csv", "table"})
 
@@ -146,8 +135,39 @@ def _filter_field(filter_str: str) -> str:
     return filter_str.split(":", 1)[0] if ":" in filter_str else filter_str
 
 
-def _count_rows_written(output_path: str, response_format: str) -> int:
-    """Count data rows in a written report file. Best-effort: returns 0 on failure."""
+def _allowed_output_roots() -> tuple[Path, ...]:
+    roots = [
+        Path(tempfile.gettempdir()),
+        Path("/tmp"),
+    ]
+    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA")
+    if plugin_data:
+        roots.append(Path(plugin_data))
+
+    resolved_roots: list[Path] = []
+    for root in roots:
+        resolved = root.expanduser().resolve()
+        if resolved not in resolved_roots:
+            resolved_roots.append(resolved)
+    return tuple(resolved_roots)
+
+
+def _resolve_output_path(output_path: str) -> Path:
+    resolved = Path(output_path).expanduser().resolve()
+    allowed_roots = _allowed_output_roots()
+    if any(resolved == root or resolved.is_relative_to(root) for root in allowed_roots):
+        return resolved
+
+    allowed = ", ".join(str(root) for root in allowed_roots)
+    raise ValueError(f"output_path must be under one of: {allowed}; got {resolved}")
+
+
+def _count_rows_written(output_path: str, response_format: str) -> int | None:
+    """Count data rows in a written report file.
+
+    Returns 0 only when the file is missing; returns None when an existing file
+    cannot be counted.
+    """
     path = Path(output_path)
     if not path.exists():
         return 0
@@ -160,7 +180,7 @@ def _count_rows_written(output_path: str, response_format: str) -> int:
         line_count = sum(1 for _ in path.open())
         return max(0, line_count - 1)
     except Exception:
-        return 0
+        return None
 
 
 @mcp.tool(name="reports_custom")
@@ -213,11 +233,9 @@ def reports_custom(
         date_to: End date (YYYY-MM-DD). Required unless date_range_type is set.
             For "last 2 years" pass explicit dates — date_range_type does NOT
             have a "last_2_years" option (only last_5_years is broader).
-        report_type: One of CUSTOM_REPORT (default — recommended for any
-            non-trivial query), CAMPAIGN_PERFORMANCE_REPORT,
-            ADGROUP_PERFORMANCE_REPORT, AD_PERFORMANCE_REPORT,
-            CRITERIA_PERFORMANCE_REPORT, REACH_AND_FREQUENCY_PERFORMANCE_REPORT,
-            SEARCH_QUERY_PERFORMANCE_REPORT, ACCOUNT_PERFORMANCE_REPORT.
+        report_type: Direct report type forwarded to direct-cli. Use
+            reports_list_types() for the live supported set. CUSTOM_REPORT is
+            the default and recommended for any non-trivial query.
             CUSTOM_REPORT supports the widest set of dimensions and filters
             and is what a human Direct user means by "report" 99% of the time.
         report_name: Optional report name. If omitted, a unique name is
@@ -251,10 +269,11 @@ def reports_custom(
             account setting if omitted.
         return_money_in_micros: If True, monetary values are returned in
             micro-RUB (default is RUB with 2 decimals).
-        output_path: Absolute path to write the full report to. When set, the
-            tool returns `{output_path, rows_written, report_type, format}`
-            instead of the data — use this for reports >5k rows or covering
-            >6 months. Read the file afterwards with regular file tools.
+        output_path: Absolute path under $CLAUDE_PLUGIN_DATA or a system temp
+            directory to write the full report to. When set, the tool returns
+            `{output_path, rows_written, report_type, format}` instead of the
+            data — use this for reports >5k rows or covering >6 months. Read
+            the file afterwards with regular file tools.
         response_format: json | tsv | csv | table. Only meaningful with
             output_path; without it, JSON is always returned in-memory.
         dry_run: Build and validate the command without calling Yandex.
@@ -292,11 +311,6 @@ def reports_custom(
         {output_path, rows_written, report_type, format} when output_path is
         set; OR a ToolError dict on failure.
     """
-    if report_type not in VALID_REPORT_TYPES:
-        raise ValueError(
-            f"unknown report_type {report_type!r}; "
-            f"call reports_list_types() to see the supported set"
-        )
     if response_format not in VALID_RESPONSE_FORMATS:
         raise ValueError(
             f"unknown response_format {response_format!r}; "
@@ -361,18 +375,24 @@ def reports_custom(
     if dry_run:
         args.append("--dry-run")
 
+    resolved_output_path: Path | None = None
     if output_path:
-        args.extend(["--output", output_path, "--format", response_format])
+        resolved_output_path = _resolve_output_path(output_path)
+        args.extend(
+            ["--output", str(resolved_output_path), "--format", response_format]
+        )
     else:
         args.extend(["--format", "json"])
 
     runner = get_runner()
     result = runner.run_json(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
 
-    if output_path and not dry_run:
+    if resolved_output_path is not None and not dry_run:
         return {
-            "output_path": output_path,
-            "rows_written": _count_rows_written(output_path, response_format),
+            "output_path": str(resolved_output_path),
+            "rows_written": _count_rows_written(
+                str(resolved_output_path), response_format
+            ),
             "report_type": report_type,
             "format": response_format,
         }

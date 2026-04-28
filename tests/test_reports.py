@@ -258,6 +258,8 @@ def test_reports_custom_output_path(tmp_path):
 
     def fake_run_json(args, **kwargs):
         # Simulate direct-cli writing the file
+        output_arg = args[args.index("--output") + 1]
+        assert output_arg == str(out.resolve())
         out.write_text(json.dumps([{"x": 1}, {"x": 2}, {"x": 3}]))
         return {"status": "ok"}
 
@@ -272,16 +274,56 @@ def test_reports_custom_output_path(tmp_path):
         )
 
     args = _custom_args(runner.run_json.call_args)
-    assert "--output" in args and args[args.index("--output") + 1] == str(out)
+    assert "--output" in args and args[args.index("--output") + 1] == str(out.resolve())
     # response_format wins over the implicit JSON default
     assert args[-2:] == ["--format", "json"]
     # Result is metadata, not rows
     assert result == {
-        "output_path": str(out),
+        "output_path": str(out.resolve()),
         "rows_written": 3,
         "report_type": "CUSTOM_REPORT",
         "format": "json",
     }
+
+
+def test_reports_custom_output_path_rejects_unsafe_location():
+    """output_path must stay under plugin data or temp roots."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            output_path="/etc/cron.d/direct-report.json",
+        )
+
+    assert result["error"] == "unknown"
+    assert "output_path must be under one of" in result["message"]
+    runner.run_json.assert_not_called()
+
+
+def test_reports_custom_output_path_uncountable_file(tmp_path):
+    """Existing files that cannot be counted return rows_written=None."""
+    out = tmp_path / "report.json"
+    runner = MagicMock()
+
+    def fake_run_json(args, **kwargs):
+        output_arg = args[args.index("--output") + 1]
+        assert output_arg == str(out.resolve())
+        out.write_text("not json")
+        return {"status": "ok"}
+
+    runner.run_json.side_effect = fake_run_json
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            output_path=str(out),
+            response_format="json",
+        )
+
+    assert result["rows_written"] is None
 
 
 def test_reports_custom_dry_run():
@@ -342,15 +384,23 @@ def test_reports_custom_override_report_type():
 
 
 def test_reports_custom_unknown_report_type():
-    """Unknown report_type is rejected before any CLI invocation."""
-    result = reports_custom(
-        field_names="Date,Cost",
-        date_from="2026-01-01",
-        date_to="2026-01-31",
-        report_type="MADE_UP_REPORT",
-    )
+    """Unknown report_type is delegated to direct-cli validation."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_json.side_effect = CliError("direct rejected report type")
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            report_type="MADE_UP_REPORT",
+        )
+
     assert result["error"] == "unknown"
-    assert "unknown report_type" in result["message"]
+    assert "direct rejected report type" in result["message"]
+    args = _custom_args(runner.run_json.call_args)
+    assert args[args.index("--type") + 1] == "MADE_UP_REPORT"
 
 
 def test_reports_custom_include_vat_false():
