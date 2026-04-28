@@ -20,6 +20,7 @@ import server.tools.advideos  # noqa: E402, F401
 import server.tools.agency  # noqa: E402, F401
 import server.tools.audience  # noqa: E402, F401
 import server.tools.auth_tools  # noqa: E402, F401
+import server.tools.balance  # noqa: E402, F401
 import server.tools.businesses  # noqa: E402, F401
 import server.tools.bidmodifiers  # noqa: E402, F401
 import server.tools.bids  # noqa: E402, F401
@@ -43,6 +44,7 @@ import server.tools.sitelinks  # noqa: E402, F401
 import server.tools.smart_ad_targets  # noqa: E402, F401
 import server.tools.strategies  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
+import server.tools.v4goals  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401
 
 # Initialize token getter for production use

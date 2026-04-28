@@ -143,7 +143,7 @@ OAuth-приложение само по себе не даёт доступ к 
 
 Или через переменные окружения `CLAUDE_PLUGIN_OPTION_client_id` / `CLAUDE_PLUGIN_OPTION_client_secret`.
 
-## MCP contract (111 tools)
+## MCP contract (124 tools)
 
 The public contract is now defined as:
 
@@ -151,9 +151,10 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli`.
+- The package is still installed as `direct-cli` and must be `>=0.3.1`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
+- v4 Live methods are exposed only when `direct` has a typed public command.
 
 The machine-readable parity source lives in
 [`server/contract.py`](server/contract.py).
@@ -176,8 +177,8 @@ The machine-readable parity source lives in
 
 | Surface | Examples | Notes |
 |---|---|---|
-| Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `smartadtargets_resume`, `retargeting_update` | Canonical CLI-mediated Direct contract |
-| CLI helper tools | `agencyclients_delete`, `bidmodifiers_toggle`, `dictionaries_list_names`, `reports_list_types` | Public, but explicitly not 1:1 Direct API methods |
+| Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `balance_get`, `v4goals_get_stat_goals` | Canonical CLI-mediated Direct contract |
+| CLI helper tools | `agencyclients_delete`, `dictionaries_list_names`, `reports_list_types` | Public, but explicitly not 1:1 Direct API methods |
 | Plugin tools | `auth_status`, `auth_setup`, `auth_login` | Plugin-only auth flows, not Direct operations |
 
 ### Breaking-change migration highlights
@@ -216,6 +217,21 @@ The machine-readable parity source lives in
 - `audiencetargets_set_bids`
 - `dynamicads_suspend`, `dynamicads_resume`, `dynamicads_set_bids`
 - `smartadtargets_suspend`, `smartadtargets_resume`, `smartadtargets_set_bids`
+- `balance_get`
+- `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`
+
+### v4 Live coverage
+
+`direct-cli` 0.3.1 exposes v4 shell groups for future expansion, but only these
+typed public commands are registered as MCP tools today:
+
+- `direct balance` → `balance_get`
+- `direct v4goals get-stat-goals` → `v4goals_get_stat_goals`
+- `direct v4goals get-retargeting-goals` → `v4goals_get_retargeting_goals`
+
+Other methods from `direct_cli.v4_contracts` are tracked in
+`server/contract.py` as blocked/future metadata and are not exposed until the CLI
+publishes typed commands for them.
 
 ## Skills
 
@@ -244,6 +260,12 @@ Just ask in natural language — the plugin handles the rest:
 
 > статистика за последнюю неделю
   → reports_get(date_from="2026-03-30", date_to="2026-04-06")
+
+> баланс аккаунта
+  → balance_get()
+
+> цели Метрики для кампании 12345
+  → v4goals_get_stat_goals(campaign_ids="12345")
 
 > напиши объявление для доставки пиццы
   → /yandex-direct:direct-ads "доставка пиццы"

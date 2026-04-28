@@ -103,6 +103,15 @@ Research & Reporting
 .. automodule:: server.tools.reports
    :members:
 
+V4 Live
+-------
+
+.. automodule:: server.tools.balance
+   :members:
+
+.. automodule:: server.tools.v4goals
+   :members:
+
 Authentication
 --------------
 

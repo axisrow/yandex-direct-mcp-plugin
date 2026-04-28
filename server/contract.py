@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 115
+- Direct API tools: 118
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              121
+Total:              124
 """
 
 from __future__ import annotations
@@ -14,9 +14,10 @@ from typing import Literal
 
 # ``wsdl``: canonical SOAP/WSDL-backed Direct API operation.
 # ``reports-spec``: canonical Reports API operation validated against reports spec.
+# ``v4-live``: canonical Yandex Direct v4 Live operation exposed by direct-cli.
 # ``cli-extra``: public CLI helper intentionally outside the 1:1 API surface.
 # ``plugin``: plugin-only auth/utility tool, not a Direct API operation.
-ToolAuthority = Literal["wsdl", "reports-spec", "cli-extra", "plugin"]
+ToolAuthority = Literal["wsdl", "reports-spec", "v4-live", "cli-extra", "plugin"]
 
 # ``direct_api``: public Direct operation exposed through CLI transport.
 # ``cli_helper``: public helper kept separate from the Direct API contract.
@@ -68,12 +69,27 @@ class ContractTool:
         ``set_auto`` → ``setAuto``, ``has_search_volume`` → ``hasSearchVolume``.
         Returns ``None`` when there is no CLI method (plugin tools).
         """
+        if self.cli_method is None and self.tapi_name is not None:
+            return self.tapi_name
         if self.cli_method is None:
             return None
         if self.tapi_name is not None:
             return self.tapi_name
         parts = self.cli_method.split("_")
         return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+
+@dataclass(frozen=True)
+class BlockedV4Method:
+    """Known v4 Live method that direct-cli does not expose as a command yet."""
+
+    method: str
+    group: str
+    expected_cli_group: str | None
+    expected_cli_subcommand: str | None
+    reason: str = (
+        "direct 0.3.1 does not expose a typed CLI command for this v4 Live method."
+    )
 
 
 DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
@@ -163,6 +179,102 @@ CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "dictionaries": ("list_names",),
     "reports": ("list_types",),
 }
+
+V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
+    ContractTool(
+        public_name="balance_get",
+        cli_service="balance",
+        cli_method=None,
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+    ),
+    ContractTool(
+        public_name="v4goals_get_stat_goals",
+        cli_service="v4goals",
+        cli_method="get_stat_goals",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetStatGoals",
+    ),
+    ContractTool(
+        public_name="v4goals_get_retargeting_goals",
+        cli_service="v4goals",
+        cli_method="get_retargeting_goals",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetRetargetingGoals",
+    ),
+)
+
+# Methods present in direct_cli.v4_contracts but intentionally not exposed as
+# MCP tools until direct-cli publishes typed commands for them.
+V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
+    BlockedV4Method("GetClientsUnits", "finance", "v4finance", "get-clients-units"),
+    BlockedV4Method("GetCreditLimits", "finance", "v4finance", "get-credit-limits"),
+    BlockedV4Method("TransferMoney", "finance", "v4finance", "transfer-money"),
+    BlockedV4Method("PayCampaigns", "finance", "v4finance", "pay-campaigns"),
+    BlockedV4Method(
+        "PayCampaignsByCard", "finance", "v4finance", "pay-campaigns-by-card"
+    ),
+    BlockedV4Method("CheckPayment", "finance", "v4finance", "check-payment"),
+    BlockedV4Method("CreateInvoice", "finance", "v4finance", "create-invoice"),
+    BlockedV4Method(
+        "EnableSharedAccount",
+        "shared_account",
+        "v4account",
+        "enable-shared-account",
+    ),
+    BlockedV4Method("GetEventsLog", "events", "v4events", "get-events-log"),
+    BlockedV4Method(
+        "CreateNewWordstatReport",
+        "wordstat",
+        "v4wordstat",
+        "create-new-wordstat-report",
+    ),
+    BlockedV4Method(
+        "GetWordstatReportList",
+        "wordstat",
+        "v4wordstat",
+        "get-wordstat-report-list",
+    ),
+    BlockedV4Method(
+        "GetWordstatReport", "wordstat", "v4wordstat", "get-wordstat-report"
+    ),
+    BlockedV4Method(
+        "DeleteWordstatReport",
+        "wordstat",
+        "v4wordstat",
+        "delete-wordstat-report",
+    ),
+    BlockedV4Method(
+        "CreateNewForecast", "forecast", "v4forecast", "create-new-forecast"
+    ),
+    BlockedV4Method("GetForecastList", "forecast", "v4forecast", "get-forecast-list"),
+    BlockedV4Method("GetForecast", "forecast", "v4forecast", "get-forecast"),
+    BlockedV4Method(
+        "DeleteForecastReport",
+        "forecast",
+        "v4forecast",
+        "delete-forecast-report",
+    ),
+    BlockedV4Method(
+        "DeleteOfflineReport", "offline_reports", None, "delete-offline-report"
+    ),
+    BlockedV4Method("DeleteReport", "offline_reports", None, "delete-report"),
+    BlockedV4Method("GetBannersTags", "tags", None, "get-banners-tags"),
+    BlockedV4Method("GetCampaignsTags", "tags", None, "get-campaigns-tags"),
+    BlockedV4Method("UpdateBannersTags", "tags", None, "update-banners-tags"),
+    BlockedV4Method("UpdateCampaignsTags", "tags", None, "update-campaigns-tags"),
+    BlockedV4Method("AdImageAssociation", "ad_image", None, "ad-image-association"),
+    BlockedV4Method(
+        "GetKeywordsSuggestion", "keywords", None, "get-keywords-suggestion"
+    ),
+    BlockedV4Method("PingAPI", "meta", "v4meta", "ping-api"),
+    BlockedV4Method("PingAPI_X", "meta", "v4meta", "ping-api-x"),
+    BlockedV4Method("GetVersion", "meta", "v4meta", "get-version"),
+    BlockedV4Method("GetAvailableVersions", "meta", "v4meta", "get-available-versions"),
+)
 
 PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login")
 
@@ -294,6 +406,7 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = tuple(
             for service, methods in CLI_HELPER_SERVICE_METHODS.items()
             for method in methods
         ),
+        *V4_LIVE_CLI_TOOLS,
         *(
             ContractTool(
                 public_name=name,
@@ -313,6 +426,10 @@ DIRECT_API_TOOL_NAMES = frozenset(
 )
 CLI_HELPER_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "cli_helper"
+)
+V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
+V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
+    blocked.method for blocked in V4_LIVE_BLOCKED_METHODS
 )
 PLUGIN_ONLY_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "plugin"
