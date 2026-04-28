@@ -89,6 +89,11 @@ def test_v4goals_requires_campaign_ids():
     assert result["error"] == "missing_campaign_ids"
 
 
+def test_v4goals_retargeting_requires_campaign_ids():
+    result = v4goals_get_retargeting_goals(campaign_ids="   ")
+    assert result["error"] == "missing_campaign_ids"
+
+
 def test_v4_contract_exposes_only_cli_backed_tools():
     assert V4_LIVE_TOOL_NAMES == {
         "balance_get",
