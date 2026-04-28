@@ -326,6 +326,36 @@ def test_reports_custom_output_path_uncountable_file(tmp_path):
     assert result["rows_written"] is None
 
 
+def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
+    """JSON rows are counted without materializing the whole output file."""
+    out = tmp_path / "report.json"
+    runner = MagicMock()
+
+    def fake_run_json(args, **kwargs):
+        output_arg = args[args.index("--output") + 1]
+        assert output_arg == str(out.resolve())
+        with out.open("w", encoding="utf-8") as f:
+            f.write("[")
+            for i in range(1000):
+                if i:
+                    f.write(",")
+                f.write(json.dumps({"i": i, "nested": {"comma": "a,b"}}))
+            f.write("]")
+        return {"status": "ok"}
+
+    runner.run_json.side_effect = fake_run_json
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            output_path=str(out),
+            response_format="json",
+        )
+
+    assert result["rows_written"] == 1000
+
+
 def test_reports_custom_dry_run():
     """dry_run threads --dry-run and returns whatever runner returns."""
     runner = _mock_runner({"command": "reports get --type CUSTOM_REPORT ..."})
@@ -366,6 +396,18 @@ def test_reports_custom_date_range_type_conflict():
     )
     assert result["error"] == "unknown"
     assert "date_range_type OR explicit" in result["message"]
+
+
+def test_reports_custom_requires_complete_explicit_date_range():
+    """Custom reports reject partial explicit date ranges."""
+    assert (
+        "pass both date_from and date_to"
+        in reports_custom(field_names="Date,Cost", date_from="2026-01-01")["message"]
+    )
+    assert (
+        "pass both date_from and date_to"
+        in reports_custom(field_names="Date,Cost", date_to="2026-01-31")["message"]
+    )
 
 
 def test_reports_custom_override_report_type():

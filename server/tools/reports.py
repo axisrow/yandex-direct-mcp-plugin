@@ -162,6 +162,67 @@ def _resolve_output_path(output_path: str) -> Path:
     raise ValueError(f"output_path must be under one of: {allowed}; got {resolved}")
 
 
+def _count_json_rows(path: Path) -> int | None:
+    """Count top-level JSON array elements without loading the whole file."""
+    depth = 0
+    count = 0
+    in_string = False
+    escape = False
+    array_started = False
+    value_active = False
+
+    with path.open(encoding="utf-8") as f:
+        while chunk := f.read(1024 * 1024):
+            for char in chunk:
+                if not array_started:
+                    if char.isspace():
+                        continue
+                    if char != "[":
+                        return 1 if char == "{" else None
+                    array_started = True
+                    depth = 1
+                    continue
+
+                if in_string:
+                    if escape:
+                        escape = False
+                    elif char == "\\":
+                        escape = True
+                    elif char == '"':
+                        in_string = False
+                    continue
+
+                if char.isspace():
+                    continue
+                if char == '"':
+                    if depth == 1 and not value_active:
+                        count += 1
+                        value_active = True
+                    in_string = True
+                    continue
+                if char in "[{":
+                    if depth == 1 and not value_active:
+                        count += 1
+                        value_active = True
+                    depth += 1
+                    continue
+                if char in "]}":
+                    if char == "]" and depth == 1:
+                        return count
+                    depth -= 1
+                    if depth < 1:
+                        return None
+                    continue
+                if char == "," and depth == 1:
+                    value_active = False
+                    continue
+                if depth == 1 and not value_active:
+                    count += 1
+                    value_active = True
+
+    return None if array_started else 0
+
+
 def _count_rows_written(output_path: str, response_format: str) -> int | None:
     """Count data rows in a written report file.
 
@@ -173,10 +234,7 @@ def _count_rows_written(output_path: str, response_format: str) -> int | None:
         return 0
     try:
         if response_format == "json":
-            import json
-
-            data = json.loads(path.read_text())
-            return len(data) if isinstance(data, list) else 1
+            return _count_json_rows(path)
         line_count = sum(1 for _ in path.open())
         return max(0, line_count - 1)
     except Exception:
@@ -319,6 +377,10 @@ def reports_custom(
     if date_range_type and (date_from or date_to):
         raise ValueError(
             "pass either date_range_type OR explicit date_from/date_to, not both"
+        )
+    if not date_range_type and (not date_from or not date_to):
+        raise ValueError(
+            "pass both date_from and date_to, or use date_range_type for a preset range"
         )
 
     effective_filters: list[str] = list(filters) if filters else []
