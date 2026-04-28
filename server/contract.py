@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 118
+- Direct API tools: 119
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              124
+Total:              125
 """
 
 from __future__ import annotations
@@ -180,6 +180,22 @@ CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "dictionaries": ("list_names",),
     "reports": ("list_types",),
 }
+
+# Reports-spec tools that share the same CLI subcommand (`direct reports get`)
+# but expose a different MCP-side parameter shape. These cannot live in
+# DIRECT_API_SERVICE_METHODS because that mapping auto-derives a kebab-case
+# CLI subcommand from the method name (which would yield `reports custom`,
+# a command that doesn't exist).
+REPORTS_SPEC_EXTRA_TOOLS: tuple[ContractTool, ...] = (
+    ContractTool(
+        public_name="reports_custom",
+        cli_service="reports",
+        cli_method=None,
+        authority="reports-spec",
+        classification="direct_api",
+        tapi_name="GetReport",
+    ),
+)
 
 V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
     ContractTool(
@@ -407,6 +423,7 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = tuple(
             for service, methods in CLI_HELPER_SERVICE_METHODS.items()
             for method in methods
         ),
+        *REPORTS_SPEC_EXTRA_TOOLS,
         *V4_LIVE_CLI_TOOLS,
         *(
             ContractTool(
