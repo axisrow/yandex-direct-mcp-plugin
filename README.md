@@ -877,7 +877,7 @@ YANDEX_LOGIN=
 ```toml
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "1.0.0"
+version = "0.1.5"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
