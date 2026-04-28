@@ -71,6 +71,49 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 - `auth_setup`
 - `auth_login`
 
+## Отчёты (статистика)
+
+Для статистики есть **два** инструмента — выбор критичен, не путай.
+
+### `reports_get` — быстрый снимок
+Только когда нужна сводка по кампаниям за короткий недавний период
+**без группировок и фильтров**. Поля фиксированы (CampaignName, Impressions,
+Clicks, Cost, Conversions, CostPerConversion, ConversionRate). Параметры
+только `date_from` / `date_to`.
+
+### `reports_custom` — всё остальное (это «отчёт для людей»)
+Используй **всегда**, когда запрос пользователя содержит хотя бы одно из:
+
+- «по дням / неделям / месяцам / кварталам / годам»
+  → дименшн `Date` / `Week` / `Month` / `Quarter` / `Year` в `field_names`
+- «по целям X, Y» / «конверсии по регистрациям» / «подписки»
+  → `goal_ids="<id1>,<id2>"` + добавь `Goals,Conversions` в `field_names`.
+  ID целей берутся из `v4goals_get_stat_goals(campaign_ids=...)`
+- «за год / два года / N месяцев» → длинный период, ставь `output_path`
+- «по конкретным кампаниям/группам» → `campaign_ids="111,222"` или `adgroup_ids="..."`
+- любые поля кроме семи дефолтных (`Ctr`, `AvgCpc`, `BounceRate`,
+  `AvgPageviews`, `Device`, `Placement`, `Gender`, `Age`, `Slot` и т.д.)
+
+**Поле для фильтра целей** в CUSTOM_REPORT называется `Goals` (НЕ `GoalsIds`).
+Параметр `goal_ids` инструмента собирает фильтр сам.
+
+#### Примеры
+
+| Запрос | Вызов |
+|---|---|
+| Статистика за 2 года, по месяцам, цели 12345 и 67890 | `reports_custom(field_names="Month,CampaignName,Impressions,Clicks,Cost,Goals,Conversions", date_from="2024-04-29", date_to="2026-04-29", goal_ids="12345,67890", order_by=["Month:ASC"], output_path="/tmp/r.json")` |
+| Топ-50 ключей по затратам за прошлый месяц | `reports_custom(field_names="CampaignName,Criterion,Impressions,Clicks,Cost,Conversions", report_type="CRITERIA_PERFORMANCE_REPORT", date_from="2026-03-01", date_to="2026-03-31", order_by=["Cost:DESC"], page_limit=50)` |
+| Дневная динамика кампаний 111 и 222 за 30 дней | `reports_custom(field_names="Date,CampaignName,Impressions,Clicks,Cost,Conversions", date_range_type="last_30_days", campaign_ids="111,222", order_by=["Date:ASC"])` |
+| Просто что было на той неделе | `reports_get(date_from="2026-04-22", date_to="2026-04-29")` |
+
+#### Большие отчёты (>5000 строк или период >6 месяцев)
+
+Обязательно указывай `output_path` в `/tmp` или внутри `$CLAUDE_PLUGIN_DATA`,
+например `output_path="/tmp/r.json"`. Тул вернёт
+`{output_path, rows_written, report_type, format}`, файл потом читай
+`Read`/`jq`/`pandas`. Без `output_path` весь отчёт грузится в память агента
+и может превысить лимиты контекста.
+
 ## Типичные запросы
 
 | Запрос пользователя | MCP Tool |
@@ -88,6 +131,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Ставка показа на dynamic-target | `dynamic_ads_set_bids(id=42, bid=5000000)` |
 | Средняя CPC для smart-таргета | `smart_ad_targets_set_bids(id=42, average_cpc=8000000)` |
 | Статистика за последнюю неделю | `reports_get(date_from="...", date_to="...")` |
+| По месяцам / с фильтром по целям / за длинный период | `reports_custom(...)` — см. раздел «Отчёты» |
 | Баланс аккаунта | `balance_get()` |
 | Цели Метрики для кампаний | `v4goals_get_stat_goals(campaign_ids="123")` |
 | Ретаргетинговые цели для кампаний | `v4goals_get_retargeting_goals(campaign_ids="123")` |

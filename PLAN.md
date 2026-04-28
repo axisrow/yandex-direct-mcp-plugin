@@ -46,7 +46,7 @@ yandex-direct-plugin/
 ```json
 {
   "name": "yandex-direct",
-  "version": "1.0.0",
+  "version": "0.1.5",
   "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
   "author": {"name": "axisrow"},
   "keywords": ["yandex", "direct", "advertising", "oauth"],
