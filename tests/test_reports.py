@@ -357,8 +357,14 @@ def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
 
 
 def test_reports_custom_dry_run():
-    """dry_run threads --dry-run and returns whatever runner returns."""
-    runner = _mock_runner({"command": "reports get --type CUSTOM_REPORT ..."})
+    """dry_run threads --dry-run and returns the structured preview payload."""
+    fake_body = {
+        "params": {
+            "SelectionCriteria": {"DateFrom": "2026-01-01", "DateTo": "2026-01-31"},
+            "FieldNames": ["Date", "Cost"],
+        }
+    }
+    runner = _mock_runner({"headers": {}, "body": fake_body})
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -369,7 +375,48 @@ def test_reports_custom_dry_run():
 
     args = _custom_args(runner.run_json.call_args)
     assert "--dry-run" in args
-    assert result == {"command": "reports get --type CUSTOM_REPORT ..."}
+    assert result["dry_run"] is True
+    assert result["command"][0] == "direct"
+    assert "reports" in result["command"] and "get" in result["command"]
+    assert result["request_body"] == fake_body
+
+
+def test_reports_custom_dry_run_passthrough_when_no_body_key():
+    """If runner returns a dict without 'body', it's passed through as request_body."""
+    raw = {"unexpected": "shape"}
+    runner = _mock_runner(raw)
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            dry_run=True,
+        )
+    assert result["request_body"] == raw
+
+
+def test_reports_custom_invalid_request_hint():
+    """error_code=8000 from CLI is surfaced with a helpful hint pointing to dry_run."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_json.side_effect = CliError(
+        "direct failed (exit 1): ✗ request_id=abc, error_code=8000, "
+        "error_string=Invalid request, error_detail=Field contains an invalid enumeration value",
+        error_code=8000,
+        stderr="✗ request_id=abc, error_code=8000, error_string=Invalid request",
+    )
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Month,GoalsIds",  # GoalsIds is a typo
+            date_from="2026-04-01",
+            date_to="2026-04-29",
+        )
+
+    assert result["error"] == "invalid_request"
+    assert "error_code=8000" in result["message"]
+    assert result["hint"] is not None
+    assert "dry_run=True" in result["hint"]
 
 
 def test_reports_custom_date_range_type():

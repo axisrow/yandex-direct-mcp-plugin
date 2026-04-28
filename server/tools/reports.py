@@ -277,6 +277,12 @@ def reports_custom(
 
     For a quick "last week per-campaign" snapshot use `reports_get` instead.
 
+    PRO TIP — validate before hitting the API: pass `dry_run=True` to get
+    `{command, request_body}` back without contacting Yandex. Use this any
+    time you're unsure whether `field_names`, `goal_ids`, `order_by`, or a
+    raw `filters` entry will be accepted — Reports API rejects bad enums
+    with an opaque `error_code=8000`, so a local dry run saves a round-trip.
+
     Args:
         field_names: Comma-separated list of report fields (dimensions + metrics).
             Common dimensions for grouping: Date, Week, Month, Quarter, Year,
@@ -449,7 +455,19 @@ def reports_custom(
     runner = get_runner()
     result = runner.run_json(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
 
-    if resolved_output_path is not None and not dry_run:
+    if dry_run:
+        request_body: dict | list | None
+        if isinstance(result, dict) and "body" in result:
+            request_body = result["body"]
+        else:
+            request_body = result
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": request_body,
+        }
+
+    if resolved_output_path is not None:
         return {
             "output_path": str(resolved_output_path),
             "rows_written": _count_rows_written(

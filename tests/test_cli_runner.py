@@ -224,3 +224,30 @@ class TestRunJson:
             with pytest.raises(CliError) as exc_info:
                 runner.run_json(["campaigns", "get"])
             assert not isinstance(exc_info.value, CliRegistrationError)
+
+    def test_error_code_parsed_through_ansi_escape(self, runner):
+        """Stderr with ANSI color codes still yields a parsed error_code on CliError."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "\x1b[31m✗ request_id=42, error_code=8000, error_string=Invalid request, "
+            "error_detail=Field contains an invalid enumeration value\x1b[0m"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            from server.cli.runner import CliError
+
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["reports", "get"])
+            assert exc_info.value.error_code == 8000
+            # ANSI escapes stripped from message and stderr, full detail preserved.
+            assert "\x1b" not in str(exc_info.value)
+            assert "error_detail=Field contains an invalid enumeration value" in str(
+                exc_info.value
+            )
+            assert exc_info.value.stderr is not None
+            assert "\x1b" not in exc_info.value.stderr

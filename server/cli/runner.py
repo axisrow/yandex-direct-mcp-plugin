@@ -13,6 +13,14 @@ _DIRECT_INSTALL_HINT = (
     "https://github.com/axisrow/direct-cli"
 )
 
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+_ERROR_CODE_RE = re.compile(r"\berror_code=(\d+)\b")
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI color/style escape sequences from CLI output."""
+    return _ANSI_ESCAPE_RE.sub("", text)
+
 
 def _find_direct() -> str | None:
     """Locate the `direct` binary across common install locations.
@@ -122,7 +130,7 @@ class DirectCliRunner:
         result = self.run(args, timeout=timeout)
 
         if result.returncode != 0:
-            stderr = result.stderr.strip()
+            stderr = _strip_ansi(result.stderr).strip()
             if "401" in stderr or "Unauthorized" in stderr:
                 raise CliAuthError("Token expired or invalid")
             if re.search(r"\berror_code=58\b", stderr):
@@ -131,8 +139,13 @@ class DirectCliRunner:
                     "Вам нужно подать или переподать заявку на регистрацию приложения "
                     "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
                 )
+            error_code: int | None = None
+            if match := _ERROR_CODE_RE.search(stderr):
+                error_code = int(match.group(1))
             raise CliError(
-                f"direct failed (exit {result.returncode}): {stderr or result.stdout[:200]}"
+                f"direct failed (exit {result.returncode}): {stderr or _strip_ansi(result.stdout)[:200]}",
+                error_code=error_code,
+                stderr=stderr,
             )
 
         output = result.stdout.strip()
@@ -148,7 +161,16 @@ class DirectCliRunner:
 class CliError(Exception):
     """Base error for CLI operations."""
 
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: int | None = None,
+        stderr: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+        self.stderr = stderr
 
 
 class CliNotFoundError(CliError):
