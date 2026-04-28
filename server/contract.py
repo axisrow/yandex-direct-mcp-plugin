@@ -64,10 +64,11 @@ class ContractTool:
     def tapi_canonical(self) -> str | None:
         """tapi-yandex-direct canonical method name (camelCase).
 
-        Returns the explicit ``tapi_name`` when set; otherwise auto-derives it
-        from ``cli_method`` by converting snake_case to camelCase, e.g.
-        ``set_auto`` → ``setAuto``, ``has_search_volume`` → ``hasSearchVolume``.
-        Returns ``None`` when there is no CLI method (plugin tools).
+        Returns the explicit ``tapi_name`` when set, including CLI-backed v4
+        tools with no subcommand method stored in ``cli_method``. Otherwise
+        auto-derives it from ``cli_method`` by converting snake_case to
+        camelCase, e.g. ``set_auto`` → ``setAuto``. Returns ``None`` for
+        plugin tools with neither ``cli_method`` nor ``tapi_name``.
         """
         if self.cli_method is None and self.tapi_name is not None:
             return self.tapi_name
