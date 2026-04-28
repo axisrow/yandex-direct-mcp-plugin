@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (121 tools)
+## Доступный MCP-контракт (124 tools)
 
 Контракт теперь следует иерархии:
 
@@ -27,6 +27,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 - Используй только публичные MCP tools.
 - Не опирайся на старые alias-имена (`*_list`, `agency_clients_*`, `keyword_bids_*`, `smart_targets_*` и т.д.).
 - Для Direct-операций используй канонические имена `service_method`.
+- v4 Live методы вызывай только через публичные MCP tools; shell-группы без CLI-команд не используются.
 
 ### Правила именования
 
@@ -53,6 +54,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Стратегии | `strategies_get/add/update/archive/unarchive` |
 | Медиа и расширения | `adimages_get/add/delete`, `advideos_get/add`, `adextensions_get/add/delete`, `sitelinks_get/add/delete`, `vcards_get/add/delete`, `creatives_get/add` |
 | Справочники / изменения / отчёты | `dictionaries_get`, `dictionaries_get_geo_regions`, `changes_check`, `changes_check_campaigns`, `changes_check_dictionaries`, `reports_get` |
+| v4 Live | `balance_get`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals` |
 | Прочее | `clients_get/update`, `agencyclients_get/add/update/add_passport_organization/add_passport_organization_member`, `businesses_get`, `feeds_get/add/update/delete`, `leads_get`, `negativekeywordsharedsets_get/add/update/delete`, `keywordsresearch_has_search_volume`, `keywordsresearch_deduplicate`, `turbopages_get` |
 
 ### Явно helper-only tools
@@ -86,6 +88,9 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Ставка показа на dynamic-target | `dynamic_ads_set_bids(id=42, bid=5000000)` |
 | Средняя CPC для smart-таргета | `smart_ad_targets_set_bids(id=42, average_cpc=8000000)` |
 | Статистика за последнюю неделю | `reports_get(date_from="...", date_to="...")` |
+| Баланс аккаунта | `balance_get()` |
+| Цели Метрики для кампаний | `v4goals_get_stat_goals(campaign_ids="123")` |
+| Ретаргетинговые цели для кампаний | `v4goals_get_retargeting_goals(campaign_ids="123")` |
 | Проверить есть ли изменения в кампаниях | `changes_check_campaigns(campaign_ids="123", timestamp="...")` |
 | Показать группы объявлений | `adgroups_get(campaign_ids="123")` |
 | Токен живой? | `auth_status()` |

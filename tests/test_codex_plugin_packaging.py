@@ -52,3 +52,16 @@ def test_plugin_manifest_matches_bundle_layout() -> None:
     server = mcp["mcpServers"]["yandex-direct-mcp"]
     assert server["command"] == "python3"
     assert server["args"] == ["${CLAUDE_PLUGIN_ROOT}/server/main.py"]
+
+
+def test_plugin_entrypoint_imports_same_tools_as_repo_entrypoint() -> None:
+    def tool_imports(path: Path) -> set[str]:
+        return {
+            line.strip()
+            for line in path.read_text().splitlines()
+            if line.startswith("import server.tools.")
+        }
+
+    assert tool_imports(SERVER_ENTRYPOINT) == tool_imports(
+        REPO_ROOT / "server" / "main.py"
+    )

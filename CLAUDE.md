@@ -15,10 +15,10 @@ direct (Python CLI)         — talks to Yandex.Direct API
        ↑
 server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
-server/contract.py          — machine-readable parity layer (121 tools)
+server/contract.py          — machine-readable parity layer (124 tools)
 server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 121 MCP tools across 32 active modules
+server/tools/               — 124 MCP tools across 33 active modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
@@ -205,13 +205,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (121 total) + 1 Prompt
+## MCP Tools (124 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (115)
+### Direct API tools (118)
 
 | Tool | Purpose |
 |---|---|
