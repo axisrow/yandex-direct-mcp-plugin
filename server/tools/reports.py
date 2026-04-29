@@ -277,6 +277,12 @@ def reports_custom(
 
     For a quick "last week per-campaign" snapshot use `reports_get` instead.
 
+    PRO TIP — validate before hitting the API: pass `dry_run=True` to get
+    `{command, request_body}` back without contacting Yandex. Use this any
+    time you're unsure whether `field_names`, `goal_ids`, `order_by`, or a
+    raw `filters` entry will be accepted — Reports API rejects bad enums
+    with an opaque `error_code=8000`, so a local dry run saves a round-trip.
+
     Args:
         field_names: Comma-separated list of report fields (dimensions + metrics).
             Common dimensions for grouping: Date, Week, Month, Quarter, Year,
@@ -331,7 +337,9 @@ def reports_custom(
             directory to write the full report to. When set, the tool returns
             `{output_path, rows_written, report_type, format}` instead of the
             data — use this for reports >5k rows or covering >6 months. Read
-            the file afterwards with regular file tools.
+            the file afterwards with regular file tools. Ignored when
+            `dry_run=True` (the dry run always returns the request body
+            in-memory).
         response_format: json | tsv | csv | table. Only meaningful with
             output_path; without it, JSON is always returned in-memory.
         dry_run: Build and validate the command without calling Yandex.
@@ -438,7 +446,7 @@ def reports_custom(
         args.append("--dry-run")
 
     resolved_output_path: Path | None = None
-    if output_path:
+    if output_path and not dry_run:
         resolved_output_path = _resolve_output_path(output_path)
         args.extend(
             ["--output", str(resolved_output_path), "--format", response_format]
@@ -449,7 +457,19 @@ def reports_custom(
     runner = get_runner()
     result = runner.run_json(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
 
-    if resolved_output_path is not None and not dry_run:
+    if dry_run:
+        request_body: dict | list | None
+        if isinstance(result, dict) and "body" in result:
+            request_body = result["body"]
+        else:
+            request_body = result
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": request_body,
+        }
+
+    if resolved_output_path is not None:
         return {
             "output_path": str(resolved_output_path),
             "rows_written": _count_rows_written(

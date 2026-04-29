@@ -190,6 +190,25 @@ class TestRunJson:
             with pytest.raises(CliAuthError):
                 runner.run_json(["campaigns", "get"])
 
+    def test_auth_error_via_error_code_53(self, runner):
+        """error_code=53 (Authorization error) triggers CliAuthError so that
+        handle_cli_errors retries the call after refreshing the token, even when
+        stderr lacks the '401'/'Unauthorized' literal strings."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "✗ request_id=99, error_code=53, error_string=Authorization error, "
+            "error_detail=Invalid OAuth token"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            with pytest.raises(CliAuthError):
+                runner.run_json(["campaigns", "get"])
+
     def test_registration_error_58(self, runner):
         """Test error code 58 (incomplete registration)."""
         mock_result = MagicMock()
@@ -224,3 +243,30 @@ class TestRunJson:
             with pytest.raises(CliError) as exc_info:
                 runner.run_json(["campaigns", "get"])
             assert not isinstance(exc_info.value, CliRegistrationError)
+
+    def test_error_code_parsed_through_ansi_escape(self, runner):
+        """Stderr with ANSI color codes still yields a parsed error_code on CliError."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "\x1b[31m✗ request_id=42, error_code=8000, error_string=Invalid request, "
+            "error_detail=Field contains an invalid enumeration value\x1b[0m"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            from server.cli.runner import CliError
+
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["reports", "get"])
+            assert exc_info.value.error_code == 8000
+            # ANSI escapes stripped from message and stderr, full detail preserved.
+            assert "\x1b" not in str(exc_info.value)
+            assert "error_detail=Field contains an invalid enumeration value" in str(
+                exc_info.value
+            )
+            assert exc_info.value.stderr is not None
+            assert "\x1b" not in exc_info.value.stderr

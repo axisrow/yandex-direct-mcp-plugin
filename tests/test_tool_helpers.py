@@ -123,6 +123,100 @@ def test_handle_cli_errors_returns_unknown_for_unexpected_exception() -> None:
     assert result["message"] == "boom"
 
 
+def _wrap_cli_error(message: str, *, error_code: int | None, stderr: str | None = None):
+    """Helper: build a wrapped function that raises a CliError when called."""
+    from server.cli.runner import CliError
+
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliError(message, error_code=error_code, stderr=stderr)
+
+    return wrapped
+
+
+def test_handle_cli_errors_targeted_hint_8000_fieldnames() -> None:
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=Element of array FieldNames contains an invalid enumeration value",
+    )()
+    assert result["error"] == "invalid_request"
+    assert "FieldNames are case-sensitive" in result["hint"]
+
+
+def test_handle_cli_errors_targeted_hint_8000_sortorder() -> None:
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=SortOrder contains an invalid enumeration value",
+    )()
+    assert result["error"] == "invalid_request"
+    assert "FIELD:ASC" in result["hint"]
+
+
+def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint() -> (
+    None
+):
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=Filter Field contains an invalid enumeration value",
+    )()
+    assert result["error"] == "invalid_request"
+    assert "Operator must be one of" in result["hint"]
+
+
+def test_handle_cli_errors_filter_hint_matches_only_whole_word() -> None:
+    """A substring like 'filterable' or 'unfiltered' must NOT trigger the
+    Filter hint — only the standalone word 'filter' does."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=value 'filterable' is not allowed",
+    )()
+    assert result["error"] == "invalid_request"
+    # No real Filter token → falls back to the generic hint, not the Filter one.
+    assert "Operator must be one of" not in result["hint"]
+    assert "dry_run=True" in result["hint"]
+
+
+def test_handle_cli_errors_targeted_hint_8000_generic_when_no_detail_match() -> None:
+    result = _wrap_cli_error("boom", error_code=8000, stderr=None)()
+    assert result["error"] == "invalid_request"
+    assert "dry_run=True" in result["hint"]
+
+
+def test_handle_cli_errors_maps_error_code_53_to_auth_error_with_hint() -> None:
+    result = _wrap_cli_error("boom", error_code=53, stderr="error_code=53")()
+    assert result["error"] == "auth_error"
+    assert "auth_login" in result["hint"]
+
+
+def test_handle_cli_errors_maps_error_code_152_to_insufficient_funds() -> None:
+    result = _wrap_cli_error("boom", error_code=152)()
+    assert result["error"] == "insufficient_funds"
+    assert "balance" in result["hint"].lower()
+
+
+def test_handle_cli_errors_maps_error_code_9300_to_limit_exceeded() -> None:
+    result = _wrap_cli_error("boom", error_code=9300)()
+    assert result["error"] == "limit_exceeded"
+    assert "10 IDs" in result["hint"]
+
+
+def test_handle_cli_errors_unknown_code_keeps_unknown_and_no_hint() -> None:
+    result = _wrap_cli_error("boom", error_code=99999)()
+    assert result["error"] == "unknown"
+    assert result["hint"] is None
+
+
+def test_handle_cli_errors_no_code_keeps_unknown_and_no_hint() -> None:
+    """Plain CliError without an error_code (e.g. parse failure) stays unknown."""
+    result = _wrap_cli_error("boom", error_code=None)()
+    assert result["error"] == "unknown"
+    assert result["hint"] is None
+
+
 def test_set_token_getter_and_get_runner() -> None:
     tools.set_token_getter(lambda: "test-token")
     runner = tools.get_runner()
