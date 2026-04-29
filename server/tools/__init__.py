@@ -186,9 +186,7 @@ def handle_cli_errors(func):
                 error_kind = "limit_exceeded"
             else:
                 error_kind = "unknown"
-            return ToolError(
-                error=error_kind, message=str(e), hint=hint
-            ).__dict__
+            return ToolError(error=error_kind, message=str(e), hint=hint).__dict__
         except Exception as e:
             from server.auth.oauth import OAuthError as _OAuthError
 

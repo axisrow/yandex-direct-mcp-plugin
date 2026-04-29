@@ -154,7 +154,9 @@ def test_handle_cli_errors_targeted_hint_8000_sortorder() -> None:
     assert "FIELD:ASC" in result["hint"]
 
 
-def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint() -> None:
+def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint() -> (
+    None
+):
     result = _wrap_cli_error(
         "boom",
         error_code=8000,
