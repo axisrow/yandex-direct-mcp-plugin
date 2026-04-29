@@ -395,6 +395,26 @@ def test_reports_custom_dry_run_passthrough_when_no_body_key():
     assert result["request_body"] == raw
 
 
+def test_reports_custom_dry_run_ignores_output_path(tmp_path):
+    """dry_run=True must not pass --output to direct, otherwise the CLI writes
+    the body to the file and stdout is empty, leaving request_body=[]."""
+    fake_body = {"params": {"FieldNames": ["Date"]}}
+    runner = _mock_runner({"headers": {}, "body": fake_body})
+    out = tmp_path / "ignored.json"
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            dry_run=True,
+            output_path=str(out),
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert "--output" not in args
+    assert result["request_body"] == fake_body
+    assert not out.exists()
+
+
 def test_reports_custom_invalid_request_hint():
     """error_code=8000 from CLI is surfaced with a helpful hint pointing to dry_run."""
     from server.cli.runner import CliError

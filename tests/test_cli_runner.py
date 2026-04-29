@@ -190,6 +190,25 @@ class TestRunJson:
             with pytest.raises(CliAuthError):
                 runner.run_json(["campaigns", "get"])
 
+    def test_auth_error_via_error_code_53(self, runner):
+        """error_code=53 (Authorization error) triggers CliAuthError so that
+        handle_cli_errors retries the call after refreshing the token, even when
+        stderr lacks the '401'/'Unauthorized' literal strings."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "✗ request_id=99, error_code=53, error_string=Authorization error, "
+            "error_detail=Invalid OAuth token"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            with pytest.raises(CliAuthError):
+                runner.run_json(["campaigns", "get"])
+
     def test_registration_error_58(self, runner):
         """Test error code 58 (incomplete registration)."""
         mock_result = MagicMock()

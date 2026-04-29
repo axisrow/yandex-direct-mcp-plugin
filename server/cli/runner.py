@@ -131,17 +131,17 @@ class DirectCliRunner:
 
         if result.returncode != 0:
             stderr = _strip_ansi(result.stderr).strip()
-            if "401" in stderr or "Unauthorized" in stderr:
+            error_code: int | None = None
+            if match := _ERROR_CODE_RE.search(stderr):
+                error_code = int(match.group(1))
+            if "401" in stderr or "Unauthorized" in stderr or error_code == 53:
                 raise CliAuthError("Token expired or invalid")
-            if re.search(r"\berror_code=58\b", stderr):
+            if error_code == 58:
                 raise CliRegistrationError(
                     "Незаконченная регистрация. "
                     "Вам нужно подать или переподать заявку на регистрацию приложения "
                     "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
                 )
-            error_code: int | None = None
-            if match := _ERROR_CODE_RE.search(stderr):
-                error_code = int(match.group(1))
             raise CliError(
                 f"direct failed (exit {result.returncode}): {stderr or _strip_ansi(result.stdout)[:200]}",
                 error_code=error_code,

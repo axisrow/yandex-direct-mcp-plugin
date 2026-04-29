@@ -164,6 +164,20 @@ def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint()
     assert "Operator must be one of" in result["hint"]
 
 
+def test_handle_cli_errors_filter_hint_matches_only_whole_word() -> None:
+    """A substring like 'filterable' or 'unfiltered' must NOT trigger the
+    Filter hint — only the standalone word 'filter' does."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=value 'filterable' is not allowed",
+    )()
+    assert result["error"] == "invalid_request"
+    # No real Filter token → falls back to the generic hint, not the Filter one.
+    assert "Operator must be one of" not in result["hint"]
+    assert "dry_run=True" in result["hint"]
+
+
 def test_handle_cli_errors_targeted_hint_8000_generic_when_no_detail_match() -> None:
     result = _wrap_cli_error("boom", error_code=8000, stderr=None)()
     assert result["error"] == "invalid_request"

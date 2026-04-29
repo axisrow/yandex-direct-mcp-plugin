@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
@@ -9,6 +10,9 @@ from server.cli.runner import (
     CliRegistrationError,
     CliTimeoutError,
 )
+
+
+_FILTER_TOKEN_RE = re.compile(r"\bfilter\b", re.IGNORECASE)
 
 
 @dataclass
@@ -100,7 +104,7 @@ def _build_invalid_request_hint(stderr: str | None) -> str:
         return _INVALID_REQUEST_HINT_FIELDNAMES
     if "sortorder" in detail:
         return _INVALID_REQUEST_HINT_SORTORDER
-    if "filter" in detail and "field" in detail:
+    if _FILTER_TOKEN_RE.search(stderr):
         return _INVALID_REQUEST_HINT_FILTER
     return _INVALID_REQUEST_HINT_GENERIC
 

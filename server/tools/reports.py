@@ -337,7 +337,9 @@ def reports_custom(
             directory to write the full report to. When set, the tool returns
             `{output_path, rows_written, report_type, format}` instead of the
             data — use this for reports >5k rows or covering >6 months. Read
-            the file afterwards with regular file tools.
+            the file afterwards with regular file tools. Ignored when
+            `dry_run=True` (the dry run always returns the request body
+            in-memory).
         response_format: json | tsv | csv | table. Only meaningful with
             output_path; without it, JSON is always returned in-memory.
         dry_run: Build and validate the command without calling Yandex.
@@ -444,7 +446,7 @@ def reports_custom(
         args.append("--dry-run")
 
     resolved_output_path: Path | None = None
-    if output_path:
+    if output_path and not dry_run:
         resolved_output_path = _resolve_output_path(output_path)
         args.extend(
             ["--output", str(resolved_output_path), "--format", response_format]
