@@ -51,17 +51,8 @@ def _find_direct() -> str | None:
 
 
 def _direct_env() -> dict[str, str]:
-    """Build subprocess env, mapping plugin auth options to direct-cli vars."""
-    env = os.environ.copy()
-    if token := env.get("CLAUDE_PLUGIN_OPTION_token"):
-        env.setdefault("YANDEX_DIRECT_TOKEN", token)
-    if login := env.get("CLAUDE_PLUGIN_OPTION_login"):
-        env.setdefault("YANDEX_DIRECT_LOGIN", login)
-    if client_id := env.get("CLAUDE_PLUGIN_OPTION_client_id"):
-        env.setdefault("YANDEX_DIRECT_CLIENT_ID", client_id)
-    if client_secret := env.get("CLAUDE_PLUGIN_OPTION_client_secret"):
-        env.setdefault("YANDEX_DIRECT_CLIENT_SECRET", client_secret)
-    return env
+    """Build subprocess env for direct-cli."""
+    return os.environ.copy()
 
 
 class CliRunner(Protocol):

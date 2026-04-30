@@ -115,12 +115,21 @@ class TestRun:
             assert "--token" not in cmd
             assert "campaigns" in cmd
 
-    def test_plugin_token_option_is_mapped_to_direct_env(self, runner, monkeypatch):
+    def test_plugin_auth_options_are_not_mapped_to_direct_env(
+        self, runner, monkeypatch
+    ):
         mock_result = MagicMock()
         mock_result.stdout = "[]"
         mock_result.stderr = ""
         mock_result.returncode = 0
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "plugin-token")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_login", "plugin-login")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "plugin-client-id")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "plugin-secret")
+        monkeypatch.delenv("YANDEX_DIRECT_TOKEN", raising=False)
+        monkeypatch.delenv("YANDEX_DIRECT_LOGIN", raising=False)
+        monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
+        monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
 
         with (
             patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
@@ -131,7 +140,10 @@ class TestRun:
             runner.run(["campaigns", "get"])
 
         env = mock_run.call_args.kwargs["env"]
-        assert env["YANDEX_DIRECT_TOKEN"] == "plugin-token"
+        assert "YANDEX_DIRECT_TOKEN" not in env
+        assert "YANDEX_DIRECT_LOGIN" not in env
+        assert "YANDEX_DIRECT_CLIENT_ID" not in env
+        assert "YANDEX_DIRECT_CLIENT_SECRET" not in env
 
     def test_cli_not_found(self, runner):
         """Test 17: direct-cli not in PATH."""
