@@ -85,6 +85,32 @@ class TestAuthStatus:
         assert result["valid"] is True
         assert result["refresh_unavailable"] is True
 
+    def test_auth_status_marks_expired_profile_invalid(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        auth_path = tmp_path / ".direct-cli" / "auth.json"
+        auth_path.parent.mkdir()
+        auth_path.write_text(
+            json.dumps(
+                {
+                    "active_profile": "default",
+                    "profiles": {
+                        "default": {
+                            "token": "token",
+                            "login": "client",
+                            "expires_at": 1.0,
+                        }
+                    },
+                }
+            )
+        )
+
+        result = auth_status()
+        assert result["valid"] is False
+        assert result["has_token"] is True
+        assert result["expires_in"] == 0
+
 
 class TestAuthSetup:
     def test_auth_setup_with_direct_token(self) -> None:
@@ -173,7 +199,10 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
-    def test_auth_login_cancelled(self, mock_popen, _mock_find, _mock_status) -> None:
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    def test_auth_login_cancelled(
+        self, _mock_resolve, mock_popen, _mock_find, _mock_status
+    ) -> None:
         proc = MagicMock()
         proc.poll.return_value = None
         proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
@@ -188,12 +217,102 @@ class TestAuthLogin:
         result = asyncio.run(auth_login(mock_ctx))
         assert result == {"cancelled": True, "message": "Авторизация отменена."}
         proc.terminate.assert_called_once()
+        proc.wait.assert_called_once_with(timeout=5)
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    def test_auth_login_cancelled_kills_process_after_wait_timeout(
+        self, _mock_resolve, mock_popen, _mock_find, _mock_status
+    ) -> None:
+        proc = MagicMock()
+        proc.poll.return_value = None
+        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
+        proc.wait.side_effect = [subprocess.TimeoutExpired(["direct"], 5), None]
+        mock_popen.return_value = proc
+
+        mock_ctx = MagicMock()
+        mock_result = MagicMock()
+        mock_result.action = "decline"
+        mock_result.data = None
+        mock_ctx.elicit = AsyncMock(return_value=mock_result)
+
+        result = asyncio.run(auth_login(mock_ctx))
+        assert result["cancelled"] is True
+        proc.terminate.assert_called_once()
+        proc.kill.assert_called_once()
+        assert proc.wait.call_count == 2
+
+    @patch("server.tools.auth_tools._read_auth_store")
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools.subprocess.Popen")
+    def test_auth_login_reauthenticates_expired_profile(
+        self, mock_popen, _mock_find, mock_store
+    ) -> None:
+        mock_store.return_value = {
+            "active_profile": "default",
+            "profiles": {
+                "default": {
+                    "token": "token",
+                    "login": "client",
+                    "expires_at": 1.0,
+                }
+            },
+        }
+        proc = MagicMock()
+        proc.poll.return_value = None
+        proc.returncode = 0
+        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
+        proc.communicate.return_value = ("saved", "")
+        mock_popen.return_value = proc
+
+        mock_ctx = MagicMock()
+        credential = MagicMock()
+        credential.action = "accept"
+        credential.data.value = "ABC123"
+        mock_ctx.elicit = AsyncMock(return_value=credential)
+
+        result = asyncio.run(auth_login(mock_ctx))
+
+        mock_popen.assert_called_once()
+        assert result["success"] is True
+
+    @patch("server.tools.auth_tools._read_auth_store")
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools.subprocess.Popen")
+    def test_auth_login_uses_active_profile_when_omitted(
+        self, mock_popen, _mock_find, mock_store
+    ) -> None:
+        mock_store.return_value = {
+            "active_profile": "agency",
+            "profiles": {"agency": {"token": "", "login": "client"}},
+        }
+        proc = MagicMock()
+        proc.poll.return_value = None
+        proc.returncode = 0
+        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
+        proc.communicate.return_value = ("saved", "")
+        mock_popen.return_value = proc
+
+        mock_ctx = MagicMock()
+        credential = MagicMock()
+        credential.action = "accept"
+        credential.data.value = "ABC123"
+        mock_ctx.elicit = AsyncMock(return_value=credential)
+
+        result = asyncio.run(auth_login(mock_ctx))
+
+        cmd = mock_popen.call_args.args[0]
+        assert cmd[:5] == ["/usr/bin/direct", "auth", "login", "--profile", "agency"]
+        assert result["profile"] == "agency"
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools.subprocess.Popen")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
     def test_auth_login_sends_code_to_same_process(
-        self, mock_popen, _mock_find, _mock_status
+        self, _mock_resolve, mock_popen, _mock_find, _mock_status
     ) -> None:
         proc = MagicMock()
         proc.poll.return_value = None

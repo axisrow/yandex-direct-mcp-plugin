@@ -81,7 +81,6 @@ def _normalize_status(profile: str, payload: dict[str, Any]) -> dict:
     token = payload.get("token")
     expires_at = payload.get("expires_at")
     result: dict[str, Any] = {
-        "valid": bool(token),
         "profile": profile,
         "source": payload.get("source") or "oauth",
         "has_token": bool(token),
@@ -89,12 +88,30 @@ def _normalize_status(profile: str, payload: dict[str, Any]) -> dict:
     }
     if isinstance(expires_at, int | float):
         expires_in_value = max(0, int(float(expires_at) - time.time()))
+        result["valid"] = bool(token) and expires_in_value > 0
         result["expires_at"] = float(expires_at)
         result["expires_in"] = expires_in_value
         result["expires_in_human"] = _human_readable_time(expires_in_value)
     else:
+        result["valid"] = bool(token)
         result["refresh_unavailable"] = True
     return result
+
+
+def _resolve_profile_name(profile: str | None = None) -> str:
+    if profile:
+        return profile
+    selected, _payload = _read_cli_profile(None)
+    return selected or "default"
+
+
+def _terminate_and_wait(proc: subprocess.Popen[str]) -> None:
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
 
 
 def _run_auth_command(args: list[str], *, timeout: int | None = None) -> dict:
@@ -198,12 +215,13 @@ class AuthCredential(BaseModel):
 
 @mcp.tool()
 async def auth_login(
-    ctx: Context, login: str | None = None, profile: str = "default"
+    ctx: Context, login: str | None = None, profile: str | None = None
 ) -> dict:
     """Start interactive OAuth login through direct-cli."""
     status = auth_status(profile)
     if status.get("valid"):
         return {"already_authenticated": True, **status}
+    target_profile = _resolve_profile_name(profile)
 
     direct_bin = _find_direct()
     if not direct_bin:
@@ -212,7 +230,7 @@ async def auth_login(
             "message": "direct not found. Install direct-cli.",
         }
 
-    cmd = [direct_bin, *_login_process_args(login=login, profile=profile)]
+    cmd = [direct_bin, *_login_process_args(login=login, profile=target_profile)]
     try:
         proc = subprocess.Popen(
             cmd,
@@ -257,7 +275,7 @@ async def auth_login(
         schema=AuthCredential,
     )
     if result.action != "accept" or not result.data:
-        proc.terminate()
+        _terminate_and_wait(proc)
         return {"cancelled": True, "message": "Авторизация отменена."}
 
     stdout, stderr = proc.communicate(input=f"{result.data.value}\n", timeout=60)
@@ -271,7 +289,7 @@ async def auth_login(
     return {
         "success": True,
         "method": "oauth_code",
-        "profile": profile,
+        "profile": target_profile,
         "login": login or "",
     }
 

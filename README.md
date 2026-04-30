@@ -829,7 +829,7 @@ version = "0.1.5"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.3",
+    "direct-cli>=0.3.2",
 ]
 
 [project.optional-dependencies]
