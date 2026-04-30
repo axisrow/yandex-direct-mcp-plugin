@@ -1,7 +1,14 @@
 {
   "name": "yandex-direct",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
-  "author": {"name": "axisrow"},
-  "keywords": ["yandex", "direct", "advertising", "oauth"]
+  "author": {
+    "name": "axisrow"
+  },
+  "keywords": [
+    "yandex",
+    "direct",
+    "advertising",
+    "oauth"
+  ]
 }
