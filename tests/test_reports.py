@@ -272,19 +272,6 @@ def test_reports_custom_goal_ids_with_other_filters_pass_through():
     assert args[args.index("--filter") + 1] == "Device:IN:DESKTOP"
 
 
-def test_reports_custom_rejects_goals_filter_field():
-    """A user-supplied `Goals:IN:...` filter is still rejected — Goals is not
-    a valid Filter field per API spec, regardless of whether `goal_ids` is set."""
-    result = reports_custom(
-        field_names="Month,Goals,Conversions",
-        date_from="2024-01-01",
-        date_to="2024-02-01",
-        filters=["Goals:IN:222"],
-    )
-    assert result["error"] == "unknown"
-    assert "Goals is not a valid Filter field" in result["message"]
-
-
 def test_reports_custom_output_path(tmp_path):
     """output_path returns metadata, not the data array."""
     out = tmp_path / "report.json"

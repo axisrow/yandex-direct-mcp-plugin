@@ -163,7 +163,7 @@ def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint()
         stderr="error_code=8000, error_detail=Filter Field contains an invalid enumeration value",
     )()
     assert result["error"] == "invalid_request"
-    assert "Operator must be one of" in result["hint"]
+    assert "Operators are usually one of" in result["hint"]
 
 
 def test_handle_cli_errors_filter_hint_matches_only_whole_word() -> None:

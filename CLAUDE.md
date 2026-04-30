@@ -384,7 +384,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens stored in `${CLAUDE_PLUGIN_DATA}/tokens.json` (gitignored)
 - CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.2` (adds `reports get --goals` / `--attribution-models`, fixes Goals Filter rejection by Reports API).
-- `reports_custom(goal_ids=...)` maps to `direct reports get --goals ...` (top-level `ReportDefinition.Goals`). Yandex splits `Conversions` and `CostPerConversion` into per-goal columns: `Conversions_<goal_id>_<attribution>` (e.g. `Conversions_319910463_LSC`). `Goals` is NOT a valid Filter field, NOR a valid FieldName — passing it in either is rejected (locally for filters, by API for FieldNames with `error_code=8000`).
+- `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
 ## Breaking Changes (v1 → v2 migration)
