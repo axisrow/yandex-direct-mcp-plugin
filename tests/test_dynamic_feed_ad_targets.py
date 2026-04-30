@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.tools.dynamic_feed_ad_targets import (
     dynamic_feed_ad_targets_add,
     dynamic_feed_ad_targets_delete,
@@ -13,12 +11,6 @@ from server.tools.dynamic_feed_ad_targets import (
     dynamic_feed_ad_targets_set_bids,
     dynamic_feed_ad_targets_suspend,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

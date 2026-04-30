@@ -2,15 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.tools.turbo_pages import turbo_pages_list, turbo_pages_add
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

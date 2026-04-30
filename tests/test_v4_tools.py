@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.contract import (
     PUBLIC_TOOL_NAMES,
     V4_LIVE_BLOCKED_METHOD_NAMES,
@@ -15,11 +13,6 @@ from server.tools.v4goals import (
     v4goals_get_retargeting_goals,
     v4goals_get_stat_goals,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

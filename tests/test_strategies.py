@@ -3,9 +3,7 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.tools.strategies import (
     strategies_add,
     strategies_archive,
@@ -13,12 +11,6 @@ from server.tools.strategies import (
     strategies_unarchive,
     strategies_update,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

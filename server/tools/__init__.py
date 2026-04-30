@@ -1,5 +1,4 @@
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
 
@@ -112,6 +111,13 @@ def _hint_for_cli_error(error: CliError) -> str | None:
     """Return the best hint for a CliError, or None if nothing specific applies."""
     if error.error_code == 8000:
         return _build_invalid_request_hint(error.stderr)
+    if error.error_code == 8800 and error.stderr:
+        detail = error.stderr.lower()
+        if "client-login" in detail or "nonexistent username" in detail:
+            return (
+                "The active direct-cli profile has a missing or wrong login. "
+                "Run auth_status, then auth_login or auth_setup with the correct login."
+            )
     if error.error_code is not None and error.error_code in _HINTS_BY_ERROR_CODE:
         return _HINTS_BY_ERROR_CODE[error.error_code]
     return None
@@ -120,24 +126,8 @@ def _hint_for_cli_error(error: CliError) -> str | None:
 _INVALID_REQUEST_CODES = {8000, 4000, 4001, 4002, 4003, 4004, 4005, 4006}
 
 
-def _try_refresh_token() -> str | None:
-    """Force-refresh the OAuth token. Returns new access token or None."""
-    try:
-        from server.auth.oauth import OAuthError, OAuthManager
-
-        manager = OAuthManager()
-        data = manager.refresh_token()
-        return data["access_token"]
-    except OAuthError:
-        raise
-    except Exception:
-        return None
-
-
 def handle_cli_errors(func):
-    """Decorator that catches CLI errors and returns ToolError dicts.
-
-    On 401, refreshes token and retries once."""
+    """Decorator that catches CLI errors and returns ToolError dicts."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -145,23 +135,11 @@ def handle_cli_errors(func):
             return func(*args, **kwargs)
         except CliRegistrationError as e:
             return ToolError(error="incomplete_registration", message=str(e)).__dict__
-        except CliAuthError:
-            from server.auth.oauth import OAuthError
-
-            try:
-                new_token = _try_refresh_token()
-            except OAuthError as e:
-                return e.to_dict()
-            if new_token is not None:
-                try:
-                    return func(*args, **kwargs)
-                except CliAuthError:
-                    pass
-                except OAuthError as e:
-                    return e.to_dict()
+        except CliAuthError as e:
             return ToolError(
                 error="auth_expired",
-                message="Token expired. Re-authorization required.",
+                message=str(e) or "Token expired. Re-authorization required.",
+                hint="Run auth_status to check the active direct-cli profile, then auth_login to re-authorize.",
             ).__dict__
         except CliNotFoundError as e:
             return ToolError(error="cli_not_found", message=str(e)).__dict__
@@ -187,27 +165,13 @@ def handle_cli_errors(func):
                 error_kind = "unknown"
             return ToolError(error=error_kind, message=str(e), hint=hint).__dict__
         except Exception as e:
-            from server.auth.oauth import OAuthError as _OAuthError
-
-            if isinstance(e, _OAuthError):
-                return e.to_dict()
             return ToolError(error="unknown", message=str(e)).__dict__
 
     return wrapper
 
 
-_token_getter: Callable[[], str] | None = None
-
-
-def set_token_getter(getter: Callable[[], str]) -> None:
-    global _token_getter
-    _token_getter = getter
-
-
 def get_runner():
-    """Create a DirectCliRunner using the configured token getter."""
+    """Create a DirectCliRunner using direct-cli's active auth profile."""
     from server.cli.runner import DirectCliRunner
 
-    if _token_getter is None:
-        raise RuntimeError("Token getter not configured")
-    return DirectCliRunner(token=_token_getter())
+    return DirectCliRunner()

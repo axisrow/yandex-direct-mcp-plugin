@@ -18,7 +18,7 @@ from server.cli.runner import (
 
 @pytest.fixture
 def runner():
-    return DirectCliRunner(token="test-token")
+    return DirectCliRunner()
 
 
 @pytest.mark.mocks
@@ -112,9 +112,26 @@ class TestRun:
             mock_run.assert_called_once()
             cmd = mock_run.call_args[0][0]
             assert cmd[0] == "/usr/bin/direct"
-            assert "--token" in cmd
-            assert "test-token" in cmd
+            assert "--token" not in cmd
             assert "campaigns" in cmd
+
+    def test_plugin_token_option_is_mapped_to_direct_env(self, runner, monkeypatch):
+        mock_result = MagicMock()
+        mock_result.stdout = "[]"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "plugin-token")
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch(
+                "server.cli.runner.subprocess.run", return_value=mock_result
+            ) as mock_run,
+        ):
+            runner.run(["campaigns", "get"])
+
+        env = mock_run.call_args.kwargs["env"]
+        assert env["YANDEX_DIRECT_TOKEN"] == "plugin-token"
 
     def test_cli_not_found(self, runner):
         """Test 17: direct-cli not in PATH."""

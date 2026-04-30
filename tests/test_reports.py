@@ -4,9 +4,7 @@ import json
 from datetime import date, timedelta
 from unittest.mock import patch, MagicMock
 
-import pytest
 
-import server.tools
 from server.tools.reports import (
     CUSTOM_REPORT_TIMEOUT_SECONDS,
     DEFAULT_REPORT_FIELDS,
@@ -16,11 +14,6 @@ from server.tools.reports import (
     reports_get,
     reports_list_types,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_REPORTS = [
@@ -178,10 +171,7 @@ def test_reports_get_auth_error():
 
     runner = MagicMock()
     runner.run_json.side_effect = CliAuthError("Token expired")
-    with (
-        patch("server.tools.reports.get_runner", return_value=runner),
-        patch("server.tools._try_refresh_token", return_value=None),
-    ):
+    with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
         assert result["error"] == "auth_expired"
 

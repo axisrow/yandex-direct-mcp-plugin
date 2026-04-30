@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 
-import server.tools
 from server.tools.ads import (
     ads_list,
     ads_add,
@@ -16,11 +14,6 @@ from server.tools.ads import (
     ads_archive,
     ads_unarchive,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_ADS = [

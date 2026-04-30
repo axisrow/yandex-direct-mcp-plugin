@@ -50,6 +50,20 @@ def _find_direct() -> str | None:
     return None
 
 
+def _direct_env() -> dict[str, str]:
+    """Build subprocess env, mapping plugin auth options to direct-cli vars."""
+    env = os.environ.copy()
+    if token := env.get("CLAUDE_PLUGIN_OPTION_token"):
+        env.setdefault("YANDEX_DIRECT_TOKEN", token)
+    if login := env.get("CLAUDE_PLUGIN_OPTION_login"):
+        env.setdefault("YANDEX_DIRECT_LOGIN", login)
+    if client_id := env.get("CLAUDE_PLUGIN_OPTION_client_id"):
+        env.setdefault("YANDEX_DIRECT_CLIENT_ID", client_id)
+    if client_secret := env.get("CLAUDE_PLUGIN_OPTION_client_secret"):
+        env.setdefault("YANDEX_DIRECT_CLIENT_SECRET", client_secret)
+    return env
+
+
 class CliRunner(Protocol):
     """Protocol for executing `direct` commands as subprocesses."""
 
@@ -68,11 +82,11 @@ class DirectCliRunner:
     """Executes `direct` commands as subprocesses.
 
     The `direct` binary is installed via `pip install direct-cli`.
-    It is invoked as: direct --token <token> <subcommand> [args] --format json
+    It is invoked as: direct <subcommand> [args] --format json.
+    Authentication is resolved by direct-cli from its active profile.
     """
 
-    def __init__(self, token: str, *, timeout: int = 30) -> None:
-        self._token = token
+    def __init__(self, *, timeout: int = 30) -> None:
         self._timeout = timeout
 
     def run(
@@ -97,7 +111,7 @@ class DirectCliRunner:
         if not direct_bin:
             raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
-        cmd = [direct_bin, "--token", self._token, *args]
+        cmd = [direct_bin, *args]
 
         try:
             result = subprocess.run(
@@ -105,6 +119,7 @@ class DirectCliRunner:
                 capture_output=True,
                 text=True,
                 timeout=effective_timeout,
+                env=_direct_env(),
             )
             return result
         except subprocess.TimeoutExpired as e:

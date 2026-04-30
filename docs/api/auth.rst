@@ -1,8 +1,8 @@
 Authentication
 ==============
 
-.. automodule:: server.auth.storage
-   :members:
+Authentication is delegated to ``direct-cli`` profiles. The MCP auth tools are
+thin wrappers around ``direct auth`` commands.
 
-.. automodule:: server.auth.oauth
+.. automodule:: server.tools.auth_tools
    :members:

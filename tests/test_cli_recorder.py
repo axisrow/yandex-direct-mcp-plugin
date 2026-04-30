@@ -29,7 +29,7 @@ class TestRecord:
 
         with patch("tests.cli_recorder.subprocess.run", return_value=mock_result):
             cassette = recorder.record(
-                ["direct", "--token", "test", "campaigns", "get", "--format", "json"]
+                ["direct", "campaigns", "get", "--format", "json"]
             )
 
         assert cassette["returncode"] == 0

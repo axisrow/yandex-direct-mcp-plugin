@@ -2,20 +2,13 @@
 
 from unittest.mock import patch, MagicMock
 
-import pytest
 
-import server.tools
 from server.tools.bidmodifiers import (
     bidmodifiers_add,
     bidmodifiers_list,
     bidmodifiers_set,
     bidmodifiers_delete,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_BIDMODIFIERS = [

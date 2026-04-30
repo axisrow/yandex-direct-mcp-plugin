@@ -2,9 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 
-import pytest
 
-import server.tools
 from server.tools.dynamic_ads import (
     dynamic_ads_list,
     dynamic_ads_add,
@@ -14,11 +12,6 @@ from server.tools.dynamic_ads import (
     dynamic_ads_set_bids,
     dynamic_ads_suspend,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_TARGETS = [
@@ -173,10 +166,7 @@ class TestDynamicAdsAuthErrors:
 
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch("server.tools.dynamic_ads.get_runner", return_value=runner),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
             result = dynamic_ads_list(ad_group_ids="200")
             assert result["error"] == "auth_expired"
 
@@ -186,10 +176,7 @@ class TestDynamicAdsAuthErrors:
 
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch("server.tools.dynamic_ads.get_runner", return_value=runner),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
             result = dynamic_ads_add(ad_group_id=200, target_data='{"Name": "Test"}')
             assert result["error"] == "auth_expired"
 
@@ -199,10 +186,7 @@ class TestDynamicAdsAuthErrors:
 
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch("server.tools.dynamic_ads.get_runner", return_value=runner),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
             result = dynamic_ads_update(id=100, extra_json='{"Name": "Test"}')
             assert result["error"] == "auth_expired"
 
@@ -212,9 +196,6 @@ class TestDynamicAdsAuthErrors:
 
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch("server.tools.dynamic_ads.get_runner", return_value=runner),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
             result = dynamic_ads_delete(id=100)
             assert result["error"] == "auth_expired"

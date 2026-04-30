@@ -1,8 +1,6 @@
 {
   "command": "direct",
   "args": [
-    "--token",
-    "REDACTED",
     "keywords",
     "get",
     "--campaign-ids",

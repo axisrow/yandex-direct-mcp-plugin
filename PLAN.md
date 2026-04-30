@@ -69,21 +69,18 @@ yandex-direct-plugin/
 }
 ```
 
-## Шаг 2: OAuth-модуль (`server/auth/yandex-oauth.js`)
+## Шаг 2: Авторизация через direct-cli
 
-Реализовать полный OAuth 2.0 flow по документации Яндекс ID:
+Плагин не реализует собственный OAuth flow. Авторизация делегирована
+`direct-cli`, который хранит token + login в `~/.direct-cli/auth.json`.
 
-### Первоначальная авторизация (authorization_code)
-1. Открыть `https://oauth.yandex.ru/authorize?response_type=code&client_id=<ID>`
-2. Пользователь подтверждает доступ, получает 7-значный код
-3. POST `https://oauth.yandex.ru/token` с `grant_type=authorization_code` + code
-4. Получаем `access_token` + `refresh_token`
-5. Сохраняем оба в `${CLAUDE_PLUGIN_DATA}/tokens.json`
+### Первоначальная авторизация
+1. Запустить `direct auth login`
+2. Пользователь подтверждает доступ, получает код
+3. CLI обменивает код на токены и сохраняет профиль
 
-### Автообновление (refresh_token)
-1. При каждом запросе проверять `expires_in`
-2. Если токен истёк — POST `/token` с `grant_type=refresh_token`
-3. Обновить `tokens.json`
+### Автообновление
+Refresh выполняет `direct-cli` при использовании активного профиля.
 
 ### API эндпоинты Яндекс OAuth (из документации)
 
@@ -131,10 +128,8 @@ Node.js MCP-сервер (stdio transport) с инструментами:
 ## Шаг 5: Скрипт первоначальной настройки (`bin/yandex-oauth-setup`)
 
 Bash-скрипт, который:
-1. Открывает URL авторизации в браузере
-2. Просит ввести 7-значный код
-3. Обменивает код на токены
-4. Сохраняет в `${CLAUDE_PLUGIN_DATA}/tokens.json`
+1. Запускает `direct auth login`
+2. Делегирует CLI показ URL, ввод кода и сохранение профиля
 
 ## Верификация
 

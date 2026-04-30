@@ -36,7 +36,7 @@ def _find_keyword(campaign_id: str, keyword_id: str) -> dict:
     raise AssertionError(f"Keyword {keyword_id} not found in campaign {campaign_id}")
 
 
-def test_live_campaigns_update_rolls_back(live_token_getter):
+def test_live_campaigns_update_rolls_back(live_plugin_data_dir):
     campaign_id = _require_env("TEST_OFF_CAMPAIGN_ID")
     original = _find_campaign(campaign_id)
     assert original.get("State") == "OFF", (
@@ -60,7 +60,7 @@ def test_live_campaigns_update_rolls_back(live_token_getter):
             warnings.warn(f"Rollback failed for campaign {campaign_id}", stacklevel=2)
 
 
-def test_live_keywords_update_rolls_back(live_token_getter):
+def test_live_keywords_update_rolls_back(live_plugin_data_dir):
     campaign_id = _require_env("TEST_KEYWORD_CAMPAIGN_ID")
     keyword_id = _require_env("TEST_KEYWORD_ID")
     temp_bid = _require_env("TEST_KEYWORD_BID_TEMP")

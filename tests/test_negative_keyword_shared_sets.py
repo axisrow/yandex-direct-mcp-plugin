@@ -2,20 +2,13 @@
 
 from unittest.mock import patch, MagicMock
 
-import pytest
 
-import server.tools
 from server.tools.negative_keyword_shared_sets import (
     negative_keyword_shared_sets_list,
     negative_keyword_shared_sets_add,
     negative_keyword_shared_sets_update,
     negative_keyword_shared_sets_delete,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_SETS = [

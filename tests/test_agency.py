@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.tools.agency import (
     agency_clients_list,
     agency_clients_add,
@@ -13,12 +11,6 @@ from server.tools.agency import (
     agency_clients_delete,
     agency_clients_update,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

@@ -6,7 +6,7 @@ Claude Code plugin for managing Yandex.Direct advertising campaigns.
 
 - **MCP Server** — structured tools for campaigns, ads, keywords, and reports
 - **Skills** — domain knowledge for Yandex.Direct management and ad copywriting
-- **OAuth 2.0** — automatic token management with refresh support (no Bitwarden dependency)
+- **OAuth profiles** — authentication delegated to `direct-cli` profiles with token + login stored together
 
 ## Architecture
 
@@ -45,58 +45,35 @@ python -m server.main
 
 ## Authentication
 
-Four ways to authenticate, from simplest to advanced:
+Authentication is handled by `direct-cli`. The plugin does not store tokens;
+all Direct API tools run `direct <command>` and let the CLI resolve token and
+Client-Login from the active profile.
 
-### 1. Environment variable (recommended)
+### OAuth login
 
-Add to `~/.claude/settings.json`:
-```json
-{
-  "env": {
-    "YANDEX_DIRECT_TOKEN": "y0_AgAAAA..."
-  }
-}
-```
-Restart Claude Code. Done.
-
-### 2. Plugin settings
-
-Set `token` in plugin configuration — will be available as `CLAUDE_PLUGIN_OPTION_token`.
-
-### 3. OAuth PKCE (interactive)
-
-No configuration needed. Use `auth_login` for a fully interactive flow (opens browser, prompts for code):
+Use `auth_login` for a fully interactive CLI-backed flow:
 ```
 mcp__yandex_direct__auth_login()
 ```
 
-Or manually with `auth_setup`:
+Or manually save an authorization code:
 ```
 mcp__yandex_direct__auth_setup(code="nvyaod2jwwf2ctyu")
 ```
-Uses built-in OAuth app. No `client_secret` required. Token is saved to disk and auto-refreshed.
 
-### 4. Custom OAuth app
+### Direct token
 
-For advanced users with their own registered Yandex OAuth app. Set `client_id` and `client_secret` in plugin settings — disables PKCE, uses classic OAuth flow.
-
-### Direct token via auth_setup
-
-You can also paste a token directly:
+You can also save a ready token; pass `login` when the token belongs to a
+specific Yandex.Direct client login:
 ```
-mcp__yandex_direct__auth_setup(code="y0_AgAAAA...")
+mcp__yandex_direct__auth_setup(code="y0_AgAAAA...", login="client-login")
 ```
 
 ### Token storage
 
-OAuth tokens are saved to `$CLAUDE_PLUGIN_DATA/tokens.json`. The directory name depends on how the plugin was installed:
-
-| Install method | Data directory |
-|---|---|
-| Marketplace (`/plugin install`) | `~/.claude/plugins/data/yandex-direct/` |
-| Local path (`claude plugin install ./path`) | `~/.claude/plugins/data/yandex-direct-inline/` |
-
-The `-inline` suffix is added by Claude Code for locally-installed plugins. The `$CLAUDE_PLUGIN_DATA` env var always points to the correct path, so this is transparent to the plugin.
+Tokens are saved by `direct-cli` in its profile store, normally
+`~/.direct-cli/auth.json`. The MCP `auth_status` tool reads that file directly
+to inspect the active profile.
 
 ## Setup: Creating Yandex Applications
 
@@ -130,18 +107,11 @@ OAuth-приложение само по себе не даёт доступ к 
 
 ### Использование своего приложения
 
-После регистрации передайте credentials через настройки плагина:
+Если нужен собственный OAuth client, настройте его в `direct-cli`:
 
-```json
-{
-  "options": {
-    "client_id": "ваш-client-id",
-    "client_secret": "ваш-client-secret"
-  }
-}
+```bash
+direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
-
-Или через переменные окружения `CLAUDE_PLUGIN_OPTION_client_id` / `CLAUDE_PLUGIN_OPTION_client_secret`.
 
 ## MCP contract (124 tools)
 
@@ -305,27 +275,25 @@ mcp__yandex_direct__reports_get(date_from="2026-03-30", date_to="2026-04-06")
 #     "Cost": 4680.50, "Conversions": 70, "CostPerConversion": 68.51,
 #     "ConversionRate": 22.44}, ...]
 
-# Статус OAuth-токена
+# Статус профиля direct-cli
 mcp__yandex_direct__auth_status()
-# → {"valid": True, "expires_in": 7200, "scope": "direct:...", "login": "ksamatadirect"}
+# → {"valid": True, "profile": "default", "login": "ksamatadirect", "expires_in": 7200}
 
 # Авторизация (первый раз)
 mcp__yandex_direct__auth_setup(code="1234567")
-# → {"success": True, "access_token": "AQA...", "expires_in": 124234123534}
+# → {"success": True, "method": "oauth_code", "profile": "default"}
 ```
 
 ### Error Handling
 
 ```python
-# Токен истёк → MCP-сервер обновит автоматически через refresh_token
+# Токен истёк → direct-cli обновит профиль перед запросом
 mcp__yandex_direct__campaigns_get(state="ON")
-# 1) access_token expired → POST /token {grant_type: "refresh_token"}
-# 2) новый access_token сохранён → повторный запрос → результат
+# MCP-плагин refresh не делает; transport и refresh принадлежат direct-cli
 
-# Токен невалиден (refresh тоже протух)
+# Токен или профиль невалиден
 mcp__yandex_direct__campaigns_get(state="ON")
-# → {"error": "auth_expired", "message": "Требуется повторная авторизация",
-#    "auth_url": "https://oauth.yandex.ru/authorize?client_id=..."}
+# → {"error": "auth_expired", "hint": "Run auth_status ... auth_login ..."}
 
 # Неверный код авторизации
 mcp__yandex_direct__auth_setup(code="0000000")
@@ -377,12 +345,12 @@ pytest
 | # | Сценарий | Что проверяем | Ожидаемый результат |
 |---|---|---|---|
 | **Auth** |
-| 1 | Обмен кода на токен | `auth_setup(code=...)` → POST `/token` | `{"success": True, "access_token", "refresh_token"}` |
-| 2 | Неверный код | `auth_setup(code="0000000")` | `{"error": "invalid_grant"}` |
-| 3 | Просроченный код (>10 мин) | `auth_setup(code=...)` после паузы | `{"error": "invalid_grant"}` |
-| 4 | Автообновление токена | Запрос с истёкшим `access_token` | Refresh → новый токен → повтор запроса → успех |
-| 5 | Refresh тоже протух | Оба токена невалидны | `{"error": "auth_expired", "auth_url"}` |
-| 6 | Статус токена | `auth_status()` | `{"valid": True/False, "expires_in", "login"}` |
+| 1 | Сохранение кода | `auth_setup(code=...)` → `direct auth login --code` | `{"success": True, "profile": "default"}` |
+| 2 | Неверный код | `auth_setup(code="0000000")` | `{"success": False, "error": "auth_failed"}` |
+| 3 | Готовый токен | `auth_setup(code="y0_...", login="...")` | `{"success": True, "method": "direct_token"}` |
+| 4 | Refresh токена | Запрос с истёкшим `access_token` | Refresh выполняет `direct-cli` |
+| 5 | Refresh тоже протух | Профиль невалиден | `{"error": "auth_expired", "hint": "..."}` |
+| 6 | Статус профиля | `auth_status()` | `{"valid": True/False, "profile", "login"}` |
 | **Campaigns** |
 | 7 | Список всех кампаний | `campaigns_get()` | Массив кампаний с Id, Name, State |
 | 8 | Фильтр по статусу | `campaigns_get(state="ON")` | Только кампании с State=ON |
@@ -441,8 +409,7 @@ TEST_KEYWORD_BID_TEMP=15000000
 
 Do not point these at production entities. Unsafe tests assume the campaign starts in `OFF`, change it to `ON`, and then restore it. Keyword tests temporarily change the bid and then restore the original value.
 │   ├── campaigns.json       # Мок-данные кампаний
-│   ├── ads.json             # Мок-данные объявлений
-│   └── tokens.json          # Мок-токены
+│   └── ads.json             # Мок-данные объявлений
 └── recordings/              # Записанные кассеты (коммитятся)
     ├── auth/
     │   ├── token-exchange.json
@@ -573,7 +540,7 @@ class CliRecorder:
 ```json
 {
   "command": "direct",
-  "args": ["--token", "REDACTED", "campaigns", "get", "--format", "json"],
+  "args": ["campaigns", "get", "--format", "json"],
   "stdout": "[{\"Id\": 12345, \"Name\": \"Campaign_12345\", \"State\": \"ON\"}]",
   "stderr": "",
   "returncode": 0
@@ -804,45 +771,28 @@ Result: 1 CRITICAL, 1 WARNING, 4 clean
 | Коммерческие данные анонимизируются | Названия кампаний, тексты объявлений — конфиденциально |
 | Кассеты перезаписываются перед мажорным релизом | Актуальность |
 | Edge cases остаются моками | Невоспроизводимы через API |
-| `.env.test` создаётся автоматически | См. ниже |
+| `direct-cli` профиль создаётся интерактивно | См. ниже |
 
 ### Setup for Recording
 
-`.env.test` нужен **только для записи кассет** — обычный `pytest` работает без него.
+Профиль `direct-cli` нужен **только для записи кассет** — обычный `pytest` работает без него.
 
 ```bash
 # 1. Запустить скрипт настройки (интерактивно)
 python -m tests.setup
 ```
 
-Скрипт `tests.setup` делает:
-1. Вызывает `mcp__yandex_direct__auth_status()` — если плагин уже авторизован, берёт токен оттуда
-2. Если нет — открывает `https://oauth.yandex.ru/authorize?...` в браузере
-3. Просит ввести 7-значный код
-4. Обменивает код на токен
-5. Записывает `.env.test` (в `.gitignore`, не попадёт в репо):
+Скрипт `tests.setup` делегирует авторизацию в CLI:
 
-```env
-# Auto-generated by python -m tests.setup — DO NOT COMMIT
-YANDEX_OAUTH_TOKEN=AQAAAACy1C6ZAAAAfa6v...
-YANDEX_CLIENT_ID=abc123
-YANDEX_CLIENT_SECRET=secret456
-YANDEX_LOGIN=ksamatadirect
+```bash
+direct auth login
 ```
 
-6. Создаёт `.env.test.example` (коммитится, без секретов):
+После этого профиль сохраняется в `~/.direct-cli/auth.json`. Дальше
+`pytest --record` использует активный профиль CLI, записывает кассеты и сразу
+прогоняет санитизацию.
 
-```env
-# Copy to .env.test and fill in your values
-YANDEX_OAUTH_TOKEN=
-YANDEX_CLIENT_ID=
-YANDEX_CLIENT_SECRET=
-YANDEX_LOGIN=
-```
-
-Дальше `pytest --record` подхватывает `.env.test`, записывает кассеты и сразу прогоняет санитизацию.
-
-**Итого: `pytest` не требует токенов. Токен нужен только для `--record`, и скрипт сам его получит.**
+**Итого: `pytest` не требует токенов. Профиль нужен только для `--record`, и скрипт запускает CLI-flow.**
 
 ## Tech Stack
 
@@ -851,11 +801,9 @@ YANDEX_LOGIN=
 | **Runtime** | Python | >= 3.11 | Единый язык с direct-cli |
 | **MCP Server** | [mcp](https://pypi.org/project/mcp/) | latest | Python SDK для MCP (stdio transport) |
 | **CLI** | [direct-cli](https://github.com/axisrow/direct-cli) | latest | Обёртка над Яндекс.Директ API |
-| **HTTP** | [httpx](https://www.python-httpx.org/) | >= 0.27 | OAuth-запросы к `oauth.yandex.ru` |
 | **Testing** | [pytest](https://docs.pytest.org/) | >= 8.0 | Тесты, fixtures, markers |
 | **Mocking** | `unittest.mock` | stdlib | Моки subprocess для edge cases |
 | **Cassettes** | `cli_recorder.py` (свой) | — | Запись/воспроизведение CLI stdin/stdout |
-| **Config** | [python-dotenv](https://pypi.org/project/python-dotenv/) | >= 1.0 | Загрузка `.env.test` |
 | **Build** | [pyproject.toml](https://packaging.python.org/) | PEP 621 | Зависимости, scripts, metadata |
 | **Linting** | [ruff](https://docs.astral.sh/ruff/) | latest | Линтинг + форматирование |
 | **Types** | [mypy](https://mypy-lang.org/) | latest | Статическая типизация |
@@ -870,7 +818,7 @@ YANDEX_LOGIN=
 | nock / polly.js / vcrpy | HTTP-рекордеры не перехватывают subprocess — используем свой cli_recorder |
 | Jest | Python-проект → pytest |
 | Docker | Плагин ставится как директория, не нужен контейнер |
-| Bitwarden | Заменён на встроенный OAuth-модуль |
+| Bitwarden | Поддержка секретов остаётся на стороне `direct-cli`, MCP-плагин их не читает |
 
 ### pyproject.toml
 
@@ -881,8 +829,7 @@ version = "0.1.5"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "httpx>=0.27",
-    "python-dotenv>=1.0",
+    "direct-cli>=0.3.3",
 ]
 
 [project.optional-dependencies]

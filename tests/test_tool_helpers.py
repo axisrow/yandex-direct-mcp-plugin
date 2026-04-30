@@ -1,11 +1,6 @@
 """Tests for shared tool decorators and helper functions."""
 
-from unittest.mock import patch
-
-import pytest
-
 import server.tools as tools
-from server.auth.oauth import OAuthError
 from server.cli.runner import (
     CliAuthError,
     CliNotFoundError,
@@ -24,28 +19,6 @@ def test_human_readable_time_formats_expected_ranges() -> None:
     assert _human_readable_time(59) == "59 сек."
     assert _human_readable_time(90) == "1 мин. 30 сек."
     assert _human_readable_time(3660) == "1 ч. 1 мин."
-
-
-def test_try_refresh_token_returns_access_token() -> None:
-    with patch("server.auth.oauth.OAuthManager") as mock_manager_cls:
-        mock_manager = mock_manager_cls.return_value
-        mock_manager.refresh_token.return_value = {"access_token": "fresh-token"}
-        assert tools._try_refresh_token() == "fresh-token"
-
-
-def test_try_refresh_token_reraises_oauth_error() -> None:
-    with patch("server.auth.oauth.OAuthManager") as mock_manager_cls:
-        mock_manager = mock_manager_cls.return_value
-        mock_manager.refresh_token.side_effect = OAuthError("auth_expired", "expired")
-        with pytest.raises(OAuthError):
-            tools._try_refresh_token()
-
-
-def test_try_refresh_token_returns_none_on_generic_error() -> None:
-    with patch("server.auth.oauth.OAuthManager") as mock_manager_cls:
-        mock_manager = mock_manager_cls.return_value
-        mock_manager.refresh_token.side_effect = RuntimeError("boom")
-        assert tools._try_refresh_token() is None
 
 
 def test_handle_cli_errors_maps_registration_error() -> None:
@@ -75,42 +48,18 @@ def test_handle_cli_errors_maps_timeout() -> None:
     assert result["error"] == "timeout"
 
 
-def test_handle_cli_errors_retries_once_after_refresh() -> None:
+def test_handle_cli_errors_returns_auth_expired_without_plugin_refresh() -> None:
     state = {"calls": 0}
 
     @tools.handle_cli_errors
     def wrapped():
         state["calls"] += 1
-        if state["calls"] == 1:
-            raise CliAuthError("expired")
-        return {"success": True}
-
-    with patch("server.tools._try_refresh_token", return_value="fresh-token"):
-        result = wrapped()
-
-    assert result == {"success": True}
-    assert state["calls"] == 2
-
-
-def test_handle_cli_errors_returns_auth_expired_when_retry_still_fails() -> None:
-    @tools.handle_cli_errors
-    def wrapped():
         raise CliAuthError("expired")
-
-    with patch("server.tools._try_refresh_token", return_value="fresh-token"):
-        result = wrapped()
-
-    assert result["error"] == "auth_expired"
-
-
-def test_handle_cli_errors_returns_oauth_error_dict() -> None:
-    @tools.handle_cli_errors
-    def wrapped():
-        raise OAuthError("auth_expired", "reauthorize", "https://oauth.example")
 
     result = wrapped()
     assert result["error"] == "auth_expired"
-    assert result["auth_url"] == "https://oauth.example"
+    assert "auth_login" in result["hint"]
+    assert state["calls"] == 1
 
 
 def test_handle_cli_errors_returns_unknown_for_unexpected_exception() -> None:
@@ -192,6 +141,16 @@ def test_handle_cli_errors_maps_error_code_53_to_auth_error_with_hint() -> None:
     assert "auth_login" in result["hint"]
 
 
+def test_handle_cli_errors_error_code_8800_client_login_hint() -> None:
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8800,
+        stderr="error_code=8800, error_detail=The HTTP Client-Login header contains a nonexistent username",
+    )()
+    assert result["error"] == "not_found"
+    assert "direct-cli profile" in result["hint"]
+
+
 def test_handle_cli_errors_maps_error_code_152_to_insufficient_funds() -> None:
     result = _wrap_cli_error("boom", error_code=152)()
     assert result["error"] == "insufficient_funds"
@@ -217,21 +176,9 @@ def test_handle_cli_errors_no_code_keeps_unknown_and_no_hint() -> None:
     assert result["hint"] is None
 
 
-def test_set_token_getter_and_get_runner() -> None:
-    tools.set_token_getter(lambda: "test-token")
+def test_get_runner_returns_profile_based_runner() -> None:
     runner = tools.get_runner()
     assert isinstance(runner, DirectCliRunner)
-    assert runner._token == "test-token"
-
-
-def test_get_runner_raises_without_token_getter() -> None:
-    original = tools._token_getter
-    tools._token_getter = None
-    try:
-        with pytest.raises(RuntimeError, match="Token getter not configured"):
-            tools.get_runner()
-    finally:
-        tools._token_getter = original
 
 
 def test_parse_ids_strips_whitespace_and_empty_values() -> None:

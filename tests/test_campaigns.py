@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-import server.tools
 from server.tools.campaigns import (
     campaigns_list,
     campaigns_update,
@@ -16,12 +15,6 @@ from server.tools.campaigns import (
     campaigns_resume,
 )
 from server.cli.runner import CliAuthError
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 @pytest.fixture
@@ -122,28 +115,9 @@ class TestCampaignsUpdate:
         """Test: Auth expired during update."""
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch("server.tools.campaigns.get_runner", return_value=runner),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(id=12345, status="ON")
             assert result["error"] == "auth_expired"
-
-    def test_auth_error_refresh_retries(self):
-        """Test: Auth error triggers refresh, then retry succeeds."""
-        expired_runner = MagicMock()
-        expired_runner.run_json.side_effect = CliAuthError("Token expired")
-        fresh_runner = MagicMock()
-        fresh_runner.run_json.return_value = {"Id": 12345, "State": "ON"}
-        with (
-            patch(
-                "server.tools.campaigns.get_runner",
-                side_effect=[expired_runner, fresh_runner],
-            ),
-            patch("server.tools._try_refresh_token", return_value="new-token"),
-        ):
-            result = campaigns_update(id=12345, status="ON")
-            assert result["success"] is True
 
     def test_campaigns_update_argv_composition(self):
         """Test that update passes the expanded CLI surface."""

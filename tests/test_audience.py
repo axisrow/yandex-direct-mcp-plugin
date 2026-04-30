@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import server.tools
 from server.tools.audience import (
     audience_targets_add,
     audience_targets_delete,
@@ -13,12 +12,6 @@ from server.tools.audience import (
     audience_targets_set_bids,
     audience_targets_suspend,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code plugin for managing Yandex.Direct advertising campaigns. Wraps `direct` CLI (Python) via an MCP server with OAuth 2.0 token management.
+Claude Code plugin for managing Yandex.Direct advertising campaigns. Wraps `direct` CLI (Python) via an MCP server and delegates authentication to direct-cli profiles.
 
 **Status:** Implemented.
 
@@ -16,7 +16,6 @@ direct (Python CLI)         — talks to Yandex.Direct API
 server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
 server/contract.py          — machine-readable parity layer (124 tools)
-server/auth/                — OAuth 2.0 module (httpx)
 server/cli/runner.py        — subprocess wrapper over `direct`
 server/tools/               — 124 MCP tools across 33 active modules
        ↑
@@ -43,7 +42,7 @@ The machine-readable parity source is `server/contract.py`
 ## Tech Stack
 
 - **Python >= 3.11**, no Node.js
-- **mcp** (PyPI) for MCP server, **httpx** for OAuth HTTP calls
+- **mcp** (PyPI) for MCP server, **direct-cli** for API transport and auth profiles
 - **pytest** with cassette-based testing, `unittest.mock` for edge cases
 - **ruff** for linting, **mypy** for type checking
 - **pyproject.toml** (PEP 621) for build config
@@ -113,29 +112,19 @@ Add to `~/.claude/settings.json`:
 ```
 Restart Claude Code. Done.
 
-### 2. Plugin settings
+### 2. direct-cli profile
 
-Set `token` in plugin config — it arrives as `CLAUDE_PLUGIN_OPTION_token`.
-
-### 3. OAuth PKCE (interactive, no secrets)
-
-Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code entry). Uses built-in OAuth app, no `client_secret` needed. Token is saved to disk and auto-refreshed.
-
-### 4. Custom OAuth app (advanced)
-
-Set `client_id` + `client_secret` in plugin settings for your own registered Yandex app. Disables PKCE, uses classic OAuth flow.
+Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code/token entry). Token and login are saved by `direct-cli` in `~/.direct-cli/auth.json`.
 
 ### Priority
 
-`YANDEX_DIRECT_TOKEN` > `CLAUDE_PLUGIN_OPTION_token` > stored OAuth token (auto-refresh).
+`direct-cli` resolves explicit CLI/env credentials first, then the selected/active profile.
 
 ### Environment variables
 
-- `YANDEX_DIRECT_TOKEN` — direct OAuth token (highest priority)
-- `CLAUDE_PLUGIN_DATA` — directory for `tokens.json` storage
-- `CLAUDE_PLUGIN_OPTION_token` — token via plugin settings
-- `CLAUDE_PLUGIN_OPTION_client_id` — custom OAuth app client ID
-- `CLAUDE_PLUGIN_OPTION_client_secret` — custom OAuth app secret (disables PKCE)
+- `YANDEX_DIRECT_TOKEN` — direct OAuth token
+- `YANDEX_DIRECT_LOGIN` — Direct Client-Login
+- `YANDEX_DIRECT_CLI_PATH` — explicit `direct` binary path
 
 Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 
@@ -151,9 +140,6 @@ yandex-direct-mcp-plugin/
 ├── server/
 │   ├── main.py                  # FastMCP entry point (stdio)
 │   ├── contract.py              # Machine-readable parity (PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS, RENAMED_TOOL_MIGRATION)
-│   ├── auth/
-│   │   ├── storage.py           # FileTokenStorage + TokenData
-│   │   └── oauth.py             # OAuthManager (exchange, refresh, status)
 │   ├── cli/
 │   │   └── runner.py            # DirectCliRunner (subprocess wrapper)
 │   └── tools/
@@ -347,13 +333,13 @@ Auth/utility tools unrelated to Direct API parity.
 
 | Tool | Purpose |
 |---|---|
-| `auth_status` | Check OAuth token validity |
+| `auth_status` | Check direct-cli auth profile status |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
 
 | Prompt | Purpose |
 |---|---|
-| `oauth_login` | Start OAuth PKCE authorization flow |
+| `oauth_login` | Start direct-cli profile authorization flow |
 
 ### Transport-blocked operations
 
@@ -382,8 +368,8 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
-- OAuth tokens stored in `${CLAUDE_PLUGIN_DATA}/tokens.json` (gitignored)
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.2` (adds `reports get --goals` / `--attribution-models`, fixes Goals Filter rejection by Reports API).
+- OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.3`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 

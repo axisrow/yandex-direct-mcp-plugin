@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import server.tools
 from server.tools.retargeting import (
     retargeting_add,
     retargeting_delete,
@@ -12,12 +11,6 @@ from server.tools.retargeting import (
     retargeting_update,
 )
 from server.cli.runner import CliAuthError
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 @pytest.fixture
@@ -103,13 +96,7 @@ class TestRetargetingList:
         """Test auth error during retargeting list."""
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch(
-                "server.tools.retargeting.get_runner",
-                return_value=runner,
-            ),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
             result = retargeting_list(ids="201")
             assert result["error"] == "auth_expired"
 
@@ -186,13 +173,7 @@ class TestRetargetingAdd:
         """Test auth error during retargeting add."""
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
-        with (
-            patch(
-                "server.tools.retargeting.get_runner",
-                return_value=runner,
-            ),
-            patch("server.tools._try_refresh_token", return_value=None),
-        ):
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
             result = retargeting_add(name="Test", list_type="AUDIENCE_SEGMENT")
             assert result["error"] == "auth_expired"
 

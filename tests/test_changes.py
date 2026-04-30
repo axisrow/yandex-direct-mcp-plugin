@@ -2,20 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-import server.tools
 from server.tools.changes import (
     changes_check,
     changes_checkcamp,
     changes_checkdict,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_token_getter():
-    """Configure a mock token getter for all tests."""
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 def _mock_runner(return_value):

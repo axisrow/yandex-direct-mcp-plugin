@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 
-import server.tools
 from server.tools.keywords import (
     keywords_list,
     keywords_update,
@@ -15,11 +13,6 @@ from server.tools.keywords import (
     keywords_archive,
     keywords_unarchive,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    server.tools.set_token_getter(lambda: "test-token")
 
 
 SAMPLE_KEYWORDS = [

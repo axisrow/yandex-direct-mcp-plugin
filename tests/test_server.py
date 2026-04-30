@@ -25,6 +25,10 @@ def _read_response(proc: subprocess.Popen[str]) -> dict:
 
 
 def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
+    proc_env = os.environ.copy()
+    proc_env["HOME"] = "/tmp/yandex-direct-mcp-plugin-test-home"
+    if env:
+        proc_env.update(env)
     return subprocess.Popen(
         [sys.executable, str(PROJECT_ROOT / "server" / "main.py")],
         stdin=subprocess.PIPE,
@@ -32,7 +36,7 @@ def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
         stderr=subprocess.PIPE,
         text=True,
         cwd=str(PROJECT_ROOT),
-        env=env,
+        env=proc_env,
     )
 
 
@@ -145,7 +149,11 @@ def test_mcp_server_tools_call_auth_status():
         assert resp["id"] == 2
         assert resp["result"]["isError"] is False
         body = json.loads(resp["result"]["content"][0]["text"])
-        assert body == {"valid": False}
+        assert body == {
+            "valid": False,
+            "reason": "not_authenticated",
+            "profile": "default",
+        }
     finally:
         proc.terminate()
         proc.wait(timeout=5)

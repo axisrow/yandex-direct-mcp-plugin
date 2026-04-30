@@ -1,426 +1,183 @@
-"""Tests for token storage, OAuth manager (PKCE), and auth MCP tools."""
+"""Tests for auth MCP tools delegated to direct-cli."""
 
 import asyncio
-import hashlib
 import json
-import time
-from base64 import urlsafe_b64encode
-from pathlib import Path
+import subprocess
 from unittest.mock import AsyncMock, MagicMock, patch
-from urllib.parse import parse_qs, urlparse
 
-import pytest
-
-from server.auth.oauth import OAuthError, OAuthManager
-from server.auth.pkce import generate_code_challenge, generate_code_verifier
-from server.auth.storage import FileTokenStorage, TokenData
-
-
-# ---------------------------------------------------------------------------
-# Token Storage Tests
-# ---------------------------------------------------------------------------
+from server.tools.auth_tools import (
+    _human_readable_time,
+    auth_login,
+    auth_setup,
+    auth_status,
+    oauth_login_prompt,
+)
 
 
-class TestFileTokenStorage:
-    """Tests for FileTokenStorage."""
-
-    def test_load_returns_none_for_missing_file(self, tmp_path: Path) -> None:
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        assert storage.load() is None
-
-    def test_load_returns_none_for_corrupt_json(self, tmp_path: Path) -> None:
-        token_path = tmp_path / "tokens.json"
-        token_path.write_text("not valid json{{{")
-        storage = FileTokenStorage(path=token_path)
-        assert storage.load() is None
-
-    def test_save_writes_valid_json(self, tmp_path: Path) -> None:
-        token_path = tmp_path / "tokens.json"
-        storage = FileTokenStorage(path=token_path)
-        data: TokenData = TokenData(
-            access_token="test-access-token",
-            refresh_token="test-refresh-token",
-            expires_at=1700000000.0,
-            scope="direct:api",
-            login="test-user",
-        )
-        storage.save(data)
-
-        raw = json.loads(token_path.read_text())
-        assert raw["access_token"] == "test-access-token"
-        assert raw["refresh_token"] == "test-refresh-token"
-        assert raw["expires_at"] == 1700000000.0
-
-    def test_save_creates_parent_directories(self, tmp_path: Path) -> None:
-        token_path = tmp_path / "deep" / "nested" / "dir" / "tokens.json"
-        storage = FileTokenStorage(path=token_path)
-        storage.save(TokenData(access_token="tok"))
-        assert token_path.exists()
-
-    def test_save_is_atomic(self, tmp_path: Path) -> None:
-        """Verify no .tmp files are left after successful save."""
-        token_path = tmp_path / "tokens.json"
-        storage = FileTokenStorage(path=token_path)
-        storage.save(TokenData(access_token="tok"))
-
-        tmp_files = list(tmp_path.glob("*.tmp"))
-        assert tmp_files == []
-
-    def test_roundtrip(self, tmp_path: Path) -> None:
-        """Data saved then loaded should be identical."""
-        token_path = tmp_path / "tokens.json"
-        storage = FileTokenStorage(path=token_path)
-        original = TokenData(
-            access_token="abc123",
-            refresh_token="ref456",
-            expires_at=1700000000.0,
-            scope="direct:api",
-            login="user@example.com",
-        )
-        storage.save(original)
-        loaded = storage.load()
-        assert loaded is not None
-        assert loaded["access_token"] == "abc123"
-        assert loaded["refresh_token"] == "ref456"
-        assert loaded["login"] == "user@example.com"
-
-    def test_path_property(self, tmp_path: Path) -> None:
-        token_path = tmp_path / "tokens.json"
-        storage = FileTokenStorage(path=token_path)
-        assert storage.path == token_path
-
-    def test_load_returns_none_for_empty_file(self, tmp_path: Path) -> None:
-        token_path = tmp_path / "tokens.json"
-        token_path.write_text("")
-        storage = FileTokenStorage(path=token_path)
-        assert storage.load() is None
+def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
+    return subprocess.CompletedProcess(
+        args=["direct"],
+        returncode=returncode,
+        stdout=stdout,
+        stderr=stderr,
+    )
 
 
-# ---------------------------------------------------------------------------
-# OAuth Manager Tests
-# ---------------------------------------------------------------------------
-
-
-def _make_httpx_response(status_code: int, json_data: dict) -> MagicMock:
-    """Create a mock httpx.Response."""
-    resp = MagicMock()
-    resp.status_code = status_code
-    resp.json.return_value = json_data
-    if status_code >= 400:
-        error = MagicMock()
-        error.response = resp
-        error.response.json.return_value = json_data
-        resp.raise_for_status.side_effect = __import__("httpx").HTTPStatusError(
-            message="error", request=MagicMock(), response=resp
-        )
-    else:
-        resp.raise_for_status = MagicMock()
-    return resp
-
-
-class TestOAuthManager:
-    """Tests for OAuthManager."""
-
-    def _storage(self, tmp_path: Path) -> FileTokenStorage:
-        return FileTokenStorage(path=tmp_path / "tokens.json")
-
-    @patch("server.auth.oauth.httpx.get")
-    @patch("server.auth.oauth.httpx.post")
-    def test_exchange_code_succeeds(self, mock_post, mock_get, tmp_path: Path) -> None:
-        mock_post.return_value = _make_httpx_response(
-            200,
-            {
-                "access_token": "new-access-token",
-                "refresh_token": "new-refresh-token",
-                "expires_in": 3600,
-                "scope": "direct:api",
-                "login": "user@example.com",
-            },
-        )
-        mock_get.return_value = _make_httpx_response(200, {"login": "user@example.com"})
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        # Trigger PKCE verifier generation via authorize_url
-        _ = manager.authorize_url
-        result = manager.exchange_code("1234567")
-
-        assert result["access_token"] == "new-access-token"
-        assert result["refresh_token"] == "new-refresh-token"
-        assert result["login"] == "user@example.com"
-        assert result["expires_at"] > time.time()
-
-        # Verify PKCE: code_verifier sent, client_secret NOT sent
-        call_data = mock_post.call_args[1].get(
-            "data", mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else {}
-        )
-        assert "code_verifier" in call_data
-        assert "client_secret" not in call_data
-
-    @patch("server.auth.oauth.httpx.post")
-    def test_exchange_code_fails_with_invalid_grant(
-        self, mock_post, tmp_path: Path
+class TestAuthStatus:
+    def test_auth_status_returns_invalid_without_active_profile(
+        self, tmp_path, monkeypatch
     ) -> None:
-        mock_post.return_value = _make_httpx_response(
-            400,
-            {
-                "error": "invalid_grant",
-                "error_description": "Code is invalid",
-            },
-        )
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        _ = manager.authorize_url  # generate PKCE verifier
+        monkeypatch.setenv("HOME", str(tmp_path))
+        assert auth_status() == {
+            "valid": False,
+            "reason": "not_authenticated",
+            "profile": "default",
+        }
 
-        with pytest.raises(OAuthError) as exc_info:
-            manager.exchange_code("bad-code")
-
-        assert exc_info.value.error == "invalid_grant"
-        assert "просроченный" in exc_info.value.message
-
-    @patch("server.auth.oauth.httpx.get")
-    @patch("server.auth.oauth.httpx.post")
-    def test_refresh_token_succeeds(self, mock_post, mock_get, tmp_path: Path) -> None:
-        storage = self._storage(tmp_path)
-        storage.save(
-            TokenData(
-                access_token="old-token",
-                refresh_token="old-refresh",
-                expires_at=time.time() + 100,
+    def test_auth_status_reads_direct_cli_profile(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        auth_path = tmp_path / ".direct-cli" / "auth.json"
+        auth_path.parent.mkdir()
+        auth_path.write_text(
+            json.dumps(
+                {
+                    "active_profile": "default",
+                    "profiles": {
+                        "default": {
+                            "token": "token",
+                            "login": "client",
+                            "source": "oauth",
+                            "expires_at": 2_000_000_000.0,
+                        }
+                    },
+                }
             )
         )
-        mock_post.return_value = _make_httpx_response(
-            200,
-            {
-                "access_token": "refreshed-token",
-                "refresh_token": "new-refresh",
-                "expires_in": 3600,
-                "scope": "direct:api",
-                "login": "user@example.com",
-            },
-        )
-        mock_get.return_value = _make_httpx_response(200, {"login": "user@example.com"})
-        manager = OAuthManager(storage=storage)
-        result = manager.refresh_token()
-
-        assert result["access_token"] == "refreshed-token"
-        assert result["refresh_token"] == "new-refresh"
-
-    def test_refresh_token_raises_when_no_token(self, tmp_path: Path) -> None:
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        with pytest.raises(OAuthError) as exc_info:
-            manager.refresh_token()
-        assert exc_info.value.error == "auth_expired"
-        assert exc_info.value.auth_url is not None
-
-    @patch("server.auth.oauth.httpx.get")
-    @patch("server.auth.oauth.httpx.post")
-    def test_get_valid_token_auto_refreshes_when_expired(
-        self, mock_post, mock_get, tmp_path: Path
-    ) -> None:
-        storage = self._storage(tmp_path)
-        # Token expires in 30 seconds (within 60s buffer)
-        storage.save(
-            TokenData(
-                access_token="expired-token",
-                refresh_token="refresh-me",
-                expires_at=time.time() + 30,
-            )
-        )
-        mock_post.return_value = _make_httpx_response(
-            200,
-            {
-                "access_token": "auto-refreshed",
-                "refresh_token": "new-refresh",
-                "expires_in": 3600,
-                "scope": "direct:api",
-            },
-        )
-        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
-        manager = OAuthManager(storage=storage)
-        token = manager.get_valid_token()
-
-        assert token == "auto-refreshed"
-        mock_post.assert_called_once()
-
-    @patch("server.auth.oauth.httpx.post")
-    def test_get_valid_token_returns_existing_when_valid(
-        self, mock_post, tmp_path: Path
-    ) -> None:
-        storage = self._storage(tmp_path)
-        # Token expires in 1 hour (well beyond 60s buffer)
-        storage.save(
-            TokenData(
-                access_token="valid-token",
-                refresh_token="refresh-me",
-                expires_at=time.time() + 3600,
-            )
-        )
-        manager = OAuthManager(storage=storage)
-        token = manager.get_valid_token()
-
-        assert token == "valid-token"
-        mock_post.assert_not_called()
-
-    def test_get_valid_token_raises_when_no_tokens(self, tmp_path: Path) -> None:
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        with pytest.raises(OAuthError) as exc_info:
-            manager.get_valid_token()
-        assert exc_info.value.error == "auth_expired"
-
-    def test_get_status_returns_valid(self, tmp_path: Path) -> None:
-        storage = self._storage(tmp_path)
-        storage.save(
-            TokenData(
-                access_token="tok",
-                expires_at=time.time() + 3600,
-                scope="direct:api",
-                login="user@example.com",
-            )
-        )
-        manager = OAuthManager(storage=storage)
-        status = manager.get_status()
-
-        assert status["valid"] is True
-        assert status["expires_in"] > 0
-        assert status["login"] == "user@example.com"
-
-    def test_get_status_returns_invalid_when_no_tokens(self, tmp_path: Path) -> None:
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        status = manager.get_status()
-        assert status["valid"] is False
-
-    @patch("server.auth.oauth.httpx.get")
-    def test_fetch_login_succeeds(self, mock_get, tmp_path: Path) -> None:
-        mock_get.return_value = _make_httpx_response(200, {"login": "mylogin"})
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        assert manager.fetch_login("some-token") == "mylogin"
-        mock_get.assert_called_once_with(
-            "https://login.yandex.ru/info",
-            headers={"Authorization": "OAuth some-token"},
-            timeout=15,
-        )
-
-    @patch("server.auth.oauth.httpx.get")
-    def test_fetch_login_returns_none_on_error(self, mock_get, tmp_path: Path) -> None:
-        mock_get.side_effect = __import__("httpx").TransportError("fail")
-        manager = OAuthManager(storage=self._storage(tmp_path))
-        assert manager.fetch_login("some-token") is None
-
-    @patch("server.auth.oauth.httpx.get")
-    def test_parse_and_save_fetches_login_when_missing(
-        self, mock_get, tmp_path: Path
-    ) -> None:
-        """When OAuth token response has no login, fetch it from login.yandex.ru."""
-        mock_get.return_value = _make_httpx_response(200, {"login": "fetched-login"})
-        storage = self._storage(tmp_path)
-        manager = OAuthManager(storage=storage)
-        resp = _make_httpx_response(
-            200,
-            {"access_token": "tok", "refresh_token": "ref", "expires_in": 3600},
-        )
-        result = manager._parse_and_save(resp, fallback_refresh_token="")
-        assert result["login"] == "fetched-login"
-        loaded = storage.load()
-        assert loaded is not None
-        assert loaded["login"] == "fetched-login"
-
-
-# ---------------------------------------------------------------------------
-# Auth MCP Tools Tests
-# ---------------------------------------------------------------------------
-
-
-class TestAuthTools:
-    """Tests for auth_status and auth_setup MCP tools."""
-
-    def test_auth_status_returns_valid_dict(self, tmp_path: Path) -> None:
-        """auth_status returns a dict with valid key."""
-        # The global _oauth uses CLAUDE_PLUGIN_DATA which conftest sets to tmp_path
-        # We need to test with a fresh manager pointing at our tmp_path
-        from server.tools.auth_tools import auth_status
 
         result = auth_status()
-        assert isinstance(result, dict)
-        assert "valid" in result
+        assert result["valid"] is True
+        assert result["profile"] == "default"
+        assert result["login"] == "client"
+        assert result["expires_in"] > 0
+        assert "expires_in_human" in result
 
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_setup_with_valid_code(self, mock_oauth) -> None:
-        mock_oauth.exchange_code.return_value = TokenData(
-            access_token="1234567890abcdef",
-            refresh_token="refresh",
-            expires_at=1700000000.0,
-            scope="direct:api",
-            login="user@example.com",
+    def test_auth_status_marks_old_profile_refresh_unavailable(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        auth_path = tmp_path / ".direct-cli" / "auth.json"
+        auth_path.parent.mkdir()
+        auth_path.write_text(
+            json.dumps(
+                {
+                    "profiles": {
+                        "legacy": {
+                            "token": "token",
+                            "login": "client",
+                            "source": "manual",
+                        }
+                    }
+                }
+            )
         )
-        from server.tools.auth_tools import auth_setup
 
-        result = auth_setup("1234567")
+        result = auth_status("legacy")
+        assert result["valid"] is True
+        assert result["refresh_unavailable"] is True
+
+
+class TestAuthSetup:
+    def test_auth_setup_with_direct_token(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed("✓ Profile 'default' is saved and active.\n"),
+        ) as mock_run:
+            result = auth_setup("y0_token", login="client")
+
+        assert result == {
+            "success": True,
+            "method": "direct_token",
+            "profile": "default",
+            "login": "client",
+        }
+        mock_run.assert_called_once_with(
+            [
+                "auth",
+                "login",
+                "--profile",
+                "default",
+                "--oauth-token",
+                "y0_token",
+                "--login",
+                "client",
+            ],
+            timeout=None,
+        )
+
+    def test_auth_setup_passes_plugin_client_options(self, monkeypatch) -> None:
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed("ok"),
+        ) as mock_run:
+            auth_setup("abc123")
+
+        args = mock_run.call_args.args[0]
+        assert "--client-id" in args
+        assert "cid" in args
+        assert "--client-secret" in args
+        assert "secret" in args
+
+    def test_auth_setup_with_oauth_code(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed("✓ Profile 'custom' is saved and active.\n"),
+        ) as mock_run:
+            result = auth_setup("abc123", profile="custom")
+
         assert result["success"] is True
-        assert result["access_token_prefix"] == "123456..."
-        mock_oauth.exchange_code.assert_called_once_with("1234567")
-
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_setup_with_invalid_code_special_chars(self, mock_oauth) -> None:
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?test=1"
+        assert result["method"] == "oauth_code"
+        assert result["profile"] == "custom"
+        mock_run.assert_called_once_with(
+            ["auth", "login", "--profile", "custom", "--code", "abc123"],
+            timeout=None,
         )
-        from server.tools.auth_tools import auth_setup
 
-        result = auth_setup("abc!@#$")
-        assert result["error"] == "invalid_code"
-
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_setup_with_empty_code(self, mock_oauth) -> None:
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?test=1"
-        )
-        from server.tools.auth_tools import auth_setup
-
+    def test_auth_setup_rejects_empty_code(self) -> None:
         result = auth_setup("")
         assert result["error"] == "invalid_code"
 
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_setup_with_direct_token(self, mock_oauth) -> None:
-        mock_oauth.set_token.return_value = TokenData(
-            access_token="y0_test_token_12345",
-            refresh_token="",
-            expires_at=1700000000.0,
-        )
-        from server.tools.auth_tools import auth_setup
+    def test_auth_setup_reports_cli_failure(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(stderr="Error: bad code", returncode=1),
+        ):
+            result = auth_setup("bad")
+        assert result["success"] is False
+        assert result["error"] == "auth_failed"
 
-        result = auth_setup("y0_test_token_12345")
-        assert result["success"] is True
-        assert result["method"] == "direct_token"
-        mock_oauth.set_token.assert_called_once_with("y0_test_token_12345")
 
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_setup_propagates_oauth_errors(self, mock_oauth) -> None:
-        mock_oauth.exchange_code.side_effect = OAuthError(
-            "invalid_grant",
-            "Неверный или просроченный код. Код действует 10 минут.",
-        )
-        from server.tools.auth_tools import auth_setup
-
-        result = auth_setup("1234567")
-        assert result["error"] == "invalid_grant"
-        assert "просроченный" in result["message"]
-
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_login_already_authenticated(self, mock_oauth) -> None:
-        mock_oauth.get_status.return_value = {
-            "valid": True,
-            "expires_in": 3600,
-        }
-
-        from server.tools.auth_tools import auth_login
-
+class TestAuthLogin:
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": True})
+    def test_auth_login_already_authenticated(self, _mock_status) -> None:
         result = asyncio.run(auth_login(MagicMock()))
-        assert result.get("already_authenticated") is True
+        assert result["already_authenticated"] is True
 
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_login_cancelled(self, mock_oauth) -> None:
-        mock_oauth.get_status.return_value = {"valid": False}
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?x=1"
-        )
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value=None)
+    def test_auth_login_cli_not_found(self, _mock_find, _mock_status) -> None:
+        result = asyncio.run(auth_login(MagicMock()))
+        assert result["error"] == "cli_not_found"
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools.subprocess.Popen")
+    def test_auth_login_cancelled(self, mock_popen, _mock_find, _mock_status) -> None:
+        proc = MagicMock()
+        proc.poll.return_value = None
+        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
+        mock_popen.return_value = proc
 
         mock_ctx = MagicMock()
         mock_result = MagicMock()
@@ -428,195 +185,62 @@ class TestAuthTools:
         mock_result.data = None
         mock_ctx.elicit = AsyncMock(return_value=mock_result)
 
-        from server.tools.auth_tools import auth_login
-
         result = asyncio.run(auth_login(mock_ctx))
         assert result == {"cancelled": True, "message": "Авторизация отменена."}
+        proc.terminate.assert_called_once()
 
-    @patch("server.tools.auth_tools._exchange_or_set_token")
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_login_token_flow(self, mock_oauth, mock_exchange) -> None:
-        mock_oauth.get_status.return_value = {"valid": False}
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?x=1"
-        )
-        mock_exchange.return_value = {"success": True, "method": "direct_token"}
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools.subprocess.Popen")
+    def test_auth_login_sends_code_to_same_process(
+        self, mock_popen, _mock_find, _mock_status
+    ) -> None:
+        proc = MagicMock()
+        proc.poll.return_value = None
+        proc.returncode = 0
+        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
+        proc.communicate.return_value = ("saved", "")
+        mock_popen.return_value = proc
 
         mock_ctx = MagicMock()
         credential = MagicMock()
         credential.action = "accept"
-        credential.data.value = "y0_live_token"
+        credential.data.value = "ABC123"
         mock_ctx.elicit = AsyncMock(return_value=credential)
 
-        from server.tools.auth_tools import auth_login
+        result = asyncio.run(auth_login(mock_ctx, login="client", profile="custom"))
 
-        result = asyncio.run(auth_login(mock_ctx))
-        assert result["success"] is True
-        mock_exchange.assert_called_once_with("y0_live_token")
-        assert mock_ctx.elicit.await_count == 1
-
-    @patch("server.tools.auth_tools._exchange_or_set_token")
-    @patch("server.tools.auth_tools._oauth")
-    def test_auth_login_pkce_flow(self, mock_oauth, mock_exchange) -> None:
-        mock_oauth.get_status.return_value = {"valid": False}
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?x=1"
-        )
-        mock_exchange.return_value = {"success": True, "method": "oauth_code"}
-
-        mock_ctx = MagicMock()
-        credential = MagicMock()
-        credential.action = "accept"
-        credential.data.value = "ABC1234"
-        mock_ctx.elicit = AsyncMock(return_value=credential)
-
-        from server.tools.auth_tools import auth_login
-
-        result = asyncio.run(auth_login(mock_ctx))
-        assert result["success"] is True
-        mock_oauth.start_auth_flow.assert_called_once()
-        mock_exchange.assert_called_once_with("ABC1234")
-
-    @patch("server.tools.auth_tools._oauth")
-    def test_oauth_login_prompt_embeds_authorize_url(self, mock_oauth) -> None:
-        mock_oauth.start_auth_flow.return_value = (
-            "https://oauth.yandex.ru/authorize?x=1"
-        )
-
-        from server.tools.auth_tools import oauth_login_prompt
-
-        prompt = oauth_login_prompt()
-        assert len(prompt) == 1
-        assert prompt[0]["role"] == "user"
-        assert "https://oauth.yandex.ru/authorize?x=1" in prompt[0]["content"]
+        mock_popen.assert_called_once()
+        cmd = mock_popen.call_args.args[0]
+        kwargs = mock_popen.call_args.kwargs
+        assert cmd == [
+            "/usr/bin/direct",
+            "auth",
+            "login",
+            "--profile",
+            "custom",
+            "--login",
+            "client",
+        ]
+        assert "env" in kwargs
+        proc.communicate.assert_called_once_with(input="ABC123\n", timeout=60)
+        assert result == {
+            "success": True,
+            "method": "oauth_code",
+            "profile": "custom",
+            "login": "client",
+        }
 
 
-# ---------------------------------------------------------------------------
-# PKCE Tests
-# ---------------------------------------------------------------------------
+def test_oauth_login_prompt_points_to_auth_login() -> None:
+    prompt = oauth_login_prompt()
+    assert len(prompt) == 1
+    assert prompt[0]["role"] == "user"
+    assert "auth_login" in prompt[0]["content"]
 
 
-class TestPKCE:
-    """Tests for PKCE code_verifier / code_challenge generation."""
-
-    def test_generate_code_verifier_length(self) -> None:
-        verifier = generate_code_verifier()
-        assert 43 <= len(verifier) <= 128
-
-    def test_generate_code_verifier_charset(self) -> None:
-        import re
-
-        verifier = generate_code_verifier()
-        assert re.fullmatch(r"[A-Za-z0-9_\-]+", verifier)
-
-    def test_generate_code_challenge_s256(self) -> None:
-        verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
-        expected_digest = hashlib.sha256(verifier.encode("ascii")).digest()
-        expected = urlsafe_b64encode(expected_digest).rstrip(b"=").decode("ascii")
-        assert generate_code_challenge(verifier) == expected
-
-    def test_authorize_url_contains_pkce_params(self, tmp_path: Path) -> None:
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        url = manager.authorize_url
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query)
-
-        assert "code_challenge" in params
-        assert params["code_challenge_method"] == ["S256"]
-        assert params["response_type"] == ["code"]
-
-    @patch("server.auth.oauth.httpx.get")
-    @patch("server.auth.oauth.httpx.post")
-    def test_exchange_sends_verifier_not_secret(
-        self, mock_post, mock_get, tmp_path: Path
-    ) -> None:
-        mock_post.return_value = _make_httpx_response(
-            200,
-            {
-                "access_token": "tok",
-                "refresh_token": "ref",
-                "expires_in": 3600,
-            },
-        )
-        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        _ = manager.authorize_url  # generates code_verifier
-        manager.exchange_code("1234567")
-
-        call_kwargs = mock_post.call_args
-        sent_data = call_kwargs.kwargs.get("data", {})
-        assert "code_verifier" in sent_data
-        assert "client_secret" not in sent_data
-
-    @patch("server.auth.oauth.httpx.get")
-    def test_set_token_saves_directly(self, mock_get, tmp_path: Path) -> None:
-        mock_get.return_value = _make_httpx_response(200, {"login": "test-user"})
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        result = manager.set_token("y0_direct_token_value")
-        assert result["access_token"] == "y0_direct_token_value"
-        assert result["login"] == "test-user"
-        loaded = storage.load()
-        assert loaded is not None
-        assert loaded["access_token"] == "y0_direct_token_value"
-        assert loaded["login"] == "test-user"
-
-    @patch("server.auth.oauth.httpx.get")
-    @patch("server.auth.oauth.httpx.post")
-    def test_exchange_with_client_secret_no_pkce(
-        self, mock_post, mock_get, tmp_path: Path
-    ) -> None:
-        mock_post.return_value = _make_httpx_response(
-            200,
-            {"access_token": "tok", "expires_in": 3600},
-        )
-        mock_get.return_value = _make_httpx_response(200, {"login": "user"})
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        manager._client_secret = "my_secret"
-        manager.exchange_code("somecode")
-        sent_data = mock_post.call_args.kwargs.get("data", {})
-        assert sent_data["client_secret"] == "my_secret"
-        assert "code_verifier" not in sent_data
-
-    def test_env_token_takes_priority(self, tmp_path: Path) -> None:
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        storage.save(TokenData(access_token="stored", expires_at=time.time() + 3600))
-        manager = OAuthManager(storage=storage)
-        manager._static_token = "y0_from_env"
-        assert manager.get_valid_token() == "y0_from_env"
-
-    def test_yandex_direct_token_env_priority(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
-        monkeypatch.setenv("YANDEX_DIRECT_TOKEN", "y0_from_env_var")
-        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_token", "y0_from_plugin")
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        assert manager._static_token == "y0_from_env_var"
-
-    def test_authorize_url_no_pkce_when_secret(self, tmp_path: Path) -> None:
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        manager._client_secret = "secret"
-        url = manager.authorize_url
-        assert "code_challenge" not in url
-
-    def test_code_verifier_cleared_after_exchange(self, tmp_path: Path) -> None:
-        storage = FileTokenStorage(path=tmp_path / "tokens.json")
-        manager = OAuthManager(storage=storage)
-        _ = manager.start_auth_flow()
-        assert manager._verifier_path.exists()
-        with (
-            patch("server.auth.oauth.httpx.get") as mock_get,
-            patch("server.auth.oauth.httpx.post") as mock_post,
-        ):
-            mock_post.return_value = _make_httpx_response(
-                200, {"access_token": "t", "expires_in": 3600}
-            )
-            mock_get.return_value = _make_httpx_response(200, {"login": "u"})
-            manager.exchange_code("1234567")
-        assert not manager._verifier_path.exists()
-        assert manager._cached_verifier is None
+def test_human_readable_time_formats_expected_ranges() -> None:
+    assert _human_readable_time(0) == "истёк"
+    assert _human_readable_time(59) == "59 сек."
+    assert _human_readable_time(90) == "1 мин. 30 сек."
+    assert _human_readable_time(3660) == "1 ч. 1 мин."

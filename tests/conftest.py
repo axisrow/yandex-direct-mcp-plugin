@@ -86,22 +86,8 @@ def cli_recorder(monkeypatch, request):
 
 
 def _discover_live_plugin_data_dir() -> Path | None:
-    import os
-
-    env_value = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if env_value:
-        env_dir = Path(env_value).expanduser()
-        if (env_dir / "tokens.json").exists():
-            return env_dir
-
-    for candidate in (
-        Path.home() / ".claude" / "plugins" / "data" / "yandex-direct-inline",
-        Path.home() / ".claude" / "plugins" / "data" / "yandex-direct",
-    ):
-        if (candidate / "tokens.json").exists():
-            return candidate
-
-    return None
+    auth_store = Path.home() / ".direct-cli" / "auth.json"
+    return auth_store.parent if auth_store.exists() else None
 
 
 @pytest.fixture()
@@ -123,28 +109,6 @@ def live_plugin_data_dir(monkeypatch, request) -> Path:
     plugin_data_dir = _discover_live_plugin_data_dir()
     if plugin_data_dir is None:
         pytest.skip(
-            "No live token storage found. Set CLAUDE_PLUGIN_DATA or install the plugin locally."
+            "No live direct-cli auth profile found. Run `direct auth login` first."
         )
-
-    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(plugin_data_dir))
     return plugin_data_dir
-
-
-@pytest.fixture()
-def live_oauth_manager(monkeypatch, live_plugin_data_dir):
-    """Provide a real OAuth manager bound to live token storage."""
-    from server.auth.oauth import OAuthManager
-    import server.tools.auth_tools as auth_tools
-
-    manager = OAuthManager()
-    monkeypatch.setattr(auth_tools, "_oauth", manager)
-    return manager
-
-
-@pytest.fixture()
-def live_token_getter(live_oauth_manager):
-    """Configure the global token getter for live MCP tool tests."""
-    import server.tools
-
-    server.tools.set_token_getter(live_oauth_manager.get_valid_token)
-    return live_oauth_manager
