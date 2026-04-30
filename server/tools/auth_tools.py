@@ -140,8 +140,6 @@ def _setup_args(
         args.extend(["--code", code])
     if login:
         args.extend(["--login", login])
-    if client_id := os.environ.get("CLAUDE_PLUGIN_OPTION_client_id"):
-        args.extend(["--client-id", client_id])
     return args
 
 
@@ -158,8 +156,6 @@ def _login_process_args(
     args = ["auth", "login", "--profile", profile]
     if login:
         args.extend(["--login", login])
-    if client_id := os.environ.get("CLAUDE_PLUGIN_OPTION_client_id"):
-        args.extend(["--client-id", client_id])
     return args
 
 

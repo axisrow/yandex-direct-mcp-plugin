@@ -144,7 +144,7 @@ class TestAuthSetup:
             timeout=None,
         )
 
-    def test_auth_setup_passes_plugin_client_options(self, monkeypatch) -> None:
+    def test_auth_setup_ignores_plugin_client_options(self, monkeypatch) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
         with patch(
@@ -154,20 +154,24 @@ class TestAuthSetup:
             auth_setup("abc123")
 
         args = mock_run.call_args.args[0]
-        assert "--client-id" in args
-        assert "cid" in args
+        assert "--client-id" not in args
+        assert "cid" not in args
         assert "--client-secret" not in args
         assert "secret" not in args
 
-    def test_auth_command_args_do_not_expose_client_secret(self, monkeypatch) -> None:
+    def test_auth_command_args_ignore_plugin_client_options(
+        self, monkeypatch
+    ) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
 
         setup_args = _setup_args("abc123")
         login_args = _login_process_args()
 
-        assert "--client-id" in setup_args
-        assert "--client-id" in login_args
+        assert "--client-id" not in setup_args
+        assert "--client-id" not in login_args
+        assert "cid" not in setup_args
+        assert "cid" not in login_args
         assert "--client-secret" not in setup_args
         assert "--client-secret" not in login_args
         assert "secret" not in setup_args
@@ -346,8 +350,18 @@ class TestAuthLogin:
         return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
     )
     def test_auth_login_sends_code_to_same_process(
-        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
+        self,
+        _mock_read_url,
+        _mock_resolve,
+        mock_popen,
+        _mock_find,
+        _mock_status,
+        monkeypatch,
     ) -> None:
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
+        monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
+        monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
         proc = MagicMock()
         proc.poll.return_value = None
         proc.returncode = 0
@@ -375,6 +389,8 @@ class TestAuthLogin:
             "client",
         ]
         assert "env" in kwargs
+        assert "YANDEX_DIRECT_CLIENT_ID" not in kwargs["env"]
+        assert "YANDEX_DIRECT_CLIENT_SECRET" not in kwargs["env"]
         proc.communicate.assert_called_once_with(input="ABC123\n", timeout=60)
         assert result == {
             "success": True,
