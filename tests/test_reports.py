@@ -272,6 +272,39 @@ def test_reports_custom_goal_ids_with_other_filters_pass_through():
     assert args[args.index("--filter") + 1] == "Device:IN:DESKTOP"
 
 
+def test_reports_custom_rejects_goals_filter_with_goal_ids():
+    """Raw Goals filters must not combine with native goal_ids routing."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Goals,Conversions",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            goal_ids="111",
+            filters=["Goals:IN:222"],
+        )
+
+    assert result["error"] == "unknown"
+    assert "pass goal IDs via goal_ids instead" in result["message"]
+    runner.run_json.assert_not_called()
+
+
+def test_reports_custom_rejects_goals_filter_without_goal_ids():
+    """Goal-based slicing must use goal_ids, not Reports API filters."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Goals,Conversions",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            filters=[" goals:IN:111"],
+        )
+
+    assert result["error"] == "unknown"
+    assert "Goals filters are not supported" in result["message"]
+    runner.run_json.assert_not_called()
+
+
 def test_reports_custom_output_path(tmp_path):
     """output_path returns metadata, not the data array."""
     out = tmp_path / "report.json"

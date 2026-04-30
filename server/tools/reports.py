@@ -30,6 +30,11 @@ CUSTOM_REPORT_TIMEOUT_SECONDS = 120
 VALID_RESPONSE_FORMATS = frozenset({"json", "tsv", "csv", "table"})
 
 
+def _is_goals_filter(filter_expr: str) -> bool:
+    """Return whether a raw report filter targets the API's Goals field."""
+    return filter_expr.lstrip().lower().startswith("goals:")
+
+
 def _resolve_report_dates(
     date_from: str | None, date_to: str | None
 ) -> tuple[str, str]:
@@ -387,6 +392,11 @@ def reports_custom(
         )
 
     effective_filters: list[str] = list(filters) if filters else []
+    if any(_is_goals_filter(f) for f in effective_filters):
+        raise ValueError(
+            "Goals filters are not supported by Reports API Filter.Field; "
+            "pass goal IDs via goal_ids instead"
+        )
 
     name = report_name or f"mcp_custom_{int(time.time() * 1000)}"
 
