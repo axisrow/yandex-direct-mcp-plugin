@@ -159,9 +159,7 @@ class TestAuthSetup:
         assert "--client-secret" not in args
         assert "secret" not in args
 
-    def test_auth_command_args_ignore_plugin_client_options(
-        self, monkeypatch
-    ) -> None:
+    def test_auth_command_args_ignore_plugin_client_options(self, monkeypatch) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
 
