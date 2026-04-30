@@ -2,10 +2,11 @@
 
 import json
 import os
+import selectors
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import IO, Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -141,8 +142,6 @@ def _setup_args(
         args.extend(["--login", login])
     if client_id := os.environ.get("CLAUDE_PLUGIN_OPTION_client_id"):
         args.extend(["--client-id", client_id])
-    if client_secret := os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret"):
-        args.extend(["--client-secret", client_secret])
     return args
 
 
@@ -161,9 +160,45 @@ def _login_process_args(
         args.extend(["--login", login])
     if client_id := os.environ.get("CLAUDE_PLUGIN_OPTION_client_id"):
         args.extend(["--client-id", client_id])
-    if client_secret := os.environ.get("CLAUDE_PLUGIN_OPTION_client_secret"):
-        args.extend(["--client-secret", client_secret])
     return args
+
+
+def _read_auth_url_from_process(
+    proc: subprocess.Popen[str], *, timeout: float = 10
+) -> tuple[str | None, str]:
+    selector = selectors.DefaultSelector()
+    output_chunks: list[str] = []
+    streams = [stream for stream in (proc.stdout, proc.stderr) if stream is not None]
+    for stream in streams:
+        os.set_blocking(stream.fileno(), False)
+        selector.register(stream, selectors.EVENT_READ)
+
+    try:
+        deadline = time.monotonic() + timeout
+        while selector.get_map() and time.monotonic() < deadline:
+            if proc.poll() is not None and not selector.get_map():
+                break
+            remaining = max(0.0, deadline - time.monotonic())
+            events = selector.select(timeout=remaining)
+            if not events:
+                break
+            for key, _mask in events:
+                stream = cast(IO[str], key.fileobj)
+                try:
+                    chunk = os.read(stream.fileno(), 4096)
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    selector.unregister(stream)
+                    continue
+                clean = _strip_ansi(chunk.decode(errors="replace"))
+                output_chunks.append(clean)
+                if auth_url := _extract_auth_url("".join(output_chunks)):
+                    return auth_url, "".join(output_chunks).strip()
+    finally:
+        selector.close()
+
+    return None, "".join(output_chunks).strip()
 
 
 # --- MCP Tools ---
@@ -246,25 +281,17 @@ async def auth_login(
             "message": "direct not found. Install direct-cli.",
         }
 
-    assert proc.stdout is not None
-    auth_url = None
-    output_lines: list[str] = []
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline and proc.poll() is None:
-        line = proc.stdout.readline()
-        if not line:
-            break
-        clean = _strip_ansi(line).strip()
-        output_lines.append(clean)
-        auth_url = _extract_auth_url(clean) or auth_url
-        if auth_url:
-            break
+    auth_url, output = _read_auth_url_from_process(proc, timeout=10)
 
     if not auth_url:
-        stdout, stderr = proc.communicate(timeout=5)
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            _terminate_and_wait(proc)
+            stdout, stderr = "", ""
         return {
             "error": "auth_login_failed",
-            "message": _strip_ansi(stderr or stdout or "\n".join(output_lines)).strip(),
+            "message": _strip_ansi(stderr or stdout or output).strip(),
         }
 
     result = await ctx.elicit(

@@ -3,10 +3,14 @@
 import asyncio
 import json
 import subprocess
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from server.tools.auth_tools import (
     _human_readable_time,
+    _login_process_args,
+    _read_auth_url_from_process,
+    _setup_args,
     auth_login,
     auth_setup,
     auth_status,
@@ -152,8 +156,22 @@ class TestAuthSetup:
         args = mock_run.call_args.args[0]
         assert "--client-id" in args
         assert "cid" in args
-        assert "--client-secret" in args
-        assert "secret" in args
+        assert "--client-secret" not in args
+        assert "secret" not in args
+
+    def test_auth_command_args_do_not_expose_client_secret(self, monkeypatch) -> None:
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
+        monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
+
+        setup_args = _setup_args("abc123")
+        login_args = _login_process_args()
+
+        assert "--client-id" in setup_args
+        assert "--client-id" in login_args
+        assert "--client-secret" not in setup_args
+        assert "--client-secret" not in login_args
+        assert "secret" not in setup_args
+        assert "secret" not in login_args
 
     def test_auth_setup_with_oauth_code(self) -> None:
         with patch(
@@ -200,12 +218,15 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch(
+        "server.tools.auth_tools._read_auth_url_from_process",
+        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
+    )
     def test_auth_login_cancelled(
-        self, _mock_resolve, mock_popen, _mock_find, _mock_status
+        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
     ) -> None:
         proc = MagicMock()
         proc.poll.return_value = None
-        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
         mock_popen.return_value = proc
 
         mock_ctx = MagicMock()
@@ -223,12 +244,15 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch(
+        "server.tools.auth_tools._read_auth_url_from_process",
+        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
+    )
     def test_auth_login_cancelled_kills_process_after_wait_timeout(
-        self, _mock_resolve, mock_popen, _mock_find, _mock_status
+        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
     ) -> None:
         proc = MagicMock()
         proc.poll.return_value = None
-        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
         proc.wait.side_effect = [subprocess.TimeoutExpired(["direct"], 5), None]
         mock_popen.return_value = proc
 
@@ -247,8 +271,12 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._read_auth_store")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
+    @patch(
+        "server.tools.auth_tools._read_auth_url_from_process",
+        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
+    )
     def test_auth_login_reauthenticates_expired_profile(
-        self, mock_popen, _mock_find, mock_store
+        self, _mock_read_url, mock_popen, _mock_find, mock_store
     ) -> None:
         mock_store.return_value = {
             "active_profile": "default",
@@ -263,7 +291,6 @@ class TestAuthLogin:
         proc = MagicMock()
         proc.poll.return_value = None
         proc.returncode = 0
-        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
         proc.communicate.return_value = ("saved", "")
         mock_popen.return_value = proc
 
@@ -281,8 +308,12 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._read_auth_store")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
+    @patch(
+        "server.tools.auth_tools._read_auth_url_from_process",
+        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
+    )
     def test_auth_login_uses_active_profile_when_omitted(
-        self, mock_popen, _mock_find, mock_store
+        self, _mock_read_url, mock_popen, _mock_find, mock_store
     ) -> None:
         mock_store.return_value = {
             "active_profile": "agency",
@@ -291,7 +322,6 @@ class TestAuthLogin:
         proc = MagicMock()
         proc.poll.return_value = None
         proc.returncode = 0
-        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
         proc.communicate.return_value = ("saved", "")
         mock_popen.return_value = proc
 
@@ -311,13 +341,16 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch(
+        "server.tools.auth_tools._read_auth_url_from_process",
+        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
+    )
     def test_auth_login_sends_code_to_same_process(
-        self, _mock_resolve, mock_popen, _mock_find, _mock_status
+        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
     ) -> None:
         proc = MagicMock()
         proc.poll.return_value = None
         proc.returncode = 0
-        proc.stdout.readline.return_value = "https://oauth.yandex.ru/authorize?x=1\n"
         proc.communicate.return_value = ("saved", "")
         mock_popen.return_value = proc
 
@@ -349,6 +382,45 @@ class TestAuthLogin:
             "profile": "custom",
             "login": "client",
         }
+
+    def test_read_auth_url_from_process_reads_stderr_without_newline(self) -> None:
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys; sys.stderr.write('https://oauth.yandex.ru/authorize?x=1'); sys.stderr.flush()",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        auth_url, output = _read_auth_url_from_process(proc, timeout=1)
+        proc.wait(timeout=5)
+
+        assert auth_url == "https://oauth.yandex.ru/authorize?x=1"
+        assert auth_url in output
+
+    def test_read_auth_url_from_process_times_out_without_blocking(self) -> None:
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import time; print('waiting', end='', flush=True); time.sleep(30)",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        try:
+            auth_url, output = _read_auth_url_from_process(proc, timeout=0.1)
+        finally:
+            proc.terminate()
+            proc.wait(timeout=5)
+
+        assert auth_url is None
+        assert output == "waiting"
 
 
 def test_oauth_login_prompt_points_to_auth_login() -> None:
