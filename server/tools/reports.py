@@ -312,9 +312,10 @@ def reports_custom(
         goal_ids: Comma-separated Metrika goal IDs (max 10). Maps to direct
             CLI's `--goals` flag, which emits top-level `ReportDefinition.Goals`
             in the request body — NOT a Filter entry. Find goal IDs via
-            `v4goals_get_stat_goals(campaign_ids=...)`. When `Goals` is also
-            in field_names, each row reports per-goal conversions for these
-            goal IDs.
+            `v4goals_get_stat_goals(campaign_ids=...)`. The API splits
+            conversion metrics into per-goal output columns automatically
+            (see Returns). NOTE: `Goals` itself is NOT a valid FieldName for
+            CUSTOM_REPORT — do not put it in field_names.
         campaign_ids: Comma-separated campaign IDs (max 10). Maps to
             --campaign-ids.
         adgroup_ids: Comma-separated ad group IDs (max 10). Maps to
@@ -346,14 +347,21 @@ def reports_custom(
 
     Examples:
 
-        # "Stats for 2 years, group by months, goals 12345 and 67890"
+        # "Stats for 2 years, group by months, broken down by 2 goals"
+        # NOTE: `Goals` is not a valid FieldName for CUSTOM_REPORT — putting
+        # it in field_names returns error_code=8000. Use goal_ids instead;
+        # the API splits Conversions and CostPerConversion into per-goal
+        # columns automatically.
         reports_custom(
-            field_names="Month,CampaignName,Impressions,Clicks,Cost,Goals,Conversions",
+            field_names="Month,CampaignName,Impressions,Clicks,Cost,Conversions,CostPerConversion",
             date_from="2024-04-29", date_to="2026-04-29",
             goal_ids="12345,67890",
             order_by=["Month:ASC", "CampaignName:ASC"],
-            output_path="/tmp/direct_2y_by_month.json",
+            output_path="/tmp/direct_2y_by_goals.json",
         )
+        # → Output columns include Conversions_12345_LSC,
+        #   Conversions_67890_LSC, CostPerConversion_12345_LSC,
+        #   CostPerConversion_67890_LSC.
 
         # "Top 50 keywords by cost last month"
         reports_custom(
@@ -376,6 +384,12 @@ def reports_custom(
         list[dict] of report rows by default; OR
         {output_path, rows_written, report_type, format} when output_path is
         set; OR a ToolError dict on failure.
+
+        With `goal_ids` set, Yandex splits conversion metrics into per-goal
+        columns: `Conversions_<goal_id>_<attribution>`, and same for
+        `CostPerConversion`. Default attribution suffix is `LSC`
+        (last-significant-click). To inspect this in advance, run with
+        `dry_run=True`.
     """
     if response_format not in VALID_RESPONSE_FORMATS:
         raise ValueError(
