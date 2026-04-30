@@ -196,7 +196,13 @@ def _custom_args(call):
 
 
 def test_reports_custom_month_with_goals():
-    """User scenario: 2 years, by months, filter by goal IDs."""
+    """User scenario: 2 years, by months, by goal IDs.
+
+    `goal_ids` must thread to direct CLI's native `--goals` flag (added in
+    direct-cli 0.3.2). The CLI emits it as top-level `ReportDefinition.Goals`,
+    NOT as a `Filter[Goals:IN:...]` entry — Reports API rejects the latter
+    with `error_code=8000`.
+    """
     runner = _mock_runner([{"Month": "2024-05", "Goals": "12345", "Conversions": 4}])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
@@ -211,44 +217,72 @@ def test_reports_custom_month_with_goals():
     runner.run_json.assert_called_once()
     args = _custom_args(runner.run_json.call_args)
     assert args[:4] == ["reports", "get", "--type", "CUSTOM_REPORT"]
-    # Date arguments
     i_from = args.index("--from")
     assert args[i_from + 1] == "2024-04-29"
     i_to = args.index("--to")
     assert args[i_to + 1] == "2026-04-29"
-    # Fields
     i_fields = args.index("--fields")
     assert (
         args[i_fields + 1]
         == "Month,CampaignName,Impressions,Clicks,Cost,Goals,Conversions"
     )
-    # Goal filter materialised
-    assert "--filter" in args
-    i_filter = args.index("--filter")
-    assert args[i_filter + 1] == "Goals:IN:12345,67890"
-    # Order-by passed through
+    # goal_ids → native --goals, NOT --filter Goals:IN:...
+    i_goals = args.index("--goals")
+    assert args[i_goals + 1] == "12345,67890"
+    assert not any(isinstance(a, str) and a.startswith("Goals:") for a in args), (
+        "goal_ids must not produce a Filter entry; got args=" + repr(args)
+    )
     i_order = args.index("--order-by")
     assert args[i_order + 1] == "Month:ASC"
-    # Auto-name with prefix
     i_name = args.index("--name")
     assert args[i_name + 1].startswith("mcp_custom_")
-    # Default in-memory format
     assert args[-2:] == ["--format", "json"]
-    # Higher timeout for long-period custom reports
     assert runner.run_json.call_args.kwargs["timeout"] == CUSTOM_REPORT_TIMEOUT_SECONDS
 
 
-def test_reports_custom_conflicting_goal_filter():
-    """Cannot pass both goal_ids and an explicit Goals: filter."""
+def test_reports_custom_goal_ids_only_no_filter_arg():
+    """`goal_ids` without other filters must not introduce any --filter."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Goals,Conversions",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            goal_ids="111",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert "--goals" in args
+    assert args[args.index("--goals") + 1] == "111"
+    assert "--filter" not in args
+
+
+def test_reports_custom_goal_ids_with_other_filters_pass_through():
+    """`goal_ids` and unrelated filters must coexist: --goals AND --filter both emit."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Device,Goals,Conversions",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            goal_ids="111",
+            filters=["Device:IN:DESKTOP"],
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert args[args.index("--goals") + 1] == "111"
+    assert args[args.index("--filter") + 1] == "Device:IN:DESKTOP"
+
+
+def test_reports_custom_rejects_goals_filter_field():
+    """A user-supplied `Goals:IN:...` filter is still rejected — Goals is not
+    a valid Filter field per API spec, regardless of whether `goal_ids` is set."""
     result = reports_custom(
         field_names="Month,Goals,Conversions",
         date_from="2024-01-01",
         date_to="2024-02-01",
-        goal_ids="111",
         filters=["Goals:IN:222"],
     )
     assert result["error"] == "unknown"
-    assert "conflicting goal filter" in result["message"]
+    assert "Goals is not a valid Filter field" in result["message"]
 
 
 def test_reports_custom_output_path(tmp_path):

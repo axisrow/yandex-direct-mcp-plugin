@@ -47,8 +47,8 @@ _INVALID_REQUEST_HINT_FILTER = (
     "A Filter entry has an invalid Field or Operator. Operator must be one "
     "of EQUALS, NOT_EQUALS, IN, NOT_IN, LESS_THAN, GREATER_THAN, "
     "STARTS_WITH_IGNORE_CASE, DOES_NOT_START_WITH_IGNORE_CASE. "
-    "Note: Goals filter is only valid for some report_types — pass dry_run=True "
-    "to confirm the body shape."
+    "Note: `Goals` is NOT a Filter field — pass `goal_ids` to `reports_custom` "
+    "instead, which maps to top-level `ReportDefinition.Goals`."
 )
 
 # Targeted hints by error_code, per Yandex.Direct API errors-list reference.

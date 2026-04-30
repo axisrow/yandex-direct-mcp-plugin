@@ -309,12 +309,12 @@ def reports_custom(
             last_7_days, this_week_mon_today, this_week_mon_sun, last_week,
             last_business_week, last_3_months, last_5_years, auto. Cannot be
             combined with explicit dates.
-        goal_ids: Convenience shortcut. Comma-separated Metrika goal IDs.
-            Internally translates to --filter Goals:IN:<ids>. Note: in
-            CUSTOM_REPORT the field is named `Goals` (NOT `GoalsIds`).
-            Find goal IDs via `v4goals_get_stat_goals(campaign_ids=...)`.
-            When `Goals` is also in field_names, each row reports per-goal
-            conversions for those goal IDs.
+        goal_ids: Comma-separated Metrika goal IDs (max 10). Maps to direct
+            CLI's `--goals` flag, which emits top-level `ReportDefinition.Goals`
+            in the request body — NOT a Filter entry. Find goal IDs via
+            `v4goals_get_stat_goals(campaign_ids=...)`. When `Goals` is also
+            in field_names, each row reports per-goal conversions for these
+            goal IDs.
         campaign_ids: Comma-separated campaign IDs (max 10). Maps to
             --campaign-ids.
         adgroup_ids: Comma-separated ad group IDs (max 10). Maps to
@@ -323,7 +323,7 @@ def reports_custom(
             Operators: EQUALS, NOT_EQUALS, IN, NOT_IN, LESS_THAN, GREATER_THAN,
             STARTS_WITH_IGNORE_CASE, DOES_NOT_START_WITH_IGNORE_CASE.
             Example: ["Impressions:GREATER_THAN:0", "Device:IN:DESKTOP,MOBILE"].
-            Cannot include a `Goals:` filter when `goal_ids` is also passed.
+            `Goals` is NOT a valid Filter field — use `goal_ids` instead.
         order_by: Repeatable `FIELD[:ASC|DESC]`. Example: ["Month:ASC"].
         page_limit: For paginated retrieval of large reports.
         page_offset: For paginated retrieval of large reports.
@@ -392,13 +392,11 @@ def reports_custom(
         )
 
     effective_filters: list[str] = list(filters) if filters else []
-    if goal_ids:
-        if any(_filter_field(f).lower() == "goals" for f in effective_filters):
-            raise ValueError(
-                "conflicting goal filter: pass either goal_ids or "
-                "filters with a 'Goals:' entry, not both"
-            )
-        effective_filters.append(f"Goals:IN:{goal_ids}")
+    if any(_filter_field(f).lower() == "goals" for f in effective_filters):
+        raise ValueError(
+            "Goals is not a valid Filter field — Reports API expects goals "
+            "at top-level ReportDefinition.Goals. Pass goal_ids instead."
+        )
 
     name = report_name or f"mcp_custom_{int(time.time() * 1000)}"
 
@@ -416,6 +414,8 @@ def reports_custom(
         args.extend(["--campaign-ids", campaign_ids])
     if adgroup_ids:
         args.extend(["--adgroup-ids", adgroup_ids])
+    if goal_ids:
+        args.extend(["--goals", goal_ids])
 
     for f in effective_filters:
         args.extend(["--filter", f])

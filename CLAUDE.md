@@ -383,7 +383,8 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens stored in `${CLAUDE_PLUGIN_DATA}/tokens.json` (gitignored)
-- CLI binary: `direct` (installed via `pip install direct-cli`)
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.2` (adds `reports get --goals` / `--attribution-models`, fixes Goals Filter rejection by Reports API).
+- `reports_custom(goal_ids=...)` maps to `direct reports get --goals ...` (top-level `ReportDefinition.Goals`). `Goals` is NOT a valid Filter field — passing it via `filters=["Goals:IN:..."]` is rejected locally before the call.
 - Language: project docs in Russian, code identifiers in English
 
 ## Breaking Changes (v1 → v2 migration)
