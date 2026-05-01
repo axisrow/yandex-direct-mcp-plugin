@@ -149,7 +149,7 @@ def _login_start_args(login: str | None = None, profile: str = "default") -> lis
 
 
 def _login_finish_args(*, profile: str = "default") -> list[str]:
-    return ["auth", "login", "--profile", profile, "--code-stdin"]
+    return ["auth", "login", "--profile", profile, "--code", "-"]
 
 
 def _clean_cli_output(stdout: str = "", stderr: str = "") -> str:

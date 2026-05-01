@@ -195,7 +195,8 @@ class TestAuthSetup:
             "login",
             "--profile",
             "default",
-            "--code-stdin",
+            "--code",
+            "-",
         ]
 
     def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
@@ -423,7 +424,8 @@ class TestAuthLogin:
             "login",
             "--profile",
             "custom",
-            "--code-stdin",
+            "--code",
+            "-",
         ]
         assert mock_run.call_args_list[1].kwargs == {
             "timeout": 60,
