@@ -152,6 +152,10 @@ def _login_finish_args(*, profile: str = "default") -> list[str]:
     return ["auth", "login", "--profile", profile, "--code", "-"]
 
 
+def _login_finish_legacy_args(*, profile: str = "default") -> list[str]:
+    return ["auth", "login", "--profile", profile, "--code-stdin"]
+
+
 def _clean_cli_output(stdout: str = "", stderr: str = "") -> str:
     return _strip_ansi(stderr or stdout).strip()
 
@@ -165,6 +169,25 @@ def _parse_authorize_url(stdout: str) -> str | None:
         return None
     authorize_url = payload.get("authorize_url")
     return authorize_url if isinstance(authorize_url, str) and authorize_url else None
+
+
+def _complete_login_with_code(profile: str, code: str) -> dict:
+    stdin = f"{code}\n"
+    result = _run_auth_command(
+        _login_finish_args(profile=profile),
+        timeout=60,
+        input=stdin,
+    )
+    if result.get("success"):
+        return result
+    legacy_result = _run_auth_command(
+        _login_finish_legacy_args(profile=profile),
+        timeout=60,
+        input=stdin,
+    )
+    if legacy_result.get("success"):
+        return legacy_result
+    return result
 
 
 # --- MCP Tools ---
@@ -294,11 +317,7 @@ async def auth_login(
     if result.action != "accept" or not result.data:
         return {"cancelled": True, "message": "Авторизация отменена."}
 
-    finish_result = _run_auth_command(
-        _login_finish_args(profile=target_profile),
-        timeout=60,
-        input=f"{result.data.value}\n",
-    )
+    finish_result = _complete_login_with_code(target_profile, result.data.value)
     if not finish_result.get("success"):
         return {**finish_result, "auth_url": auth_url}
     return {
