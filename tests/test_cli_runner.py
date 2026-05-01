@@ -115,6 +115,22 @@ class TestRun:
             assert "--token" not in cmd
             assert "campaigns" in cmd
 
+    def test_run_can_force_stdin_eof(self, runner):
+        mock_result = MagicMock()
+        mock_result.stdout = "{}"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch(
+                "server.cli.runner.subprocess.run", return_value=mock_result
+            ) as mock_run,
+        ):
+            runner.run(["auth", "login", "--format", "json"], input="")
+
+        assert mock_run.call_args.kwargs["input"] == ""
+
     def test_plugin_auth_options_are_not_mapped_to_direct_env(
         self, runner, monkeypatch
     ):

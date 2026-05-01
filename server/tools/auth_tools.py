@@ -248,6 +248,7 @@ async def auth_login(
         start_result = _runner().run(
             _login_start_args(login=login, profile=target_profile),
             timeout=30,
+            input="",
         )
     except CliNotFoundError as e:
         return {"success": False, "error": "cli_not_found", "message": str(e)}

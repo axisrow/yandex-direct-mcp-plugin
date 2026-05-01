@@ -59,7 +59,7 @@ class CliRunner(Protocol):
     """Protocol for executing `direct` commands as subprocesses."""
 
     def run(
-        self, args: list[str], *, timeout: int = 30
+        self, args: list[str], *, timeout: int = 30, input: str | None = None
     ) -> subprocess.CompletedProcess[str]:
         """Run a `direct` command with the given arguments."""
         ...
@@ -81,13 +81,19 @@ class DirectCliRunner:
         self._timeout = timeout
 
     def run(
-        self, args: list[str], *, timeout: int | None = None
+        self,
+        args: list[str],
+        *,
+        timeout: int | None = None,
+        input: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run a direct-cli command.
 
         Args:
             args: CLI arguments (e.g., ["campaigns", "get", "--format", "json"]).
             timeout: Override default timeout in seconds.
+            input: Optional stdin text. Pass an empty string to force EOF and
+                prevent interactive commands from inheriting a parent TTY.
 
         Returns:
             CompletedProcess with captured stdout/stderr.
@@ -111,6 +117,7 @@ class DirectCliRunner:
                 text=True,
                 timeout=effective_timeout,
                 env=_direct_env(),
+                input=input,
             )
             return result
         except subprocess.TimeoutExpired as e:

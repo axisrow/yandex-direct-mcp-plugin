@@ -285,6 +285,7 @@ class TestAuthLogin:
         mock_run.assert_called_once_with(
             ["auth", "login", "--profile", "default", "--format", "json"],
             timeout=30,
+            input="",
         )
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
@@ -417,7 +418,7 @@ class TestAuthLogin:
             "--login",
             "client",
         ]
-        assert mock_run.call_args_list[0].kwargs == {"timeout": 30}
+        assert mock_run.call_args_list[0].kwargs == {"timeout": 30, "input": ""}
         assert mock_run.call_args_list[1].args[0] == [
             "auth",
             "login",
