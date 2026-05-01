@@ -136,9 +136,7 @@ def _token_setup_args(
     return args
 
 
-def _login_start_args(
-    login: str | None = None, profile: str = "default"
-) -> list[str]:
+def _login_start_args(login: str | None = None, profile: str = "default") -> list[str]:
     args = ["auth", "login", "--profile", profile, "--format", "json"]
     if login:
         args.extend(["--login", login])
@@ -195,7 +193,7 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
             "message": "Введите готовый OAuth-токен, начинающийся с y0_.",
             "hint": (
                 "Для browser OAuth запустите auth_login(); "
-                "auth_setup принимает только auth_setup(code=\"y0_...\")."
+                'auth_setup принимает только auth_setup(code="y0_...").'
             ),
         }
     if not code.startswith("y0_"):
@@ -208,7 +206,7 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
             ),
             "hint": (
                 "Для browser OAuth запустите auth_login() и введите код в его форму; "
-                "для готового токена передайте auth_setup(code=\"y0_...\")."
+                'для готового токена передайте auth_setup(code="y0_...").'
             ),
         }
     result = _run_auth_command(_token_setup_args(code, login=login, profile=profile))
