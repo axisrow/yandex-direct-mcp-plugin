@@ -7,6 +7,31 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
+CAMPAIGN_GET_SELECTOR_FLAGS = (
+    ("text_campaign_fields", "--text-campaign-fields"),
+    (
+        "text_campaign_search_strategy_placement_types_fields",
+        "--text-campaign-search-strategy-placement-types-fields",
+    ),
+    ("mobile_app_campaign_fields", "--mobile-app-campaign-fields"),
+    ("dynamic_text_campaign_fields", "--dynamic-text-campaign-fields"),
+    (
+        "dynamic_text_campaign_search_strategy_placement_types_fields",
+        "--dynamic-text-campaign-search-strategy-placement-types-fields",
+    ),
+    ("cpm_banner_campaign_fields", "--cpm-banner-campaign-fields"),
+    ("smart_campaign_fields", "--smart-campaign-fields"),
+    ("unified_campaign_fields", "--unified-campaign-fields"),
+    (
+        "unified_campaign_search_strategy_placement_types_fields",
+        "--unified-campaign-search-strategy-placement-types-fields",
+    ),
+    (
+        "unified_campaign_package_bidding_strategy_platforms_fields",
+        "--unified-campaign-package-bidding-strategy-platforms-fields",
+    ),
+)
+
 
 @mcp.tool(name="campaigns_get")
 @handle_cli_errors
@@ -15,6 +40,17 @@ def campaigns_list(
     ids: str | None = None,
     status: str | None = None,
     types: str | None = None,
+    fields: str | None = None,
+    text_campaign_fields: str | None = None,
+    text_campaign_search_strategy_placement_types_fields: str | None = None,
+    mobile_app_campaign_fields: str | None = None,
+    dynamic_text_campaign_fields: str | None = None,
+    dynamic_text_campaign_search_strategy_placement_types_fields: str | None = None,
+    cpm_banner_campaign_fields: str | None = None,
+    smart_campaign_fields: str | None = None,
+    unified_campaign_fields: str | None = None,
+    unified_campaign_search_strategy_placement_types_fields: str | None = None,
+    unified_campaign_package_bidding_strategy_platforms_fields: str | None = None,
 ) -> list[dict] | dict:
     """List advertising campaigns, optionally filtered.
 
@@ -24,6 +60,21 @@ def campaigns_list(
         ids: Comma-separated campaign IDs (optional, max 10).
         status: Filter by status, e.g. "ACTIVE", "SUSPENDED" (optional).
         types: Filter by types, e.g. "TEXT_CAMPAIGN" (optional).
+        fields: Comma-separated common campaign FieldNames (optional).
+        text_campaign_fields: Comma-separated TextCampaignFieldNames (optional).
+        text_campaign_search_strategy_placement_types_fields: Comma-separated
+            TextCampaignSearchStrategyPlacementTypesFieldNames (optional).
+        mobile_app_campaign_fields: Comma-separated MobileAppCampaignFieldNames (optional).
+        dynamic_text_campaign_fields: Comma-separated DynamicTextCampaignFieldNames (optional).
+        dynamic_text_campaign_search_strategy_placement_types_fields: Comma-separated
+            DynamicTextCampaignSearchStrategyPlacementTypesFieldNames (optional).
+        cpm_banner_campaign_fields: Comma-separated CpmBannerCampaignFieldNames (optional).
+        smart_campaign_fields: Comma-separated SmartCampaignFieldNames (optional).
+        unified_campaign_fields: Comma-separated UnifiedCampaignFieldNames (optional).
+        unified_campaign_search_strategy_placement_types_fields: Comma-separated
+            UnifiedCampaignSearchStrategyPlacementTypesFieldNames (optional).
+        unified_campaign_package_bidding_strategy_platforms_fields: Comma-separated
+            UnifiedCampaignPackageBiddingStrategyPlatformsFieldNames (optional).
     """
     if state is not None and state not in ("ON", "OFF"):
         return ToolError(
@@ -42,6 +93,13 @@ def campaigns_list(
         args.extend(["--status", status])
     if types is not None:
         args.extend(["--types", types])
+    if fields is not None:
+        args.extend(["--fields", fields])
+    local_values = locals()
+    for option_name, cli_flag in CAMPAIGN_GET_SELECTOR_FLAGS:
+        value = local_values[option_name]
+        if value is not None:
+            args.extend([cli_flag, value])
 
     runner = get_runner()
     result = runner.run_json(args)

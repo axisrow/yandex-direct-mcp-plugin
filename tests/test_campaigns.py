@@ -79,6 +79,106 @@ class TestCampaignsList:
             ["campaigns", "get", "--format", "json", "--ids", "12345,67890"]
         )
 
+    def test_list_campaigns_text_campaign_fields_argv(self, mock_campaigns):
+        """Test campaign type-specific fields are forwarded to the CLI."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_campaigns
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_list(
+                ids="103258204",
+                fields="Id,Name,State",
+                text_campaign_fields="BiddingStrategy",
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "campaigns",
+                "get",
+                "--format",
+                "json",
+                "--ids",
+                "103258204",
+                "--fields",
+                "Id,Name,State",
+                "--text-campaign-fields",
+                "BiddingStrategy",
+            ]
+        )
+
+    def test_list_campaigns_filters_and_campaign_specific_fields_argv(
+        self, mock_campaigns
+    ):
+        """Test filters and campaign-specific selectors compose in CLI argv."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_campaigns
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_list(
+                ids="12345,67890",
+                fields="Id,Name,State",
+                status="ACCEPTED",
+                types="TEXT_CAMPAIGN",
+                state="ON",
+                text_campaign_fields="BiddingStrategy,PriorityGoals",
+                mobile_app_campaign_fields="Settings",
+                dynamic_text_campaign_fields="BiddingStrategy",
+                dynamic_text_campaign_search_strategy_placement_types_fields=(
+                    "SearchResults,DynamicPlaces"
+                ),
+                cpm_banner_campaign_fields="BiddingStrategy",
+                smart_campaign_fields="Settings",
+                unified_campaign_fields="BiddingStrategy",
+                unified_campaign_search_strategy_placement_types_fields=(
+                    "SearchResults,Maps"
+                ),
+                unified_campaign_package_bidding_strategy_platforms_fields=(
+                    "SearchResult,Network"
+                ),
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "campaigns",
+                "get",
+                "--format",
+                "json",
+                "--ids",
+                "12345,67890",
+                "--status",
+                "ACCEPTED",
+                "--types",
+                "TEXT_CAMPAIGN",
+                "--fields",
+                "Id,Name,State",
+                "--text-campaign-fields",
+                "BiddingStrategy,PriorityGoals",
+                "--mobile-app-campaign-fields",
+                "Settings",
+                "--dynamic-text-campaign-fields",
+                "BiddingStrategy",
+                "--dynamic-text-campaign-search-strategy-placement-types-fields",
+                "SearchResults,DynamicPlaces",
+                "--cpm-banner-campaign-fields",
+                "BiddingStrategy",
+                "--smart-campaign-fields",
+                "Settings",
+                "--unified-campaign-fields",
+                "BiddingStrategy",
+                "--unified-campaign-search-strategy-placement-types-fields",
+                "SearchResults,Maps",
+                "--unified-campaign-package-bidding-strategy-platforms-fields",
+                "SearchResult,Network",
+            ]
+        )
+
+    def test_list_campaigns_legacy_argv_unchanged(self, mock_campaigns):
+        """Test old campaigns_get() calls do not add selector flags."""
+        runner = MagicMock()
+        runner.run_json.return_value = mock_campaigns
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_list()
+
+        runner.run_json.assert_called_once_with(["campaigns", "get", "--format", "json"])
+
 
 class TestCampaignsUpdate:
     """Test scenarios 9-10."""
