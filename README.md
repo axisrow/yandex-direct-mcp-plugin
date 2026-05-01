@@ -116,7 +116,7 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.1`.
+- The package is still installed as `direct-cli` and must be `>=0.3.5`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -824,7 +824,7 @@ version = "0.1.5"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.4",
+    "direct-cli>=0.3.5",
 ]
 
 [project.optional-dependencies]

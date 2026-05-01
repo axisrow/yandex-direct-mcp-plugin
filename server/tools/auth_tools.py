@@ -105,9 +105,14 @@ def _resolve_profile_name(profile: str | None = None) -> str:
     return selected or "default"
 
 
-def _run_auth_command(args: list[str], *, timeout: int | None = None) -> dict:
+def _run_auth_command(
+    args: list[str], *, timeout: int | None = None, input: str | None = None
+) -> dict:
     try:
-        result = _runner().run(args, timeout=timeout)
+        if input is None:
+            result = _runner().run(args, timeout=timeout)
+        else:
+            result = _runner().run(args, timeout=timeout, input=input)
     except CliNotFoundError as e:
         return {"success": False, "error": "cli_not_found", "message": str(e)}
     except CliTimeoutError as e:
@@ -143,8 +148,8 @@ def _login_start_args(login: str | None = None, profile: str = "default") -> lis
     return args
 
 
-def _login_finish_args(code: str, *, profile: str = "default") -> list[str]:
-    return ["auth", "login", "--profile", profile, "--code", code]
+def _login_finish_args(*, profile: str = "default") -> list[str]:
+    return ["auth", "login", "--profile", profile, "--code-stdin"]
 
 
 def _clean_cli_output(stdout: str = "", stderr: str = "") -> str:
@@ -290,8 +295,9 @@ async def auth_login(
         return {"cancelled": True, "message": "Авторизация отменена."}
 
     finish_result = _run_auth_command(
-        _login_finish_args(result.data.value, profile=target_profile),
+        _login_finish_args(profile=target_profile),
         timeout=60,
+        input=f"{result.data.value}\n",
     )
     if not finish_result.get("success"):
         return {**finish_result, "auth_url": auth_url}

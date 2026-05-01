@@ -190,13 +190,12 @@ class TestAuthSetup:
             "--format",
             "json",
         ]
-        assert _login_finish_args("ABC123") == [
+        assert _login_finish_args() == [
             "auth",
             "login",
             "--profile",
             "default",
-            "--code",
-            "ABC123",
+            "--code-stdin",
         ]
 
     def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
@@ -424,16 +423,19 @@ class TestAuthLogin:
             "login",
             "--profile",
             "custom",
-            "--code",
-            "ABC123",
+            "--code-stdin",
         ]
-        assert mock_run.call_args_list[1].kwargs == {"timeout": 60}
+        assert mock_run.call_args_list[1].kwargs == {
+            "timeout": 60,
+            "input": "ABC123\n",
+        }
         for call in mock_run.call_args_list:
             args = call.args[0]
             assert "--client-id" not in args
             assert "cid" not in args
             assert "--client-secret" not in args
             assert "secret" not in args
+            assert "ABC123" not in args
         assert result == {
             "success": True,
             "method": "oauth_code",
