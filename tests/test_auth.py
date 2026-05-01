@@ -3,14 +3,13 @@
 import asyncio
 import json
 import subprocess
-import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from server.tools.auth_tools import (
     _human_readable_time,
-    _login_process_args,
-    _read_auth_url_from_process,
-    _setup_args,
+    _login_finish_args,
+    _login_start_args,
+    _token_setup_args,
     auth_login,
     auth_setup,
     auth_status,
@@ -151,7 +150,7 @@ class TestAuthSetup:
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=_completed("ok"),
         ) as mock_run:
-            auth_setup("abc123")
+            auth_setup("y0_token")
 
         args = mock_run.call_args.args[0]
         assert "--client-id" not in args
@@ -163,8 +162,8 @@ class TestAuthSetup:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
 
-        setup_args = _setup_args("abc123")
-        login_args = _login_process_args()
+        setup_args = _token_setup_args("y0_token")
+        login_args = _login_start_args()
 
         assert "--client-id" not in setup_args
         assert "--client-id" not in login_args
@@ -174,21 +173,44 @@ class TestAuthSetup:
         assert "--client-secret" not in login_args
         assert "secret" not in setup_args
         assert "secret" not in login_args
+        assert setup_args == [
+            "auth",
+            "login",
+            "--profile",
+            "default",
+            "--oauth-token",
+            "y0_token",
+        ]
+        assert login_args == [
+            "auth",
+            "login",
+            "--profile",
+            "default",
+            "--format",
+            "json",
+        ]
+        assert _login_finish_args("ABC123") == [
+            "auth",
+            "login",
+            "--profile",
+            "default",
+            "--code",
+            "ABC123",
+        ]
 
-    def test_auth_setup_with_oauth_code(self) -> None:
+    def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=_completed("✓ Profile 'custom' is saved and active.\n"),
         ) as mock_run:
             result = auth_setup("abc123", profile="custom")
 
-        assert result["success"] is True
-        assert result["method"] == "oauth_code"
-        assert result["profile"] == "custom"
-        mock_run.assert_called_once_with(
-            ["auth", "login", "--profile", "custom", "--code", "abc123"],
-            timeout=None,
-        )
+        assert result["success"] is False
+        assert result["error"] == "unsupported_oauth_code_flow"
+        assert "auth_setup" in result["message"]
+        assert "PKCE" in result["message"]
+        assert "auth_login()" in result["hint"]
+        mock_run.assert_not_called()
 
     def test_auth_setup_rejects_empty_code(self) -> None:
         result = auth_setup("")
@@ -199,12 +221,20 @@ class TestAuthSetup:
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=_completed(stderr="Error: bad code", returncode=1),
         ):
-            result = auth_setup("bad")
+            result = auth_setup("y0_bad")
         assert result["success"] is False
         assert result["error"] == "auth_failed"
 
 
 class TestAuthLogin:
+    def _accepted_ctx(self, code: str = "ABC123") -> MagicMock:
+        mock_ctx = MagicMock()
+        credential = MagicMock()
+        credential.action = "accept"
+        credential.data.value = code
+        mock_ctx.elicit = AsyncMock(return_value=credential)
+        return mock_ctx
+
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": True})
     def test_auth_login_already_authenticated(self, _mock_status) -> None:
         result = asyncio.run(auth_login(MagicMock()))
@@ -218,18 +248,14 @@ class TestAuthLogin:
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
-    @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
-    @patch(
-        "server.tools.auth_tools._read_auth_url_from_process",
-        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
-    )
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
     def test_auth_login_cancelled(
-        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        proc = MagicMock()
-        proc.poll.return_value = None
-        mock_popen.return_value = proc
+        mock_run.return_value = _completed(
+            json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+        )
 
         mock_ctx = MagicMock()
         mock_result = MagicMock()
@@ -239,119 +265,95 @@ class TestAuthLogin:
 
         result = asyncio.run(auth_login(mock_ctx))
         assert result == {"cancelled": True, "message": "Авторизация отменена."}
-        proc.terminate.assert_called_once()
-        proc.wait.assert_called_once_with(timeout=5)
+        mock_run.assert_called_once_with(
+            ["auth", "login", "--profile", "default", "--format", "json"],
+            timeout=30,
+        )
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
-    @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
-    @patch(
-        "server.tools.auth_tools._read_auth_url_from_process",
-        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
-    )
-    def test_auth_login_cancelled_kills_process_after_wait_timeout(
-        self, _mock_read_url, _mock_resolve, mock_popen, _mock_find, _mock_status
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_start_cli_failure(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        proc = MagicMock()
-        proc.poll.return_value = None
-        proc.wait.side_effect = [subprocess.TimeoutExpired(["direct"], 5), None]
-        mock_popen.return_value = proc
+        mock_run.return_value = _completed(stderr="\x1b[31mboom\x1b[0m", returncode=2)
 
-        mock_ctx = MagicMock()
-        mock_result = MagicMock()
-        mock_result.action = "decline"
-        mock_result.data = None
-        mock_ctx.elicit = AsyncMock(return_value=mock_result)
+        result = asyncio.run(auth_login(MagicMock()))
 
-        result = asyncio.run(auth_login(mock_ctx))
-        assert result["cancelled"] is True
-        proc.terminate.assert_called_once()
-        proc.kill.assert_called_once()
-        assert proc.wait.call_count == 2
-
-    @patch("server.tools.auth_tools._read_auth_store")
-    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
-    @patch("server.tools.auth_tools.subprocess.Popen")
-    @patch(
-        "server.tools.auth_tools._read_auth_url_from_process",
-        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
-    )
-    def test_auth_login_reauthenticates_expired_profile(
-        self, _mock_read_url, mock_popen, _mock_find, mock_store
-    ) -> None:
-        mock_store.return_value = {
-            "active_profile": "default",
-            "profiles": {
-                "default": {
-                    "token": "token",
-                    "login": "client",
-                    "expires_at": 1.0,
-                }
-            },
+        assert result == {
+            "success": False,
+            "error": "auth_login_failed",
+            "message": "boom",
         }
-        proc = MagicMock()
-        proc.poll.return_value = None
-        proc.returncode = 0
-        proc.communicate.return_value = ("saved", "")
-        mock_popen.return_value = proc
 
-        mock_ctx = MagicMock()
-        credential = MagicMock()
-        credential.action = "accept"
-        credential.data.value = "ABC123"
-        mock_ctx.elicit = AsyncMock(return_value=credential)
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_start_invalid_json(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.return_value = _completed("not json")
 
-        result = asyncio.run(auth_login(mock_ctx))
+        result = asyncio.run(auth_login(MagicMock()))
 
-        mock_popen.assert_called_once()
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["error"] == "auth_login_failed"
+        assert result["message"] == "not json"
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_start_missing_authorize_url(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.return_value = _completed(json.dumps({"status": "pending"}))
+
+        result = asyncio.run(auth_login(MagicMock()))
+
+        assert result["success"] is False
+        assert result["error"] == "auth_login_failed"
+        assert "authorize_url" in result["message"]
 
     @patch("server.tools.auth_tools._read_auth_store")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
-    @patch("server.tools.auth_tools.subprocess.Popen")
-    @patch(
-        "server.tools.auth_tools._read_auth_url_from_process",
-        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
-    )
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
     def test_auth_login_uses_active_profile_when_omitted(
-        self, _mock_read_url, mock_popen, _mock_find, mock_store
+        self, mock_run, _mock_find, mock_store
     ) -> None:
         mock_store.return_value = {
             "active_profile": "agency",
             "profiles": {"agency": {"token": "", "login": "client"}},
         }
-        proc = MagicMock()
-        proc.poll.return_value = None
-        proc.returncode = 0
-        proc.communicate.return_value = ("saved", "")
-        mock_popen.return_value = proc
+        mock_run.side_effect = [
+            _completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            _completed("saved"),
+        ]
 
-        mock_ctx = MagicMock()
-        credential = MagicMock()
-        credential.action = "accept"
-        credential.data.value = "ABC123"
-        mock_ctx.elicit = AsyncMock(return_value=credential)
+        result = asyncio.run(auth_login(self._accepted_ctx()))
 
-        result = asyncio.run(auth_login(mock_ctx))
-
-        cmd = mock_popen.call_args.args[0]
-        assert cmd[:5] == ["/usr/bin/direct", "auth", "login", "--profile", "agency"]
         assert result["profile"] == "agency"
+        assert mock_run.call_args_list[0].args[0] == [
+            "auth",
+            "login",
+            "--profile",
+            "agency",
+            "--format",
+            "json",
+        ]
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
-    @patch("server.tools.auth_tools.subprocess.Popen")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
-    @patch(
-        "server.tools.auth_tools._read_auth_url_from_process",
-        return_value=("https://oauth.yandex.ru/authorize?x=1", "url"),
-    )
-    def test_auth_login_sends_code_to_same_process(
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_completes_two_step_pkce_flow(
         self,
-        _mock_read_url,
+        mock_run,
         _mock_resolve,
-        mock_popen,
         _mock_find,
         _mock_status,
         monkeypatch,
@@ -360,36 +362,43 @@ class TestAuthLogin:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
-        proc = MagicMock()
-        proc.poll.return_value = None
-        proc.returncode = 0
-        proc.communicate.return_value = ("saved", "")
-        mock_popen.return_value = proc
+        mock_run.side_effect = [
+            _completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            _completed("saved"),
+        ]
 
-        mock_ctx = MagicMock()
-        credential = MagicMock()
-        credential.action = "accept"
-        credential.data.value = "ABC123"
-        mock_ctx.elicit = AsyncMock(return_value=credential)
+        result = asyncio.run(
+            auth_login(self._accepted_ctx(), login="client", profile="custom")
+        )
 
-        result = asyncio.run(auth_login(mock_ctx, login="client", profile="custom"))
-
-        mock_popen.assert_called_once()
-        cmd = mock_popen.call_args.args[0]
-        kwargs = mock_popen.call_args.kwargs
-        assert cmd == [
-            "/usr/bin/direct",
+        assert mock_run.call_args_list[0].args[0] == [
             "auth",
             "login",
             "--profile",
             "custom",
+            "--format",
+            "json",
             "--login",
             "client",
         ]
-        assert "env" in kwargs
-        assert "YANDEX_DIRECT_CLIENT_ID" not in kwargs["env"]
-        assert "YANDEX_DIRECT_CLIENT_SECRET" not in kwargs["env"]
-        proc.communicate.assert_called_once_with(input="ABC123\n", timeout=60)
+        assert mock_run.call_args_list[0].kwargs == {"timeout": 30}
+        assert mock_run.call_args_list[1].args[0] == [
+            "auth",
+            "login",
+            "--profile",
+            "custom",
+            "--code",
+            "ABC123",
+        ]
+        assert mock_run.call_args_list[1].kwargs == {"timeout": 60}
+        for call in mock_run.call_args_list:
+            args = call.args[0]
+            assert "--client-id" not in args
+            assert "cid" not in args
+            assert "--client-secret" not in args
+            assert "secret" not in args
         assert result == {
             "success": True,
             "method": "oauth_code",
@@ -397,44 +406,28 @@ class TestAuthLogin:
             "login": "client",
         }
 
-    def test_read_auth_url_from_process_reads_stderr_without_newline(self) -> None:
-        proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-c",
-                "import sys; sys.stderr.write('https://oauth.yandex.ru/authorize?x=1'); sys.stderr.flush()",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_finish_cli_failure(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.side_effect = [
+            _completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            _completed(stderr="\x1b[31mbad code\x1b[0m", returncode=1),
+        ]
 
-        auth_url, output = _read_auth_url_from_process(proc, timeout=1)
-        proc.wait(timeout=5)
+        result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
 
-        assert auth_url == "https://oauth.yandex.ru/authorize?x=1"
-        assert auth_url in output
-
-    def test_read_auth_url_from_process_times_out_without_blocking(self) -> None:
-        proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-c",
-                "import time; print('waiting', end='', flush=True); time.sleep(30)",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        try:
-            auth_url, output = _read_auth_url_from_process(proc, timeout=0.1)
-        finally:
-            proc.terminate()
-            proc.wait(timeout=5)
-
-        assert auth_url is None
-        assert output == "waiting"
+        assert result == {
+            "success": False,
+            "error": "auth_failed",
+            "message": "bad code",
+            "auth_url": "https://oauth.yandex.ru/authorize?x=1",
+        }
 
 
 def test_oauth_login_prompt_points_to_auth_login() -> None:

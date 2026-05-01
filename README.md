@@ -56,11 +56,6 @@ Use `auth_login` for a fully interactive CLI-backed flow:
 mcp__yandex_direct__auth_login()
 ```
 
-Or manually save an authorization code:
-```
-mcp__yandex_direct__auth_setup(code="nvyaod2jwwf2ctyu")
-```
-
 ### Direct token
 
 You can also save a ready token; pass `login` when the token belongs to a
@@ -280,7 +275,7 @@ mcp__yandex_direct__auth_status()
 # → {"valid": True, "profile": "default", "login": "ksamatadirect", "expires_in": 7200}
 
 # Авторизация (первый раз)
-mcp__yandex_direct__auth_setup(code="1234567")
+mcp__yandex_direct__auth_login()
 # → {"success": True, "method": "oauth_code", "profile": "default"}
 ```
 
@@ -295,9 +290,9 @@ mcp__yandex_direct__campaigns_get(state="ON")
 mcp__yandex_direct__campaigns_get(state="ON")
 # → {"error": "auth_expired", "hint": "Run auth_status ... auth_login ..."}
 
-# Неверный код авторизации
+# Обычный OAuth code передан не в тот flow
 mcp__yandex_direct__auth_setup(code="0000000")
-# → {"error": "invalid_grant", "message": "Неверный или просроченный код. Код действует 10 минут."}
+# → {"success": False, "error": "unsupported_oauth_code_flow", "hint": "Запустите auth_login() ..."}
 
 # Кампания не найдена
 mcp__yandex_direct__campaigns_update(id="999", status="ON")
@@ -345,8 +340,8 @@ pytest
 | # | Сценарий | Что проверяем | Ожидаемый результат |
 |---|---|---|---|
 | **Auth** |
-| 1 | Сохранение кода | `auth_setup(code=...)` → `direct auth login --code` | `{"success": True, "profile": "default"}` |
-| 2 | Неверный код | `auth_setup(code="0000000")` | `{"success": False, "error": "auth_failed"}` |
+| 1 | Обычный OAuth code отклоняется с подсказкой auth_login | `auth_setup(code=...)` без `y0_` | `{"success": False, "error": "unsupported_oauth_code_flow"}` |
+| 2 | Интерактивный OAuth | `auth_login()` запускает pending PKCE flow и завершает его кодом через direct-cli | `{"success": True, "method": "oauth_code"}` |
 | 3 | Готовый токен | `auth_setup(code="y0_...", login="...")` | `{"success": True, "method": "direct_token"}` |
 | 4 | Refresh токена | Запрос с истёкшим `access_token` | Refresh выполняет `direct-cli` |
 | 5 | Refresh тоже протух | Профиль невалиден | `{"error": "auth_expired", "hint": "..."}` |
