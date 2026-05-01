@@ -5,6 +5,7 @@ import json
 import subprocess
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError
 from server.tools.auth_tools import (
     _human_readable_time,
     _login_finish_args,
@@ -215,6 +216,9 @@ class TestAuthSetup:
     def test_auth_setup_rejects_empty_code(self) -> None:
         result = auth_setup("")
         assert result["error"] == "invalid_code"
+        assert "y0_" in result["message"]
+        assert "auth_login()" in result["hint"]
+        assert "код авторизации" not in result["message"]
 
     def test_auth_setup_reports_cli_failure(self) -> None:
         with patch(
@@ -224,6 +228,19 @@ class TestAuthSetup:
             result = auth_setup("y0_bad")
         assert result["success"] is False
         assert result["error"] == "auth_failed"
+
+    def test_auth_setup_reports_runner_exceptions(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=CliTimeoutError("direct timed out after 30s"),
+        ):
+            result = auth_setup("y0_token")
+
+        assert result == {
+            "success": False,
+            "error": "timeout",
+            "message": "direct timed out after 30s",
+        }
 
 
 class TestAuthLogin:
@@ -316,6 +333,23 @@ class TestAuthLogin:
         assert result["success"] is False
         assert result["error"] == "auth_login_failed"
         assert "authorize_url" in result["message"]
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_start_runner_exception(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.side_effect = CliNotFoundError("direct missing")
+
+        result = asyncio.run(auth_login(MagicMock()))
+
+        assert result == {
+            "success": False,
+            "error": "cli_not_found",
+            "message": "direct missing",
+        }
 
     @patch("server.tools.auth_tools._read_auth_store")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
@@ -426,6 +460,29 @@ class TestAuthLogin:
             "success": False,
             "error": "auth_failed",
             "message": "bad code",
+            "auth_url": "https://oauth.yandex.ru/authorize?x=1",
+        }
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_finish_runner_exception(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.side_effect = [
+            _completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            CliError("direct failed"),
+        ]
+
+        result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
+
+        assert result == {
+            "success": False,
+            "error": "auth_failed",
+            "message": "direct failed",
             "auth_url": "https://oauth.yandex.ru/authorize?x=1",
         }
 

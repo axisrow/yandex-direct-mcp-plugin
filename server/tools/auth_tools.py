@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 from mcp.server.fastmcp import Context
 
 from server.cli.runner import (
+    CliError,
+    CliNotFoundError,
+    CliTimeoutError,
     DirectCliRunner,
     _find_direct,
     _strip_ansi,
@@ -103,7 +106,14 @@ def _resolve_profile_name(profile: str | None = None) -> str:
 
 
 def _run_auth_command(args: list[str], *, timeout: int | None = None) -> dict:
-    result = _runner().run(args, timeout=timeout)
+    try:
+        result = _runner().run(args, timeout=timeout)
+    except CliNotFoundError as e:
+        return {"success": False, "error": "cli_not_found", "message": str(e)}
+    except CliTimeoutError as e:
+        return {"success": False, "error": "timeout", "message": str(e)}
+    except CliError as e:
+        return {"success": False, "error": "auth_failed", "message": str(e)}
     stdout = _strip_ansi(result.stdout).strip()
     stderr = _strip_ansi(result.stderr).strip()
     if result.returncode != 0:
@@ -182,7 +192,11 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
     if not code:
         return {
             "error": "invalid_code",
-            "message": "Введите код авторизации или OAuth-токен.",
+            "message": "Введите готовый OAuth-токен, начинающийся с y0_.",
+            "hint": (
+                "Для browser OAuth запустите auth_login(); "
+                "auth_setup принимает только auth_setup(code=\"y0_...\")."
+            ),
         }
     if not code.startswith("y0_"):
         return {
@@ -230,10 +244,17 @@ async def auth_login(
             "message": "direct not found. Install direct-cli.",
         }
 
-    start_result = _runner().run(
-        _login_start_args(login=login, profile=target_profile),
-        timeout=30,
-    )
+    try:
+        start_result = _runner().run(
+            _login_start_args(login=login, profile=target_profile),
+            timeout=30,
+        )
+    except CliNotFoundError as e:
+        return {"success": False, "error": "cli_not_found", "message": str(e)}
+    except CliTimeoutError as e:
+        return {"success": False, "error": "timeout", "message": str(e)}
+    except CliError as e:
+        return {"success": False, "error": "auth_login_failed", "message": str(e)}
     start_stdout = _strip_ansi(start_result.stdout).strip()
     start_stderr = _strip_ansi(start_result.stderr).strip()
     if start_result.returncode != 0:
