@@ -177,7 +177,9 @@ class TestCampaignsList:
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_list()
 
-        runner.run_json.assert_called_once_with(["campaigns", "get", "--format", "json"])
+        runner.run_json.assert_called_once_with(
+            ["campaigns", "get", "--format", "json"]
+        )
 
 
 class TestCampaignsUpdate:
