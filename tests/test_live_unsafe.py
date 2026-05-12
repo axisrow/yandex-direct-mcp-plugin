@@ -6,7 +6,8 @@ import warnings
 import pytest
 
 from server.tools.campaigns import campaigns_list, campaigns_update
-from server.tools.keywords import keywords_list, keywords_update
+from server.tools.keyword_bids import keyword_bids_set
+from server.tools.keywords import keywords_list
 
 pytestmark = [pytest.mark.integration, pytest.mark.live_unsafe]
 
@@ -76,14 +77,20 @@ def test_live_keywords_update_rolls_back(live_plugin_data_dir):
     )
 
     try:
-        update_result = keywords_update(id=keyword_id, bid=str(temp_bid_value))
+        update_result = keyword_bids_set(
+            keyword_id=int(keyword_id),
+            search_bid=temp_bid_value,
+        )
         assert update_result.get("success") is True, update_result
 
         updated = _find_keyword(campaign_id, keyword_id)
         assert int(updated["Bid"]) == temp_bid_value, updated
     finally:
         try:
-            rollback = keywords_update(id=keyword_id, bid=str(original_bid))
+            rollback = keyword_bids_set(
+                keyword_id=int(keyword_id),
+                search_bid=original_bid,
+            )
             assert rollback.get("success") is True, rollback
             restored = _find_keyword(campaign_id, keyword_id)
             assert int(restored["Bid"]) == original_bid, restored

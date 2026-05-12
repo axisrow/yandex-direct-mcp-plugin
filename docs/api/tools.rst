@@ -58,13 +58,16 @@ Targeting & Audience
 .. automodule:: server.tools.retargeting
    :members:
 
-.. automodule:: server.tools.dynamic_targets
+.. automodule:: server.tools.dynamic_ads
    :members:
 
-.. automodule:: server.tools.negative_keywords
+.. automodule:: server.tools.dynamic_feed_ad_targets
    :members:
 
-.. automodule:: server.tools.smart_targets
+.. automodule:: server.tools.smart_ad_targets
+   :members:
+
+.. automodule:: server.tools.negative_keyword_shared_sets
    :members:
 
 Reference & Utility
@@ -110,6 +113,9 @@ V4 Live
    :members:
 
 .. automodule:: server.tools.v4goals
+   :members:
+
+.. automodule:: server.tools.v4tags
    :members:
 
 Authentication

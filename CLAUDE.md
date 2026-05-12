@@ -15,9 +15,9 @@ direct (Python CLI)         — talks to Yandex.Direct API
        ↑
 server/main.py (MCP)        — FastMCP server (stdio transport)
        ↑
-server/contract.py          — machine-readable parity layer (124 tools)
+server/contract.py          — machine-readable parity layer (129 tools)
 server/cli/runner.py        — subprocess wrapper over `direct`
-server/tools/               — 124 MCP tools across 33 active modules
+server/tools/               — 129 MCP tools across 34 active modules
        ↑
 skills/                     — domain knowledge (SKILL.md files)
        ↑
@@ -191,13 +191,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (124 total) + 1 Prompt
+## MCP Tools (129 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (118)
+### Direct API tools (123)
 
 | Tool | Purpose |
 |---|---|
@@ -231,7 +231,7 @@ WSDL/reports spec wins when there is drift.
 | `adextensions_add` | Add extension |
 | `adextensions_delete` | Delete extensions |
 | `keywords_get` | List keywords by campaign IDs |
-| `keywords_update` | Update keyword text or user params (use `keyword_bids_set` for bids) |
+| `keywords_update` | Update keyword text or user params (use `keywordbids_set` for bids) |
 | `keywords_add` | Add keywords |
 | `keywords_delete` | Delete keywords |
 | `keywords_suspend` | Suspend keywords |
@@ -369,7 +369,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.3`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.6`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -404,7 +404,7 @@ Key renames:
   form (CLI itself documents that the API rejects it with `required field Id is omitted`).
   Use the `Id` returned by `bidmodifiers_add` to update an existing modifier.
 - **`keywords_update`**: removed `bid` / `context_bid` parameters — CLI's
-  `keywords update` does not accept bid flags. Use `keyword_bids_set` for bid changes.
+  `keywords update` does not accept bid flags. Use `keywordbids_set` for bid changes.
   New params: `keyword`, `user_param_1`, `user_param_2`.
 - **Parameter types**: all single-id parameters (`id`, `campaign_id`, `ad_group_id`, `keyword_id`,
   `client_id`, `region_id`, `retargeting_condition_id`, etc.) and money parameters

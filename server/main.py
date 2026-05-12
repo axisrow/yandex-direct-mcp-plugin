@@ -45,6 +45,7 @@ import server.tools.smart_ad_targets  # noqa: E402, F401
 import server.tools.strategies  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
 import server.tools.v4goals  # noqa: E402, F401
+import server.tools.v4tags  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ OAuth-приложение само по себе не даёт доступ к 
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
 
-## MCP contract (124 tools)
+## MCP contract (129 tools)
 
 The public contract is now defined as:
 
@@ -116,7 +116,7 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.5`.
+- The package is still installed as `direct-cli` and must be `>=0.3.6`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -142,7 +142,7 @@ The machine-readable parity source lives in
 
 | Surface | Examples | Notes |
 |---|---|---|
-| Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `balance_get`, `v4goals_get_stat_goals` | Canonical CLI-mediated Direct contract |
+| Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `balance_get`, `v4goals_get_stat_goals`, `v4tags_get_campaigns` | Canonical CLI-mediated Direct contract |
 | CLI helper tools | `agencyclients_delete`, `dictionaries_list_names`, `reports_list_types` | Public, but explicitly not 1:1 Direct API methods |
 | Plugin tools | `auth_status`, `auth_setup`, `auth_login` | Plugin-only auth flows, not Direct operations |
 
@@ -184,15 +184,21 @@ The machine-readable parity source lives in
 - `smartadtargets_suspend`, `smartadtargets_resume`, `smartadtargets_set_bids`
 - `balance_get`
 - `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`
+- `v4tags_get_campaigns`, `v4tags_get_banners`
+- `v4tags_update_campaigns`, `v4tags_update_banners`
 
 ### v4 Live coverage
 
-`direct-cli` 0.3.1 exposes v4 shell groups for future expansion, but only these
-typed public commands are registered as MCP tools today:
+`direct-cli` 0.3.6 exposes typed v4 Live commands for the methods below. Only
+typed public commands are registered as MCP tools:
 
 - `direct balance` → `balance_get`
 - `direct v4goals get-stat-goals` → `v4goals_get_stat_goals`
 - `direct v4goals get-retargeting-goals` → `v4goals_get_retargeting_goals`
+- `direct v4tags get-campaigns` → `v4tags_get_campaigns`
+- `direct v4tags get-banners` → `v4tags_get_banners`
+- `direct v4tags update-campaigns` → `v4tags_update_campaigns`
+- `direct v4tags update-banners` → `v4tags_update_banners`
 
 Other methods from `direct_cli.v4_contracts` are tracked in
 `server/contract.py` as blocked/future metadata and are not exposed until the CLI
@@ -221,7 +227,7 @@ Just ask in natural language — the plugin handles the rest:
   → keywords_get(campaign_ids="12345")
 
 > поставь ставку 15 руб на ключевое слово 99999
-  → keywords_update(id="99999", bid="15000000")
+  → keywordbids_set(keyword_id=99999, search_bid=15000000)
 
 > статистика за последнюю неделю
   → reports_get(date_from="2026-03-30", date_to="2026-04-06")
@@ -261,7 +267,7 @@ mcp__yandex_direct__keywords_get(campaign_ids="12345")
 # → [{"Id": 99999, "Keyword": "пицца доставка", "Bid": 12000000}, ...]
 
 # Изменить ставку (в микроюнитах: 15 руб = 15000000)
-mcp__yandex_direct__keywords_update(id="99999", bid="15000000")
+mcp__yandex_direct__keywordbids_set(keyword_id=99999, search_bid=15000000)
 # → {"success": True, "id": 99999, "bid": 15000000}
 
 # Статистика
@@ -357,7 +363,7 @@ pytest
 | 13 | Превышение лимита ID | `ads_get(campaign_ids="1,2,...,11")` | `{"error": "batch_limit"}` |
 | **Keywords** |
 | 14 | Ключевые слова | `keywords_get(campaign_ids="12345")` | Массив ключевых слов |
-| 15 | Изменить ставку | `keywords_update(id=..., bid=...)` | `{"success": True}` |
+| 15 | Изменить ставку | `keywordbids_set(keyword_id=..., search_bid=...)` | `{"success": True}` |
 | **Reports** |
 | 16 | Статистика за период | `reports_get(date_from=..., date_to=...)` | Массив с CampaignName, Impressions, Clicks, Cost, Conversions |
 | **Edge cases** |
@@ -820,11 +826,11 @@ direct auth login
 ```toml
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "0.1.5"
+version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.5",
+    "direct-cli>=0.3.6",
 ]
 
 [project.optional-dependencies]

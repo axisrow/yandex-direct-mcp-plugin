@@ -61,7 +61,7 @@ def keywords_update(
 ) -> dict:
     """Update keyword text or user params.
 
-    Note: bid changes go through `keyword_bids_set`, not this tool — CLI's
+    Note: bid changes go through `keywordbids_set`, not this tool — CLI's
     `keywords update` does not accept `--bid` flags.
 
     Args:

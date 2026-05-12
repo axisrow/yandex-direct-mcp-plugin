@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 119
+- Direct API tools: 123
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              125
+Total:              129
 """
 
 from __future__ import annotations
@@ -89,7 +89,7 @@ class BlockedV4Method:
     expected_cli_group: str | None
     expected_cli_subcommand: str | None
     reason: str = (
-        "direct 0.3.1 does not expose a typed CLI command for this v4 Live method."
+        "direct-cli does not expose a typed CLI command for this v4 Live method."
     )
 
 
@@ -222,6 +222,38 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="GetRetargetingGoals",
     ),
+    ContractTool(
+        public_name="v4tags_get_campaigns",
+        cli_service="v4tags",
+        cli_method="get_campaigns",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetCampaignsTags",
+    ),
+    ContractTool(
+        public_name="v4tags_get_banners",
+        cli_service="v4tags",
+        cli_method="get_banners",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetBannersTags",
+    ),
+    ContractTool(
+        public_name="v4tags_update_campaigns",
+        cli_service="v4tags",
+        cli_method="update_campaigns",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="UpdateCampaignsTags",
+    ),
+    ContractTool(
+        public_name="v4tags_update_banners",
+        cli_service="v4tags",
+        cli_method="update_banners",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="UpdateBannersTags",
+    ),
 )
 
 # Methods present in direct_cli.v4_contracts but intentionally not exposed as
@@ -279,10 +311,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "DeleteOfflineReport", "offline_reports", None, "delete-offline-report"
     ),
     BlockedV4Method("DeleteReport", "offline_reports", None, "delete-report"),
-    BlockedV4Method("GetBannersTags", "tags", None, "get-banners-tags"),
-    BlockedV4Method("GetCampaignsTags", "tags", None, "get-campaigns-tags"),
-    BlockedV4Method("UpdateBannersTags", "tags", None, "update-banners-tags"),
-    BlockedV4Method("UpdateCampaignsTags", "tags", None, "update-campaigns-tags"),
     BlockedV4Method("AdImageAssociation", "ad_image", None, "ad-image-association"),
     BlockedV4Method(
         "GetKeywordsSuggestion", "keywords", None, "get-keywords-suggestion"
