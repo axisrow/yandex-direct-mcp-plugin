@@ -61,7 +61,7 @@ def test_live_campaigns_update_rolls_back(live_plugin_data_dir):
             warnings.warn(f"Rollback failed for campaign {campaign_id}", stacklevel=2)
 
 
-def test_live_keywords_update_rolls_back(live_plugin_data_dir):
+def test_live_keyword_bids_set_rolls_back(live_plugin_data_dir):
     campaign_id = _require_env("TEST_KEYWORD_CAMPAIGN_ID")
     keyword_id = _require_env("TEST_KEYWORD_ID")
     temp_bid = _require_env("TEST_KEYWORD_BID_TEMP")

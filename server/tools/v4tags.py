@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import check_batch_limit
 
 
 def _normalize_optional(value: str | None) -> str | None:
@@ -67,12 +68,21 @@ def v4tags_get_banners(
             error="missing_selector",
             message="Pass campaign_ids or banner_ids.",
         ).__dict__
+    if normalized_campaign_ids:
+        batch_error = check_batch_limit(normalized_campaign_ids, max_size=10)
+        if batch_error:
+            return batch_error.__dict__
+    if normalized_banner_ids:
+        batch_error = check_batch_limit(normalized_banner_ids, max_size=2000)
+        if batch_error:
+            return batch_error.__dict__
 
     args = ["v4tags", "get-banners"]
     if normalized_campaign_ids:
         args.extend(["--campaign-ids", normalized_campaign_ids])
     else:
-        args.extend(["--banner-ids", normalized_banner_ids or ""])
+        assert normalized_banner_ids is not None
+        args.extend(["--banner-ids", normalized_banner_ids])
     args.extend(["--format", "json"])
 
     return get_runner().run_json(args)
@@ -152,6 +162,10 @@ def v4tags_update_banners(
             error="missing_tag_action",
             message="Pass tag_ids or set clear_tags=True.",
         ).__dict__
+    if normalized_tag_ids:
+        batch_error = check_batch_limit(normalized_tag_ids, max_size=30)
+        if batch_error:
+            return batch_error.__dict__
 
     args = ["v4tags", "update-banners", "--banner-ids", normalized_banner_ids]
     if normalized_tag_ids:

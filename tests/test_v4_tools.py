@@ -162,6 +162,20 @@ def test_v4tags_get_banners_rejects_two_selectors():
     assert result["error"] == "conflicting_selectors"
 
 
+def test_v4tags_get_banners_rejects_too_many_campaign_ids():
+    campaign_ids = ",".join(str(i) for i in range(1, 12))
+    result = v4tags_get_banners(campaign_ids=campaign_ids)
+    assert result["error"] == "batch_limit"
+    assert "Maximum 10 IDs" in result["message"]
+
+
+def test_v4tags_get_banners_rejects_too_many_banner_ids():
+    banner_ids = ",".join(str(i) for i in range(1, 2002))
+    result = v4tags_get_banners(banner_ids=banner_ids)
+    assert result["error"] == "batch_limit"
+    assert "Maximum 2000 IDs" in result["message"]
+
+
 def test_v4tags_update_campaigns_with_tags():
     runner = _mock_runner({"success": True})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
@@ -289,6 +303,13 @@ def test_v4tags_update_banners_rejects_tag_ids_and_clear():
         clear_tags=True,
     )
     assert result["error"] == "conflicting_tag_actions"
+
+
+def test_v4tags_update_banners_rejects_too_many_tag_ids():
+    tag_ids = ",".join(str(i) for i in range(1, 32))
+    result = v4tags_update_banners(banner_ids="111", tag_ids=tag_ids)
+    assert result["error"] == "batch_limit"
+    assert "Maximum 30 IDs" in result["message"]
 
 
 def test_v4_contract_exposes_only_cli_backed_tools():
