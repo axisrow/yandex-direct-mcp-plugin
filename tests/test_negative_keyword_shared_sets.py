@@ -91,15 +91,16 @@ def test_nkss_add():
 
 def test_nkss_update():
     mock_result = {"success": True}
+    runner = _mock_runner(mock_result)
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner(mock_result),
-    ) as mock:
+        return_value=runner,
+    ):
         result = negative_keyword_shared_sets_update(
-            id=100, name="Updated", extra_json='{"Keywords":["bad"]}'
+            id=100, name="Updated", keywords="bad"
         )
         assert result["success"] is True
-        mock.return_value.run_json.assert_called_once_with(
+        runner.run_json.assert_called_once_with(
             [
                 "negativekeywordsharedsets",
                 "update",
@@ -107,8 +108,8 @@ def test_nkss_update():
                 "100",
                 "--name",
                 "Updated",
-                "--json",
-                '{"Keywords":["bad"]}',
+                "--keywords",
+                "bad",
             ]
         )
 

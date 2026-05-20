@@ -1,4 +1,4 @@
-"""Tests for changes MCP tools."""
+"""Tests for changes MCP tools (CLI 0.3.8 semantics)."""
 
 from unittest.mock import MagicMock, patch
 
@@ -11,159 +11,72 @@ from server.tools.changes import (
 
 
 def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
 
 
 class TestChangesCheck:
-    """Test scenarios for changes_check."""
+    """Tests for changes_check (requires --campaign-ids + --timestamp)."""
 
     def test_check_changes(self):
-        """Test checking changes since timestamp."""
-        mock_result = {
-            "Campaigns": [{"Id": 12345, "Changes": "State"}],
-            "Timestamp": "2026-01-01T00:00:00Z",
-        }
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_check(timestamp="2026-01-01T00:00:00Z")
+        mock_result = {"Campaigns": [{"Id": 12345}]}
+        runner = _mock_runner(mock_result)
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            result = changes_check(
+                campaign_ids="12345",
+                timestamp="2026-01-01T00:00:00",
+            )
             assert result == mock_result
+            runner.run_json.assert_called_once_with(
+                [
+                    "changes",
+                    "check",
+                    "--campaign-ids",
+                    "12345",
+                    "--timestamp",
+                    "2026-01-01T00:00:00",
+                    "--format",
+                    "json",
+                ]
+            )
 
-    def test_check_empty_changes(self):
-        """Test with no changes."""
-        mock_result = {"Campaigns": []}
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_check(timestamp="2026-01-01T00:00:00Z")
-            assert result == mock_result
+    def test_check_changes_requires_campaign_ids(self):
+        result = changes_check(campaign_ids="  ", timestamp="2026-01-01T00:00:00")
+        assert result["error"] == "missing_campaign_ids"
+
+    def test_check_changes_batch_limit(self):
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = changes_check(campaign_ids=ids, timestamp="2026-01-01T00:00:00")
+        assert result["error"] == "batch_limit"
 
 
 class TestChangesCheckCamp:
-    """Test scenarios for changes_checkcamp."""
+    """Tests for changes_checkcamp (only --timestamp)."""
 
     def test_check_campaign_changes(self):
-        """Test checking changes for specific campaigns."""
-        mock_result = {
-            "Campaigns": [{"Id": 12345, "Changes": "DailyBudget"}],
-            "Timestamp": "2026-01-01T00:00:00Z",
-        }
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_checkcamp(
-                campaign_ids="12345,67890", timestamp="2026-01-01T00:00:00Z"
-            )
-            assert result == mock_result
-
-    def test_check_campaign_changes_single_id(self):
-        """Test checking changes for single campaign."""
-        mock_result = {
-            "Campaigns": [{"Id": 12345, "Changes": "Name"}],
-            "Timestamp": "2026-01-01T00:00:00Z",
-        }
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_checkcamp(
-                campaign_ids="12345", timestamp="2026-01-01T00:00:00Z"
-            )
-            assert result == mock_result
-
-    def test_check_campaign_changes_trims_ids(self):
-        """Test campaign IDs are normalized before argv construction."""
         runner = _mock_runner({"Campaigns": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
-            changes_checkcamp(
-                campaign_ids=" 12345,67890 ",
-                timestamp="2026-01-01T00:00:00Z",
-            )
-
+            changes_checkcamp(timestamp="2026-01-01T00:00:00")
         runner.run_json.assert_called_once_with(
             [
                 "changes",
                 "check-campaigns",
-                "--campaign-ids",
-                "12345,67890",
                 "--timestamp",
-                "2026-01-01T00:00:00Z",
+                "2026-01-01T00:00:00",
                 "--format",
                 "json",
             ]
         )
 
-    def test_check_campaign_changes_batch_limit(self):
-        """Test batch limit validation."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = changes_checkcamp(campaign_ids=ids, timestamp="2026-01-01T00:00:00Z")
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
-    def test_check_campaign_changes_max_ids(self):
-        """Test with exactly 10 IDs (boundary case)."""
-        mock_result = {"Campaigns": []}
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            ids = ",".join(str(i) for i in range(1, 11))  # 10 IDs
-            result = changes_checkcamp(
-                campaign_ids=ids, timestamp="2026-01-01T00:00:00Z"
-            )
-            assert result == mock_result
-
-    def test_check_campaign_changes_requires_ids(self):
-        """Test blank campaign IDs are rejected."""
-        result = changes_checkcamp(campaign_ids="   ", timestamp="2026-01-01T00:00:00Z")
-        assert result["error"] == "missing_campaign_ids"
-
 
 class TestChangesCheckDict:
-    """Test scenarios for changes_checkdict."""
+    """Tests for changes_checkdict (no arguments)."""
 
     def test_check_dictionary_changes(self):
-        """Test checking dictionary changes."""
-        mock_result = {
-            "Dictionaries": ["GeographyRegions"],
-            "Timestamp": "2026-01-01T00:00:00Z",
-        }
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_checkdict(timestamp="2026-01-01T00:00:00Z")
-            assert result == mock_result
-
-    def test_check_dictionary_changes_no_updates(self):
-        """Test with no dictionary updates."""
-        mock_result = {"Dictionaries": []}
-        with patch(
-            "server.tools.changes.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = changes_checkdict(timestamp="2026-01-01T00:00:00Z")
-            assert result == mock_result
-
-    def test_check_dictionary_changes_argv(self):
-        """Test dictionary checks use the canonical CLI command."""
         runner = _mock_runner({"Dictionaries": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
-            changes_checkdict(timestamp="2026-01-01T00:00:00Z")
-
+            changes_checkdict()
         runner.run_json.assert_called_once_with(
-            [
-                "changes",
-                "check-dictionaries",
-                "--timestamp",
-                "2026-01-01T00:00:00Z",
-                "--format",
-                "json",
-            ]
+            ["changes", "check-dictionaries", "--format", "json"]
         )

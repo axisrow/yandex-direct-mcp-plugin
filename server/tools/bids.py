@@ -1,7 +1,5 @@
 """MCP tools for bid management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
@@ -13,13 +11,21 @@ def bids_list(
     campaign_ids: str | None = None,
     ad_group_ids: str | None = None,
     keyword_ids: str | None = None,
+    serving_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
 ) -> list[dict] | dict:
     """List bids.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (optional, max 10).
-        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
-        keyword_ids: Comma-separated keyword IDs (optional, max 10).
+        campaign_ids: Comma-separated campaign IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+        keyword_ids: Comma-separated keyword IDs (max 10).
+        serving_statuses: Comma-separated serving statuses.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
     args = ["bids", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
@@ -40,6 +46,14 @@ def bids_list(
         if batch_error:
             return batch_error.__dict__
         args.extend(["--keyword-ids", normalized_keyword_ids])
+    if serving_statuses is not None:
+        args.extend(["--serving-statuses", serving_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
 
     runner = get_runner()
     return runner.run_json(args)
@@ -48,32 +62,25 @@ def bids_list(
 @mcp.tool(name="bids_set")
 @handle_cli_errors
 def bids_set(
-    campaign_id: int,
+    keyword_id: int,
     bid: int | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
-    """Set bid for a campaign.
+    """Set a keyword bid.
+
+    CLI 0.3.8 dropped --json; the only typed knob is --bid for a single keyword.
 
     Args:
-        campaign_id: Campaign ID.
+        keyword_id: Keyword ID.
         bid: Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
             0 < x < 100_000 with a "did you mean × 1_000_000" hint.
-        extra_json: Optional JSON string with additional parameters.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if bid is None and extra_json is None:
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one of: bid, extra_json",
-        ).__dict__
-
-    args = ["bids", "set", "--campaign-id", str(campaign_id)]
+    args = ["bids", "set", "--keyword-id", str(keyword_id)]
     if bid is not None:
         args.extend(["--bid", str(bid)])
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -86,10 +93,11 @@ def bids_set_auto(
     keyword_id: int | None = None,
     max_bid: int | None = None,
     position: str | None = None,
-    increase_percent: str | None = None,
+    increase_percent: int | None = None,
     calculate_by: str | None = None,
-    context_coverage: str | None = None,
-    scope: str | None = None,
+    context_coverage: int | None = None,
+    scope: list[str] | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Configure automatic bidding.
 
@@ -104,6 +112,7 @@ def bids_set_auto(
         calculate_by: Bid calculation method.
         context_coverage: Network coverage value.
         scope: Bidding scope.
+        dry_run: Show the direct-cli request without sending it.
     """
     if campaign_id is None and ad_group_id is None and keyword_id is None:
         return ToolError(
@@ -138,13 +147,16 @@ def bids_set_auto(
     if position is not None:
         args.extend(["--position", position])
     if increase_percent is not None:
-        args.extend(["--increase-percent", increase_percent])
+        args.extend(["--increase-percent", str(increase_percent)])
     if calculate_by is not None:
         args.extend(["--calculate-by", calculate_by])
     if context_coverage is not None:
-        args.extend(["--context-coverage", context_coverage])
-    if scope is not None:
-        args.extend(["--scope", scope])
+        args.extend(["--context-coverage", str(context_coverage)])
+    if scope:
+        for spec in scope:
+            args.extend(["--scope", spec])
+    if dry_run:
+        args.append("--dry-run")
 
     runner = get_runner()
     return runner.run_json(args)

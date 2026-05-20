@@ -86,31 +86,46 @@ class TestAdimagesList:
 
 
 class TestAdimagesAdd:
-    """Tests for adimages_add tool."""
+    """Tests for adimages_add tool (CLI 0.3.8 typed flags)."""
 
-    def test_add_image_success(self):
-        """Test adding image successfully."""
+    def test_add_image_with_data(self):
+        """Test adding image with base64 image_data."""
         mock_result = {"Id": 123, "Name": "new_image.jpg"}
-        image_json = '{"Name": "new_image.jpg", "Data": "base64data"}'
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.images.get_runner", return_value=runner):
-            result = adimages_add(image_json=image_json)
+            result = adimages_add(name="new_image.jpg", image_data="base64data")
             assert result["Id"] == 123
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+            runner.run_json.assert_called_once_with(
+                [
+                    "adimages",
+                    "add",
+                    "--name",
+                    "new_image.jpg",
+                    "--image-data",
+                    "base64data",
+                ]
+            )
 
-    def test_add_image_argv_composition(self):
-        """Test add passes correct argv to CLI."""
+    def test_add_image_with_file(self):
+        """Test adding image with file path."""
         runner = MagicMock()
         runner.run_json.return_value = {"Id": 124}
         with patch("server.tools.images.get_runner", return_value=runner):
-            adimages_add(image_json='{"Data":"abc"}')
+            adimages_add(name="img", image_file="/tmp/img.jpg", type="REGULAR")
+        argv = runner.run_json.call_args[0][0]
+        assert "--image-file" in argv
+        assert "/tmp/img.jpg" in argv
+        assert "--type" in argv
 
-        runner.run_json.assert_called_once_with(
-            ["adimages", "add", "--json", '{"Data":"abc"}']
-        )
+    def test_add_image_requires_source(self):
+        result = adimages_add(name="x")
+        assert result["error"] == "missing_image_source"
+
+    def test_add_image_rejects_conflicting_source(self):
+        result = adimages_add(name="x", image_data="d", image_file="/p")
+        assert result["error"] == "conflicting_image_source"
 
 
 class TestAdimagesDelete:

@@ -109,22 +109,70 @@ class TestAdsCrudOperations:
                 ]
             )
 
+    def test_ads_add_mobile_app(self):
+        """MOBILE_APP_AD: tracking_url, action, age_label, image_hash pass through."""
+        runner = _mock_runner({"Id": 9999})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="MOBILE_APP_AD",
+                title="Install now",
+                text="Free game",
+                image_hash="abc123",
+                tracking_url="https://track.example/click",
+                action="INSTALL",
+                age_label="AGE_0_PLUS",
+            )
+            runner.run_json.assert_called_once_with(
+                [
+                    "ads",
+                    "add",
+                    "--adgroup-id",
+                    "1",
+                    "--type",
+                    "MOBILE_APP_AD",
+                    "--title",
+                    "Install now",
+                    "--text",
+                    "Free game",
+                    "--image-hash",
+                    "abc123",
+                    "--tracking-url",
+                    "https://track.example/click",
+                    "--action",
+                    "INSTALL",
+                    "--age-label",
+                    "AGE_0_PLUS",
+                ]
+            )
+
+    def test_ads_add_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
+        runner = _mock_runner({"_dry_run": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(ad_group_id=1, ad_type="TEXT_AD", title="t", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
+
     def test_ads_update(self):
-        """Test updating an ad."""
-        mock_result = {"Id": 111, "Status": "SUSPENDED"}
+        """Test updating an ad with new required type parameter."""
+        mock_result = {"Id": 111}
         with patch(
             "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
         ):
-            result = ads_update(id=111, status="SUSPENDED")
+            result = ads_update(id=111, type="TEXT_AD", title="New title")
             assert result["Id"] == 111
 
     def test_ads_update_argv_composition(self):
-        """Test that update passes correct argv to CLI."""
+        """Test that update passes --type and field flags correctly."""
         runner = _mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(
                 id=111,
-                status="SUSPENDED",
+                type="TEXT_AD",
+                title="New title",
+                text="New body",
+                href="https://example.com/new",
             )
             runner.run_json.assert_called_once_with(
                 [
@@ -132,18 +180,50 @@ class TestAdsCrudOperations:
                     "update",
                     "--id",
                     "111",
-                    "--status",
-                    "SUSPENDED",
+                    "--type",
+                    "TEXT_AD",
+                    "--title",
+                    "New title",
+                    "--text",
+                    "New body",
+                    "--href",
+                    "https://example.com/new",
                 ]
             )
 
+    def test_ads_update_mobile_app_argv(self):
+        """MOBILE_APP_AD update accepts tracking_url / action / age_label / image_hash."""
+        runner = _mock_runner({"Id": 222})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(
+                id=222,
+                type="MOBILE_APP_AD",
+                image_hash="hash123",
+                tracking_url="https://t.example",
+                action="INSTALL",
+                age_label="AGE_0_PLUS",
+            )
+            argv = runner.run_json.call_args[0][0]
+            assert "--type" in argv and "MOBILE_APP_AD" in argv
+            assert "--tracking-url" in argv
+            assert "--action" in argv
+            assert "--age-label" in argv
+
     def test_ads_update_requires_changes(self):
-        """Test that empty updates are rejected before CLI call."""
+        """Test that empty updates (type only) are rejected before CLI call."""
         runner = _mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
-            result = ads_update(id=111)
+            result = ads_update(id=111, type="TEXT_AD")
             assert result["error"] == "missing_update_fields"
             runner.run_json.assert_not_called()
+
+    def test_ads_update_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
+        runner = _mock_runner({"_dry_run": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(id=111, type="TEXT_AD", title="x", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_ads_delete_success(self):
         """Test deleting ads successfully."""

@@ -1,7 +1,5 @@
 """MCP tools for keyword management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -21,33 +19,79 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
 
 @mcp.tool(name="keywords_get")
 @handle_cli_errors
-def keywords_list(campaign_ids: str) -> list[dict] | dict:
-    """List keywords in specified campaigns.
+def keywords_list(
+    campaign_ids: str | None = None,
+    ids: str | None = None,
+    ad_group_ids: str | None = None,
+    status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
+    modified_since: str | None = None,
+    serving_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
+) -> list[dict] | dict:
+    """List keywords.
 
     Args:
         campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated keyword IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+        status: Filter by a single status.
+        statuses: Comma-separated statuses.
+        states: Comma-separated states.
+        modified_since: ModifiedSince datetime in CLI-accepted form.
+        serving_statuses: Comma-separated serving statuses.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
-    normalized_campaign_ids = campaign_ids.strip()
-    if not normalized_campaign_ids:
-        return ToolError(
-            error="missing_campaign_ids",
-            message="Provide at least one campaign ID.",
-        ).__dict__
-    batch_error = _check_batch_limit(normalized_campaign_ids)
-    if batch_error:
-        return batch_error.__dict__
+    args = ["keywords", "get", "--format", "json"]
+    has_selector = False
+    for value, flag, batch in (
+        (campaign_ids, "--campaign-ids", True),
+        (ids, "--ids", True),
+        (ad_group_ids, "--adgroup-ids", True),
+    ):
+        if value is None:
+            continue
+        normalized = value.strip()
+        if not normalized:
+            continue
+        if batch:
+            batch_error = _check_batch_limit(normalized)
+            if batch_error:
+                return batch_error.__dict__
+        args.extend([flag, normalized])
+        has_selector = True
 
-    runner = get_runner()
-    return runner.run_json(
-        [
-            "keywords",
-            "get",
-            "--campaign-ids",
-            normalized_campaign_ids,
-            "--format",
-            "json",
-        ]
-    )
+    if not has_selector and not fetch_all:
+        return ToolError(
+            error="missing_selector",
+            message=(
+                "Provide at least one of: campaign_ids, ids, ad_group_ids. "
+                "To list every keyword in the account, pass fetch_all=True explicitly."
+            ),
+        ).__dict__
+    if status is not None:
+        args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
+    if modified_since is not None:
+        args.extend(["--modified-since", modified_since])
+    if serving_statuses is not None:
+        args.extend(["--serving-statuses", serving_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
+
+    return get_runner().run_json(args)
 
 
 @mcp.tool()
@@ -57,24 +101,25 @@ def keywords_update(
     keyword: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update keyword text or user params.
 
     Note: bid changes go through `keywordbids_set`, not this tool — CLI's
-    `keywords update` does not accept `--bid` flags.
+    `keywords update` does not accept `--bid` flags. CLI 0.3.8 also removed
+    the free-form `--json` flag.
 
     Args:
         id: Keyword ID.
         keyword: Optional new keyword text.
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if not any((keyword, user_param_1, user_param_2, extra_json)):
+    if not any((keyword, user_param_1, user_param_2)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: keyword, user_param_1, user_param_2, extra_json",
+            message="Provide at least one of: keyword, user_param_1, user_param_2",
         ).__dict__
 
     runner = get_runner()
@@ -85,13 +130,16 @@ def keywords_update(
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
-    runner.run_json(args)
+    if dry_run:
+        args.append("--dry-run")
+    cli_output = runner.run_json(args)
 
+    if dry_run:
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": cli_output,
+        }
     result: dict[str, object] = {"success": True, "id": id}
     if keyword is not None:
         result["keyword"] = keyword
@@ -99,8 +147,6 @@ def keywords_update(
         result["user_param_1"] = user_param_1
     if user_param_2 is not None:
         result["user_param_2"] = user_param_2
-    if extra_json:
-        result["extra_json"] = extra_json
     return result
 
 
@@ -113,9 +159,13 @@ def keywords_add(
     context_bid: int | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Add a keyword to an ad group.
+
+    Note: this tool adds one keyword per invocation. Bulk-loading 100+
+    keywords is currently slow because direct-cli has no batch mode — see
+    upstream issue for `keywords add --from-file`.
 
     Args:
         ad_group_id: Ad group ID to add the keyword to.
@@ -125,7 +175,7 @@ def keywords_add(
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        dry_run: Show the direct-cli request without sending it.
     """
     args = ["keywords", "add", "--adgroup-id", str(ad_group_id), "--keyword", keyword]
     if bid is not None:
@@ -136,18 +186,15 @@ def keywords_add(
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_delete(ids: str) -> dict:
+def keywords_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete keywords.
 
     Args:
@@ -155,12 +202,12 @@ def keywords_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "delete", ids)
+    return run_single_id_batch(get_runner(), "keywords", "delete", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_suspend(ids: str) -> dict:
+def keywords_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend keywords.
 
     Args:
@@ -168,12 +215,14 @@ def keywords_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "suspend", ids)
+    return run_single_id_batch(
+        get_runner(), "keywords", "suspend", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_resume(ids: str) -> dict:
+def keywords_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended keywords.
 
     Args:
@@ -181,30 +230,4 @@ def keywords_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "resume", ids)
-
-
-@mcp.tool()
-@handle_cli_errors
-def keywords_archive(ids: str) -> dict:
-    """Archive keywords.
-
-    Args:
-        ids: Comma-separated keyword IDs (max 10).
-    """
-    from server.tools.helpers import run_single_id_batch
-
-    return run_single_id_batch(get_runner(), "keywords", "archive", ids)
-
-
-@mcp.tool()
-@handle_cli_errors
-def keywords_unarchive(ids: str) -> dict:
-    """Unarchive keywords.
-
-    Args:
-        ids: Comma-separated keyword IDs (max 10).
-    """
-    from server.tools.helpers import run_single_id_batch
-
-    return run_single_id_batch(get_runner(), "keywords", "unarchive", ids)
+    return run_single_id_batch(get_runner(), "keywords", "resume", ids, dry_run=dry_run)

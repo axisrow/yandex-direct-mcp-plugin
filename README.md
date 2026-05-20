@@ -116,7 +116,7 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.6`.
+- The package is still installed as `direct-cli` and must be `>=0.3.8`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -189,7 +189,7 @@ The machine-readable parity source lives in
 
 ### v4 Live coverage
 
-`direct-cli` 0.3.6 exposes typed v4 Live commands for the methods below. Only
+`direct-cli` 0.3.8 exposes typed v4 Live commands for the methods below. Only
 typed public commands are registered as MCP tools:
 
 - `direct balance` → `balance_get`
@@ -199,6 +199,10 @@ typed public commands are registered as MCP tools:
 - `direct v4tags get-banners` → `v4tags_get_banners`
 - `direct v4tags update-campaigns` → `v4tags_update_campaigns`
 - `direct v4tags update-banners` → `v4tags_update_banners`
+- `direct v4forecast create` → `v4forecast_create`
+- `direct v4forecast list` → `v4forecast_list`
+- `direct v4forecast get` → `v4forecast_get`
+- `direct v4forecast delete` → `v4forecast_delete`
 
 Other methods from `direct_cli.v4_contracts` are tracked in
 `server/contract.py` as blocked/future metadata and are not exposed until the CLI
@@ -830,7 +834,7 @@ version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.6",
+    "direct-cli>=0.3.8",
 ]
 
 [project.optional-dependencies]

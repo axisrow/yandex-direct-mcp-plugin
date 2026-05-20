@@ -1,19 +1,25 @@
 """MCP tools for sitelinks management."""
 
-import json
-
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
 @mcp.tool(name="sitelinks_get")
 @handle_cli_errors
-def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
+def sitelinks_list(
+    ids: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
+) -> list[dict] | dict:
     """List sitelinks sets.
 
     Args:
-        ids: Comma-separated sitelinks set IDs (optional, max 10).
+        ids: Comma-separated sitelinks set IDs (max 10).
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
     cmd = ["sitelinks", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
@@ -22,32 +28,51 @@ def sitelinks_list(ids: str | None = None) -> list[dict] | dict:
         if batch_error:
             return batch_error.__dict__
         cmd.extend(["--ids", normalized_ids])
-    runner = get_runner()
-    result = runner.run_json(cmd)
-    return result
+    if limit is not None:
+        cmd.extend(["--limit", str(limit)])
+    if fetch_all:
+        cmd.append("--fetch-all")
+    if fields is not None:
+        cmd.extend(["--fields", fields])
+    return get_runner().run_json(cmd)
 
 
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_add(links: str | list) -> dict:
+def sitelinks_add(sitelinks: list[str], dry_run: bool = False) -> dict:
     """Add a sitelinks set.
 
+    CLI 0.3.8 expects each sitelink as a pipe-delimited string passed via
+    repeatable --sitelink: ``TITLE|HREF[|DESCRIPTION]``.
+
     Args:
-        links: JSON array of sitelink objects.
-            Example: '[{"Title":"About","Href":"https://example.com/about"}]'
+        sitelinks: List of sitelink specs in ``TITLE|HREF[|DESCRIPTION]`` form.
+            Example: ``["About|https://example.com/about|Learn more",
+            "Pricing|https://example.com/pricing"]``.
+        dry_run: Show the direct-cli request without sending it.
     """
-    runner = get_runner()
-    links_str = json.dumps(links) if isinstance(links, list) else links
-    result = runner.run_json(["sitelinks", "add", "--links", links_str])
-    return result
+    if not sitelinks:
+        return ToolError(
+            error="missing_sitelinks",
+            message="Provide at least one sitelink spec (TITLE|HREF[|DESCRIPTION]).",
+        ).__dict__
+
+    args = ["sitelinks", "add"]
+    for spec in sitelinks:
+        args.extend(["--sitelink", spec])
+    if dry_run:
+        args.append("--dry-run")
+    return get_runner().run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_delete(ids: str) -> dict:
+def sitelinks_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete sitelinks sets.
 
     Args:
         ids: Comma-separated sitelinks set IDs (max 10).
     """
-    return run_single_id_batch(get_runner(), "sitelinks", "delete", ids)
+    return run_single_id_batch(
+        get_runner(), "sitelinks", "delete", ids, dry_run=dry_run
+    )

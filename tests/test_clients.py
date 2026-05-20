@@ -69,57 +69,56 @@ class TestClientsGet:
 
 
 class TestClientsUpdate:
-    """Test scenarios for clients_update."""
+    """Test scenarios for clients_update (CLI 0.3.8 typed flags)."""
 
     def test_update_client(self):
         """Test updating client information."""
-        mock_result = {
-            "Login": "client1",
-            "FirstName": "John",
-            "LastName": "Smith",
-        }
+        mock_result = {"Login": "client1"}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
         with patch("server.tools.clients.get_runner", return_value=runner):
-            extra_json = '{"FirstName": "John", "LastName": "Smith"}'
-            result = clients_update(client_id=123, extra_json=extra_json)
+            result = clients_update(
+                client_info="John Smith",
+                phone="+71234567890",
+                notification_email="js@example.com",
+            )
             assert result == mock_result
-            call_args = runner.run_json.call_args[0][0]
-            assert "--client-id" in call_args
-            assert "123" in call_args
-            assert "--json" in call_args
+            runner.run_json.assert_called_once_with(
+                [
+                    "clients",
+                    "update",
+                    "--client-info",
+                    "John Smith",
+                    "--phone",
+                    "+71234567890",
+                    "--notification-email",
+                    "js@example.com",
+                ]
+            )
 
-    def test_update_client_with_grants(self):
-        """Test updating client with grants."""
-        mock_result = {
-            "Login": "client1",
-            "Grants": ["CampaignManagement"],
-        }
-        with patch(
-            "server.tools.clients.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            extra_json = '{"Grants": ["CampaignManagement"]}'
-            result = clients_update(client_id=123, extra_json=extra_json)
-            assert result == mock_result
-
-    def test_update_client_argv_composition(self):
-        """Test update passes correct argv to CLI."""
+    def test_update_client_settings_repeated(self):
+        """List parameters produce repeated CLI flags."""
         runner = MagicMock()
         runner.run_json.return_value = {"Login": "client1"}
         with patch("server.tools.clients.get_runner", return_value=runner):
-            clients_update(client_id=123, extra_json='{"FirstName":"Bob"}')
+            clients_update(
+                settings=["AccountNews=YES", "Warnings=NO"],
+                email_subscriptions=["Promo=YES"],
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv.count("--setting") == 2
+        assert argv.count("--email-subscription") == 1
 
-        runner.run_json.assert_called_once_with(
-            [
-                "clients",
-                "update",
-                "--client-id",
-                "123",
-                "--json",
-                '{"FirstName":"Bob"}',
-            ]
-        )
+    def test_update_client_requires_changes(self):
+        result = clients_update()
+        assert result["error"] == "missing_update_fields"
+
+    def test_update_client_dry_run(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            clients_update(phone="+1", dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
     def test_get_client_ignores_blank_ids(self):
         """Test blank ids behave like no filter."""

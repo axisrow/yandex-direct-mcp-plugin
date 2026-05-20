@@ -321,16 +321,22 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "v4tags_get_banners",
         "v4tags_update_campaigns",
         "v4tags_update_banners",
+        "v4forecast_create",
+        "v4forecast_list",
+        "v4forecast_get",
+        "v4forecast_delete",
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
-    assert {"GetClientsUnits", "PingAPI", "CreateNewForecast"} <= (
-        V4_LIVE_BLOCKED_METHOD_NAMES
-    )
+    assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
     assert {
         "GetBannersTags",
         "GetCampaignsTags",
         "UpdateBannersTags",
         "UpdateCampaignsTags",
+        "CreateNewForecast",
+        "GetForecastList",
+        "GetForecast",
+        "DeleteForecastReport",
     }.isdisjoint(V4_LIVE_BLOCKED_METHOD_NAMES)
     assert "v4finance_get_clients_units" not in PUBLIC_TOOL_NAMES
     assert "v4meta_ping_api" not in PUBLIC_TOOL_NAMES

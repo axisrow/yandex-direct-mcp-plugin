@@ -1,4 +1,4 @@
-"""Tests for leads MCP tools."""
+"""Tests for leads MCP tools (CLI 0.3.8 — --turbo-page-ids required)."""
 
 from unittest.mock import MagicMock, patch
 
@@ -7,7 +7,6 @@ from server.tools.leads import leads_list
 
 
 def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
@@ -17,65 +16,43 @@ class TestLeadsList:
     """Tests for leads_list tool."""
 
     def test_leads_list_basic(self):
-        """Test listing leads with campaign IDs."""
-        mock_result = {"leads": [{"id": 1, "campaign_id": 12345}]}
-        with patch(
-            "server.tools.leads.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = leads_list(campaign_ids="12345")
-            assert "leads" in result
-
-    def test_leads_list_ignores_blank_campaign_ids(self):
-        """Test blank campaign IDs behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"leads": []}
+        mock_result = {"leads": [{"id": 1}]}
+        runner = _mock_runner(mock_result)
         with patch("server.tools.leads.get_runner", return_value=runner):
-            result = leads_list(campaign_ids="   ")
+            result = leads_list(turbo_page_ids="42")
             assert "leads" in result
-            call_args = runner.run_json.call_args[0][0]
-            assert "--campaign-ids" not in call_args
-
-    def test_leads_list_no_campaign_ids(self):
-        """Test listing leads without campaign IDs (all campaigns)."""
-        mock_result = {"leads": [{"id": 1, "campaign_id": 12345}]}
-        with patch(
-            "server.tools.leads.get_runner", return_value=_mock_runner(mock_result)
-        ):
-            result = leads_list()
-            assert "leads" in result
-
-    def test_leads_list_batch_limit(self):
-        """Test batch limit validation for leads_list."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = leads_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
-    def test_leads_list_passes_campaign_ids(self):
-        """Verify CLI receives --campaign-ids flag."""
-        runner = MagicMock()
-        runner.run_json.return_value = {}
-        with patch("server.tools.leads.get_runner", return_value=runner):
-            leads_list(campaign_ids="123,456")
-            call_args = runner.run_json.call_args[0][0]
-            assert "--campaign-ids" in call_args
-            assert "123,456" in call_args
+            runner.run_json.assert_called_once_with(
+                ["leads", "get", "--format", "json", "--turbo-page-ids", "42"]
+            )
 
     def test_leads_list_trims_ids(self):
-        """Test campaign IDs are normalized before argv construction."""
         runner = MagicMock()
         runner.run_json.return_value = {"leads": []}
         with patch("server.tools.leads.get_runner", return_value=runner):
-            leads_list(campaign_ids=" 123,456 ")
-
+            leads_list(turbo_page_ids=" 1,2 ")
         runner.run_json.assert_called_once_with(
-            ["leads", "get", "--format", "json", "--campaign-ids", "123,456"]
+            ["leads", "get", "--format", "json", "--turbo-page-ids", "1,2"]
         )
 
-    def test_leads_list_empty_result(self):
-        """Test empty leads response."""
-        with patch(
-            "server.tools.leads.get_runner", return_value=_mock_runner({"leads": []})
-        ):
-            result = leads_list()
-            assert result == {"leads": []}
+    def test_leads_list_requires_turbo_page_ids(self):
+        result = leads_list(turbo_page_ids="   ")
+        assert result["error"] == "missing_turbo_page_ids"
+
+    def test_leads_list_full_argv(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"leads": []}
+        with patch("server.tools.leads.get_runner", return_value=runner):
+            leads_list(
+                turbo_page_ids="42",
+                datetime_from="2026-01-01T00:00:00",
+                datetime_to="2026-01-31T23:59:59",
+                limit=100,
+                fetch_all=True,
+                fields="Id,Name",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--datetime-from" in argv
+        assert "--datetime-to" in argv
+        assert "--limit" in argv and "100" in argv
+        assert "--fetch-all" in argv
+        assert "--fields" in argv

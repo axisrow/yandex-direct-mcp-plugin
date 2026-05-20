@@ -10,8 +10,6 @@ from server.tools.keywords import (
     keywords_delete,
     keywords_suspend,
     keywords_resume,
-    keywords_archive,
-    keywords_unarchive,
 )
 
 
@@ -44,14 +42,28 @@ def test_keywords_list_trims_campaign_ids():
         keywords_list(campaign_ids=" 12345 ")
 
     runner.run_json.assert_called_once_with(
-        ["keywords", "get", "--campaign-ids", "12345", "--format", "json"]
+        ["keywords", "get", "--format", "json", "--campaign-ids", "12345"]
     )
 
 
-def test_keywords_list_requires_campaign_ids():
-    """Test blank campaign IDs are rejected."""
-    result = keywords_list(campaign_ids="   ")
-    assert result["error"] == "missing_campaign_ids"
+def test_keywords_list_blank_selector_rejected():
+    """Blank/missing selectors must NOT silently widen to an account-wide query."""
+    runner = _mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        result = keywords_list(campaign_ids="   ")
+    assert isinstance(result, dict)
+    assert result["error"] == "missing_selector"
+    runner.run_json.assert_not_called()
+
+
+def test_keywords_list_fetch_all_allows_no_selector():
+    """fetch_all=True is an explicit opt-in for unscoped enumeration."""
+    runner = _mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_list(fetch_all=True)
+    argv = runner.run_json.call_args[0][0]
+    assert "--campaign-ids" not in argv
+    assert "--fetch-all" in argv
 
 
 def test_keywords_update():
@@ -63,7 +75,7 @@ def test_keywords_update():
 
 
 def test_keywords_update_argv_composition():
-    """Test that update passes the expanded CLI surface."""
+    """Test that update passes the expanded CLI surface (no --json in 0.3.8)."""
     runner = _mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_update(
@@ -71,7 +83,6 @@ def test_keywords_update_argv_composition():
             keyword="updated kw",
             user_param_1="val1",
             user_param_2="val2",
-            extra_json='{"StrategyPriority": "HIGH"}',
         )
 
     runner.run_json.assert_called_once_with(
@@ -86,11 +97,18 @@ def test_keywords_update_argv_composition():
             "val1",
             "--user-param-2",
             "val2",
-            "--json",
-            '{"StrategyPriority": "HIGH"}',
         ]
     )
     assert result["user_param_1"] == "val1"
+
+
+def test_keywords_update_dry_run():
+    """dry_run=True appends --dry-run to argv."""
+    runner = _mock_runner(None)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_update(id=99999, keyword="x", dry_run=True)
+        argv = runner.run_json.call_args[0][0]
+        assert "--dry-run" in argv
 
 
 def test_keywords_update_requires_changes():
@@ -107,7 +125,7 @@ class TestKeywordsCrudOperations:
     """Tests for keyword CRUD operations (add, delete, suspend, resume)."""
 
     def test_keywords_add(self):
-        """Test adding a keyword to an ad group."""
+        """Test adding a keyword to an ad group (no --json in CLI 0.3.8)."""
         runner = _mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(
@@ -117,7 +135,6 @@ class TestKeywordsCrudOperations:
                 context_bid=5000000,
                 user_param_1="summer",
                 user_param_2="sale",
-                extra_json='{"Priority":"HIGH"}',
             )
             assert result["success"] is True
             runner.run_json.assert_called_once_with(
@@ -136,10 +153,16 @@ class TestKeywordsCrudOperations:
                     "summer",
                     "--user-param-2",
                     "sale",
-                    "--json",
-                    '{"Priority":"HIGH"}',
                 ]
             )
+
+    def test_keywords_add_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(ad_group_id=1, keyword="x", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_keywords_delete_success(self):
         """Test deleting keywords successfully."""
@@ -200,43 +223,3 @@ class TestKeywordsCrudOperations:
         result = keywords_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
-
-
-def test_keywords_archive_success():
-    runner = _mock_runner({"success": True})
-    with patch("server.tools.keywords.get_runner", return_value=runner):
-        result = keywords_archive(ids="111,222")
-        assert result["success"] is True
-        runner.run_json.assert_has_calls(
-            [
-                call(["keywords", "archive", "--id", "111"]),
-                call(["keywords", "archive", "--id", "222"]),
-            ]
-        )
-
-
-def test_keywords_archive_batch_limit():
-    ids = ",".join(str(i) for i in range(1, 12))
-    result = keywords_archive(ids=ids)
-    assert "error" in result
-    assert result["error"] == "batch_limit"
-
-
-def test_keywords_unarchive_success():
-    runner = _mock_runner({"success": True})
-    with patch("server.tools.keywords.get_runner", return_value=runner):
-        result = keywords_unarchive(ids="111,222")
-        assert result["success"] is True
-        runner.run_json.assert_has_calls(
-            [
-                call(["keywords", "unarchive", "--id", "111"]),
-                call(["keywords", "unarchive", "--id", "222"]),
-            ]
-        )
-
-
-def test_keywords_unarchive_batch_limit():
-    ids = ",".join(str(i) for i in range(1, 12))
-    result = keywords_unarchive(ids=ids)
-    assert "error" in result
-    assert result["error"] == "batch_limit"

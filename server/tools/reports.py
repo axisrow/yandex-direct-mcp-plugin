@@ -29,6 +29,38 @@ CUSTOM_REPORT_TIMEOUT_SECONDS = 120
 
 VALID_RESPONSE_FORMATS = frozenset({"json", "tsv", "csv", "table"})
 
+VALID_REPORT_TYPES = frozenset(
+    {
+        "ACCOUNT_PERFORMANCE_REPORT",
+        "CAMPAIGN_PERFORMANCE_REPORT",
+        "ADGROUP_PERFORMANCE_REPORT",
+        "AD_PERFORMANCE_REPORT",
+        "CRITERIA_PERFORMANCE_REPORT",
+        "CUSTOM_REPORT",
+        "REACH_AND_FREQUENCY_PERFORMANCE_REPORT",
+        "SEARCH_QUERY_PERFORMANCE_REPORT",
+    }
+)
+
+VALID_DATE_RANGE_TYPES = frozenset(
+    {
+        "TODAY",
+        "YESTERDAY",
+        "CUSTOM_DATE",
+        "ALL_TIME",
+        "LAST_30_DAYS",
+        "LAST_14_DAYS",
+        "LAST_7_DAYS",
+        "THIS_WEEK_MON_TODAY",
+        "THIS_WEEK_MON_SUN",
+        "LAST_WEEK",
+        "LAST_BUSINESS_WEEK",
+        "LAST_3_MONTHS",
+        "LAST_5_YEARS",
+        "AUTO",
+    }
+)
+
 
 def _is_goals_filter(filter_expr: str) -> bool:
     """Return whether a raw report filter targets the API's Goals field."""
@@ -397,6 +429,11 @@ def reports_custom(
             "Goals filters are not supported by Reports API Filter.Field; "
             "pass goal IDs via goal_ids instead"
         )
+
+    # report_type / date_range_type values are enforced by direct-cli's
+    # click.Choice. Plugin-side pre-validation deliberately avoided so the
+    # CLI error path (with hint "direct rejected report type") keeps working
+    # — see tests/test_reports.py::test_reports_custom_unknown_report_type.
 
     name = report_name or f"mcp_custom_{int(time.time() * 1000)}"
 

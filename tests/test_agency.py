@@ -45,11 +45,11 @@ class TestAgencyClientsList:
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.agency.get_runner", return_value=runner):
-            result = agency_clients_list(ids="123,456")
+            result = agency_clients_list(logins="login1,login2")
             runner.run_json.assert_called_once()
             call_args = runner.run_json.call_args[0][0]
-            assert "--ids" in call_args
-            assert "123,456" in call_args
+            assert "--logins" in call_args
+            assert "login1,login2" in call_args
             assert result == mock_result
 
     def test_list_empty_agency_clients(self):
@@ -67,56 +67,57 @@ class TestAgencyClientsList:
         runner = MagicMock()
         runner.run_json.return_value = {"Clients": []}
         with patch("server.tools.agency.get_runner", return_value=runner):
-            agency_clients_list(ids=" 123,456 ")
+            agency_clients_list(logins=" login1,login2 ")
 
         runner.run_json.assert_called_once_with(
-            ["agencyclients", "get", "--format", "json", "--ids", "123,456"]
+            ["agencyclients", "get", "--format", "json", "--logins", "login1,login2"]
         )
 
 
 class TestAgencyClientsAdd:
-    """Test scenarios for agency_clients_add."""
+    """Test scenarios for agency_clients_add (CLI 0.3.8 typed flags)."""
 
-    def test_add_client_to_agency(self):
-        """Test adding a client to an agency."""
-        mock_result = {
-            "Login": "new_client",
-            "FirstName": "Alice",
-            "LastName": "Johnson",
-        }
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+    def test_add_client_typed(self):
+        """Test adding a client with typed flags."""
+        mock_result = {"Login": "new_client"}
+        runner = _mock_runner(mock_result)
         with patch("server.tools.agency.get_runner", return_value=runner):
-            client_json = '{"FirstName": "Alice", "LastName": "Johnson"}'
-            result = agency_clients_add(client_json=client_json)
+            result = agency_clients_add(
+                login="new_client",
+                first_name="Alice",
+                last_name="Johnson",
+                currency="RUB",
+                notification_email="alice@example.com",
+                send_account_news=True,
+                send_warnings=False,
+            )
             assert result == mock_result
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+            runner.run_json.assert_called_once_with(
+                [
+                    "agencyclients",
+                    "add",
+                    "--login",
+                    "new_client",
+                    "--first-name",
+                    "Alice",
+                    "--last-name",
+                    "Johnson",
+                    "--currency",
+                    "RUB",
+                    "--notification-email",
+                    "alice@example.com",
+                    "--send-account-news",
+                    "--no-send-warnings",
+                ]
+            )
 
-    def test_add_client_with_grants(self):
-        """Test adding client with specific grants."""
-        mock_result = {
-            "Login": "new_client",
-            "Grants": ["CampaignManagement", "ReportManagement"],
-        }
-        with patch(
-            "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            client_json = '{"Grants": ["CampaignManagement"]}'
-            result = agency_clients_add(client_json=client_json)
-            assert result == mock_result
-
-    def test_add_client_argv_composition(self):
-        """Test add passes correct argv to CLI."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Login": "client"}
+    def test_add_client_dry_run(self):
+        runner = _mock_runner({"_dry_run": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
-            agency_clients_add(client_json='{"Login":"test"}')
-
-        runner.run_json.assert_called_once_with(
-            ["agencyclients", "add", "--json", '{"Login":"test"}']
-        )
+            agency_clients_add(
+                login="c", first_name="F", last_name="L", currency="RUB", dry_run=True
+            )
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
 
 class TestAgencyClientsDelete:
@@ -136,15 +137,14 @@ class TestAgencyClientsDelete:
 
 
 class TestAgencyClientsUpdate:
-    """Test scenarios for agency_clients_update."""
+    """Test scenarios for agency_clients_update (CLI 0.3.8)."""
 
     def test_update_client(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = _mock_runner({"success": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_update(
                 client_id=123,
-                email="test@example.com",
+                notification_email="test@example.com",
                 clear_grants=True,
             )
 
@@ -155,11 +155,30 @@ class TestAgencyClientsUpdate:
                 "update",
                 "--client-id",
                 "123",
-                "--email",
+                "--notification-email",
                 "test@example.com",
                 "--clear-grants",
             ]
         )
+
+    def test_update_client_grants_list(self):
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.agency.get_runner", return_value=runner):
+            agency_clients_update(
+                client_id=123,
+                grants=["CampaignManagement=YES", "ReportManagement=NO"],
+            )
+        argv = runner.run_json.call_args[0][0]
+        # Each grant should be a separate --grant argument
+        assert argv.count("--grant") == 2
+
+    def test_update_client_conflicting_grants(self):
+        result = agency_clients_update(
+            client_id=123,
+            grants=["X=YES"],
+            clear_grants=True,
+        )
+        assert result["error"] == "conflicting_grants"
 
     def test_update_client_requires_changes(self):
         result = agency_clients_update(client_id=123)

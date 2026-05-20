@@ -1,7 +1,5 @@
 """MCP tools for ad extensions management."""
 
-import json
-
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
@@ -10,13 +8,26 @@ from server.tools.helpers import check_batch_limit, run_single_id_batch
 @mcp.tool(name="adextensions_get")
 @handle_cli_errors
 def adextensions_list(
-    ids: str | None = None, types: str | None = None
+    ids: str | None = None,
+    types: str | None = None,
+    states: str | None = None,
+    statuses: str | None = None,
+    modified_since: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
 ) -> list[dict] | dict:
     """List ad extensions.
 
     Args:
-        ids: Comma-separated extension IDs (optional).
-        types: Comma-separated extension types to filter (optional).
+        ids: Comma-separated extension IDs.
+        types: Comma-separated extension types.
+        states: Comma-separated states.
+        statuses: Comma-separated statuses.
+        modified_since: ModifiedSince datetime.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
     cmd = ["adextensions", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
@@ -28,41 +39,47 @@ def adextensions_list(
     normalized_types = types.strip() if types is not None else None
     if normalized_types:
         cmd.extend(["--types", normalized_types])
-    runner = get_runner()
-    result = runner.run_json(cmd)
-    return result
+    if states is not None:
+        cmd.extend(["--states", states])
+    if statuses is not None:
+        cmd.extend(["--statuses", statuses])
+    if modified_since is not None:
+        cmd.extend(["--modified-since", modified_since])
+    if limit is not None:
+        cmd.extend(["--limit", str(limit)])
+    if fetch_all:
+        cmd.append("--fetch-all")
+    if fields is not None:
+        cmd.extend(["--fields", fields])
+    return get_runner().run_json(cmd)
 
 
 @mcp.tool()
 @handle_cli_errors
-def adextensions_add(extension_type: str, extra_json: str | dict) -> dict:
-    """Add an ad extension.
+def adextensions_add(callout_text: str, dry_run: bool = False) -> dict:
+    """Add an ad extension (callout).
+
+    CLI 0.3.8 exposes only the CALLOUT type via `--callout-text`. For SITELINK
+    extensions use the `sitelinks_*` tools.
 
     Args:
-        extension_type: Type of extension (e.g., "CALLOUT", "SITELINK").
-        extra_json: JSON string describing the extension content.
+        callout_text: Callout text (Callout extension).
+        dry_run: Show the direct-cli request without sending it.
     """
-    runner = get_runner()
-    json_str = json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-    result = runner.run_json(
-        [
-            "adextensions",
-            "add",
-            "--type",
-            extension_type,
-            "--json",
-            json_str,
-        ]
-    )
-    return result
+    args = ["adextensions", "add", "--callout-text", callout_text]
+    if dry_run:
+        args.append("--dry-run")
+    return get_runner().run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def adextensions_delete(ids: str) -> dict:
+def adextensions_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ad extensions.
 
     Args:
         ids: Comma-separated extension IDs (max 10).
     """
-    return run_single_id_batch(get_runner(), "adextensions", "delete", ids)
+    return run_single_id_batch(
+        get_runner(), "adextensions", "delete", ids, dry_run=dry_run
+    )

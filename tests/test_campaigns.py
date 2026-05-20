@@ -222,7 +222,7 @@ class TestCampaignsUpdate:
             assert result["error"] == "auth_expired"
 
     def test_campaigns_update_argv_composition(self):
-        """Test that update passes the expanded CLI surface."""
+        """Test that update passes the typed CLI surface (no --json in 0.3.8)."""
         runner = _mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(
@@ -230,7 +230,8 @@ class TestCampaignsUpdate:
                 name="Renamed",
                 status="SUSPENDED",
                 budget=5000,
-                notification={"SmsSettings": {"Events": ["MONITORING"]}},
+                start_date="2026-06-01",
+                end_date="2026-12-31",
             )
 
         runner.run_json.assert_called_once_with(
@@ -245,45 +246,23 @@ class TestCampaignsUpdate:
                 "SUSPENDED",
                 "--budget",
                 "5000",
-                "--json",
-                '{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
+                "--start-date",
+                "2026-06-01",
+                "--end-date",
+                "2026-12-31",
             ]
         )
         assert result["budget"] == 5000
-        assert result["notification"] == {"SmsSettings": {"Events": ["MONITORING"]}}
+        assert result["start_date"] == "2026-06-01"
+        assert result["end_date"] == "2026-12-31"
 
-    def test_campaigns_update_notification_as_string(self):
-        """Test that notification accepts a JSON string and wraps it correctly."""
+    def test_campaigns_update_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
         runner = _mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
-            result = campaigns_update(
-                id=12345,
-                notification='{"SmsSettings": {"Events": ["MONITORING"]}}',
-            )
-        assert result["success"] is True
-        assert result["notification"] == {"SmsSettings": {"Events": ["MONITORING"]}}
-        runner.run_json.assert_called_once_with(
-            [
-                "campaigns",
-                "update",
-                "--id",
-                "12345",
-                "--json",
-                '{"Notification": {"SmsSettings": {"Events": ["MONITORING"]}}}',
-            ]
-        )
-
-    def test_campaigns_update_notification_invalid_json(self):
-        """Test that an invalid JSON string for notification returns a clear error."""
-        result = campaigns_update(id=12345, notification="not-valid-json")
-        assert result["error"] == "invalid_json"
-        assert "notification" in result["message"]
-
-    def test_campaigns_update_notification_non_dict_json(self):
-        """Test that a non-object JSON value for notification returns a clear error."""
-        result = campaigns_update(id=12345, notification="[1, 2, 3]")
-        assert result["error"] == "invalid_json"
-        assert "JSON object" in result["message"]
+            campaigns_update(id=12345, name="x", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_campaigns_update_requires_changes(self):
         """Test that empty updates are rejected before CLI call."""
@@ -299,7 +278,7 @@ class TestCampaignsCrudOperations:
     """Tests for campaign CRUD operations (add, delete, archive, unarchive)."""
 
     def test_campaigns_add(self):
-        """Test adding a new campaign."""
+        """Test adding a new campaign with typed strategy/settings flags."""
         mock_result = {"Id": 99999, "Name": "New Campaign"}
         runner = _mock_runner(mock_result)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
@@ -309,9 +288,12 @@ class TestCampaignsCrudOperations:
                 campaign_type="TEXT_CAMPAIGN",
                 budget=5000,
                 end_date="2026-12-31",
-                bidding_strategy={
-                    "Search": {"BiddingStrategyType": "HIGHEST_POSITION"}
-                },
+                search_strategy="HIGHEST_POSITION",
+                network_strategy="MAXIMUM_COVERAGE",
+                settings=[
+                    "EnableEmailNotification=YES",
+                    "RequireServicing=NO",
+                ],
             )
             assert result["Id"] == 99999
             runner.run_json.assert_called_once_with(
@@ -328,44 +310,24 @@ class TestCampaignsCrudOperations:
                     "5000",
                     "--end-date",
                     "2026-12-31",
-                    "--json",
-                    '{"BiddingStrategy": {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}}',
+                    "--search-strategy",
+                    "HIGHEST_POSITION",
+                    "--network-strategy",
+                    "MAXIMUM_COVERAGE",
+                    "--setting",
+                    "EnableEmailNotification=YES",
+                    "--setting",
+                    "RequireServicing=NO",
                 ]
             )
 
-    def test_campaigns_add_bidding_strategy_as_string(self):
-        """Test that bidding_strategy accepts a JSON string."""
-        mock_result = {"Id": 99999}
-        runner = _mock_runner(mock_result)
+    def test_campaigns_add_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
+        runner = _mock_runner({"Id": 99999})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
-            result = campaigns_add(
-                name="New Campaign",
-                start_date="2026-01-01",
-                bidding_strategy='{"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}',
-            )
-        assert result["Id"] == 99999
-        call_args = runner.run_json.call_args[0][0]
-        assert "--json" in call_args
-
-    def test_campaigns_add_bidding_strategy_invalid_json(self):
-        """Test that an invalid JSON string for bidding_strategy returns a clear error."""
-        result = campaigns_add(
-            name="New Campaign",
-            start_date="2026-01-01",
-            bidding_strategy="not-valid-json",
-        )
-        assert result["error"] == "invalid_json"
-        assert "bidding_strategy" in result["message"]
-
-    def test_campaigns_add_bidding_strategy_non_dict_json(self):
-        """Test that a non-object JSON value for bidding_strategy returns a clear error."""
-        result = campaigns_add(
-            name="New Campaign",
-            start_date="2026-01-01",
-            bidding_strategy="123",
-        )
-        assert result["error"] == "invalid_json"
-        assert "JSON object" in result["message"]
+            campaigns_add(name="x", start_date="2026-01-01", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""

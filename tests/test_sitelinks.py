@@ -70,23 +70,43 @@ class TestSitelinksList:
 
 
 class TestSitelinksAdd:
-    """Tests for sitelinks_add tool."""
+    """Tests for sitelinks_add tool (CLI 0.3.8: repeatable --sitelink)."""
 
     def test_add_sitelinks_success(self):
-        """Test adding sitelinks successfully."""
+        """Each sitelink spec becomes a separate --sitelink argument."""
         mock_result = {"Id": 123}
-        links = '[{"Title":"About","Href":"https://example.com/about"}]'
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
-        with patch(
-            "server.tools.sitelinks.get_runner",
-            return_value=runner,
-        ):
-            result = sitelinks_add(links=links)
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            result = sitelinks_add(
+                sitelinks=[
+                    "About|https://example.com/about|Learn more",
+                    "Pricing|https://example.com/pricing",
+                ]
+            )
             assert result["Id"] == 123
-            call_args = runner.run_json.call_args[0][0]
-            assert "--links" in call_args
+            runner.run_json.assert_called_once_with(
+                [
+                    "sitelinks",
+                    "add",
+                    "--sitelink",
+                    "About|https://example.com/about|Learn more",
+                    "--sitelink",
+                    "Pricing|https://example.com/pricing",
+                ]
+            )
+
+    def test_add_sitelinks_empty_list(self):
+        result = sitelinks_add(sitelinks=[])
+        assert result["error"] == "missing_sitelinks"
+
+    def test_add_sitelinks_dry_run(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            sitelinks_add(sitelinks=["A|https://a"], dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
 
 class TestSitelinksDelete:

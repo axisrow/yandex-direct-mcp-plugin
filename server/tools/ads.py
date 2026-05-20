@@ -43,18 +43,44 @@ def ads_list(
     ids: str | None = None,
     ad_group_ids: str | None = None,
     status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
+    types: str | None = None,
+    mobile: str | None = None,
+    vcard_ids: str | None = None,
+    sitelink_set_ids: str | None = None,
+    image_hashes: str | None = None,
+    vcard_moderation_statuses: str | None = None,
+    sitelinks_moderation_statuses: str | None = None,
+    image_moderation_statuses: str | None = None,
+    adextension_ids: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
     fields: str | None = None,
     text_ad_fields: str | None = None,
 ) -> list[dict] | dict:
     """List ads.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (optional, max 10).
-        ids: Comma-separated ad IDs (optional, max 10).
-        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
-        status: Filter by status (optional).
-        fields: Comma-separated WSDL FieldNames selectors (optional).
-        text_ad_fields: Comma-separated WSDL TextAdFieldNames selectors (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
+        campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated ad IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+        status: Filter by a single status.
+        statuses: Comma-separated statuses.
+        states: Comma-separated states.
+        types: Comma-separated ad types.
+        mobile: "YES" or "NO".
+        vcard_ids: Comma-separated vCard IDs.
+        sitelink_set_ids: Comma-separated sitelink set IDs.
+        image_hashes: Comma-separated ad image hashes.
+        vcard_moderation_statuses: Comma-separated vCard moderation statuses.
+        sitelinks_moderation_statuses: Comma-separated sitelinks moderation statuses.
+        image_moderation_statuses: Comma-separated image moderation statuses.
+        adextension_ids: Comma-separated ad extension IDs.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated top-level FieldNames.
+        text_ad_fields: Comma-separated TextAd FieldNames.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
@@ -87,6 +113,37 @@ def ads_list(
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
+    if types is not None:
+        args.extend(["--types", types])
+    if mobile is not None:
+        if mobile not in ("YES", "NO"):
+            return ToolError(
+                error="invalid_mobile",
+                message=f"mobile must be YES or NO; got '{mobile}'",
+            ).__dict__
+        args.extend(["--mobile", mobile])
+    if vcard_ids is not None:
+        args.extend(["--vcard-ids", vcard_ids])
+    if sitelink_set_ids is not None:
+        args.extend(["--sitelink-set-ids", sitelink_set_ids])
+    if image_hashes is not None:
+        args.extend(["--image-hashes", image_hashes])
+    if vcard_moderation_statuses is not None:
+        args.extend(["--vcard-moderation-statuses", vcard_moderation_statuses])
+    if sitelinks_moderation_statuses is not None:
+        args.extend(["--sitelinks-moderation-statuses", sitelinks_moderation_statuses])
+    if image_moderation_statuses is not None:
+        args.extend(["--image-moderation-statuses", image_moderation_statuses])
+    if adextension_ids is not None:
+        args.extend(["--adextension-ids", adextension_ids])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
     if fields is not None:
         args.extend(["--fields", fields])
     if text_ad_fields is not None:
@@ -104,15 +161,37 @@ def ads_add(
     title: str | None = None,
     text: str | None = None,
     href: str | None = None,
+    image_hash: str | None = None,
+    tracking_url: str | None = None,
+    action: str | None = None,
+    age_label: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Create a new ad.
 
+    CLI 0.3.8 enforces strict WSDL parity — invalid field/type combinations
+    (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
+    not by this tool. Field/type compatibility:
+
+    - TEXT_AD: title, text, href.
+    - TEXT_IMAGE_AD: href, image_hash.
+    - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
+
+    Note: fields not yet covered by typed CLI flags (Title2, SitelinkSetId,
+    AdExtensions, VCardId, TurboPageId, DisplayUrlPath, Mobile) must be filled
+    in via the Direct web UI after `ads_add` — see direct-cli upstream issue.
+
     Args:
         ad_group_id: Ad group ID to add the ad to.
-        ad_type: Ad type (optional).
-        title: Ad title (optional).
-        text: Ad text content (optional).
-        href: Ad URL (optional).
+        ad_type: Ad type (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD).
+        title: Ad title (TEXT_AD / MOBILE_APP_AD).
+        text: Ad text content (TEXT_AD / MOBILE_APP_AD).
+        href: Ad URL (TEXT_AD / TEXT_IMAGE_AD).
+        image_hash: Ad image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        tracking_url: MOBILE_APP_AD tracking URL.
+        action: MOBILE_APP_AD call-to-action (MobileAppAdActionEnum, e.g. INSTALL).
+        age_label: MOBILE_APP_AD age label (MobAppAgeLabelEnum).
+        dry_run: Show the direct-cli request without sending it.
     """
     args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
@@ -123,6 +202,16 @@ def ads_add(
         args.extend(["--text", text])
     if href:
         args.extend(["--href", href])
+    if image_hash:
+        args.extend(["--image-hash", image_hash])
+    if tracking_url:
+        args.extend(["--tracking-url", tracking_url])
+    if action:
+        args.extend(["--action", action])
+    if age_label:
+        args.extend(["--age-label", age_label])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -131,28 +220,72 @@ def ads_add(
 @handle_cli_errors
 def ads_update(
     id: int,
-    status: str | None = None,
+    type: str,
+    title: str | None = None,
+    text: str | None = None,
+    href: str | None = None,
+    image_hash: str | None = None,
+    tracking_url: str | None = None,
+    action: str | None = None,
+    age_label: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update an ad.
 
+    CLI 0.3.8 made `--type` required for `ads update` and removed the
+    `--status` flag (use `ads_suspend / ads_resume / ads_archive /
+    ads_unarchive` for status changes). Field/type compatibility:
+
+    - TEXT_AD: title, text, href.
+    - TEXT_IMAGE_AD: href, image_hash.
+    - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
+
     Args:
         id: Ad ID to update.
-        status: Optional new ad status.
+        type: Ad subtype (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD). Required.
+        title: Optional new title (TEXT_AD / MOBILE_APP_AD).
+        text: Optional new text (TEXT_AD / MOBILE_APP_AD).
+        href: Optional new URL (TEXT_AD / TEXT_IMAGE_AD).
+        image_hash: Optional new image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        tracking_url: Optional MOBILE_APP_AD tracking URL.
+        action: Optional MOBILE_APP_AD call-to-action.
+        age_label: Optional MOBILE_APP_AD age label.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if not status:
+    if not any((title, text, href, image_hash, tracking_url, action, age_label)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide: status",
+            message=(
+                "Provide at least one of: title, text, href, image_hash, "
+                "tracking_url, action, age_label. For status changes use "
+                "ads_suspend / ads_resume / ads_archive / ads_unarchive."
+            ),
         ).__dict__
 
-    args = ["ads", "update", "--id", str(id), "--status", status]
+    args = ["ads", "update", "--id", str(id), "--type", type]
+    if title:
+        args.extend(["--title", title])
+    if text:
+        args.extend(["--text", text])
+    if href:
+        args.extend(["--href", href])
+    if image_hash:
+        args.extend(["--image-hash", image_hash])
+    if tracking_url:
+        args.extend(["--tracking-url", tracking_url])
+    if action:
+        args.extend(["--action", action])
+    if age_label:
+        args.extend(["--age-label", age_label])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_delete(ids: str) -> dict:
+def ads_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ads.
 
     Args:
@@ -160,12 +293,12 @@ def ads_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "delete", ids)
+    return run_single_id_batch(get_runner(), "ads", "delete", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_moderate(ids: str) -> dict:
+def ads_moderate(ids: str, dry_run: bool = False) -> dict:
     """Submit ads for moderation.
 
     Args:
@@ -173,12 +306,12 @@ def ads_moderate(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "moderate", ids)
+    return run_single_id_batch(get_runner(), "ads", "moderate", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_suspend(ids: str) -> dict:
+def ads_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend ads.
 
     Args:
@@ -186,12 +319,12 @@ def ads_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "suspend", ids)
+    return run_single_id_batch(get_runner(), "ads", "suspend", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_resume(ids: str) -> dict:
+def ads_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended ads.
 
     Args:
@@ -199,12 +332,12 @@ def ads_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "resume", ids)
+    return run_single_id_batch(get_runner(), "ads", "resume", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_archive(ids: str) -> dict:
+def ads_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive ads.
 
     Args:
@@ -212,12 +345,12 @@ def ads_archive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "archive", ids)
+    return run_single_id_batch(get_runner(), "ads", "archive", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_unarchive(ids: str) -> dict:
+def ads_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive ads.
 
     Args:
@@ -225,4 +358,4 @@ def ads_unarchive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "unarchive", ids)
+    return run_single_id_batch(get_runner(), "ads", "unarchive", ids, dry_run=dry_run)

@@ -1,7 +1,5 @@
 """MCP tools for campaign management."""
 
-import json
-
 from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
@@ -39,7 +37,12 @@ def campaigns_list(
     state: str | None = None,
     ids: str | None = None,
     status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
     types: str | None = None,
+    payment_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
     fields: str | None = None,
     text_campaign_fields: str | None = None,
     text_campaign_search_strategy_placement_types_fields: str | None = None,
@@ -91,8 +94,18 @@ def campaigns_list(
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
     if types is not None:
         args.extend(["--types", types])
+    if payment_statuses is not None:
+        args.extend(["--payment-statuses", payment_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
     if fields is not None:
         args.extend(["--fields", fields])
     local_values = locals()
@@ -117,9 +130,15 @@ def campaigns_update(
     name: str | None = None,
     status: str | None = None,
     budget: int | None = None,
-    notification: str | dict | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update campaign fields.
+
+    CLI 0.3.8 removed the free-form `--json` flag from `campaigns update`;
+    only the typed flags listed below are accepted. Notification / strategy
+    changes are not yet typed in CLI — file an upstream issue if needed.
 
     Args:
         id: Campaign ID to update.
@@ -127,31 +146,21 @@ def campaigns_update(
         status: Optional new campaign status.
         budget: Optional new daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
-        notification: Optional notification settings (e.g. {"SmsSettings": {"Events": ["MONITORING"]}}).
+        start_date: Optional new start date (YYYY-MM-DD).
+        end_date: Optional new end date (YYYY-MM-DD).
+        dry_run: Show the direct-cli request without sending it.
     """
-    if name is None and status is None and budget is None and notification is None:
+    if (
+        name is None
+        and status is None
+        and budget is None
+        and start_date is None
+        and end_date is None
+    ):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, status, budget, notification",
+            message="Provide at least one of: name, status, budget, start_date, end_date",
         ).__dict__
-
-    notification_val: dict | None = None
-    if notification is not None:
-        if isinstance(notification, dict):
-            notification_val = notification
-        else:
-            try:
-                notification_val = json.loads(notification)
-            except json.JSONDecodeError:
-                return ToolError(
-                    error="invalid_json",
-                    message=f"notification is not valid JSON: '{notification}'",
-                ).__dict__
-            if not isinstance(notification_val, dict):
-                return ToolError(
-                    error="invalid_json",
-                    message="notification must be a JSON object",
-                ).__dict__
 
     args = ["campaigns", "update", "--id", str(id)]
     if name:
@@ -160,12 +169,16 @@ def campaigns_update(
         args.extend(["--status", status])
     if budget is not None:
         args.extend(["--budget", str(budget)])
-    if notification_val is not None:
-        args.extend(["--json", json.dumps({"Notification": notification_val})])
+    if start_date:
+        args.extend(["--start-date", start_date])
+    if end_date:
+        args.extend(["--end-date", end_date])
+    if dry_run:
+        args.append("--dry-run")
 
     runner = get_runner()
     try:
-        runner.run_json(args)
+        cli_output = runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
     except Exception as exc:
@@ -174,6 +187,12 @@ def campaigns_update(
                 error="not_found", message=f"Campaign '{id}' not found"
             ).__dict__
         raise
+    if dry_run:
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": cli_output,
+        }
     result: dict[str, object] = {"success": True, "id": id}
     if name:
         result["name"] = name
@@ -181,8 +200,10 @@ def campaigns_update(
         result["status"] = status
     if budget is not None:
         result["budget"] = budget
-    if notification_val is not None:
-        result["notification"] = notification_val
+    if start_date:
+        result["start_date"] = start_date
+    if end_date:
+        result["end_date"] = end_date
     return result
 
 
@@ -194,11 +215,21 @@ def campaigns_add(
     campaign_type: str | None = None,
     budget: int | None = None,
     end_date: str | None = None,
-    bidding_strategy: str | dict | None = None,
+    search_strategy: str | None = None,
+    network_strategy: str | None = None,
+    settings: list[str] | None = None,
     filter_average_cpc: int | None = None,
     counter_id: int | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Create a new campaign.
+
+    CLI 0.3.8 removed the free-form `--json` flag from `campaigns add`. Use
+    `--search-strategy` / `--network-strategy` / `--setting` typed flags.
+
+    Note: CLI 0.3.8 does not yet expose Goals (CPA pay-for-conversion),
+    Notification, NetworkSettings or TimeTargeting — these have to be set
+    via the Direct web UI after `campaigns_add` until a future CLI release.
 
     Args:
         name: Campaign name.
@@ -207,29 +238,17 @@ def campaigns_add(
         budget: Optional daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         end_date: Optional campaign end date in YYYY-MM-DD format.
-        bidding_strategy: Optional bidding strategy (e.g. {"Search": {"BiddingStrategyType": "HIGHEST_POSITION"}}).
+        search_strategy: Optional search bidding strategy type
+            (e.g. "HIGHEST_POSITION", "WB_MAXIMUM_CLICKS").
+        network_strategy: Optional network bidding strategy type
+            (e.g. "MAXIMUM_COVERAGE", "WB_MAXIMUM_CLICKS").
+        settings: Optional list of campaign settings as OPTION=VALUE strings
+            (e.g. ["EnableEmailNotification=YES", "RequireServicing=NO"]).
         filter_average_cpc: Optional Smart campaign filter average CPC in micro-units
             (RUB × 1,000,000); CLI 0.2.10+ rejects values 0 < x < 100_000.
         counter_id: Optional Smart campaign Metrica counter ID.
+        dry_run: Show the direct-cli request without sending it.
     """
-    bs_val: dict | None = None
-    if bidding_strategy is not None:
-        if isinstance(bidding_strategy, dict):
-            bs_val = bidding_strategy
-        else:
-            try:
-                bs_val = json.loads(bidding_strategy)
-            except json.JSONDecodeError:
-                return ToolError(
-                    error="invalid_json",
-                    message=f"bidding_strategy is not valid JSON: '{bidding_strategy}'",
-                ).__dict__
-            if not isinstance(bs_val, dict):
-                return ToolError(
-                    error="invalid_json",
-                    message="bidding_strategy must be a JSON object",
-                ).__dict__
-
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
     if campaign_type:
         args.extend(["--type", campaign_type])
@@ -237,19 +256,26 @@ def campaigns_add(
         args.extend(["--budget", str(budget)])
     if end_date:
         args.extend(["--end-date", end_date])
+    if search_strategy:
+        args.extend(["--search-strategy", search_strategy])
+    if network_strategy:
+        args.extend(["--network-strategy", network_strategy])
+    if settings:
+        for setting in settings:
+            args.extend(["--setting", setting])
     if filter_average_cpc is not None:
         args.extend(["--filter-average-cpc", str(filter_average_cpc)])
     if counter_id is not None:
         args.extend(["--counter-id", str(counter_id)])
-    if bs_val is not None:
-        args.extend(["--json", json.dumps({"BiddingStrategy": bs_val})])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_delete(ids: str) -> dict:
+def campaigns_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete campaigns.
 
     Args:
@@ -257,12 +283,14 @@ def campaigns_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "delete", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "delete", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_archive(ids: str) -> dict:
+def campaigns_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive campaigns.
 
     Args:
@@ -270,12 +298,14 @@ def campaigns_archive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "archive", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "archive", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_unarchive(ids: str) -> dict:
+def campaigns_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive campaigns.
 
     Args:
@@ -283,12 +313,14 @@ def campaigns_unarchive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "unarchive", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "unarchive", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_suspend(ids: str) -> dict:
+def campaigns_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend campaigns.
 
     Args:
@@ -296,12 +328,14 @@ def campaigns_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "suspend", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "suspend", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_resume(ids: str) -> dict:
+def campaigns_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended campaigns.
 
     Args:
@@ -309,4 +343,6 @@ def campaigns_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "resume", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "resume", ids, dry_run=dry_run
+    )

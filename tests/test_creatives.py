@@ -26,25 +26,22 @@ class TestCreativesList:
             result = creatives_list(ids="1")
             assert "creatives" in result
 
-    def test_creatives_list_by_campaign(self):
-        """Test listing creatives by campaign IDs."""
+    def test_creatives_list_by_types(self):
+        """Test listing creatives filtered by types."""
         runner = MagicMock()
         runner.run_json.return_value = []
-        with patch(
-            "server.tools.creatives.get_runner",
-            return_value=runner,
-        ):
-            creatives_list(campaign_ids="12345")
+        with patch("server.tools.creatives.get_runner", return_value=runner):
+            creatives_list(types="VIDEO_EXTENSION_CREATIVE")
             call_args = runner.run_json.call_args[0][0]
-            assert "--campaign-ids" in call_args
-            assert "12345" in call_args
+            assert "--types" in call_args
+            assert "VIDEO_EXTENSION_CREATIVE" in call_args
 
     def test_creatives_list_trims_filters(self):
         """Test creative filters are normalized before argv construction."""
         runner = MagicMock()
         runner.run_json.return_value = []
         with patch("server.tools.creatives.get_runner", return_value=runner):
-            creatives_list(ids=" 1 ", campaign_ids=" 12345 ")
+            creatives_list(ids=" 1 ", types="VIDEO_EXTENSION_CREATIVE")
 
         runner.run_json.assert_called_once_with(
             [
@@ -54,8 +51,8 @@ class TestCreativesList:
                 "json",
                 "--ids",
                 "1",
-                "--campaign-ids",
-                "12345",
+                "--types",
+                "VIDEO_EXTENSION_CREATIVE",
             ]
         )
 
@@ -73,10 +70,9 @@ class TestCreativesList:
         runner = MagicMock()
         runner.run_json.return_value = []
         with patch("server.tools.creatives.get_runner", return_value=runner):
-            creatives_list(ids="   ", campaign_ids="   ")
+            creatives_list(ids="   ")
             call_args = runner.run_json.call_args[0][0]
             assert "--ids" not in call_args
-            assert "--campaign-ids" not in call_args
 
 
 class TestCreativesAdd:
