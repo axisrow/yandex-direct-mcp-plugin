@@ -63,7 +63,7 @@ def test_keywords_update():
 
 
 def test_keywords_update_argv_composition():
-    """Test that update passes the expanded CLI surface."""
+    """Test that update passes the expanded CLI surface (no --json in 0.3.8)."""
     runner = _mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_update(
@@ -71,7 +71,6 @@ def test_keywords_update_argv_composition():
             keyword="updated kw",
             user_param_1="val1",
             user_param_2="val2",
-            extra_json='{"StrategyPriority": "HIGH"}',
         )
 
     runner.run_json.assert_called_once_with(
@@ -86,11 +85,18 @@ def test_keywords_update_argv_composition():
             "val1",
             "--user-param-2",
             "val2",
-            "--json",
-            '{"StrategyPriority": "HIGH"}',
         ]
     )
     assert result["user_param_1"] == "val1"
+
+
+def test_keywords_update_dry_run():
+    """dry_run=True appends --dry-run to argv."""
+    runner = _mock_runner(None)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_update(id=99999, keyword="x", dry_run=True)
+        argv = runner.run_json.call_args[0][0]
+        assert "--dry-run" in argv
 
 
 def test_keywords_update_requires_changes():
@@ -107,7 +113,7 @@ class TestKeywordsCrudOperations:
     """Tests for keyword CRUD operations (add, delete, suspend, resume)."""
 
     def test_keywords_add(self):
-        """Test adding a keyword to an ad group."""
+        """Test adding a keyword to an ad group (no --json in CLI 0.3.8)."""
         runner = _mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(
@@ -117,7 +123,6 @@ class TestKeywordsCrudOperations:
                 context_bid=5000000,
                 user_param_1="summer",
                 user_param_2="sale",
-                extra_json='{"Priority":"HIGH"}',
             )
             assert result["success"] is True
             runner.run_json.assert_called_once_with(
@@ -136,10 +141,16 @@ class TestKeywordsCrudOperations:
                     "summer",
                     "--user-param-2",
                     "sale",
-                    "--json",
-                    '{"Priority":"HIGH"}',
                 ]
             )
+
+    def test_keywords_add_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(ad_group_id=1, keyword="x", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_keywords_delete_success(self):
         """Test deleting keywords successfully."""

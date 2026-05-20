@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 123
+- Direct API tools: 127
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              129
+Total:              133
 """
 
 from __future__ import annotations
@@ -254,6 +254,38 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="UpdateBannersTags",
     ),
+    ContractTool(
+        public_name="v4forecast_create",
+        cli_service="v4forecast",
+        cli_method="create",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="CreateNewForecast",
+    ),
+    ContractTool(
+        public_name="v4forecast_list",
+        cli_service="v4forecast",
+        cli_method="list",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetForecastList",
+    ),
+    ContractTool(
+        public_name="v4forecast_get",
+        cli_service="v4forecast",
+        cli_method="get",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetForecast",
+    ),
+    ContractTool(
+        public_name="v4forecast_delete",
+        cli_service="v4forecast",
+        cli_method="delete",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="DeleteForecastReport",
+    ),
 )
 
 # Methods present in direct_cli.v4_contracts but intentionally not exposed as
@@ -295,17 +327,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "wordstat",
         "v4wordstat",
         "delete-wordstat-report",
-    ),
-    BlockedV4Method(
-        "CreateNewForecast", "forecast", "v4forecast", "create-new-forecast"
-    ),
-    BlockedV4Method("GetForecastList", "forecast", "v4forecast", "get-forecast-list"),
-    BlockedV4Method("GetForecast", "forecast", "v4forecast", "get-forecast"),
-    BlockedV4Method(
-        "DeleteForecastReport",
-        "forecast",
-        "v4forecast",
-        "delete-forecast-report",
     ),
     BlockedV4Method(
         "DeleteOfflineReport", "offline_reports", None, "delete-offline-report"

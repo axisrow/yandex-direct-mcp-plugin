@@ -1,9 +1,9 @@
 """MCP tools for feed management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+
+BUSINESS_TYPES = ("RETAIL", "HOTELS", "REALTY", "AUTOMOBILES", "FLIGHTS", "OTHER")
 
 
 @mcp.tool(name="feeds_get")
@@ -24,20 +24,45 @@ def feeds_list(ids: str | None = None) -> dict:
 
 @mcp.tool()
 @handle_cli_errors
-def feeds_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
+def feeds_add(
+    name: str,
+    url: str,
+    business_type: str,
+    dry_run: bool = False,
+) -> dict:
     """Add a new feed.
+
+    CLI 0.3.8 requires --business-type (WSDL FeedAddItem.BusinessType,
+    minOccurs=1) and removed the free-form --json flag.
 
     Args:
         name: Feed name.
         url: Feed URL.
-        extra_json: JSON string with additional parameters (optional).
+        business_type: Business type — one of RETAIL, HOTELS, REALTY,
+            AUTOMOBILES, FLIGHTS, OTHER.
+        dry_run: Show the direct-cli request without sending it.
     """
-    args = ["feeds", "add", "--name", name, "--url", url]
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if business_type not in BUSINESS_TYPES:
+        return ToolError(
+            error="invalid_business_type",
+            message=(
+                f"business_type must be one of {', '.join(BUSINESS_TYPES)}; "
+                f"got '{business_type}'"
+            ),
+        ).__dict__
+
+    args = [
+        "feeds",
+        "add",
+        "--name",
+        name,
+        "--url",
+        url,
+        "--business-type",
+        business_type,
+    ]
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -48,20 +73,22 @@ def feeds_update(
     id: int,
     name: str | None = None,
     url: str | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update an existing feed.
+
+    CLI 0.3.8 removed the free-form --json flag from `feeds update`.
 
     Args:
         id: Feed ID to update.
         name: Optional new feed name.
         url: Optional new feed URL.
-        extra_json: Optional JSON string with additional parameters.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if not any((name, url, extra_json)):
+    if not any((name, url)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, url, extra_json",
+            message="Provide at least one of: name, url",
         ).__dict__
 
     args = ["feeds", "update", "--id", str(id)]
@@ -69,11 +96,8 @@ def feeds_update(
         args.extend(["--name", name])
     if url is not None:
         args.extend(["--url", url])
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 

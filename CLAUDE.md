@@ -191,13 +191,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (129 total) + 1 Prompt
+## MCP Tools (133 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (123)
+### Direct API tools (127)
 
 | Tool | Purpose |
 |---|---|
@@ -316,6 +316,10 @@ WSDL/reports spec wins when there is drift.
 | `creatives_add` | Add creative |
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
+| `v4forecast_create` | Create v4 Live budget forecast |
+| `v4forecast_list` | List v4 Live budget forecasts |
+| `v4forecast_get` | Get a ready v4 Live budget forecast |
+| `v4forecast_delete` | Delete a v4 Live budget forecast |
 
 ### CLI helper tools (3)
 
@@ -369,7 +373,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.6`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.8`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -420,3 +424,40 @@ Key renames:
   `dynamicfeedadtargets_*` (get/add/delete/suspend/resume/set_bids).
 - **Validation**: plugin no longer pre-validates money values — CLI's `MICRO_RUBLES`
   type now owns the contract (rejects `0 < x < 100_000` with a "did you mean × 1_000_000" hint).
+
+## Breaking Changes (CLI 0.3.8 alignment)
+
+CLI 0.3.8 enforces strict WSDL parity for mutating commands. The plugin tools
+were updated accordingly:
+
+- **`ads_update`**: signature changed. `type` (TEXT_AD | TEXT_IMAGE_AD |
+  MOBILE_APP_AD) is now **required**. The `status` parameter was removed — use
+  `ads_suspend / ads_resume / ads_archive / ads_unarchive` for status changes.
+  New optional fields: `title`, `text`, `href`, `image_hash`, `tracking_url`,
+  `action`, `age_label`. CLI rejects invalid field/type combinations.
+- **`ads_add`**: new optional fields `image_hash`, `tracking_url`, `action`,
+  `age_label` mirror CLI 0.3.8 typed flags. Field/type compatibility is
+  enforced by the CLI (TEXT_IMAGE_AD rejects title/text; MOBILE_APP_AD rejects
+  href). Fields still missing typed CLI flags (Title2, SitelinkSetId,
+  AdExtensions, VCardId, TurboPageId, DisplayUrlPath, Mobile) cannot be passed
+  from MCP yet — tracked upstream as `axisrow/direct-cli#202`.
+- **`feeds_add`**: `business_type` is now **required** (one of RETAIL, HOTELS,
+  REALTY, AUTOMOBILES, FLIGHTS, OTHER). `extra_json` parameter removed (CLI
+  0.3.8 dropped the free-form `--json` flag from `feeds add`).
+- **`feeds_update`**: `extra_json` removed for the same reason.
+- **`keywords_add`** / **`keywords_update`**: `extra_json` removed (CLI 0.3.8
+  has no `--json` flag). Bulk keyword loading still requires one CLI call per
+  keyword — tracked upstream as `axisrow/direct-cli#203`.
+- **`campaigns_add`**: `bidding_strategy` (which went through `--json`) removed
+  in favour of typed `search_strategy: str`, `network_strategy: str`,
+  `settings: list[str]` (repeatable `OPTION=VALUE`). Goals / CPA configuration
+  is not yet typed in CLI — tracked upstream as `axisrow/direct-cli#204`.
+- **`campaigns_update`**: `notification` (which went through `--json`) removed.
+  New optional fields `start_date` / `end_date` mirror CLI 0.3.8 typed flags.
+- **`dry_run` everywhere**: all mutating tools (`ads_add`, `ads_update`,
+  `keywords_add`, `keywords_update`, `campaigns_add`, `campaigns_update`,
+  `feeds_add`, `feeds_update`) accept `dry_run: bool = False`. When True,
+  the CLI prints the outgoing request payload without sending it — useful
+  for diagnosing API warning 10165 ("parameter will not be applied").
+- **New tools**: 4 `v4forecast_*` (create / list / get / delete) for V4 Live
+  budget forecasts.

@@ -59,28 +59,47 @@ class TestFeedsAdd:
             "name": "New Feed",
             "url": "https://example.com/feed.xml",
         }
-        with patch(
-            "server.tools.feeds.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = feeds_add(name="New Feed", url="https://example.com/feed.xml")
+        runner = _mock_runner(mock_result)
+        with patch("server.tools.feeds.get_runner", return_value=runner):
+            result = feeds_add(
+                name="New Feed",
+                url="https://example.com/feed.xml",
+                business_type="RETAIL",
+            )
             assert result["name"] == "New Feed"
+            runner.run_json.assert_called_once_with(
+                [
+                    "feeds",
+                    "add",
+                    "--name",
+                    "New Feed",
+                    "--url",
+                    "https://example.com/feed.xml",
+                    "--business-type",
+                    "RETAIL",
+                ]
+            )
 
-    def test_feeds_add_with_extra_json(self):
-        """Test adding a feed with extra JSON parameters."""
+    def test_feeds_add_invalid_business_type(self):
+        """feeds_add rejects business_type outside the WSDL enum."""
+        result = feeds_add(
+            name="Test", url="https://example.com/feed.xml", business_type="SHOES"
+        )
+        assert result["error"] == "invalid_business_type"
+
+    def test_feeds_add_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
         runner = MagicMock()
-        runner.run_json.return_value = {"id": 2}
-        with patch(
-            "server.tools.feeds.get_runner",
-            return_value=runner,
-        ):
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_add(
                 name="Test",
                 url="https://example.com/feed.xml",
-                extra_json='{"BusinessType":"RETAIL"}',
+                business_type="OTHER",
+                dry_run=True,
             )
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
 
 class TestFeedsUpdate:
@@ -106,17 +125,14 @@ class TestFeedsUpdate:
             result = feeds_update(id=1, url="https://example.com/new.xml")
             assert result["url"] == "https://example.com/new.xml"
 
-    def test_feeds_update_extra_json_only(self):
-        """Test updating with extra JSON only."""
+    def test_feeds_update_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
         runner = MagicMock()
         runner.run_json.return_value = {"id": 1}
-        with patch(
-            "server.tools.feeds.get_runner",
-            return_value=runner,
-        ):
-            feeds_update(id=1, extra_json='{"Status":"ACTIVE"}')
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+        with patch("server.tools.feeds.get_runner", return_value=runner):
+            feeds_update(id=1, name="x", dry_run=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--dry-run" in argv
 
     def test_feeds_update_nothing(self):
         """Test that updating nothing returns error."""

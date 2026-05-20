@@ -104,15 +104,37 @@ def ads_add(
     title: str | None = None,
     text: str | None = None,
     href: str | None = None,
+    image_hash: str | None = None,
+    tracking_url: str | None = None,
+    action: str | None = None,
+    age_label: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Create a new ad.
 
+    CLI 0.3.8 enforces strict WSDL parity — invalid field/type combinations
+    (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
+    not by this tool. Field/type compatibility:
+
+    - TEXT_AD: title, text, href.
+    - TEXT_IMAGE_AD: href, image_hash.
+    - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
+
+    Note: fields not yet covered by typed CLI flags (Title2, SitelinkSetId,
+    AdExtensions, VCardId, TurboPageId, DisplayUrlPath, Mobile) must be filled
+    in via the Direct web UI after `ads_add` — see direct-cli upstream issue.
+
     Args:
         ad_group_id: Ad group ID to add the ad to.
-        ad_type: Ad type (optional).
-        title: Ad title (optional).
-        text: Ad text content (optional).
-        href: Ad URL (optional).
+        ad_type: Ad type (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD).
+        title: Ad title (TEXT_AD / MOBILE_APP_AD).
+        text: Ad text content (TEXT_AD / MOBILE_APP_AD).
+        href: Ad URL (TEXT_AD / TEXT_IMAGE_AD).
+        image_hash: Ad image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        tracking_url: MOBILE_APP_AD tracking URL.
+        action: MOBILE_APP_AD call-to-action (MobileAppAdActionEnum, e.g. INSTALL).
+        age_label: MOBILE_APP_AD age label (MobAppAgeLabelEnum).
+        dry_run: Show the direct-cli request without sending it.
     """
     args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
@@ -123,6 +145,16 @@ def ads_add(
         args.extend(["--text", text])
     if href:
         args.extend(["--href", href])
+    if image_hash:
+        args.extend(["--image-hash", image_hash])
+    if tracking_url:
+        args.extend(["--tracking-url", tracking_url])
+    if action:
+        args.extend(["--action", action])
+    if age_label:
+        args.extend(["--age-label", age_label])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -131,21 +163,65 @@ def ads_add(
 @handle_cli_errors
 def ads_update(
     id: int,
-    status: str | None = None,
+    type: str,
+    title: str | None = None,
+    text: str | None = None,
+    href: str | None = None,
+    image_hash: str | None = None,
+    tracking_url: str | None = None,
+    action: str | None = None,
+    age_label: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update an ad.
 
+    CLI 0.3.8 made `--type` required for `ads update` and removed the
+    `--status` flag (use `ads_suspend / ads_resume / ads_archive /
+    ads_unarchive` for status changes). Field/type compatibility:
+
+    - TEXT_AD: title, text, href.
+    - TEXT_IMAGE_AD: href, image_hash.
+    - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
+
     Args:
         id: Ad ID to update.
-        status: Optional new ad status.
+        type: Ad subtype (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD). Required.
+        title: Optional new title (TEXT_AD / MOBILE_APP_AD).
+        text: Optional new text (TEXT_AD / MOBILE_APP_AD).
+        href: Optional new URL (TEXT_AD / TEXT_IMAGE_AD).
+        image_hash: Optional new image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        tracking_url: Optional MOBILE_APP_AD tracking URL.
+        action: Optional MOBILE_APP_AD call-to-action.
+        age_label: Optional MOBILE_APP_AD age label.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if not status:
+    if not any((title, text, href, image_hash, tracking_url, action, age_label)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide: status",
+            message=(
+                "Provide at least one of: title, text, href, image_hash, "
+                "tracking_url, action, age_label. For status changes use "
+                "ads_suspend / ads_resume / ads_archive / ads_unarchive."
+            ),
         ).__dict__
 
-    args = ["ads", "update", "--id", str(id), "--status", status]
+    args = ["ads", "update", "--id", str(id), "--type", type]
+    if title:
+        args.extend(["--title", title])
+    if text:
+        args.extend(["--text", text])
+    if href:
+        args.extend(["--href", href])
+    if image_hash:
+        args.extend(["--image-hash", image_hash])
+    if tracking_url:
+        args.extend(["--tracking-url", tracking_url])
+    if action:
+        args.extend(["--action", action])
+    if age_label:
+        args.extend(["--age-label", age_label])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 

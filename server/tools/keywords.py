@@ -1,7 +1,5 @@
 """MCP tools for keyword management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
@@ -57,24 +55,25 @@ def keywords_update(
     keyword: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update keyword text or user params.
 
     Note: bid changes go through `keywordbids_set`, not this tool — CLI's
-    `keywords update` does not accept `--bid` flags.
+    `keywords update` does not accept `--bid` flags. CLI 0.3.8 also removed
+    the free-form `--json` flag.
 
     Args:
         id: Keyword ID.
         keyword: Optional new keyword text.
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        dry_run: Show the direct-cli request without sending it.
     """
-    if not any((keyword, user_param_1, user_param_2, extra_json)):
+    if not any((keyword, user_param_1, user_param_2)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: keyword, user_param_1, user_param_2, extra_json",
+            message="Provide at least one of: keyword, user_param_1, user_param_2",
         ).__dict__
 
     runner = get_runner()
@@ -85,11 +84,8 @@ def keywords_update(
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
-    if extra_json:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if dry_run:
+        args.append("--dry-run")
     runner.run_json(args)
 
     result: dict[str, object] = {"success": True, "id": id}
@@ -99,8 +95,6 @@ def keywords_update(
         result["user_param_1"] = user_param_1
     if user_param_2 is not None:
         result["user_param_2"] = user_param_2
-    if extra_json:
-        result["extra_json"] = extra_json
     return result
 
 
@@ -113,9 +107,13 @@ def keywords_add(
     context_bid: int | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
-    extra_json: str | dict | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Add a keyword to an ad group.
+
+    Note: this tool adds one keyword per invocation. Bulk-loading 100+
+    keywords is currently slow because direct-cli has no batch mode — see
+    upstream issue for `keywords add --from-file`.
 
     Args:
         ad_group_id: Ad group ID to add the keyword to.
@@ -125,7 +123,7 @@ def keywords_add(
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
-        extra_json: Optional JSON string forwarded to direct-cli --json.
+        dry_run: Show the direct-cli request without sending it.
     """
     args = ["keywords", "add", "--adgroup-id", str(ad_group_id), "--keyword", keyword]
     if bid is not None:
@@ -136,11 +134,8 @@ def keywords_add(
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
