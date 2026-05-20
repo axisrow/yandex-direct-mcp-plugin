@@ -48,6 +48,7 @@ def keywords_list(
         fields: Comma-separated field names.
     """
     args = ["keywords", "get", "--format", "json"]
+    has_selector = False
     for value, flag, batch in (
         (campaign_ids, "--campaign-ids", True),
         (ids, "--ids", True),
@@ -63,6 +64,16 @@ def keywords_list(
             if batch_error:
                 return batch_error.__dict__
         args.extend([flag, normalized])
+        has_selector = True
+
+    if not has_selector and not fetch_all:
+        return ToolError(
+            error="missing_selector",
+            message=(
+                "Provide at least one of: campaign_ids, ids, ad_group_ids. "
+                "To list every keyword in the account, pass fetch_all=True explicitly."
+            ),
+        ).__dict__
     if status is not None:
         args.extend(["--status", status])
     if statuses is not None:

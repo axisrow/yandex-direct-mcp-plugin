@@ -46,13 +46,24 @@ def test_keywords_list_trims_campaign_ids():
     )
 
 
-def test_keywords_list_no_filters():
-    """Blank inputs behave like no filter (CLI accepts query with no IDs)."""
+def test_keywords_list_blank_selector_rejected():
+    """Blank/missing selectors must NOT silently widen to an account-wide query."""
     runner = _mock_runner(SAMPLE_KEYWORDS)
     with patch("server.tools.keywords.get_runner", return_value=runner):
-        keywords_list(campaign_ids="   ")
+        result = keywords_list(campaign_ids="   ")
+    assert isinstance(result, dict)
+    assert result["error"] == "missing_selector"
+    runner.run_json.assert_not_called()
+
+
+def test_keywords_list_fetch_all_allows_no_selector():
+    """fetch_all=True is an explicit opt-in for unscoped enumeration."""
+    runner = _mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_list(fetch_all=True)
     argv = runner.run_json.call_args[0][0]
     assert "--campaign-ids" not in argv
+    assert "--fetch-all" in argv
 
 
 def test_keywords_update():
