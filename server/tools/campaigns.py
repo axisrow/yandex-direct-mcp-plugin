@@ -178,7 +178,7 @@ def campaigns_update(
 
     runner = get_runner()
     try:
-        runner.run_json(args)
+        cli_output = runner.run_json(args)
     except (CliAuthError, CliNotFoundError):
         raise
     except Exception as exc:
@@ -187,6 +187,12 @@ def campaigns_update(
                 error="not_found", message=f"Campaign '{id}' not found"
             ).__dict__
         raise
+    if dry_run:
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": cli_output,
+        }
     result: dict[str, object] = {"success": True, "id": id}
     if name:
         result["name"] = name

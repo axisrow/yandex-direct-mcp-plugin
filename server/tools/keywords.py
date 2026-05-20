@@ -121,8 +121,14 @@ def keywords_update(
         args.extend(["--user-param-2", user_param_2])
     if dry_run:
         args.append("--dry-run")
-    runner.run_json(args)
+    cli_output = runner.run_json(args)
 
+    if dry_run:
+        return {
+            "dry_run": True,
+            "command": ["direct", *args],
+            "request_body": cli_output,
+        }
     result: dict[str, object] = {"success": True, "id": id}
     if keyword is not None:
         result["keyword"] = keyword
