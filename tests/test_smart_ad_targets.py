@@ -46,20 +46,17 @@ def test_smart_ad_targets_list_trims_ids():
         smart_ad_targets_list(ad_group_ids=" 200 ")
 
     runner.run_json.assert_called_once_with(
-        [
-            "smartadtargets",
-            "get",
-            "--adgroup-ids",
-            "200",
-            "--format",
-            "json",
-        ]
+        ["smartadtargets", "get", "--format", "json", "--adgroup-ids", "200"]
     )
 
 
-def test_smart_ad_targets_list_requires_ids():
-    result = smart_ad_targets_list(ad_group_ids="   ")
-    assert result["error"] == "missing_ad_group_ids"
+def test_smart_ad_targets_list_no_filters():
+    """Blank ad_group_ids behaves like no filter."""
+    runner = _mock_runner(SAMPLE_TARGETS)
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        smart_ad_targets_list(ad_group_ids="   ")
+    argv = runner.run_json.call_args[0][0]
+    assert "--adgroup-ids" not in argv
 
 
 def test_smart_ad_targets_list_empty():
@@ -72,52 +69,60 @@ def test_smart_ad_targets_list_empty():
 
 def test_smart_ad_targets_add():
     mock_result = {"Id": 400}
-    with patch(
-        "server.tools.smart_ad_targets.get_runner",
-        return_value=_mock_runner(mock_result),
-    ) as mock:
+    runner = _mock_runner(mock_result)
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_add(
             ad_group_id=200,
-            target_type="RETARGETING",
-            extra_json='{"Condition":"URL_CONTAINS"}',
+            name="Sale target",
+            audience="VISITORS",
+            condition="URL:CONTAINS:sale",
+            average_cpc=2500000,
+            priority="MEDIUM",
+            available_items_only="YES",
         )
         assert result["Id"] == 400
-        mock.return_value.run_json.assert_called_once_with(
+        runner.run_json.assert_called_once_with(
             [
                 "smartadtargets",
                 "add",
                 "--adgroup-id",
                 "200",
-                "--type",
-                "RETARGETING",
-                "--json",
-                '{"Condition":"URL_CONTAINS"}',
+                "--name",
+                "Sale target",
+                "--audience",
+                "VISITORS",
+                "--condition",
+                "URL:CONTAINS:sale",
+                "--average-cpc",
+                "2500000",
+                "--priority",
+                "MEDIUM",
+                "--available-items-only",
+                "YES",
             ]
         )
 
 
 def test_smart_ad_targets_update():
     mock_result = {"success": True}
-    with patch(
-        "server.tools.smart_ad_targets.get_runner",
-        return_value=_mock_runner(mock_result),
-    ) as mock:
+    runner = _mock_runner(mock_result)
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_update(
             id=100,
-            target_type="RETARGETING",
-            extra_json='{"Condition":"URL_CONTAINS"}',
+            name="New name",
+            audience="VISITORS",
         )
         assert result["success"] is True
-        mock.return_value.run_json.assert_called_once_with(
+        runner.run_json.assert_called_once_with(
             [
                 "smartadtargets",
                 "update",
                 "--id",
                 "100",
-                "--type",
-                "RETARGETING",
-                "--json",
-                '{"Condition":"URL_CONTAINS"}',
+                "--name",
+                "New name",
+                "--audience",
+                "VISITORS",
             ]
         )
 

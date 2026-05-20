@@ -1,48 +1,43 @@
 """MCP tools for turbo pages management."""
 
-import json
-
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
 @mcp.tool(name="turbopages_get")
 @handle_cli_errors
-def turbo_pages_list(ids: str | None = None) -> dict:
+def turbo_pages_list(
+    ids: str | None = None,
+    bound_with_hrefs: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
+    dry_run: bool = False,
+) -> dict:
     """List turbo pages.
 
     Args:
-        ids: Comma-separated turbo page IDs (optional).
+        ids: Comma-separated turbo page IDs.
+        bound_with_hrefs: Comma-separated hrefs bound with Turbo Pages.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
+        dry_run: Show the direct-cli request without sending it.
     """
     args = ["turbopages", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
-    runner = get_runner()
-    return runner.run_json(args)
-
-
-@handle_cli_errors
-def turbo_pages_add(name: str, url: str, extra_json: str | dict | None = None) -> dict:
-    """Internal-only legacy helper for turbo page creation.
-
-    Kept for direct Python callers/tests-only compatibility (see
-    ``tests/test_turbo_pages.py``) and still wrapped in ``handle_cli_errors``
-    so those internal callers get the same structured error payloads as
-    public tools. It is intentionally not registered as a public MCP tool
-    because the current direct-cli contract does not expose the
-    ``direct turbopages add`` subcommand.
-
-    Args:
-        name: Page name.
-        url: Page URL.
-        extra_json: Optional JSON string with additional parameters.
-    """
-    args = ["turbopages", "add", "--name", name, "--url", url]
-    if extra_json is not None:
-        json_str = (
-            json.dumps(extra_json) if isinstance(extra_json, dict) else extra_json
-        )
-        args.extend(["--json", json_str])
-    runner = get_runner()
-    return runner.run_json(args)
+    if bound_with_hrefs is not None:
+        normalized = bound_with_hrefs.strip()
+        if normalized:
+            args.extend(["--bound-with-hrefs", normalized])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
+    if dry_run:
+        args.append("--dry-run")
+    return get_runner().run_json(args)

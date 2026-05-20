@@ -121,39 +121,27 @@ class TestAdextensionsList:
 
 
 class TestAdextensionsAdd:
-    """Tests for adextensions_add tool."""
+    """Tests for adextensions_add tool (CLI 0.3.8: callout-only typed)."""
 
-    def test_add_extension_success(self):
-        """Test adding extension successfully."""
-        mock_result = {"Id": 123, "Type": "Call"}
-        extra_json = '{"PhoneNumber": "+79991112233"}'
+    def test_add_callout_extension_success(self):
+        """Test adding a callout extension successfully."""
+        mock_result = {"Id": 123}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
-        with patch(
-            "server.tools.adextensions.get_runner",
-            return_value=runner,
-        ):
-            result = adextensions_add(extension_type="Call", extra_json=extra_json)
+        with patch("server.tools.adextensions.get_runner", return_value=runner):
+            result = adextensions_add(callout_text="Free shipping")
             assert result["Id"] == 123
-            assert result["Type"] == "Call"
-            call_args = runner.run_json.call_args[0][0]
-            assert "--type" in call_args
-            assert "--json" in call_args
-
-    def test_add_extension_invalid_type(self):
-        """Test adding extension with non-standard type."""
-        extra_json = '{"SomeField": "value"}'
-        mock_result = {"Id": 124, "Type": "UnknownType"}
-
-        with patch(
-            "server.tools.adextensions.get_runner",
-            return_value=_mock_runner(mock_result),
-        ):
-            result = adextensions_add(
-                extension_type="UnknownType", extra_json=extra_json
+            runner.run_json.assert_called_once_with(
+                ["adextensions", "add", "--callout-text", "Free shipping"]
             )
-            assert result["Id"] == 124
+
+    def test_add_callout_extension_dry_run(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.adextensions.get_runner", return_value=runner):
+            adextensions_add(callout_text="X", dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
 
 class TestAdextensionsDelete:

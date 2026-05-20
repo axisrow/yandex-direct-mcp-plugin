@@ -1,6 +1,5 @@
 """Tests for strategy MCP tools."""
 
-import json
 from unittest.mock import MagicMock, patch
 
 
@@ -50,10 +49,15 @@ class TestStrategiesList:
         """Filter by is_archived passes --is-archived to CLI."""
         runner = _mock_runner([{"Id": 1}])
         with patch("server.tools.strategies.get_runner", return_value=runner):
-            strategies_list(is_archived="no")
+            strategies_list(is_archived="NO")
         runner.run_json.assert_called_once_with(
-            ["strategies", "get", "--format", "json", "--is-archived", "no"]
+            ["strategies", "get", "--format", "json", "--is-archived", "NO"]
         )
+
+    def test_strategies_list_invalid_is_archived(self):
+        """is_archived must be YES|NO."""
+        result = strategies_list(is_archived="maybe")
+        assert result["error"] == "invalid_is_archived"
 
     def test_strategies_list_batch_limit(self):
         """11 IDs triggers batch_limit error."""
@@ -63,7 +67,7 @@ class TestStrategiesList:
 
 
 class TestStrategiesAdd:
-    """Tests for strategies_add."""
+    """Tests for strategies_add (CLI 0.3.8 typed flags)."""
 
     def test_strategies_add(self):
         """Basic add with required fields."""
@@ -75,27 +79,43 @@ class TestStrategiesAdd:
             ["strategies", "add", "--name", "MyStrategy", "--type", "AverageCpc"]
         )
 
-    def test_strategies_add_with_params_dict(self):
-        """Params as dict gets JSON-serialized before passing to CLI."""
+    def test_strategies_add_typed_money_fields(self):
+        """Money fields pass through as separate typed flags."""
         runner = _mock_runner({"Id": 101})
-        params = {"AverageCpc": {"Cpc": 50000000}}
         with patch("server.tools.strategies.get_runner", return_value=runner):
-            result = strategies_add(
-                name="CpcStrategy", type="AverageCpc", params=params
+            strategies_add(
+                name="CpcStrategy",
+                type="AverageCpc",
+                average_cpc=50000000,
+                weekly_spend_limit=200000000,
+                bid_ceiling=70000000,
+                counter_ids="11,22",
+                attribution_model="LYDC",
             )
-        assert result["Id"] == 101
-        runner.run_json.assert_called_once_with(
-            [
-                "strategies",
-                "add",
-                "--name",
-                "CpcStrategy",
-                "--type",
-                "AverageCpc",
-                "--params",
-                json.dumps(params),
-            ]
-        )
+        argv = runner.run_json.call_args[0][0]
+        assert "--average-cpc" in argv and "50000000" in argv
+        assert "--weekly-spend-limit" in argv
+        assert "--bid-ceiling" in argv
+        assert "--counter-ids" in argv and "11,22" in argv
+        assert "--attribution-model" in argv and "LYDC" in argv
+
+    def test_strategies_add_priority_goals_repeats(self):
+        """Each priority_goals item becomes a separate --priority-goal flag."""
+        runner = _mock_runner({"Id": 102})
+        with patch("server.tools.strategies.get_runner", return_value=runner):
+            strategies_add(
+                name="PayForConv",
+                type="PayForConversion",
+                priority_goals=["123:1000000", "456:2000000"],
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv.count("--priority-goal") == 2
+
+    def test_strategies_add_dry_run(self):
+        runner = _mock_runner({"_dry_run": True})
+        with patch("server.tools.strategies.get_runner", return_value=runner):
+            strategies_add(name="x", type="AverageCpc", dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
 
 class TestStrategiesUpdate:
@@ -133,6 +153,12 @@ class TestStrategiesArchive:
             ["strategies", "archive", "--id", "100"]
         )
 
+    def test_strategies_archive_dry_run(self):
+        runner = _mock_runner({"_dry_run": True})
+        with patch("server.tools.strategies.get_runner", return_value=runner):
+            strategies_archive(id=100, dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
+
 
 class TestStrategiesUnarchive:
     """Tests for strategies_unarchive."""
@@ -146,3 +172,9 @@ class TestStrategiesUnarchive:
         runner.run_json.assert_called_once_with(
             ["strategies", "unarchive", "--id", "100"]
         )
+
+    def test_strategies_unarchive_dry_run(self):
+        runner = _mock_runner({"_dry_run": True})
+        with patch("server.tools.strategies.get_runner", return_value=runner):
+            strategies_unarchive(id=100, dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]

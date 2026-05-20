@@ -8,18 +8,31 @@ BUSINESS_TYPES = ("RETAIL", "HOTELS", "REALTY", "AUTOMOBILES", "FLIGHTS", "OTHER
 
 @mcp.tool(name="feeds_get")
 @handle_cli_errors
-def feeds_list(ids: str | None = None) -> dict:
+def feeds_list(
+    ids: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
+) -> dict:
     """List feeds.
 
     Args:
-        ids: Comma-separated feed IDs (optional, omit for all feeds).
+        ids: Comma-separated feed IDs (omit for all feeds).
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
     args = ["feeds", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
-    runner = get_runner()
-    return runner.run_json(args)
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
+    return get_runner().run_json(args)
 
 
 @mcp.tool()
@@ -104,7 +117,7 @@ def feeds_update(
 
 @mcp.tool()
 @handle_cli_errors
-def feeds_delete(ids: str) -> dict:
+def feeds_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete feeds.
 
     Args:
@@ -112,4 +125,4 @@ def feeds_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "feeds", "delete", ids)
+    return run_single_id_batch(get_runner(), "feeds", "delete", ids, dry_run=dry_run)

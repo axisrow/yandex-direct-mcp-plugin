@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 
-from server.tools.turbo_pages import turbo_pages_list, turbo_pages_add
+from server.tools.turbo_pages import turbo_pages_list
 
 
 def _mock_runner(return_value):
@@ -47,64 +47,25 @@ class TestTurboPagesList:
             ["turbopages", "get", "--format", "json", "--ids", "1"]
         )
 
-
-class TestTurboPagesAdd:
-    """Tests for turbo_pages_add tool."""
-
-    def test_turbo_pages_add_basic(self):
-        """Test adding a turbo page."""
-        mock_result = {"id": 123, "name": "Test Page"}
+    def test_turbo_pages_list_full_argv(self):
+        """Test all optional flags pass through to CLI."""
         runner = MagicMock()
-        runner.run_json.return_value = mock_result
-        with patch(
-            "server.tools.turbo_pages.get_runner",
-            return_value=runner,
-        ):
-            result = turbo_pages_add(name="Test Page", url="https://example.com/page")
-            assert result["id"] == 123
-            call_args = runner.run_json.call_args[0][0]
-            assert "--name" in call_args
-            assert "--url" in call_args
-
-    def test_turbo_pages_add_with_extra_json(self):
-        """Test adding turbo page with extra JSON."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"id": 124}
-        with patch(
-            "server.tools.turbo_pages.get_runner",
-            return_value=runner,
-        ):
-            turbo_pages_add(
-                name="Test",
-                url="https://example.com/page",
-                extra_json='{"Description":"test"}',
-            )
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
-
-    def test_turbo_pages_add_argv_composition(self):
-        """Test add passes correct argv to CLI."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"id": 125}
+        runner.run_json.return_value = {"turboPages": []}
         with patch("server.tools.turbo_pages.get_runner", return_value=runner):
-            turbo_pages_add(
-                name="My Page",
-                url="https://example.com",
-                extra_json='{"Description":"desc"}',
+            turbo_pages_list(
+                ids="1",
+                bound_with_hrefs="https://example.com",
+                limit=50,
+                fetch_all=True,
+                fields="Id,Name",
+                dry_run=True,
             )
-
-        runner.run_json.assert_called_once_with(
-            [
-                "turbopages",
-                "add",
-                "--name",
-                "My Page",
-                "--url",
-                "https://example.com",
-                "--json",
-                '{"Description":"desc"}',
-            ]
-        )
+        argv = runner.run_json.call_args[0][0]
+        assert "--bound-with-hrefs" in argv
+        assert "--limit" in argv and "50" in argv
+        assert "--fetch-all" in argv
+        assert "--fields" in argv and "Id,Name" in argv
+        assert "--dry-run" in argv
 
     def test_turbo_pages_list_empty_result(self):
         """Test empty response returns empty dict."""

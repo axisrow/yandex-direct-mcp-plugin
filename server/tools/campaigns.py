@@ -37,7 +37,12 @@ def campaigns_list(
     state: str | None = None,
     ids: str | None = None,
     status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
     types: str | None = None,
+    payment_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
     fields: str | None = None,
     text_campaign_fields: str | None = None,
     text_campaign_search_strategy_placement_types_fields: str | None = None,
@@ -89,8 +94,18 @@ def campaigns_list(
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
     if types is not None:
         args.extend(["--types", types])
+    if payment_statuses is not None:
+        args.extend(["--payment-statuses", payment_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
     if fields is not None:
         args.extend(["--fields", fields])
     local_values = locals()
@@ -254,7 +269,7 @@ def campaigns_add(
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_delete(ids: str) -> dict:
+def campaigns_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete campaigns.
 
     Args:
@@ -262,12 +277,14 @@ def campaigns_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "delete", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "delete", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_archive(ids: str) -> dict:
+def campaigns_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive campaigns.
 
     Args:
@@ -275,12 +292,14 @@ def campaigns_archive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "archive", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "archive", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_unarchive(ids: str) -> dict:
+def campaigns_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive campaigns.
 
     Args:
@@ -288,12 +307,14 @@ def campaigns_unarchive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "unarchive", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "unarchive", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_suspend(ids: str) -> dict:
+def campaigns_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend campaigns.
 
     Args:
@@ -301,12 +322,14 @@ def campaigns_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "suspend", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "suspend", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def campaigns_resume(ids: str) -> dict:
+def campaigns_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended campaigns.
 
     Args:
@@ -314,4 +337,6 @@ def campaigns_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "campaigns", "resume", ids)
+    return run_single_id_batch(
+        get_runner(), "campaigns", "resume", ids, dry_run=dry_run
+    )

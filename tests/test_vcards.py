@@ -75,20 +75,54 @@ class TestVcardsList:
 
 
 class TestVcardsAdd:
-    """Tests for vcards_add tool."""
+    """Tests for vcards_add tool (CLI 0.3.8 typed flags)."""
 
-    def test_add_vcard_success(self):
-        """Test adding vCard successfully."""
-        mock_result = {"Id": 123, "CompanyAddress": "789 Pine Rd"}
-        vcard_json = '{"CompanyAddress": "789 Pine Rd"}'
+    def test_add_vcard_required_fields(self):
+        """Test adding vCard with all required typed flags."""
+        mock_result = {"Id": 123}
         runner = MagicMock()
         runner.run_json.return_value = mock_result
 
         with patch("server.tools.vcards.get_runner", return_value=runner):
-            result = vcards_add(vcard_json=vcard_json)
+            result = vcards_add(
+                campaign_id=42,
+                country="RU",
+                city="Москва",
+                company_name="ООО Рога и Копыта",
+                work_time="0#6#9#00#18#00",
+                phone_country_code="+7",
+                phone_city_code="495",
+                phone_number="1234567",
+            )
             assert result["Id"] == 123
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+            argv = runner.run_json.call_args[0][0]
+            assert "--campaign-id" in argv and "42" in argv
+            assert "--country" in argv and "RU" in argv
+            assert "--phone-number" in argv
+
+    def test_add_vcard_optional_fields(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"Id": 124}
+        with patch("server.tools.vcards.get_runner", return_value=runner):
+            vcards_add(
+                campaign_id=42,
+                country="RU",
+                city="Москва",
+                company_name="X",
+                work_time="0#6#9#00#18#00",
+                phone_country_code="+7",
+                phone_city_code="495",
+                phone_number="1234567",
+                street="Тверская",
+                contact_email="hi@example.com",
+                metro_station_id=42,
+                dry_run=True,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--street" in argv
+        assert "--contact-email" in argv
+        assert "--metro-station-id" in argv and "42" in argv
+        assert "--dry-run" in argv
 
 
 class TestVcardsDelete:

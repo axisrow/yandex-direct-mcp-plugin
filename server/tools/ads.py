@@ -43,18 +43,44 @@ def ads_list(
     ids: str | None = None,
     ad_group_ids: str | None = None,
     status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
+    types: str | None = None,
+    mobile: str | None = None,
+    vcard_ids: str | None = None,
+    sitelink_set_ids: str | None = None,
+    image_hashes: str | None = None,
+    vcard_moderation_statuses: str | None = None,
+    sitelinks_moderation_statuses: str | None = None,
+    image_moderation_statuses: str | None = None,
+    adextension_ids: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
     fields: str | None = None,
     text_ad_fields: str | None = None,
 ) -> list[dict] | dict:
     """List ads.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (optional, max 10).
-        ids: Comma-separated ad IDs (optional, max 10).
-        ad_group_ids: Comma-separated ad group IDs (optional, max 10).
-        status: Filter by status (optional).
-        fields: Comma-separated WSDL FieldNames selectors (optional).
-        text_ad_fields: Comma-separated WSDL TextAdFieldNames selectors (e.g. "Title,Text,Href"). Default: Title,Title2,Text,Href.
+        campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated ad IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+        status: Filter by a single status.
+        statuses: Comma-separated statuses.
+        states: Comma-separated states.
+        types: Comma-separated ad types.
+        mobile: "YES" or "NO".
+        vcard_ids: Comma-separated vCard IDs.
+        sitelink_set_ids: Comma-separated sitelink set IDs.
+        image_hashes: Comma-separated ad image hashes.
+        vcard_moderation_statuses: Comma-separated vCard moderation statuses.
+        sitelinks_moderation_statuses: Comma-separated sitelinks moderation statuses.
+        image_moderation_statuses: Comma-separated image moderation statuses.
+        adextension_ids: Comma-separated ad extension IDs.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated top-level FieldNames.
+        text_ad_fields: Comma-separated TextAd FieldNames.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
@@ -87,6 +113,37 @@ def ads_list(
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
+    if types is not None:
+        args.extend(["--types", types])
+    if mobile is not None:
+        if mobile not in ("YES", "NO"):
+            return ToolError(
+                error="invalid_mobile",
+                message=f"mobile must be YES or NO; got '{mobile}'",
+            ).__dict__
+        args.extend(["--mobile", mobile])
+    if vcard_ids is not None:
+        args.extend(["--vcard-ids", vcard_ids])
+    if sitelink_set_ids is not None:
+        args.extend(["--sitelink-set-ids", sitelink_set_ids])
+    if image_hashes is not None:
+        args.extend(["--image-hashes", image_hashes])
+    if vcard_moderation_statuses is not None:
+        args.extend(["--vcard-moderation-statuses", vcard_moderation_statuses])
+    if sitelinks_moderation_statuses is not None:
+        args.extend(["--sitelinks-moderation-statuses", sitelinks_moderation_statuses])
+    if image_moderation_statuses is not None:
+        args.extend(["--image-moderation-statuses", image_moderation_statuses])
+    if adextension_ids is not None:
+        args.extend(["--adextension-ids", adextension_ids])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
     if fields is not None:
         args.extend(["--fields", fields])
     if text_ad_fields is not None:
@@ -228,7 +285,7 @@ def ads_update(
 
 @mcp.tool()
 @handle_cli_errors
-def ads_delete(ids: str) -> dict:
+def ads_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ads.
 
     Args:
@@ -236,12 +293,12 @@ def ads_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "delete", ids)
+    return run_single_id_batch(get_runner(), "ads", "delete", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_moderate(ids: str) -> dict:
+def ads_moderate(ids: str, dry_run: bool = False) -> dict:
     """Submit ads for moderation.
 
     Args:
@@ -249,12 +306,12 @@ def ads_moderate(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "moderate", ids)
+    return run_single_id_batch(get_runner(), "ads", "moderate", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_suspend(ids: str) -> dict:
+def ads_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend ads.
 
     Args:
@@ -262,12 +319,12 @@ def ads_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "suspend", ids)
+    return run_single_id_batch(get_runner(), "ads", "suspend", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_resume(ids: str) -> dict:
+def ads_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended ads.
 
     Args:
@@ -275,12 +332,12 @@ def ads_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "resume", ids)
+    return run_single_id_batch(get_runner(), "ads", "resume", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_archive(ids: str) -> dict:
+def ads_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive ads.
 
     Args:
@@ -288,12 +345,12 @@ def ads_archive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "archive", ids)
+    return run_single_id_batch(get_runner(), "ads", "archive", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def ads_unarchive(ids: str) -> dict:
+def ads_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive ads.
 
     Args:
@@ -301,4 +358,4 @@ def ads_unarchive(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "ads", "unarchive", ids)
+    return run_single_id_batch(get_runner(), "ads", "unarchive", ids, dry_run=dry_run)

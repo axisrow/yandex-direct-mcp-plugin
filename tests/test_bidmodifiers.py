@@ -71,10 +71,14 @@ class TestBidModifiersList:
         runner = MagicMock()
         runner.run_json.return_value = SAMPLE_BIDMODIFIERS
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
-            bidmodifiers_list(campaign_ids="12345", levels="campaign")
+            bidmodifiers_list(campaign_ids="12345", levels="CAMPAIGN")
             call_args = runner.run_json.call_args[0][0]
             assert "--levels" in call_args
-            assert "campaign" in call_args
+            assert "CAMPAIGN" in call_args
+
+    def test_bidmodifiers_list_rejects_invalid_levels(self):
+        result = bidmodifiers_list(levels="campaign")
+        assert result["error"] == "invalid_levels"
 
 
 class TestBidModifiersSet:
@@ -90,21 +94,13 @@ class TestBidModifiersSet:
             result = bidmodifiers_set(id=12345, value=150)
             assert result["success"] is True
 
-    def test_bidmodifiers_set_with_extra_json(self):
-        """Test setting bid modifier with extra JSON."""
+    def test_bidmodifiers_set_dry_run(self):
+        """dry_run=True appends --dry-run to argv."""
         runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
-        with patch(
-            "server.tools.bidmodifiers.get_runner",
-            return_value=runner,
-        ):
-            bidmodifiers_set(
-                id=12345,
-                value=150,
-                extra_json='{"Level":"ADGROUP"}',
-            )
-            call_args = runner.run_json.call_args[0][0]
-            assert "--json" in call_args
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            bidmodifiers_set(id=12345, value=150, dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
     def test_bidmodifiers_set_argv_composition(self):
         """Test set passes correct argv to CLI."""

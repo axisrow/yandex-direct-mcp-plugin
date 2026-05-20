@@ -19,33 +19,68 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
 
 @mcp.tool(name="keywords_get")
 @handle_cli_errors
-def keywords_list(campaign_ids: str) -> list[dict] | dict:
-    """List keywords in specified campaigns.
+def keywords_list(
+    campaign_ids: str | None = None,
+    ids: str | None = None,
+    ad_group_ids: str | None = None,
+    status: str | None = None,
+    statuses: str | None = None,
+    states: str | None = None,
+    modified_since: str | None = None,
+    serving_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
+) -> list[dict] | dict:
+    """List keywords.
 
     Args:
         campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated keyword IDs (max 10).
+        ad_group_ids: Comma-separated ad group IDs (max 10).
+        status: Filter by a single status.
+        statuses: Comma-separated statuses.
+        states: Comma-separated states.
+        modified_since: ModifiedSince datetime in CLI-accepted form.
+        serving_statuses: Comma-separated serving statuses.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
-    normalized_campaign_ids = campaign_ids.strip()
-    if not normalized_campaign_ids:
-        return ToolError(
-            error="missing_campaign_ids",
-            message="Provide at least one campaign ID.",
-        ).__dict__
-    batch_error = _check_batch_limit(normalized_campaign_ids)
-    if batch_error:
-        return batch_error.__dict__
+    args = ["keywords", "get", "--format", "json"]
+    for value, flag, batch in (
+        (campaign_ids, "--campaign-ids", True),
+        (ids, "--ids", True),
+        (ad_group_ids, "--adgroup-ids", True),
+    ):
+        if value is None:
+            continue
+        normalized = value.strip()
+        if not normalized:
+            continue
+        if batch:
+            batch_error = _check_batch_limit(normalized)
+            if batch_error:
+                return batch_error.__dict__
+        args.extend([flag, normalized])
+    if status is not None:
+        args.extend(["--status", status])
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+    if states is not None:
+        args.extend(["--states", states])
+    if modified_since is not None:
+        args.extend(["--modified-since", modified_since])
+    if serving_statuses is not None:
+        args.extend(["--serving-statuses", serving_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
 
-    runner = get_runner()
-    return runner.run_json(
-        [
-            "keywords",
-            "get",
-            "--campaign-ids",
-            normalized_campaign_ids,
-            "--format",
-            "json",
-        ]
-    )
+    return get_runner().run_json(args)
 
 
 @mcp.tool()
@@ -142,7 +177,7 @@ def keywords_add(
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_delete(ids: str) -> dict:
+def keywords_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete keywords.
 
     Args:
@@ -150,12 +185,12 @@ def keywords_delete(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "delete", ids)
+    return run_single_id_batch(get_runner(), "keywords", "delete", ids, dry_run=dry_run)
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_suspend(ids: str) -> dict:
+def keywords_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend keywords.
 
     Args:
@@ -163,12 +198,14 @@ def keywords_suspend(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "suspend", ids)
+    return run_single_id_batch(
+        get_runner(), "keywords", "suspend", ids, dry_run=dry_run
+    )
 
 
 @mcp.tool()
 @handle_cli_errors
-def keywords_resume(ids: str) -> dict:
+def keywords_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended keywords.
 
     Args:
@@ -176,30 +213,4 @@ def keywords_resume(ids: str) -> dict:
     """
     from server.tools.helpers import run_single_id_batch
 
-    return run_single_id_batch(get_runner(), "keywords", "resume", ids)
-
-
-@mcp.tool()
-@handle_cli_errors
-def keywords_archive(ids: str) -> dict:
-    """Archive keywords.
-
-    Args:
-        ids: Comma-separated keyword IDs (max 10).
-    """
-    from server.tools.helpers import run_single_id_batch
-
-    return run_single_id_batch(get_runner(), "keywords", "archive", ids)
-
-
-@mcp.tool()
-@handle_cli_errors
-def keywords_unarchive(ids: str) -> dict:
-    """Unarchive keywords.
-
-    Args:
-        ids: Comma-separated keyword IDs (max 10).
-    """
-    from server.tools.helpers import run_single_id_batch
-
-    return run_single_id_batch(get_runner(), "keywords", "unarchive", ids)
+    return run_single_id_batch(get_runner(), "keywords", "resume", ids, dry_run=dry_run)

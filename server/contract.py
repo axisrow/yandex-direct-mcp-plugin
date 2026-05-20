@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 127
+- Direct API tools: 125
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              133
+Total:              131
 """
 
 from __future__ import annotations
@@ -82,7 +82,14 @@ class ContractTool:
 
 @dataclass(frozen=True)
 class BlockedV4Method:
-    """Known v4 Live method that direct-cli does not expose as a command yet."""
+    """v4 Live method intentionally not surfaced as an MCP tool.
+
+    Two reasons coexist:
+    - CLI 0.3.8 does not yet expose a typed command for the method.
+    - CLI 0.3.8 exposes the method but the plugin intentionally leaves it
+      out of the public MCP surface (financial operations, manual review
+      needed, etc.). The ``reason`` field distinguishes the two.
+    """
 
     method: str
     group: str
@@ -152,8 +159,6 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
         "delete",
         "suspend",
         "resume",
-        "archive",
-        "unarchive",
     ),
     "keywordsresearch": ("has_search_volume", "deduplicate"),
     "leads": ("get",),
@@ -288,58 +293,151 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
     ),
 )
 
-# Methods present in direct_cli.v4_contracts but intentionally not exposed as
-# MCP tools until direct-cli publishes typed commands for them.
+# Methods either not yet typed by direct-cli OR typed but intentionally not
+# surfaced in MCP (e.g. financial operations needing manual review).
+_FINANCIAL_REASON = (
+    "Exposed by direct-cli 0.3.7+ as a typed command, but intentionally not "
+    "surfaced in MCP — financial operations require manual review and master "
+    "token issuance through the Direct UI."
+)
+_PENDING_TYPED_REASON = (
+    "Exposed by direct-cli 0.3.7+ as a typed command, but not yet wrapped "
+    "as an MCP tool — separate scoping needed before public exposure."
+)
+_NO_CLI_REASON = (
+    "direct-cli does not expose a typed CLI command for this v4 Live method."
+)
+
 V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
-    BlockedV4Method("GetClientsUnits", "finance", "v4finance", "get-clients-units"),
-    BlockedV4Method("GetCreditLimits", "finance", "v4finance", "get-credit-limits"),
-    BlockedV4Method("TransferMoney", "finance", "v4finance", "transfer-money"),
-    BlockedV4Method("PayCampaigns", "finance", "v4finance", "pay-campaigns"),
     BlockedV4Method(
-        "PayCampaignsByCard", "finance", "v4finance", "pay-campaigns-by-card"
+        "GetClientsUnits",
+        "finance",
+        "v4finance",
+        "get-clients-units",
+        _FINANCIAL_REASON,
     ),
-    BlockedV4Method("CheckPayment", "finance", "v4finance", "check-payment"),
-    BlockedV4Method("CreateInvoice", "finance", "v4finance", "create-invoice"),
+    BlockedV4Method(
+        "GetCreditLimits",
+        "finance",
+        "v4finance",
+        "get-credit-limits",
+        _FINANCIAL_REASON,
+    ),
+    BlockedV4Method(
+        "TransferMoney",
+        "finance",
+        "v4finance",
+        "transfer-money",
+        _FINANCIAL_REASON,
+    ),
+    BlockedV4Method(
+        "PayCampaigns",
+        "finance",
+        "v4finance",
+        "pay-campaigns",
+        _FINANCIAL_REASON,
+    ),
+    BlockedV4Method(
+        "PayCampaignsByCard",
+        "finance",
+        "v4finance",
+        "pay-campaigns-by-card",
+        _NO_CLI_REASON,
+    ),
+    BlockedV4Method(
+        "CheckPayment",
+        "finance",
+        "v4finance",
+        "check-payment",
+        _FINANCIAL_REASON,
+    ),
+    BlockedV4Method(
+        "CreateInvoice",
+        "finance",
+        "v4finance",
+        "create-invoice",
+        _FINANCIAL_REASON,
+    ),
     BlockedV4Method(
         "EnableSharedAccount",
         "shared_account",
         "v4account",
         "enable-shared-account",
+        _PENDING_TYPED_REASON,
     ),
-    BlockedV4Method("GetEventsLog", "events", "v4events", "get-events-log"),
+    BlockedV4Method(
+        "GetEventsLog",
+        "events",
+        "v4events",
+        "get-events-log",
+        _PENDING_TYPED_REASON,
+    ),
     BlockedV4Method(
         "CreateNewWordstatReport",
         "wordstat",
         "v4wordstat",
-        "create-new-wordstat-report",
+        "create-report",
+        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
         "GetWordstatReportList",
         "wordstat",
         "v4wordstat",
-        "get-wordstat-report-list",
+        "list-reports",
+        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
-        "GetWordstatReport", "wordstat", "v4wordstat", "get-wordstat-report"
+        "GetWordstatReport",
+        "wordstat",
+        "v4wordstat",
+        "get-report",
+        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
         "DeleteWordstatReport",
         "wordstat",
         "v4wordstat",
-        "delete-wordstat-report",
+        "delete-report",
+        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
-        "DeleteOfflineReport", "offline_reports", None, "delete-offline-report"
+        "DeleteOfflineReport",
+        "offline_reports",
+        None,
+        "delete-offline-report",
+        _NO_CLI_REASON,
     ),
-    BlockedV4Method("DeleteReport", "offline_reports", None, "delete-report"),
-    BlockedV4Method("AdImageAssociation", "ad_image", None, "ad-image-association"),
     BlockedV4Method(
-        "GetKeywordsSuggestion", "keywords", None, "get-keywords-suggestion"
+        "DeleteReport",
+        "offline_reports",
+        None,
+        "delete-report",
+        _NO_CLI_REASON,
     ),
-    BlockedV4Method("PingAPI", "meta", "v4meta", "ping-api"),
-    BlockedV4Method("PingAPI_X", "meta", "v4meta", "ping-api-x"),
-    BlockedV4Method("GetVersion", "meta", "v4meta", "get-version"),
-    BlockedV4Method("GetAvailableVersions", "meta", "v4meta", "get-available-versions"),
+    BlockedV4Method(
+        "AdImageAssociation",
+        "ad_image",
+        None,
+        "ad-image-association",
+        _NO_CLI_REASON,
+    ),
+    BlockedV4Method(
+        "GetKeywordsSuggestion",
+        "keywords",
+        None,
+        "get-keywords-suggestion",
+        _NO_CLI_REASON,
+    ),
+    BlockedV4Method("PingAPI", "meta", "v4meta", "ping-api", _NO_CLI_REASON),
+    BlockedV4Method("PingAPI_X", "meta", "v4meta", "ping-api-x", _NO_CLI_REASON),
+    BlockedV4Method("GetVersion", "meta", "v4meta", "get-version", _NO_CLI_REASON),
+    BlockedV4Method(
+        "GetAvailableVersions",
+        "meta",
+        "v4meta",
+        "get-available-versions",
+        _NO_CLI_REASON,
+    ),
 )
 
 PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login")

@@ -191,13 +191,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (133 total) + 1 Prompt
+## MCP Tools (131 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (127)
+### Direct API tools (125)
 
 | Tool | Purpose |
 |---|---|
@@ -236,8 +236,6 @@ WSDL/reports spec wins when there is drift.
 | `keywords_delete` | Delete keywords |
 | `keywords_suspend` | Suspend keywords |
 | `keywords_resume` | Resume keywords |
-| `keywords_archive` | Archive keywords |
-| `keywords_unarchive` | Unarchive keywords |
 | `keywordbids_get` | List keyword bids |
 | `keywordbids_set` | Set keyword bids |
 | `keywordbids_set_auto` | Set keyword bids to auto strategy |

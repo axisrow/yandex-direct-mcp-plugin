@@ -10,13 +10,19 @@ def keyword_bids_list(
     campaign_ids: str | None = None,
     ad_group_ids: str | None = None,
     keyword_ids: str | None = None,
+    serving_statuses: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
 ) -> list[dict] | dict:
     """List keyword bids.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (optional).
-        ad_group_ids: Comma-separated ad group IDs (optional).
-        keyword_ids: Comma-separated keyword IDs (optional).
+        campaign_ids: Comma-separated campaign IDs.
+        ad_group_ids: Comma-separated ad group IDs.
+        keyword_ids: Comma-separated keyword IDs.
+        serving_statuses: Comma-separated serving statuses.
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
     """
     args = ["keywordbids", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
@@ -28,6 +34,12 @@ def keyword_bids_list(
     normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
         args.extend(["--keyword-ids", normalized_keyword_ids])
+    if serving_statuses is not None:
+        args.extend(["--serving-statuses", serving_statuses])
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -38,6 +50,7 @@ def keyword_bids_set(
     keyword_id: int,
     search_bid: int | None = None,
     network_bid: int | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Set keyword bids.
 
@@ -46,6 +59,7 @@ def keyword_bids_set(
         search_bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         network_bid: Optional network bid in micro-units (same rules as `search_bid`).
+        dry_run: Show the direct-cli request without sending it.
     """
     if search_bid is None and network_bid is None:
         return ToolError(
@@ -58,6 +72,8 @@ def keyword_bids_set(
         args.extend(["--search-bid", str(search_bid)])
     if network_bid is not None:
         args.extend(["--network-bid", str(network_bid)])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -72,6 +88,7 @@ def keyword_bids_set_auto(
     target_coverage: int | None = None,
     increase_percent: int | None = None,
     bid_ceiling: int | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Configure automatic keyword bidding.
 
@@ -119,6 +136,8 @@ def keyword_bids_set_auto(
         args.extend(["--increase-percent", str(increase_percent)])
     if bid_ceiling is not None:
         args.extend(["--bid-ceiling", str(bid_ceiling)])
+    if dry_run:
+        args.append("--dry-run")
 
     runner = get_runner()
     return runner.run_json(args)

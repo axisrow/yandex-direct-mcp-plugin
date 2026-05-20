@@ -1,10 +1,29 @@
 """MCP tools for bidding strategy management."""
 
-import json
-
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
+
+IS_ARCHIVED_VALUES = ("YES", "NO")
+STRATEGY_TYPES = (
+    "WbMaximumClicks",
+    "WbMaximumClicksPerBid",
+    "WbMaximumConversionRate",
+    "WbMaximumConversionRatePerBid",
+    "AverageCpc",
+    "AverageCpa",
+    "AverageCpaPerFilter",
+    "AverageCpaPerCampaign",
+    "AverageCrr",
+    "AverageCrrPerCampaign",
+    "MaxProfit",
+    "MaxProfitPerFilter",
+    "MaxProfitPerCampaign",
+    "PayForConversion",
+    "PayForConversionPerFilter",
+    "PayForConversionPerCampaign",
+)
+ATTRIBUTION_MODELS = ("LYDC", "FC", "LC", "LSC", "LYDC_WEIGHT", "CROSSTDEVICE")
 
 
 @mcp.tool(name="strategies_get")
@@ -13,14 +32,28 @@ def strategies_list(
     ids: str | None = None,
     types: str | None = None,
     is_archived: str | None = None,
+    limit: int | None = None,
+    fetch_all: bool = False,
+    fields: str | None = None,
 ) -> list[dict] | dict:
     """List bidding strategies.
 
     Args:
-        ids: Comma-separated strategy IDs (optional, max 10).
-        types: Comma-separated strategy types (optional).
-        is_archived: Filter by archived status, "yes" or "no" (optional).
+        ids: Comma-separated strategy IDs (max 10).
+        types: Comma-separated strategy types.
+        is_archived: Filter by archived status — "YES" or "NO".
+        limit: Limit number of results.
+        fetch_all: Fetch all pages.
+        fields: Comma-separated field names.
     """
+    if is_archived is not None and is_archived not in IS_ARCHIVED_VALUES:
+        return ToolError(
+            error="invalid_is_archived",
+            message=(
+                f"is_archived must be one of {IS_ARCHIVED_VALUES}; got '{is_archived}'"
+            ),
+        ).__dict__
+
     args = ["strategies", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
@@ -32,8 +65,13 @@ def strategies_list(
         args.extend(["--types", types])
     if is_archived is not None:
         args.extend(["--is-archived", is_archived])
-    runner = get_runner()
-    return runner.run_json(args)
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
+    return get_runner().run_json(args)
 
 
 @mcp.tool(name="strategies_add")
@@ -41,37 +79,83 @@ def strategies_list(
 def strategies_add(
     name: str,
     type: str,
-    params: str | dict | None = None,
+    average_cpc: int | None = None,
+    average_cpa: int | None = None,
+    average_crr: int | None = None,
+    goal_id: int | None = None,
+    spend_limit: int | None = None,
+    weekly_spend_limit: int | None = None,
+    bid_ceiling: int | None = None,
     counter_ids: str | None = None,
-    priority_goals: str | list | None = None,
+    priority_goals: list[str] | None = None,
     attribution_model: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Add a bidding strategy.
 
+    CLI 0.3.8 replaced the JSON `--params` / `--priority-goals` blobs with
+    typed flags. Each strategy `type` accepts its own subset of money fields
+    (CLI enforces this against the WSDL schema gate).
+
     Args:
         name: Strategy name.
-        type: Strategy type (e.g. "AverageCpc", "AverageCpa", "MaxProfit").
-        params: Strategy type-specific parameters as JSON string or dict.
-            Any bid/CPC/CPA fields inside this JSON are micro-units (RUB × 1,000,000).
-        counter_ids: Comma-separated Metrica counter IDs (optional).
-        priority_goals: Priority goals as a JSON list/string (optional).
-        attribution_model: Attribution model code (optional, e.g. "LYDC").
+        type: Strategy type — one of WbMaximumClicks, WbMaximumClicksPerBid,
+            WbMaximumConversionRate, WbMaximumConversionRatePerBid,
+            AverageCpc, AverageCpa, AverageCpaPerFilter, AverageCpaPerCampaign,
+            AverageCrr, AverageCrrPerCampaign, MaxProfit, MaxProfitPerFilter,
+            MaxProfitPerCampaign, PayForConversion, PayForConversionPerFilter,
+            PayForConversionPerCampaign.
+        average_cpc: Average CPC in micro-units (RUB × 1,000,000).
+        average_cpa: Average CPA in micro-units (RUB × 1,000,000).
+        average_crr: Average cost-revenue ratio (integer percent).
+        goal_id: Goal ID for conversion strategies.
+        spend_limit: Spend limit in micro-units.
+        weekly_spend_limit: Weekly spend limit in micro-units.
+        bid_ceiling: Bid ceiling in micro-units.
+        counter_ids: Comma-separated Metrica counter IDs.
+        priority_goals: List of "GOAL_ID:VALUE" specs (each becomes a
+            repeated --priority-goal flag).
+        attribution_model: Attribution model — LYDC, FC, LC, LSC, LYDC_WEIGHT,
+            CROSSTDEVICE.
+        dry_run: Show the direct-cli request without sending it.
     """
+    if type not in STRATEGY_TYPES:
+        return ToolError(
+            error="invalid_type",
+            message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
+        ).__dict__
+    if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
+        return ToolError(
+            error="invalid_attribution_model",
+            message=(
+                f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
+                f"got '{attribution_model}'"
+            ),
+        ).__dict__
     args = ["strategies", "add", "--name", name, "--type", type]
-    if params is not None:
-        params_str = json.dumps(params) if isinstance(params, dict) else params
-        args.extend(["--params", params_str])
+    if average_cpc is not None:
+        args.extend(["--average-cpc", str(average_cpc)])
+    if average_cpa is not None:
+        args.extend(["--average-cpa", str(average_cpa)])
+    if average_crr is not None:
+        args.extend(["--average-crr", str(average_crr)])
+    if goal_id is not None:
+        args.extend(["--goal-id", str(goal_id)])
+    if spend_limit is not None:
+        args.extend(["--spend-limit", str(spend_limit)])
+    if weekly_spend_limit is not None:
+        args.extend(["--weekly-spend-limit", str(weekly_spend_limit)])
+    if bid_ceiling is not None:
+        args.extend(["--bid-ceiling", str(bid_ceiling)])
     if counter_ids is not None:
         args.extend(["--counter-ids", counter_ids])
-    if priority_goals is not None:
-        goals_str = (
-            json.dumps(priority_goals)
-            if isinstance(priority_goals, list)
-            else priority_goals
-        )
-        args.extend(["--priority-goals", goals_str])
+    if priority_goals:
+        for spec in priority_goals:
+            args.extend(["--priority-goal", spec])
     if attribution_model is not None:
         args.extend(["--attribution-model", attribution_model])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
@@ -82,36 +166,77 @@ def strategies_update(
     id: int,
     name: str | None = None,
     type: str | None = None,
-    params: str | dict | None = None,
+    average_cpc: int | None = None,
+    average_cpa: int | None = None,
+    average_crr: int | None = None,
+    goal_id: int | None = None,
+    spend_limit: int | None = None,
+    weekly_spend_limit: int | None = None,
+    bid_ceiling: int | None = None,
     counter_ids: str | None = None,
-    priority_goals: str | list | None = None,
+    priority_goals: list[str] | None = None,
     attribution_model: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """Update a bidding strategy.
+
+    CLI 0.3.8 replaced --params / --priority-goals JSON with typed flags.
+    See `strategies_add` for argument semantics.
 
     Args:
         id: Strategy ID.
         name: Optional new strategy name.
         type: Optional new strategy type.
-        params: Optional strategy parameters as JSON string or dict.
-            Any bid/CPC/CPA fields inside this JSON are micro-units (RUB × 1,000,000).
-        counter_ids: Optional comma-separated Metrica counter IDs.
-        priority_goals: Optional priority goals as a JSON list/string.
-        attribution_model: Optional attribution model code.
+        average_cpc: Average CPC in micro-units.
+        average_cpa: Average CPA in micro-units.
+        average_crr: Average cost-revenue ratio (integer percent).
+        goal_id: Goal ID for conversion strategies.
+        spend_limit: Spend limit in micro-units.
+        weekly_spend_limit: Weekly spend limit in micro-units.
+        bid_ceiling: Bid ceiling in micro-units.
+        counter_ids: Comma-separated Metrica counter IDs.
+        priority_goals: List of "GOAL_ID:VALUE" specs.
+        attribution_model: Attribution model code.
+        dry_run: Show the direct-cli request without sending it.
     """
     if (
-        name is None
-        and type is None
-        and params is None
-        and counter_ids is None
-        and priority_goals is None
-        and attribution_model is None
+        all(
+            v is None
+            for v in (
+                name,
+                type,
+                average_cpc,
+                average_cpa,
+                average_crr,
+                goal_id,
+                spend_limit,
+                weekly_spend_limit,
+                bid_ceiling,
+                counter_ids,
+                attribution_model,
+            )
+        )
+        and not priority_goals
     ):
         return ToolError(
             error="missing_update_fields",
             message=(
-                "Provide at least one of: name, type, params, counter_ids, "
-                "priority_goals, attribution_model"
+                "Provide at least one of: name, type, average_cpc, average_cpa, "
+                "average_crr, goal_id, spend_limit, weekly_spend_limit, "
+                "bid_ceiling, counter_ids, priority_goals, attribution_model"
+            ),
+        ).__dict__
+    if type is not None and type not in STRATEGY_TYPES:
+        return ToolError(
+            error="invalid_type",
+            message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
+        ).__dict__
+    if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
+        return ToolError(
+            error="invalid_attribution_model",
+            message=(
+                f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
+                f"got '{attribution_model}'"
             ),
         ).__dict__
 
@@ -120,43 +245,58 @@ def strategies_update(
         args.extend(["--name", name])
     if type is not None:
         args.extend(["--type", type])
-    if params is not None:
-        params_str = json.dumps(params) if isinstance(params, dict) else params
-        args.extend(["--params", params_str])
+    if average_cpc is not None:
+        args.extend(["--average-cpc", str(average_cpc)])
+    if average_cpa is not None:
+        args.extend(["--average-cpa", str(average_cpa)])
+    if average_crr is not None:
+        args.extend(["--average-crr", str(average_crr)])
+    if goal_id is not None:
+        args.extend(["--goal-id", str(goal_id)])
+    if spend_limit is not None:
+        args.extend(["--spend-limit", str(spend_limit)])
+    if weekly_spend_limit is not None:
+        args.extend(["--weekly-spend-limit", str(weekly_spend_limit)])
+    if bid_ceiling is not None:
+        args.extend(["--bid-ceiling", str(bid_ceiling)])
     if counter_ids is not None:
         args.extend(["--counter-ids", counter_ids])
-    if priority_goals is not None:
-        goals_str = (
-            json.dumps(priority_goals)
-            if isinstance(priority_goals, list)
-            else priority_goals
-        )
-        args.extend(["--priority-goals", goals_str])
+    if priority_goals:
+        for spec in priority_goals:
+            args.extend(["--priority-goal", spec])
     if attribution_model is not None:
         args.extend(["--attribution-model", attribution_model])
+    if dry_run:
+        args.append("--dry-run")
     runner = get_runner()
     return runner.run_json(args)
 
 
 @mcp.tool(name="strategies_archive")
 @handle_cli_errors
-def strategies_archive(id: int) -> dict:
+def strategies_archive(id: int, dry_run: bool = False) -> dict:
     """Archive a bidding strategy.
 
     Args:
         id: Strategy ID to archive.
+        dry_run: Show the direct-cli request without sending it.
     """
-    runner = get_runner()
-    return runner.run_json(["strategies", "archive", "--id", str(id)])
+    args = ["strategies", "archive", "--id", str(id)]
+    if dry_run:
+        args.append("--dry-run")
+    return get_runner().run_json(args)
 
 
 @mcp.tool(name="strategies_unarchive")
 @handle_cli_errors
-def strategies_unarchive(id: int) -> dict:
+def strategies_unarchive(id: int, dry_run: bool = False) -> dict:
     """Unarchive a bidding strategy.
 
     Args:
         id: Strategy ID to unarchive.
+        dry_run: Show the direct-cli request without sending it.
     """
-    runner = get_runner()
-    return runner.run_json(["strategies", "unarchive", "--id", str(id)])
+    args = ["strategies", "unarchive", "--id", str(id)]
+    if dry_run:
+        args.append("--dry-run")
+    return get_runner().run_json(args)

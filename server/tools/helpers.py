@@ -51,8 +51,19 @@ def validate_positive_int(value: str, field_name: str) -> int | ToolError:
         )
 
 
-def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dict:
-    """Run a single-ID CLI mutation for a comma-separated batch of IDs."""
+def run_single_id_batch(
+    runner,
+    resource: str,
+    action: str,
+    ids_str: str,
+    dry_run: bool = False,
+) -> dict:
+    """Run a single-ID CLI mutation for a comma-separated batch of IDs.
+
+    Each individual CLI invocation gets the optional --dry-run flag when
+    `dry_run=True`. Use this for any *_delete / *_archive / *_unarchive /
+    *_suspend / *_resume / *_moderate batch wrapper.
+    """
     batch_error = check_batch_limit(ids_str)
     if batch_error:
         return batch_error.__dict__
@@ -67,8 +78,11 @@ def run_single_id_batch(runner, resource: str, action: str, ids_str: str) -> dic
     succeeded = []
     failed = []
     for item_id in ids:
+        argv = [resource, action, "--id", item_id]
+        if dry_run:
+            argv.append("--dry-run")
         try:
-            result = runner.run_json([resource, action, "--id", item_id])
+            result = runner.run_json(argv)
             results.append(result)
             succeeded.append(item_id)
         except (CliAuthError, CliNotFoundError, CliRegistrationError, CliTimeoutError):

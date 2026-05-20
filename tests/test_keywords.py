@@ -10,8 +10,6 @@ from server.tools.keywords import (
     keywords_delete,
     keywords_suspend,
     keywords_resume,
-    keywords_archive,
-    keywords_unarchive,
 )
 
 
@@ -44,14 +42,17 @@ def test_keywords_list_trims_campaign_ids():
         keywords_list(campaign_ids=" 12345 ")
 
     runner.run_json.assert_called_once_with(
-        ["keywords", "get", "--campaign-ids", "12345", "--format", "json"]
+        ["keywords", "get", "--format", "json", "--campaign-ids", "12345"]
     )
 
 
-def test_keywords_list_requires_campaign_ids():
-    """Test blank campaign IDs are rejected."""
-    result = keywords_list(campaign_ids="   ")
-    assert result["error"] == "missing_campaign_ids"
+def test_keywords_list_no_filters():
+    """Blank inputs behave like no filter (CLI accepts query with no IDs)."""
+    runner = _mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_list(campaign_ids="   ")
+    argv = runner.run_json.call_args[0][0]
+    assert "--campaign-ids" not in argv
 
 
 def test_keywords_update():
@@ -211,43 +212,3 @@ class TestKeywordsCrudOperations:
         result = keywords_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
-
-
-def test_keywords_archive_success():
-    runner = _mock_runner({"success": True})
-    with patch("server.tools.keywords.get_runner", return_value=runner):
-        result = keywords_archive(ids="111,222")
-        assert result["success"] is True
-        runner.run_json.assert_has_calls(
-            [
-                call(["keywords", "archive", "--id", "111"]),
-                call(["keywords", "archive", "--id", "222"]),
-            ]
-        )
-
-
-def test_keywords_archive_batch_limit():
-    ids = ",".join(str(i) for i in range(1, 12))
-    result = keywords_archive(ids=ids)
-    assert "error" in result
-    assert result["error"] == "batch_limit"
-
-
-def test_keywords_unarchive_success():
-    runner = _mock_runner({"success": True})
-    with patch("server.tools.keywords.get_runner", return_value=runner):
-        result = keywords_unarchive(ids="111,222")
-        assert result["success"] is True
-        runner.run_json.assert_has_calls(
-            [
-                call(["keywords", "unarchive", "--id", "111"]),
-                call(["keywords", "unarchive", "--id", "222"]),
-            ]
-        )
-
-
-def test_keywords_unarchive_batch_limit():
-    ids = ",".join(str(i) for i in range(1, 12))
-    result = keywords_unarchive(ids=ids)
-    assert "error" in result
-    assert result["error"] == "batch_limit"

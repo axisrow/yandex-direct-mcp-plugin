@@ -109,7 +109,7 @@ class TestRetargetingAdd:
         mock_result = {
             "Id": 203,
             "Name": "Site visitors",
-            "Type": "AUDIENCE_SEGMENT",
+            "Type": "AUDIENCE",
             "State": "ON",
         }
         runner = MagicMock()
@@ -120,7 +120,7 @@ class TestRetargetingAdd:
         ):
             result = retargeting_add(
                 name="Site visitors",
-                list_type="AUDIENCE_SEGMENT",
+                list_type="AUDIENCE",
             )
             assert result["Id"] == 203
             call_args = runner.run_json.call_args[0][0]
@@ -128,7 +128,7 @@ class TestRetargetingAdd:
             assert "--type" in call_args
 
     def test_add_retargeting_with_rule(self):
-        """Test adding with targeting rule conditions."""
+        """Test adding with targeting rule in CLI DSL form."""
         runner = MagicMock()
         runner.run_json.return_value = {"Id": 204}
         with patch(
@@ -137,44 +137,26 @@ class TestRetargetingAdd:
         ):
             retargeting_add(
                 name="Test",
-                list_type="AUDIENCE_SEGMENT",
-                rule='{"Goal":{"Id":123}}',
+                list_type="RETARGETING",
+                rule="ALL:123:30|456:14",
             )
             call_args = runner.run_json.call_args[0][0]
             assert "--rule" in call_args
-            assert '{"Goal":{"Id":123}}' in call_args
+            assert "ALL:123:30|456:14" in call_args
 
-    def test_add_retargeting_with_rule_as_dict(self):
-        """Test adding with rule passed as a dict (serialized to JSON string)."""
+    def test_add_retargeting_dry_run(self):
         runner = MagicMock()
-        runner.run_json.return_value = {"Id": 205}
-        with patch(
-            "server.tools.retargeting.get_runner",
-            return_value=runner,
-        ):
-            retargeting_add(
-                name="Test",
-                list_type="AUDIENCE_SEGMENT",
-                rule={"Goal": {"Id": 123}},
-            )
-            call_args = runner.run_json.call_args[0][0]
-            assert "--rule" in call_args
-            assert '{"Goal": {"Id": 123}}' in call_args
-
-    def test_add_retargeting_with_rule_invalid_json(self):
-        """Test that an invalid JSON string for rule returns a clear error."""
-        result = retargeting_add(
-            name="Test", list_type="AUDIENCE_SEGMENT", rule="not-valid-json"
-        )
-        assert result["error"] == "invalid_json"
-        assert "rule" in result["message"]
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
+            retargeting_add(name="x", list_type="RETARGETING", dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
 
     def test_add_retargeting_auth_error(self):
         """Test auth error during retargeting add."""
         runner = MagicMock()
         runner.run_json.side_effect = CliAuthError("Token expired")
         with patch("server.tools.retargeting.get_runner", return_value=runner):
-            result = retargeting_add(name="Test", list_type="AUDIENCE_SEGMENT")
+            result = retargeting_add(name="Test", list_type="AUDIENCE")
             assert result["error"] == "auth_expired"
 
 
@@ -230,18 +212,19 @@ class TestRetargetingUpdate:
         result = retargeting_update(id=201)
         assert result["error"] == "missing_update_fields"
 
-    def test_update_retargeting_rule_as_dict(self):
-        """Test that retargeting_update accepts rule as a dict."""
+    def test_update_retargeting_rule(self):
+        """retargeting_update passes --rule as a CLI-DSL string."""
         runner = MagicMock()
         runner.run_json.return_value = {"success": True}
         with patch("server.tools.retargeting.get_runner", return_value=runner):
-            retargeting_update(id=201, rule={"Goal": {"Id": 123}})
+            retargeting_update(id=201, rule="ANY:123:30")
             call_args = runner.run_json.call_args[0][0]
             assert "--rule" in call_args
-            assert '{"Goal": {"Id": 123}}' in call_args
+            assert "ANY:123:30" in call_args
 
-    def test_update_retargeting_rule_invalid_json(self):
-        """Test that an invalid JSON string for rule returns a clear error."""
-        result = retargeting_update(id=201, rule="not-valid-json")
-        assert result["error"] == "invalid_json"
-        assert "rule" in result["message"]
+    def test_update_retargeting_dry_run(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"_dry_run": True}
+        with patch("server.tools.retargeting.get_runner", return_value=runner):
+            retargeting_update(id=201, name="x", dry_run=True)
+            assert "--dry-run" in runner.run_json.call_args[0][0]
