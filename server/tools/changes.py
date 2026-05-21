@@ -4,7 +4,7 @@ import re
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, parse_ids
 
 ALLOWED_FIELD_NAMES = {"CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"}
 
@@ -16,8 +16,11 @@ def _normalize_timestamp(ts: str) -> str:
 
     Yandex Direct ``Changes.check`` requires ISO 8601 with an explicit zone;
     without it the API silently treats the value as local server time, which
-    shifts the change window.
+    shifts the change window. Strip surrounding whitespace first — a trailing
+    newline would otherwise let Python's ``$`` anchor match before it and mask
+    a missing zone, and a trailing space would inject an invalid character.
     """
+    ts = ts.strip()
     return ts if _TZ_SUFFIX_RE.search(ts) else f"{ts}Z"
 
 
@@ -82,6 +85,11 @@ def changes_check(
             continue
         stripped = value.strip()
         if not stripped:
+            continue
+        if not parse_ids(stripped):
+            # Strings like "," or " , , " strip to non-empty but yield zero
+            # real IDs — treat as not provided to avoid forwarding a junk
+            # --campaign-ids value to the CLI.
             continue
         provided.append((cli_flag, label, stripped, limit))
 

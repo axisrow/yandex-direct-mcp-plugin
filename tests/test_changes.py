@@ -140,6 +140,42 @@ class TestChangesCheck:
         )
         assert result["error"] == "batch_limit"
 
+    def test_ad_ids_over_limit_rejected(self):
+        ids_50001 = ",".join(str(i) for i in range(50001))
+        result = changes_check(
+            field_names="AdIds",
+            timestamp="2026-01-01T00:00:00Z",
+            ad_ids=ids_50001,
+        )
+        assert result["error"] == "batch_limit"
+
+    def test_comma_only_id_filter_treated_as_missing(self):
+        """A value like "," strips to non-empty but yields zero parsed IDs.
+
+        Without parse_ids() reject this would forward `--campaign-ids ,` to
+        the CLI, masking a missing_id_filter as a confusing CLI error.
+        """
+        result = changes_check(
+            field_names="CampaignIds",
+            timestamp="2026-01-01T00:00:00Z",
+            campaign_ids=",",
+        )
+        assert result["error"] == "missing_id_filter"
+
+    def test_comma_only_id_filter_does_not_mask_real_filter(self):
+        """Comma-only campaign_ids must not block a real ad_ids filter."""
+        runner = _mock_runner({})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            result = changes_check(
+                field_names="AdIds",
+                timestamp="2026-01-01T00:00:00Z",
+                campaign_ids=" , , ",
+                ad_ids="42",
+            )
+        assert "error" not in result
+        argv = _argv_for(runner)
+        assert argv[2:4] == ["--ad-ids", "42"]
+
     def test_normalizes_timestamp_without_z(self):
         runner = _mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
@@ -175,6 +211,34 @@ class TestChangesCheck:
         argv = _argv_for(runner)
         ts_idx = argv.index("--timestamp")
         assert argv[ts_idx + 1] == "2026-01-01T00:00:00+03:00"
+
+    def test_strips_trailing_space_before_normalizing(self):
+        """Trailing space must not result in '... Z' (invalid for the API)."""
+        runner = _mock_runner({})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            changes_check(
+                field_names="CampaignIds",
+                timestamp="2026-01-01T00:00:00 ",
+                campaign_ids="1",
+            )
+        argv = _argv_for(runner)
+        ts_idx = argv.index("--timestamp")
+        assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
+
+    def test_strips_trailing_newline_after_z(self):
+        """Trailing '\\n' must be stripped — Python's ``$`` would otherwise
+        match before the newline, mask the missing zone and forward a value
+        with a literal newline to the CLI."""
+        runner = _mock_runner({})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            changes_check(
+                field_names="CampaignIds",
+                timestamp="2026-01-01T00:00:00Z\n",
+                campaign_ids="1",
+            )
+        argv = _argv_for(runner)
+        ts_idx = argv.index("--timestamp")
+        assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
 
 
 class TestChangesCheckCamp:
