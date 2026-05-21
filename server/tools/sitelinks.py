@@ -94,8 +94,16 @@ def sitelinks_add(
         from_file: Filesystem path passed to direct-cli unchanged.
         dry_run: Show the direct-cli request without sending it.
     """
-    modes = [m for m in (sitelinks, items, from_file) if m]
-    if not modes:
+    provided = [
+        name
+        for name, value in (
+            ("sitelinks", sitelinks),
+            ("items", items),
+            ("from_file", from_file),
+        )
+        if value is not None
+    ]
+    if not provided:
         return ToolError(
             error="missing_mode",
             message=(
@@ -103,10 +111,28 @@ def sitelinks_add(
                 "items (list[dict]), or from_file (path)."
             ),
         ).__dict__
-    if len(modes) > 1:
+    if len(provided) > 1:
         return ToolError(
             error="conflicting_modes",
-            message="Pass exactly one of sitelinks, items, or from_file — not several.",
+            message=(
+                "Pass exactly one of sitelinks, items, or from_file — "
+                f"got: {', '.join(provided)}."
+            ),
+        ).__dict__
+    if sitelinks is not None and not sitelinks:
+        return ToolError(
+            error="empty_mode",
+            message="sitelinks must contain at least one spec.",
+        ).__dict__
+    if items is not None and not items:
+        return ToolError(
+            error="empty_mode",
+            message="items must contain at least one sitelink object.",
+        ).__dict__
+    if from_file is not None and not from_file:
+        return ToolError(
+            error="empty_mode",
+            message="from_file must be a non-empty path.",
         ).__dict__
 
     args = ["sitelinks", "add"]

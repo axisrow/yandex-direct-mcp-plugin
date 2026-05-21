@@ -79,8 +79,7 @@ _HINTS_BY_ERROR_CODE: dict[int, str] = {
     ),
     8800: (
         "Object not found. Either the ID is wrong or it belongs to a "
-        "different client. For ads_*, the plugin already pre-checks foreign "
-        "campaign IDs — for other tools, verify with a *_get call."
+        "different client. Verify with a *_get call."
     ),
     9300: (
         "Too many objects in one request. Yandex API caps batch size at "

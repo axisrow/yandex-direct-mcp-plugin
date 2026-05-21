@@ -165,6 +165,36 @@ class TestSitelinksAdd:
             sitelinks_add(sitelinks=["A|https://a"], dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
 
+    def test_add_sitelinks_empty_list_rejected(self):
+        """sitelinks=[] is a chosen mode with no data — must fail before CLI call."""
+        result = sitelinks_add(sitelinks=[])
+        assert result["error"] == "empty_mode"
+
+    def test_add_sitelinks_empty_items_rejected(self):
+        result = sitelinks_add(items=[])
+        assert result["error"] == "empty_mode"
+
+    def test_add_sitelinks_empty_from_file_rejected(self):
+        result = sitelinks_add(from_file="")
+        assert result["error"] == "empty_mode"
+
+    def test_add_sitelinks_empty_plus_nonempty_is_conflict(self):
+        """sitelinks=[] + items=[...] must NOT silently drop items.
+
+        Regression for the bug where mode detection used truthiness while
+        dispatch used `is not None` — the empty sitelinks would take the
+        dispatch branch and produce a CLI call with no --sitelink args.
+        """
+        result = sitelinks_add(
+            sitelinks=[],
+            items=[{"title": "X", "href": "https://x"}],
+        )
+        assert result["error"] == "conflicting_modes"
+
+    def test_add_sitelinks_empty_items_plus_from_file_is_conflict(self):
+        result = sitelinks_add(items=[], from_file="/tmp/x.jsonl")
+        assert result["error"] == "conflicting_modes"
+
 
 class TestSitelinksDelete:
     """Tests for sitelinks_delete tool."""
