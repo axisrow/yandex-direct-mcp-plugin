@@ -167,7 +167,7 @@ yandex-direct-mcp-plugin/
 │       ├── keywords.py          # keywords_get/update/add/delete/suspend/resume/archive/unarchive
 │       ├── leads.py             # leads_get
 │       ├── negative_keyword_shared_sets.py  # negativekeywordsharedsets_get/add/update/delete
-│       ├── reports.py           # reports_get/list_types
+│       ├── reports.py           # reports_get/reports_custom/list_types
 │       ├── research.py          # keywordsresearch_has_search_volume/deduplicate
 │       ├── retargeting.py       # retargeting_get/add/update/delete
 │       ├── sitelinks.py         # sitelinks_get/add/delete
@@ -314,6 +314,7 @@ WSDL/reports spec wins when there is drift.
 | `creatives_add` | Add creative |
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
+| `reports_custom` | Full Reports API surface: arbitrary FieldNames, filters, ordering, pagination, file output, processing-mode/language/attribution/skip-* CLI 0.3.10 flags; honors `response_format` (json/tsv/csv/table) both for in-memory and `output_path` |
 | `v4forecast_create` | Create v4 Live budget forecast |
 | `v4forecast_list` | List v4 Live budget forecasts |
 | `v4forecast_get` | Get a ready v4 Live budget forecast |

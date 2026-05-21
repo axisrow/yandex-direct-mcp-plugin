@@ -1,6 +1,7 @@
 """Tests for reports MCP tool."""
 
 import json
+import subprocess
 from datetime import date, timedelta
 from unittest.mock import patch, MagicMock
 
@@ -27,10 +28,23 @@ SAMPLE_REPORTS = [
 ]
 
 
+def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
+    return subprocess.CompletedProcess(
+        args=["direct"], returncode=returncode, stdout=stdout, stderr=stderr
+    )
+
+
 def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
+    """Create a mock get_runner that returns a runner with the given run_json result.
+
+    The mock also exposes ``runner.run`` returning an empty stdout
+    CompletedProcess by default — required for paths that go through
+    ``runner.run`` instead of ``runner.run_json`` (file output, non-JSON
+    in-memory).
+    """
     runner = MagicMock()
     runner.run_json.return_value = return_value
+    runner.run.return_value = _completed()
     return runner
 
 
@@ -300,14 +314,14 @@ def test_reports_custom_output_path(tmp_path):
     out = tmp_path / "report.json"
     runner = MagicMock()
 
-    def fake_run_json(args, **kwargs):
+    def fake_run(args, **kwargs):
         # Simulate direct-cli writing the file
         output_arg = args[args.index("--output") + 1]
         assert output_arg == str(out.resolve())
         out.write_text(json.dumps([{"x": 1}, {"x": 2}, {"x": 3}]))
-        return {"status": "ok"}
+        return _completed()
 
-    runner.run_json.side_effect = fake_run_json
+    runner.run.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -317,7 +331,7 @@ def test_reports_custom_output_path(tmp_path):
             response_format="json",
         )
 
-    args = _custom_args(runner.run_json.call_args)
+    args = _custom_args(runner.run.call_args)
     assert "--output" in args and args[args.index("--output") + 1] == str(out.resolve())
     # response_format wins over the implicit JSON default
     assert args[-2:] == ["--format", "json"]
@@ -351,13 +365,13 @@ def test_reports_custom_output_path_uncountable_file(tmp_path):
     out = tmp_path / "report.json"
     runner = MagicMock()
 
-    def fake_run_json(args, **kwargs):
+    def fake_run(args, **kwargs):
         output_arg = args[args.index("--output") + 1]
         assert output_arg == str(out.resolve())
         out.write_text("not json")
-        return {"status": "ok"}
+        return _completed()
 
-    runner.run_json.side_effect = fake_run_json
+    runner.run.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -375,7 +389,7 @@ def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
     out = tmp_path / "report.json"
     runner = MagicMock()
 
-    def fake_run_json(args, **kwargs):
+    def fake_run(args, **kwargs):
         output_arg = args[args.index("--output") + 1]
         assert output_arg == str(out.resolve())
         with out.open("w", encoding="utf-8") as f:
@@ -385,9 +399,9 @@ def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
                     f.write(",")
                 f.write(json.dumps({"i": i, "nested": {"comma": "a,b"}}))
             f.write("]")
-        return {"status": "ok"}
+        return _completed()
 
-    runner.run_json.side_effect = fake_run_json
+    runner.run.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -603,3 +617,197 @@ def test_reports_custom_in_contract():
     assert "reports_custom" in PUBLIC_TOOL_NAMES
     assert "reports_custom" in DIRECT_API_TOOL_NAMES
     assert any(t.public_name == "reports_custom" for t in REPORTS_SPEC_EXTRA_TOOLS)
+
+
+# --- response_format / CLI 0.3.10 typed flags ---------------------------
+
+
+def test_reports_custom_default_response_format_threads_json():
+    """Default response_format=json must reach the CLI as --format json."""
+    runner = _mock_runner([{"x": 1}])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert args[-2:] == ["--format", "json"]
+
+
+def test_reports_custom_response_format_tsv_in_memory():
+    """response_format=tsv without output_path returns raw stdout payload."""
+    runner = MagicMock()
+    runner.run.return_value = _completed(stdout="Date\tCost\n2026-01-01\t12.5\n")
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            response_format="tsv",
+        )
+    args = _custom_args(runner.run.call_args)
+    assert args[-2:] == ["--format", "tsv"]
+    assert result == {
+        "format": "tsv",
+        "report_type": "CUSTOM_REPORT",
+        "content": "Date\tCost\n2026-01-01\t12.5\n",
+    }
+    runner.run_json.assert_not_called()
+
+
+def test_reports_custom_response_format_csv_in_memory():
+    runner = MagicMock()
+    runner.run.return_value = _completed(stdout="Date,Cost\n2026-01-01,12.5\n")
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            response_format="csv",
+        )
+    args = _custom_args(runner.run.call_args)
+    assert args[-2:] == ["--format", "csv"]
+    assert result["format"] == "csv"
+    assert result["content"].startswith("Date,Cost")
+
+
+def test_reports_custom_processing_mode_threads_through():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            processing_mode="offline",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    idx = args.index("--processing-mode")
+    assert args[idx + 1] == "offline"
+
+
+def test_reports_custom_rejects_invalid_processing_mode():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            processing_mode="async",
+        )
+    assert result["error"] == "invalid_processing_mode"
+    runner.run_json.assert_not_called()
+    runner.run.assert_not_called()
+
+
+def test_reports_custom_language_threads_through():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            language="en",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    idx = args.index("--language")
+    assert args[idx + 1] == "en"
+
+
+def test_reports_custom_rejects_invalid_language():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            language="fr",
+        )
+    assert result["error"] == "invalid_language"
+
+
+def test_reports_custom_attribution_models_threads_through():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            attribution_models="LSC,LYDCCD",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    idx = args.index("--attribution-models")
+    assert args[idx + 1] == "LSC,LYDCCD"
+
+
+def test_reports_custom_rejects_unknown_attribution_model():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            attribution_models="LSC,MADE_UP",
+        )
+    assert result["error"] == "invalid_attribution_models"
+
+
+def test_reports_custom_skip_flags_threaded():
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            skip_report_header=False,
+            skip_column_header=True,
+            skip_report_summary=False,
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert "--no-skip-report-header" in args
+    assert "--skip-column-header" in args
+    assert "--no-skip-report-summary" in args
+    assert "--skip-report-header" not in args
+    assert "--skip-report-summary" not in args
+
+
+def test_reports_custom_skip_flags_default_omits_them():
+    """When skip_* are not set, the CLI defaults apply (no plugin override)."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    assert "--skip-report-header" not in args
+    assert "--no-skip-report-header" not in args
+    assert "--skip-column-header" not in args
+    assert "--skip-report-summary" not in args
+    assert "--no-skip-report-summary" not in args
+
+
+def test_reports_custom_output_path_with_tsv_format(tmp_path):
+    """File output honors response_format=tsv (no implicit json override)."""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        out.write_text("Date\tCost\n2026-01-01\t12.5\n")
+        return _completed()
+
+    runner.run.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            output_path=str(out),
+            response_format="tsv",
+        )
+
+    args = _custom_args(runner.run.call_args)
+    assert args[-2:] == ["--format", "tsv"]
+    assert result["format"] == "tsv"
+    assert result["output_path"] == str(out.resolve())
