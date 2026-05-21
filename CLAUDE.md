@@ -298,7 +298,7 @@ WSDL/reports spec wins when there is drift.
 | `businesses_get` | List businesses |
 | `dictionaries_get` | Get dictionary data |
 | `dictionaries_get_geo_regions` | Get geo regions dictionary |
-| `changes_check` | Check changes since timestamp |
+| `changes_check` | Check changes since timestamp (filter by exactly one of campaign_ids/ad_group_ids/ad_ids; limits 3000/10000/50000) |
 | `changes_check_campaigns` | Check campaign changes |
 | `changes_check_dictionaries` | Check dictionary changes |
 | `clients_get` | Get client info |
