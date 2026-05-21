@@ -4,8 +4,6 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 MAX_BATCH_SIZE = 10
-FOREIGN_CAMPAIGN_MIN = 73_000_000
-FOREIGN_CAMPAIGN_MAX = 77_999_999
 MOBILE_VALUES = ("YES", "NO")
 
 
@@ -22,18 +20,6 @@ def _check_batch_limit(ids_str: str) -> ToolError | None:
             error="batch_limit",
             message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}",
         )
-    return None
-
-
-def _get_foreign_campaign_id(ids_str: str) -> str | None:
-    """Return the first campaign ID in the foreign account range (73M-77M), or None."""
-    for id_str in _parse_ids(ids_str):
-        try:
-            cid = int(id_str)
-            if FOREIGN_CAMPAIGN_MIN <= cid <= FOREIGN_CAMPAIGN_MAX:
-                return id_str
-        except ValueError:
-            continue
     return None
 
 
@@ -88,14 +74,6 @@ def ads_list(
         batch_error = _check_batch_limit(normalized_campaign_ids)
         if batch_error:
             return batch_error.__dict__
-        foreign_id = _get_foreign_campaign_id(normalized_campaign_ids)
-        if foreign_id:
-            return ToolError(
-                error="foreign_campaign",
-                message=(
-                    f"Campaign {foreign_id} is unavailable — belongs to another account"
-                ),
-            ).__dict__
 
     args = ["ads", "get", "--format", "json"]
     if normalized_campaign_ids:

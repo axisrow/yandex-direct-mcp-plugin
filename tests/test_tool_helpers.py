@@ -9,7 +9,7 @@ from server.cli.runner import (
     DirectCliRunner,
 )
 from server.tools.ads import _check_batch_limit as ads_check_batch_limit
-from server.tools.ads import _get_foreign_campaign_id, _parse_ids
+from server.tools.ads import _parse_ids
 from server.tools.auth_tools import _human_readable_time
 from server.tools.keywords import _check_batch_limit as keywords_check_batch_limit
 
@@ -190,11 +190,6 @@ def test_ads_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:
     result = ads_check_batch_limit(",".join(str(i) for i in range(11)))
     assert result is not None
     assert result.error == "batch_limit"
-
-
-def test_get_foreign_campaign_id_detects_only_foreign_range() -> None:
-    assert _get_foreign_campaign_id("abc,72999999,73000000,5") == "73000000"
-    assert _get_foreign_campaign_id("100,200,abc") is None
 
 
 def test_keywords_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:

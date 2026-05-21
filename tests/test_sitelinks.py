@@ -1,5 +1,6 @@
 """Tests for sitelinks MCP tools."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -70,7 +71,7 @@ class TestSitelinksList:
 
 
 class TestSitelinksAdd:
-    """Tests for sitelinks_add tool (CLI 0.3.8: repeatable --sitelink)."""
+    """Tests for sitelinks_add tool (CLI 0.3.10: three input modes)."""
 
     def test_add_sitelinks_success(self):
         """Each sitelink spec becomes a separate --sitelink argument."""
@@ -97,9 +98,65 @@ class TestSitelinksAdd:
                 ]
             )
 
-    def test_add_sitelinks_empty_list(self):
-        result = sitelinks_add(sitelinks=[])
-        assert result["error"] == "missing_sitelinks"
+    def test_add_sitelinks_items_serialized_to_camelcase_json(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"Id": 456}
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            sitelinks_add(
+                items=[
+                    {
+                        "title": "Главная",
+                        "href": "https://example.com/?utm=cid|{cid}",
+                        "description": "На главную",
+                    },
+                    {"title": "Прайс", "href": "https://example.com/p"},
+                ]
+            )
+
+        called_args = runner.run_json.call_args[0][0]
+        assert called_args[0:2] == ["sitelinks", "add"]
+        assert "--sitelink-json" in called_args
+        json_idx = called_args.index("--sitelink-json")
+        payload = json.loads(called_args[json_idx + 1])
+        assert payload == [
+            {
+                "Title": "Главная",
+                "Href": "https://example.com/?utm=cid|{cid}",
+                "Description": "На главную",
+            },
+            {"Title": "Прайс", "Href": "https://example.com/p"},
+        ]
+
+    def test_add_sitelinks_items_unknown_field(self):
+        result = sitelinks_add(items=[{"title": "X", "url": "https://x"}])
+        assert result["error"] == "unknown_field"
+        assert "url" in result["message"]
+
+    def test_add_sitelinks_from_file(self):
+        runner = MagicMock()
+        runner.run_json.return_value = {"Id": 789}
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            sitelinks_add(from_file="/tmp/sitelinks.jsonl")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "sitelinks",
+                "add",
+                "--sitelinks-from-file",
+                "/tmp/sitelinks.jsonl",
+            ]
+        )
+
+    def test_add_sitelinks_missing_mode(self):
+        result = sitelinks_add()
+        assert result["error"] == "missing_mode"
+
+    def test_add_sitelinks_conflicting_modes(self):
+        result = sitelinks_add(
+            sitelinks=["A|https://a"],
+            items=[{"title": "B", "href": "https://b"}],
+        )
+        assert result["error"] == "conflicting_modes"
 
     def test_add_sitelinks_dry_run(self):
         runner = MagicMock()

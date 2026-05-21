@@ -54,13 +54,6 @@ def test_ads_list_ignores_blank_filters():
         assert "--ids" not in call_args
 
 
-def test_ads_foreign_campaign():
-    """Test 12: Campaign belongs to second account (73-77M range)."""
-    result = ads_list(campaign_ids="75000001")
-    assert "error" in result
-    assert result["error"] == "foreign_campaign"
-
-
 def test_ads_batch_limit():
     """Test 13: Too many IDs."""
     ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs

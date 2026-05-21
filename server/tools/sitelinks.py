@@ -1,8 +1,17 @@
 """MCP tools for sitelinks management."""
 
+import json
+
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
+
+_SITELINK_FIELD_MAP = {
+    "title": "Title",
+    "href": "Href",
+    "description": "Description",
+    "turbo_page_id": "TurboPageId",
+}
 
 
 @mcp.tool(name="sitelinks_get")
@@ -37,29 +46,85 @@ def sitelinks_list(
     return get_runner().run_json(cmd)
 
 
+def _to_wsdl_sitelink(item: dict) -> dict | ToolError:
+    """Convert snake_case dict to WSDL CamelCase keys.
+
+    Unknown keys are rejected to surface typos early.
+    """
+    result: dict = {}
+    for key, value in item.items():
+        wsdl_key = _SITELINK_FIELD_MAP.get(key)
+        if wsdl_key is None:
+            return ToolError(
+                error="unknown_field",
+                message=(
+                    f"Unknown sitelink field {key!r}. "
+                    f"Allowed: {sorted(_SITELINK_FIELD_MAP)}."
+                ),
+            )
+        result[wsdl_key] = value
+    return result
+
+
 @mcp.tool()
 @handle_cli_errors
-def sitelinks_add(sitelinks: list[str], dry_run: bool = False) -> dict:
+def sitelinks_add(
+    sitelinks: list[str] | None = None,
+    items: list[dict] | None = None,
+    from_file: str | None = None,
+    dry_run: bool = False,
+) -> dict:
     """Add a sitelinks set.
 
-    CLI 0.3.8 expects each sitelink as a pipe-delimited string passed via
-    repeatable --sitelink: ``TITLE|HREF[|DESCRIPTION]``.
+    CLI 0.3.10 accepts three mutually exclusive input modes:
+
+    - ``sitelinks`` — list of pipe-delimited specs ``TITLE|HREF[|DESCRIPTION]``,
+      forwarded via repeatable ``--sitelink``. Escape literal ``|`` as ``\\|``
+      (for example, UTM templates with ``cid|{campaign_id}``).
+    - ``items`` — list of dicts with snake_case keys ``title`` / ``href`` /
+      ``description`` / ``turbo_page_id``. The plugin re-keys to WSDL CamelCase
+      and sends them as ``--sitelink-json`` (no pipe escaping needed).
+    - ``from_file`` — path to a JSONL file with one sitelink object per line,
+      forwarded as ``--sitelinks-from-file``.
 
     Args:
-        sitelinks: List of sitelink specs in ``TITLE|HREF[|DESCRIPTION]`` form.
-            Example: ``["About|https://example.com/about|Learn more",
-            "Pricing|https://example.com/pricing"]``.
+        sitelinks: Pipe-delimited specs. Example: ``["About|https://x.com/a|Info"]``.
+        items: Structured objects. Example:
+            ``[{"title": "Главная", "href": "https://x.com/?utm=cid|{cid}"}]``.
+        from_file: Filesystem path passed to direct-cli unchanged.
         dry_run: Show the direct-cli request without sending it.
     """
-    if not sitelinks:
+    modes = [m for m in (sitelinks, items, from_file) if m]
+    if not modes:
         return ToolError(
-            error="missing_sitelinks",
-            message="Provide at least one sitelink spec (TITLE|HREF[|DESCRIPTION]).",
+            error="missing_mode",
+            message=(
+                "Provide exactly one of: sitelinks (list[str]), "
+                "items (list[dict]), or from_file (path)."
+            ),
+        ).__dict__
+    if len(modes) > 1:
+        return ToolError(
+            error="conflicting_modes",
+            message="Pass exactly one of sitelinks, items, or from_file — not several.",
         ).__dict__
 
     args = ["sitelinks", "add"]
-    for spec in sitelinks:
-        args.extend(["--sitelink", spec])
+    if sitelinks is not None:
+        for spec in sitelinks:
+            args.extend(["--sitelink", spec])
+    elif items is not None:
+        wsdl_items: list[dict] = []
+        for item in items:
+            converted = _to_wsdl_sitelink(item)
+            if isinstance(converted, ToolError):
+                return converted.__dict__
+            wsdl_items.append(converted)
+        args.extend(["--sitelink-json", json.dumps(wsdl_items, ensure_ascii=False)])
+    else:
+        assert from_file is not None
+        args.extend(["--sitelinks-from-file", from_file])
+
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)

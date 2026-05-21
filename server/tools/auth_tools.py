@@ -256,11 +256,22 @@ class AuthCredential(BaseModel):
 
 @mcp.tool()
 async def auth_login(
-    ctx: Context, login: str | None = None, profile: str | None = None
+    ctx: Context,
+    login: str | None = None,
+    profile: str | None = None,
+    force: bool = False,
 ) -> dict:
-    """Start interactive OAuth login through direct-cli."""
+    """Start interactive OAuth login through direct-cli.
+
+    Args:
+        login: Optional Yandex.Direct Client-Login to save with the profile.
+        profile: direct-cli profile name (default — active profile).
+        force: Re-run OAuth flow even if the profile is already valid. Use
+            this to switch the active account or to refresh an existing token
+            without manually editing ``~/.direct-cli/auth.json``.
+    """
     status = auth_status(profile)
-    if status.get("valid"):
+    if status.get("valid") and not force:
         return {"already_authenticated": True, **status}
     target_profile = _resolve_profile_name(profile)
 

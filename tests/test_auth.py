@@ -265,6 +265,31 @@ class TestAuthLogin:
         result = asyncio.run(auth_login(MagicMock()))
         assert result["already_authenticated"] is True
 
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": True})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_force_reauth_when_already_valid(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        mock_run.return_value = _completed(
+            json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+        )
+        mock_ctx = MagicMock()
+        mock_result = MagicMock()
+        mock_result.action = "decline"
+        mock_result.data = None
+        mock_ctx.elicit = AsyncMock(return_value=mock_result)
+
+        result = asyncio.run(auth_login(mock_ctx, force=True))
+
+        assert result == {"cancelled": True, "message": "Авторизация отменена."}
+        mock_run.assert_called_once_with(
+            ["auth", "login", "--profile", "default", "--format", "json"],
+            timeout=30,
+            input="",
+        )
+
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
     @patch("server.tools.auth_tools._find_direct", return_value=None)
     def test_auth_login_cli_not_found(self, _mock_find, _mock_status) -> None:

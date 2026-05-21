@@ -31,7 +31,7 @@ skills/                     — domain knowledge (SKILL.md files)
 MCP → direct → tapi-yandex-direct → Yandex.Direct API
 ```
 
-- MCP **never** calls Yandex.Direct directly.
+- MCP **never** calls Yandex.Direct directly. This is absolute — even as a workaround for a missing/broken CLI feature, the plugin does not bypass `direct-cli` via `urllib`, raw HTTP, or `tapi-yandex-direct` imports. If CLI lacks something, file an upstream issue in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when CLI convenience names drift.
@@ -369,9 +369,8 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
-- Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.9`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.10`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
