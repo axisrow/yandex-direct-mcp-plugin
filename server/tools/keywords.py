@@ -153,31 +153,72 @@ def keywords_update(
 @mcp.tool()
 @handle_cli_errors
 def keywords_add(
-    ad_group_id: int,
-    keyword: str,
+    ad_group_id: int | None = None,
+    keyword: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
+    from_file: str | None = None,
+    keywords_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Add a keyword to an ad group.
+    """Add one or many keywords to an ad group.
 
-    Note: this tool adds one keyword per invocation. Bulk-loading 100+
-    keywords is currently slow because direct-cli has no batch mode — see
-    upstream issue for `keywords add --from-file`.
+    Three mutually exclusive modes (CLI 0.3.9):
+
+    1. Single: ad_group_id + keyword (+ optional bid / context_bid / user_params).
+    2. JSONL batch: from_file = path to a .jsonl file, one keyword object per line.
+       Per-line schema (WSDL CamelCase): {"AdGroupId": int, "Keyword": str,
+       "Bid": int (micro-RUB), "ContextBid": int, "UserParam1": str,
+       "UserParam2": str}. Per-line AdGroupId overrides the top-level
+       ad_group_id default.
+    3. Inline JSON: keywords_json = a JSON array of the same objects.
+
+    CLI 0.3.9 forwards the array as a single Yandex Direct API request (up to
+    1000 keywords per call).
 
     Args:
-        ad_group_id: Ad group ID to add the keyword to.
-        keyword: Keyword text.
+        ad_group_id: Ad group ID. Required in single mode; optional default
+            in batch modes (each row's AdGroupId wins).
+        keyword: Keyword text (single mode only).
         bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
+        from_file: Path to a JSONL file with keyword objects (batch mode).
+        keywords_json: Inline JSON array of keyword objects (batch mode).
         dry_run: Show the direct-cli request without sending it.
     """
-    args = ["keywords", "add", "--adgroup-id", str(ad_group_id), "--keyword", keyword]
+    modes = (bool(keyword), bool(from_file), bool(keywords_json))
+    mode_count = sum(modes)
+    if mode_count == 0:
+        return ToolError(
+            error="missing_mode",
+            message=(
+                "Provide exactly one of: keyword (single), from_file (JSONL), "
+                "or keywords_json (inline JSON array)."
+            ),
+        ).__dict__
+    if mode_count > 1:
+        return ToolError(
+            error="conflicting_modes",
+            message=(
+                "keyword, from_file and keywords_json are mutually exclusive — "
+                "pass exactly one."
+            ),
+        ).__dict__
+
+    args = ["keywords", "add"]
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", str(ad_group_id)])
+    if keyword:
+        args.extend(["--keyword", keyword])
+    if from_file:
+        args.extend(["--from-file", from_file])
+    if keywords_json:
+        args.extend(["--keywords-json", keywords_json])
     if bid is not None:
         args.extend(["--bid", str(bid)])
     if context_bid is not None:

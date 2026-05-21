@@ -220,16 +220,23 @@ def campaigns_add(
     settings: list[str] | None = None,
     filter_average_cpc: int | None = None,
     counter_id: int | None = None,
+    counter_ids: str | None = None,
+    goal_id: int | None = None,
+    priority_goals: str | None = None,
+    average_cpa: int | None = None,
+    crr: int | None = None,
+    bid_ceiling: int | None = None,
+    notification_json: str | None = None,
+    time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create a new campaign.
 
-    CLI 0.3.8 removed the free-form `--json` flag from `campaigns add`. Use
-    `--search-strategy` / `--network-strategy` / `--setting` typed flags.
-
-    Note: CLI 0.3.8 does not yet expose Goals (CPA pay-for-conversion),
-    Notification, NetworkSettings or TimeTargeting — these have to be set
-    via the Direct web UI after `campaigns_add` until a future CLI release.
+    CLI 0.3.9 enforces strict WSDL parity for CPA strategies. Incompatible
+    combinations (e.g. `--crr` on AVERAGE_CPA, `--priority-goals` without a
+    `*_MULTIPLE_GOALS` strategy, `--counter-ids` on Smart) are rejected by the
+    CLI with `UsageError` before any API call — the plugin does not duplicate
+    these cross-field checks.
 
     Args:
         name: Campaign name.
@@ -246,7 +253,23 @@ def campaigns_add(
             (e.g. ["EnableEmailNotification=YES", "RequireServicing=NO"]).
         filter_average_cpc: Optional Smart campaign filter average CPC in micro-units
             (RUB × 1,000,000); CLI 0.2.10+ rejects values 0 < x < 100_000.
-        counter_id: Optional Smart campaign Metrica counter ID.
+        counter_id: Optional Smart campaign Metrika counter ID (single).
+        counter_ids: Optional comma-separated Metrika counter IDs for
+            TextCampaign / DynamicTextCampaign (`CounterIds`).
+        goal_id: Optional single Metrika goal ID for AVERAGE_CPA /
+            PAY_FOR_CONVERSION_CRR / AVERAGE_CPA_PER_CAMPAIGN /
+            AVERAGE_CPA_PER_FILTER strategies.
+        priority_goals: Optional comma-separated 'goal_id:value' pairs for
+            AVERAGE_CPA_MULTIPLE_GOALS / PAY_FOR_CONVERSION_MULTIPLE_GOALS.
+        average_cpa: Optional target CPA in micro-units (RUB × 1,000,000)
+            for AVERAGE_CPA strategies.
+        crr: Optional cost-revenue-ratio percentage for PAY_FOR_CONVERSION_CRR.
+        bid_ceiling: Optional bid ceiling in micro-units for the chosen
+            CPA strategy.
+        notification_json: Optional JSON for `CampaignBase.Notification`
+            ({"SmsSettings": {...}, "EmailSettings": {...}}).
+        time_targeting_json: Optional JSON for `CampaignAddItem.TimeTargeting`
+            ({"Schedule": [...], "ConsiderWorkingWeekends": "YES|NO", ...}).
         dry_run: Show the direct-cli request without sending it.
     """
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
@@ -267,6 +290,22 @@ def campaigns_add(
         args.extend(["--filter-average-cpc", str(filter_average_cpc)])
     if counter_id is not None:
         args.extend(["--counter-id", str(counter_id)])
+    if counter_ids:
+        args.extend(["--counter-ids", counter_ids])
+    if goal_id is not None:
+        args.extend(["--goal-id", str(goal_id)])
+    if priority_goals:
+        args.extend(["--priority-goals", priority_goals])
+    if average_cpa is not None:
+        args.extend(["--average-cpa", str(average_cpa)])
+    if crr is not None:
+        args.extend(["--crr", str(crr)])
+    if bid_ceiling is not None:
+        args.extend(["--bid-ceiling", str(bid_ceiling)])
+    if notification_json:
+        args.extend(["--notification", notification_json])
+    if time_targeting_json:
+        args.extend(["--time-targeting", time_targeting_json])
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

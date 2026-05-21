@@ -344,3 +344,169 @@ class TestAdsCrudOperations:
         result = ads_unarchive(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+class TestAdsTypedTextAdFields:
+    """CLI 0.3.9: typed TextAd fields (title2, sitelinks, ad_extensions, etc)."""
+
+    def test_ads_add_passes_title2(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                title2="Second headline",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--title2" in argv
+        assert "Second headline" in argv
+
+    def test_ads_add_passes_display_url_path(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                display_url_path="catalog/items",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--display-url-path" in argv
+        assert "catalog/items" in argv
+
+    def test_ads_add_passes_mobile_yes(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                mobile="YES",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--mobile" in argv
+        assert "YES" in argv
+
+    def test_ads_add_rejects_mobile_invalid_value(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                mobile="FOO",
+            )
+        assert isinstance(result, dict)
+        assert result["error"] == "invalid_mobile"
+        runner.run_json.assert_not_called()
+
+    def test_ads_add_passes_vcard_id(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                vcard_id=42,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--vcard-id" in argv
+        assert "42" in argv
+
+    def test_ads_add_passes_sitelink_set_id(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                sitelink_set_id=7,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--sitelink-set-id" in argv
+        assert "7" in argv
+
+    def test_ads_add_passes_turbo_page_id(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                turbo_page_id=12345,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--turbo-page-id" in argv
+        assert "12345" in argv
+
+    def test_ads_add_passes_ad_extensions(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(
+                ad_group_id=1,
+                ad_type="TEXT_AD",
+                title="t",
+                text="x",
+                href="https://x",
+                ad_extensions="111,222,333",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--ad-extensions" in argv
+        assert "111,222,333" in argv
+
+    def test_ads_update_passes_typed_text_ad_fields(self):
+        runner = _mock_runner({"Id": 555})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(
+                id=555,
+                type="TEXT_AD",
+                title2="b",
+                display_url_path="path",
+                mobile="NO",
+                vcard_id=1,
+                sitelink_set_id=2,
+                turbo_page_id=3,
+                ad_extensions="100,200",
+            )
+        argv = runner.run_json.call_args[0][0]
+        for flag, value in (
+            ("--title2", "b"),
+            ("--display-url-path", "path"),
+            ("--mobile", "NO"),
+            ("--vcard-id", "1"),
+            ("--sitelink-set-id", "2"),
+            ("--turbo-page-id", "3"),
+            ("--ad-extensions", "100,200"),
+        ):
+            assert flag in argv, f"{flag} missing from argv"
+            assert value in argv, f"{value} missing from argv"
+
+    def test_ads_update_rejects_mobile_invalid_value(self):
+        runner = _mock_runner({"Id": 555})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=555, type="TEXT_AD", mobile="FOO")
+        assert isinstance(result, dict)
+        assert result["error"] == "invalid_mobile"
+        runner.run_json.assert_not_called()
+
+    def test_ads_update_typed_field_alone_satisfies_change_check(self):
+        """title2 alone counts as a meaningful update — not 'missing_update_fields'."""
+        runner = _mock_runner({"Id": 555})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=555, type="TEXT_AD", title2="b")
+        assert result["Id"] == 555
+        argv = runner.run_json.call_args[0][0]
+        assert "--title2" in argv

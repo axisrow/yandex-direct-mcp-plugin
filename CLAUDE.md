@@ -371,7 +371,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - API batch limit: max 10 IDs per request
 - Campaign IDs ~73-77M range belong to a second account (foreign_campaign error)
 - OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.8`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.9`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -459,3 +459,42 @@ were updated accordingly:
   for diagnosing API warning 10165 ("parameter will not be applied").
 - **New tools**: 4 `v4forecast_*` (create / list / get / delete) for V4 Live
   budget forecasts.
+
+## Breaking Changes (CLI 0.3.9 alignment)
+
+CLI 0.3.9 added typed flags for the three mutating commands previously
+flagged as gaps in the 0.3.8 section. All three upstream issues
+(`axisrow/direct-cli#202`, `#203`, `#204`) are now closed. The plugin
+exposes these flags without any breaking change to existing callers —
+all new parameters are optional.
+
+- **`ads_add`** / **`ads_update`**: 7 new optional fields covering the
+  rest of `TextAdAddItem` / `TextAdUpdateItem`: `title2`,
+  `display_url_path`, `mobile` (YES / NO), `vcard_id`,
+  `sitelink_set_id`, `turbo_page_id`, `ad_extensions` (comma-separated
+  IDs). The plugin validates `mobile ∈ {YES, NO}` before invoking the
+  CLI; every other field/type compatibility check stays on the CLI side.
+  `image_hash` is now valid for `TEXT_AD` (was previously documented as
+  TEXT_IMAGE_AD / MOBILE_APP_AD only).
+- **`keywords_add`**: batch mode through `from_file` (path to a JSONL
+  file) or `keywords_json` (inline JSON array). Mutex with the single
+  `keyword` form — passing zero or more than one of the three returns
+  `ToolError(error="missing_mode" | "conflicting_modes")` without
+  invoking the CLI. Per-row WSDL CamelCase keys
+  (`AdGroupId`, `Keyword`, `Bid`, `ContextBid`, `UserParam1`,
+  `UserParam2`); top-level `ad_group_id` acts as a default that each row
+  can override. CLI 0.3.9 forwards the array as a single Yandex Direct
+  API request (up to 1000 keywords per call). The plugin does not read
+  `from_file` itself — CLI opens the path.
+- **`campaigns_add`**: 8 new optional fields for CPA strategies and
+  cross-cutting `CampaignAddItem` configuration: `counter_ids`
+  (csv for TextCampaign / DynamicText), `goal_id`, `priority_goals`
+  (csv `goal_id:value`), `average_cpa`, `crr`, `bid_ceiling`,
+  `notification_json`, `time_targeting_json`. Strategy-subtype
+  compatibility (`--crr` only on `PAY_FOR_CONVERSION_CRR`,
+  `--priority-goals` only on `*_MULTIPLE_GOALS`, `--counter-ids` not for
+  Smart, etc.) is enforced by CLI `UsageError` and propagates through
+  `handle_cli_errors` — the plugin does not duplicate cross-field
+  validation.
+
+Closes plugin issues `#110`, `#111`, `#112`.
