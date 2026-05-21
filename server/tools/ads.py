@@ -6,6 +6,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 MAX_BATCH_SIZE = 10
 FOREIGN_CAMPAIGN_MIN = 73_000_000
 FOREIGN_CAMPAIGN_MAX = 77_999_999
+MOBILE_VALUES = ("YES", "NO")
 
 
 def _parse_ids(ids_str: str) -> list[str]:
@@ -165,21 +166,25 @@ def ads_add(
     tracking_url: str | None = None,
     action: str | None = None,
     age_label: str | None = None,
+    title2: str | None = None,
+    display_url_path: str | None = None,
+    mobile: str | None = None,
+    vcard_id: int | None = None,
+    sitelink_set_id: int | None = None,
+    turbo_page_id: int | None = None,
+    ad_extensions: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create a new ad.
 
-    CLI 0.3.8 enforces strict WSDL parity — invalid field/type combinations
+    CLI 0.3.9 enforces strict WSDL parity — invalid field/type combinations
     (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
     not by this tool. Field/type compatibility:
 
-    - TEXT_AD: title, text, href.
-    - TEXT_IMAGE_AD: href, image_hash.
+    - TEXT_AD: title, text, href, title2, display_url_path, mobile, vcard_id,
+      sitelink_set_id, turbo_page_id, ad_extensions, image_hash.
+    - TEXT_IMAGE_AD: href, image_hash, turbo_page_id.
     - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
-
-    Note: fields not yet covered by typed CLI flags (Title2, SitelinkSetId,
-    AdExtensions, VCardId, TurboPageId, DisplayUrlPath, Mobile) must be filled
-    in via the Direct web UI after `ads_add` — see direct-cli upstream issue.
 
     Args:
         ad_group_id: Ad group ID to add the ad to.
@@ -187,12 +192,25 @@ def ads_add(
         title: Ad title (TEXT_AD / MOBILE_APP_AD).
         text: Ad text content (TEXT_AD / MOBILE_APP_AD).
         href: Ad URL (TEXT_AD / TEXT_IMAGE_AD).
-        image_hash: Ad image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        image_hash: Ad image hash (TEXT_AD / TEXT_IMAGE_AD / MOBILE_APP_AD).
         tracking_url: MOBILE_APP_AD tracking URL.
         action: MOBILE_APP_AD call-to-action (MobileAppAdActionEnum, e.g. INSTALL).
         age_label: MOBILE_APP_AD age label (MobAppAgeLabelEnum).
+        title2: Second headline (TEXT_AD).
+        display_url_path: Display URL path (TEXT_AD).
+        mobile: "YES" or "NO" — mobile-only ad flag (TEXT_AD).
+        vcard_id: VCard ID (TEXT_AD).
+        sitelink_set_id: Sitelink set ID (TEXT_AD).
+        turbo_page_id: Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
+        ad_extensions: Comma-separated ad extension IDs (TEXT_AD).
         dry_run: Show the direct-cli request without sending it.
     """
+    if mobile is not None and mobile not in MOBILE_VALUES:
+        return ToolError(
+            error="invalid_mobile",
+            message=f"mobile must be one of {MOBILE_VALUES}; got '{mobile}'",
+        ).__dict__
+
     args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
         args.extend(["--type", ad_type])
@@ -210,6 +228,20 @@ def ads_add(
         args.extend(["--action", action])
     if age_label:
         args.extend(["--age-label", age_label])
+    if title2:
+        args.extend(["--title2", title2])
+    if display_url_path:
+        args.extend(["--display-url-path", display_url_path])
+    if mobile is not None:
+        args.extend(["--mobile", mobile])
+    if vcard_id is not None:
+        args.extend(["--vcard-id", str(vcard_id)])
+    if sitelink_set_id is not None:
+        args.extend(["--sitelink-set-id", str(sitelink_set_id)])
+    if turbo_page_id is not None:
+        args.extend(["--turbo-page-id", str(turbo_page_id)])
+    if ad_extensions:
+        args.extend(["--ad-extensions", ad_extensions])
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
@@ -228,16 +260,25 @@ def ads_update(
     tracking_url: str | None = None,
     action: str | None = None,
     age_label: str | None = None,
+    title2: str | None = None,
+    display_url_path: str | None = None,
+    mobile: str | None = None,
+    vcard_id: int | None = None,
+    sitelink_set_id: int | None = None,
+    turbo_page_id: int | None = None,
+    ad_extensions: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update an ad.
 
     CLI 0.3.8 made `--type` required for `ads update` and removed the
     `--status` flag (use `ads_suspend / ads_resume / ads_archive /
-    ads_unarchive` for status changes). Field/type compatibility:
+    ads_unarchive` for status changes). CLI 0.3.9 added typed flags for
+    every TextAdUpdateItem WSDL field. Field/type compatibility:
 
-    - TEXT_AD: title, text, href.
-    - TEXT_IMAGE_AD: href, image_hash.
+    - TEXT_AD: title, text, href, title2, display_url_path, mobile, vcard_id,
+      sitelink_set_id, turbo_page_id, ad_extensions, image_hash.
+    - TEXT_IMAGE_AD: href, image_hash, turbo_page_id.
     - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
 
     Args:
@@ -246,20 +287,51 @@ def ads_update(
         title: Optional new title (TEXT_AD / MOBILE_APP_AD).
         text: Optional new text (TEXT_AD / MOBILE_APP_AD).
         href: Optional new URL (TEXT_AD / TEXT_IMAGE_AD).
-        image_hash: Optional new image hash (TEXT_IMAGE_AD / MOBILE_APP_AD).
+        image_hash: Optional new image hash (TEXT_AD / TEXT_IMAGE_AD / MOBILE_APP_AD).
         tracking_url: Optional MOBILE_APP_AD tracking URL.
         action: Optional MOBILE_APP_AD call-to-action.
         age_label: Optional MOBILE_APP_AD age label.
+        title2: Optional second headline (TEXT_AD).
+        display_url_path: Optional display URL path (TEXT_AD).
+        mobile: Optional "YES"/"NO" mobile-only ad flag (TEXT_AD).
+        vcard_id: Optional VCard ID (TEXT_AD).
+        sitelink_set_id: Optional sitelink set ID (TEXT_AD).
+        turbo_page_id: Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
+        ad_extensions: Optional comma-separated ad extension IDs (TEXT_AD).
         dry_run: Show the direct-cli request without sending it.
     """
-    if not any((title, text, href, image_hash, tracking_url, action, age_label)):
+    if not any(
+        (
+            title,
+            text,
+            href,
+            image_hash,
+            tracking_url,
+            action,
+            age_label,
+            title2,
+            display_url_path,
+            mobile,
+            vcard_id,
+            sitelink_set_id,
+            turbo_page_id,
+            ad_extensions,
+        )
+    ):
         return ToolError(
             error="missing_update_fields",
             message=(
                 "Provide at least one of: title, text, href, image_hash, "
-                "tracking_url, action, age_label. For status changes use "
-                "ads_suspend / ads_resume / ads_archive / ads_unarchive."
+                "tracking_url, action, age_label, title2, display_url_path, "
+                "mobile, vcard_id, sitelink_set_id, turbo_page_id, "
+                "ad_extensions. For status changes use ads_suspend / "
+                "ads_resume / ads_archive / ads_unarchive."
             ),
+        ).__dict__
+    if mobile is not None and mobile not in MOBILE_VALUES:
+        return ToolError(
+            error="invalid_mobile",
+            message=f"mobile must be one of {MOBILE_VALUES}; got '{mobile}'",
         ).__dict__
 
     args = ["ads", "update", "--id", str(id), "--type", type]
@@ -277,6 +349,20 @@ def ads_update(
         args.extend(["--action", action])
     if age_label:
         args.extend(["--age-label", age_label])
+    if title2:
+        args.extend(["--title2", title2])
+    if display_url_path:
+        args.extend(["--display-url-path", display_url_path])
+    if mobile is not None:
+        args.extend(["--mobile", mobile])
+    if vcard_id is not None:
+        args.extend(["--vcard-id", str(vcard_id)])
+    if sitelink_set_id is not None:
+        args.extend(["--sitelink-set-id", str(sitelink_set_id)])
+    if turbo_page_id is not None:
+        args.extend(["--turbo-page-id", str(turbo_page_id)])
+    if ad_extensions:
+        args.extend(["--ad-extensions", ad_extensions])
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

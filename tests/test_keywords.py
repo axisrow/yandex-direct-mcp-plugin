@@ -164,6 +164,70 @@ class TestKeywordsCrudOperations:
             argv = runner.run_json.call_args[0][0]
             assert "--dry-run" in argv
 
+    def test_keywords_add_passes_from_file(self):
+        """CLI 0.3.9: JSONL batch via --from-file."""
+        runner = _mock_runner({"AddResults": [{"Id": 1}, {"Id": 2}]})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(from_file="/tmp/k.jsonl")
+            argv = runner.run_json.call_args[0][0]
+            assert "--from-file" in argv
+            assert "/tmp/k.jsonl" in argv
+            assert "--keyword" not in argv
+            assert "--keywords-json" not in argv
+
+    def test_keywords_add_passes_keywords_json(self):
+        """CLI 0.3.9: inline JSON batch via --keywords-json."""
+        runner = _mock_runner({"AddResults": [{"Id": 1}]})
+        payload = '[{"AdGroupId":1,"Keyword":"foo"}]'
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(keywords_json=payload)
+            argv = runner.run_json.call_args[0][0]
+            assert "--keywords-json" in argv
+            assert payload in argv
+
+    def test_keywords_add_batch_with_default_adgroup_id(self):
+        """ad_group_id is forwarded as default in batch mode."""
+        runner = _mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(
+                ad_group_id=42,
+                keywords_json='[{"Keyword":"x"}]',
+            )
+            argv = runner.run_json.call_args[0][0]
+            assert "--adgroup-id" in argv
+            assert "42" in argv
+            assert "--keywords-json" in argv
+
+    def test_keywords_add_rejects_no_mode(self):
+        """Neither keyword nor batch flag → missing_mode, runner not invoked."""
+        runner = _mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            result = keywords_add(ad_group_id=1)
+        assert isinstance(result, dict)
+        assert result["error"] == "missing_mode"
+        runner.run_json.assert_not_called()
+
+    def test_keywords_add_rejects_conflicting_modes(self):
+        """keyword + from_file → conflicting_modes, runner not invoked."""
+        runner = _mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            result = keywords_add(keyword="x", from_file="/tmp/k.jsonl")
+        assert isinstance(result, dict)
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
+
+    def test_keywords_add_rejects_all_three_modes(self):
+        """All three modes set → conflicting_modes."""
+        runner = _mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            result = keywords_add(
+                keyword="x",
+                from_file="/tmp/k.jsonl",
+                keywords_json="[{}]",
+            )
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
+
     def test_keywords_delete_success(self):
         """Test deleting keywords successfully."""
         runner = _mock_runner({"success": True})

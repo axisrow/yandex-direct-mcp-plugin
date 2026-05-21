@@ -2,7 +2,7 @@
 name = "yandex-direct-mcp-plugin"
 version = "0.1.11"
 requires-python = ">=3.11"
-dependencies = ["mcp", "direct-cli>=0.3.8"]
+dependencies = ["mcp", "direct-cli>=0.3.9"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff", "mypy", "pre-commit"]

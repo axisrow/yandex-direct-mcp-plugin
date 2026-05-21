@@ -329,6 +329,113 @@ class TestCampaignsCrudOperations:
             argv = runner.run_json.call_args[0][0]
             assert "--dry-run" in argv
 
+    def test_campaigns_add_passes_counter_ids(self):
+        """CLI 0.3.9: --counter-ids for TextCampaign/DynamicText."""
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                counter_ids="111,222",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--counter-ids" in argv
+        assert "111,222" in argv
+
+    def test_campaigns_add_passes_goal_id(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                goal_id=12345,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--goal-id" in argv
+        assert "12345" in argv
+
+    def test_campaigns_add_passes_priority_goals(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                priority_goals="123:50,456:30",
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--priority-goals" in argv
+        assert "123:50,456:30" in argv
+
+    def test_campaigns_add_passes_average_cpa(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                average_cpa=500_000_000,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--average-cpa" in argv
+        assert "500000000" in argv
+
+    def test_campaigns_add_passes_crr(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                crr=15,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--crr" in argv
+        assert "15" in argv
+
+    def test_campaigns_add_passes_bid_ceiling(self):
+        runner = _mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                bid_ceiling=200_000_000,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--bid-ceiling" in argv
+        assert "200000000" in argv
+
+    def test_campaigns_add_passes_notification_json(self):
+        runner = _mock_runner({"Id": 1})
+        payload = '{"SmsSettings":{"Events":["FINISHED"]}}'
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                notification_json=payload,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--notification" in argv
+        assert payload in argv
+
+    def test_campaigns_add_passes_time_targeting_json(self):
+        runner = _mock_runner({"Id": 1})
+        payload = '{"ConsiderWorkingWeekends":"YES"}'
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                time_targeting_json=payload,
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--time-targeting" in argv
+        assert payload in argv
+
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""
         runner = _mock_runner({"success": True})
