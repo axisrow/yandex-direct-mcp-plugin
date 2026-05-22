@@ -363,6 +363,12 @@ _PENDING_TYPED_REASON = (
 _NO_CLI_REASON = (
     "direct-cli does not expose a typed CLI command for this v4 Live method."
 )
+_ACCOUNT_MANAGEMENT_DEFERRED_REASON = (
+    "AccountManagement action not in direct-cli 0.3.10 (only --action Update "
+    "is supported). v4account_account_management currently hard-codes Update; "
+    "the remaining actions are deferred to plugin issue #120 until direct-cli "
+    "ships the full action surface and the finance-token handling is gated."
+)
 
 V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
     BlockedV4Method(
@@ -413,6 +419,34 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "v4finance",
         "create-invoice",
         _FINANCIAL_REASON,
+    ),
+    BlockedV4Method(
+        "AccountManagement.Get",
+        "shared_account",
+        "v4account",
+        "account-management",
+        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
+    ),
+    BlockedV4Method(
+        "AccountManagement.Deposit",
+        "shared_account",
+        "v4account",
+        "account-management",
+        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
+    ),
+    BlockedV4Method(
+        "AccountManagement.Invoice",
+        "shared_account",
+        "v4account",
+        "account-management",
+        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
+    ),
+    BlockedV4Method(
+        "AccountManagement.TransferMoney",
+        "shared_account",
+        "v4account",
+        "account-management",
+        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
     ),
     BlockedV4Method(
         "DeleteOfflineReport",

@@ -335,6 +335,15 @@ def test_v4_contract_exposes_only_cli_backed_tools():
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
+    # AccountManagement is exposed as Update only in direct-cli 0.3.10; the
+    # remaining actions stay tracked under deferred-action blocked metadata
+    # until plugin issue #120 lands. See server/tools/v4account.py.
+    assert {
+        "AccountManagement.Get",
+        "AccountManagement.Deposit",
+        "AccountManagement.Invoice",
+        "AccountManagement.TransferMoney",
+    } <= V4_LIVE_BLOCKED_METHOD_NAMES
     assert {
         "GetBannersTags",
         "GetCampaignsTags",
