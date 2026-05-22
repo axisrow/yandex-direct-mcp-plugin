@@ -54,7 +54,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Стратегии | `strategies_get/add/update/archive/unarchive` |
 | Медиа и расширения | `adimages_get/add/delete`, `advideos_get/add`, `adextensions_get/add/delete`, `sitelinks_get/add/delete`, `vcards_get/add/delete`, `creatives_get/add` |
 | Справочники / изменения / отчёты | `dictionaries_get`, `dictionaries_get_geo_regions`, `changes_check`, `changes_check_campaigns`, `changes_check_dictionaries`, `reports_get` |
-| v4 Live | `balance_get`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners` |
+| v4 Live | `balance_get`, `v4account_account_management`, `v4account_enable_shared_account`, `v4events_get_events_log`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners`, `v4forecast_create`, `v4forecast_list`, `v4forecast_get`, `v4forecast_delete`, `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report` |
 | Прочее | `clients_get/update`, `agencyclients_get/add/update/add_passport_organization/add_passport_organization_member`, `businesses_get`, `feeds_get/add/update/delete`, `leads_get`, `negativekeywordsharedsets_get/add/update/delete`, `keywordsresearch_has_search_volume`, `keywordsresearch_deduplicate`, `turbopages_get` |
 
 ### Явно helper-only tools
@@ -154,6 +154,8 @@ report-header и summary).
 | Теги объявлений | `v4tags_get_banners(campaign_ids="123")` или `v4tags_get_banners(banner_ids="456")` |
 | Заменить теги кампании | `v4tags_update_campaigns(campaign_id=123, tags=["0=New tag"])` |
 | Очистить теги объявлений | `v4tags_update_banners(banner_ids="456,789", clear_tags=True)` |
+| Журнал v4 Live событий | `v4events_get_events_log(timestamp_from="2026-05-01T00:00:00", timestamp_to="2026-05-02T00:00:00")` |
+| Отчеты Wordstat v4 Live | `v4wordstat_list_reports()` / `v4wordstat_create_report(phrases="купить диван")` |
 | Проверить аккаунт-wide изменения | `changes_check_campaigns(timestamp="2026-05-21T00:00:00Z")` |
 | Проверить точечно изменения по кампаниям/группам/объявлениям | `changes_check(field_names="CampaignIds,AdGroupIds", timestamp="2026-05-21T00:00:00Z", campaign_ids="123,456")` |
 | Показать группы объявлений | `adgroups_get(campaign_ids="123")` |

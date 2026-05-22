@@ -325,6 +325,13 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "v4forecast_list",
         "v4forecast_get",
         "v4forecast_delete",
+        "v4account_account_management",
+        "v4account_enable_shared_account",
+        "v4events_get_events_log",
+        "v4wordstat_create_report",
+        "v4wordstat_list_reports",
+        "v4wordstat_get_report",
+        "v4wordstat_delete_report",
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
@@ -337,6 +344,14 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "GetForecastList",
         "GetForecast",
         "DeleteForecastReport",
+        "AccountManagement",
+        "EnableSharedAccount",
+        "GetEventsLog",
+        "CreateNewWordstatReport",
+        "GetWordstatReportList",
+        "GetWordstatReport",
+        "DeleteWordstatReport",
     }.isdisjoint(V4_LIVE_BLOCKED_METHOD_NAMES)
     assert "v4finance_get_clients_units" not in PUBLIC_TOOL_NAMES
+    assert "v4finance_transfer_money" not in PUBLIC_TOOL_NAMES
     assert "v4meta_ping_api" not in PUBLIC_TOOL_NAMES

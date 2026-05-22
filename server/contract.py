@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 125
+- Direct API tools: 132
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              131
+Total:              138
 """
 
 from __future__ import annotations
@@ -291,6 +291,62 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="DeleteForecastReport",
     ),
+    ContractTool(
+        public_name="v4account_account_management",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+    ),
+    ContractTool(
+        public_name="v4account_enable_shared_account",
+        cli_service="v4account",
+        cli_method="enable_shared_account",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="EnableSharedAccount",
+    ),
+    ContractTool(
+        public_name="v4events_get_events_log",
+        cli_service="v4events",
+        cli_method="get_events_log",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetEventsLog",
+    ),
+    ContractTool(
+        public_name="v4wordstat_create_report",
+        cli_service="v4wordstat",
+        cli_method="create_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="CreateNewWordstatReport",
+    ),
+    ContractTool(
+        public_name="v4wordstat_list_reports",
+        cli_service="v4wordstat",
+        cli_method="list_reports",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetWordstatReportList",
+    ),
+    ContractTool(
+        public_name="v4wordstat_get_report",
+        cli_service="v4wordstat",
+        cli_method="get_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetWordstatReport",
+    ),
+    ContractTool(
+        public_name="v4wordstat_delete_report",
+        cli_service="v4wordstat",
+        cli_method="delete_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="DeleteWordstatReport",
+    ),
 )
 
 # Methods either not yet typed by direct-cli OR typed but intentionally not
@@ -357,48 +413,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "v4finance",
         "create-invoice",
         _FINANCIAL_REASON,
-    ),
-    BlockedV4Method(
-        "EnableSharedAccount",
-        "shared_account",
-        "v4account",
-        "enable-shared-account",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetEventsLog",
-        "events",
-        "v4events",
-        "get-events-log",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "CreateNewWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "create-report",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetWordstatReportList",
-        "wordstat",
-        "v4wordstat",
-        "list-reports",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "get-report",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "DeleteWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "delete-report",
-        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
         "DeleteOfflineReport",

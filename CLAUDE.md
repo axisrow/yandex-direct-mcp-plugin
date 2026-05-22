@@ -191,7 +191,7 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (131 total) + 1 Prompt
+## MCP Tools (138 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -315,10 +315,17 @@ WSDL/reports spec wins when there is drift.
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
 | `reports_custom` | Full Reports API surface: arbitrary FieldNames, filters, ordering, pagination, file output, processing-mode/language/attribution/skip-* CLI 0.3.10 flags; honors `response_format` (json/tsv/csv/table) both for in-memory and `output_path` |
+| `v4account_account_management` | Manage v4 Live shared accounts (Get / Update / Deposit / Invoice / TransferMoney; dry_run or sandbox required) |
+| `v4account_enable_shared_account` | Enable v4 Live shared account in dry-run or sandbox |
+| `v4events_get_events_log` | Get v4 Live events log entries |
 | `v4forecast_create` | Create v4 Live budget forecast |
 | `v4forecast_list` | List v4 Live budget forecasts |
 | `v4forecast_get` | Get a ready v4 Live budget forecast |
 | `v4forecast_delete` | Delete a v4 Live budget forecast |
+| `v4wordstat_create_report` | Create v4 Live Wordstat report |
+| `v4wordstat_list_reports` | List v4 Live Wordstat reports |
+| `v4wordstat_get_report` | Get a ready v4 Live Wordstat report |
+| `v4wordstat_delete_report` | Delete v4 Live Wordstat report |
 
 ### CLI helper tools (3)
 
@@ -458,7 +465,9 @@ were updated accordingly:
   the CLI prints the outgoing request payload without sending it — useful
   for diagnosing API warning 10165 ("parameter will not be applied").
 - **New tools**: 4 `v4forecast_*` (create / list / get / delete) for V4 Live
-  budget forecasts.
+  budget forecasts, plus `v4account_*`, `v4events_get_events_log`, and
+  `v4wordstat_*` wrappers for direct-cli typed v4 Live commands. Standalone
+  `v4finance_*` tools remain blocked by manual-review/master-token policy.
 
 ## Breaking Changes (CLI 0.3.9 alignment)
 
