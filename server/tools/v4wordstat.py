@@ -28,12 +28,16 @@ def v4wordstat_create_report(
         dry_run: Show the direct-cli request without sending it.
     """
     normalized_phrases = phrases.strip()
-    if not normalized_phrases:
+    phrase_count = (
+        sum(1 for phrase in normalized_phrases.split(",") if phrase.strip())
+        if normalized_phrases
+        else 0
+    )
+    if phrase_count == 0:
         return ToolError(
             error="missing_phrases",
             message="Provide at least one phrase.",
         ).__dict__
-    phrase_count = sum(1 for phrase in normalized_phrases.split(",") if phrase.strip())
     if phrase_count > MAX_WORDSTAT_PHRASES:
         return ToolError(
             error="phrases_limit",

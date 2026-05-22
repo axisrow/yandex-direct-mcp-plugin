@@ -41,6 +41,19 @@ def test_v4events_get_events_log_argv():
     )
 
 
+def test_v4events_get_events_log_requires_timestamps():
+    result = v4events_get_events_log(
+        timestamp_from="   ",
+        timestamp_to="2026-05-02T00:00:00",
+    )
+    assert result["error"] == "missing_timestamp"
+    result = v4events_get_events_log(
+        timestamp_from="2026-05-01T00:00:00",
+        timestamp_to="",
+    )
+    assert result["error"] == "missing_timestamp"
+
+
 def test_v4events_get_events_log_dry_run():
     runner = _mock_runner({"method": "GetEventsLog"})
     with patch("server.tools.v4events.get_runner", return_value=runner):

@@ -1,7 +1,7 @@
 """MCP tools for Yandex Direct v4 Live events commands."""
 
 from server.main import mcp
-from server.tools import get_runner, handle_cli_errors
+from server.tools import ToolError, get_runner, handle_cli_errors
 
 
 @mcp.tool(name="v4events_get_events_log")
@@ -24,13 +24,21 @@ def v4events_get_events_log(
         offset: Optional result offset.
         dry_run: Show the direct-cli request without sending it.
     """
+    normalized_from = timestamp_from.strip()
+    normalized_to = timestamp_to.strip()
+    if not normalized_from or not normalized_to:
+        return ToolError(
+            error="missing_timestamp",
+            message="Provide non-empty timestamp_from and timestamp_to.",
+        ).__dict__
+
     args = [
         "v4events",
         "get-events-log",
         "--from",
-        timestamp_from.strip(),
+        normalized_from,
         "--to",
-        timestamp_to.strip(),
+        normalized_to,
     ]
     if currency:
         args.extend(["--currency", currency])

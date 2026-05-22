@@ -108,7 +108,7 @@ OAuth-приложение само по себе не даёт доступ к 
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
 
-## MCP contract (129 tools)
+## MCP contract (138 tools)
 
 The public contract is now defined as:
 
@@ -116,7 +116,7 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.8`.
+- The package is still installed as `direct-cli` and must be `>=0.3.10`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -845,7 +845,7 @@ version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.8",
+    "direct-cli>=0.3.10",
 ]
 
 [project.optional-dependencies]

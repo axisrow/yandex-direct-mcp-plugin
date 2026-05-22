@@ -42,6 +42,11 @@ def test_v4wordstat_create_report_requires_phrases():
     assert result["error"] == "missing_phrases"
 
 
+def test_v4wordstat_create_report_rejects_only_separators():
+    result = v4wordstat_create_report(phrases=" , , ")
+    assert result["error"] == "missing_phrases"
+
+
 def test_v4wordstat_create_report_phrase_limit():
     phrases = ",".join(f"phrase{i}" for i in range(11))
     result = v4wordstat_create_report(phrases=phrases)
