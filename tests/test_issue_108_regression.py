@@ -30,7 +30,11 @@ def test_runtime_code_does_not_reintroduce_freeform_json_transport() -> None:
     ]
     for path in runtime_paths:
         source = path.read_text()
+        # Guard against argv constructions like ["--json", ...] in either quote
+        # style; the bare substring would false-positive on docstrings that
+        # explain why CLI 0.3.8 dropped the flag.
         assert '"--json"' not in source, path
+        assert "'--json'" not in source, path
         assert "extra_json" not in source, path
 
 

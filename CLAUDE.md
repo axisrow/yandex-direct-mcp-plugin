@@ -409,7 +409,7 @@ Key renames:
 ## Breaking Changes (CLI 0.2.10 / 0.3.8 alignment)
 
 - **`bidmodifiers_set`**: signature changed to
-  `(id: int, value: int | None = None, dry_run: bool = False)`.
+  `(id: int, value: int, dry_run: bool = False)`.
   Removed `campaign_id`, `modifier_type`, and free-form JSON updates. The CLI
   now exposes only typed flags for this operation. Use the `Id` returned by
   `bidmodifiers_add` to update an existing modifier.
