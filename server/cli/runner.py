@@ -87,7 +87,7 @@ class DirectCliRunner:
         timeout: int | None = None,
         input: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        """Run a direct-cli command.
+        """Run a direct command.
 
         Args:
             args: CLI arguments (e.g., ["campaigns", "get", "--format", "json"]).

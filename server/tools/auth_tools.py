@@ -278,7 +278,7 @@ async def auth_login(
     if not _find_direct():
         return {
             "error": "cli_not_found",
-            "message": "direct not found. Install direct-cli.",
+            "message": "direct not found. Install package direct-cli and run `direct`.",
         }
 
     try:

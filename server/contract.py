@@ -14,7 +14,7 @@ from typing import Literal
 
 # ``wsdl``: canonical SOAP/WSDL-backed Direct API operation.
 # ``reports-spec``: canonical Reports API operation validated against reports spec.
-# ``v4-live``: canonical Yandex Direct v4 Live operation exposed by direct-cli.
+# ``v4-live``: canonical Yandex Direct v4 Live operation exposed by the direct CLI.
 # ``cli-extra``: public CLI helper intentionally outside the 1:1 API surface.
 # ``plugin``: plugin-only auth/utility tool, not a Direct API operation.
 ToolAuthority = Literal["wsdl", "reports-spec", "v4-live", "cli-extra", "plugin"]
@@ -56,7 +56,7 @@ class ContractTool:
 
     @property
     def cli_subcommand(self) -> str | None:
-        """Raw direct-cli subcommand in kebab-case.
+        """Raw direct subcommand in kebab-case.
 
         Converts the stored snake_case ``cli_method`` to the kebab-case string
         expected by the ``direct`` binary, e.g. ``set_bids`` → ``set-bids``.
@@ -103,7 +103,7 @@ class BlockedV4Method:
     expected_cli_group: str | None
     expected_cli_subcommand: str | None
     reason: str = (
-        "direct-cli does not expose a typed CLI command for this v4 Live method."
+        "The installed direct CLI does not expose a typed command for this v4 Live method."
     )
 
 
@@ -379,7 +379,7 @@ _PENDING_TYPED_REASON = (
     "as an MCP tool — separate scoping needed before public exposure."
 )
 _NO_CLI_REASON = (
-    "direct-cli does not expose a typed CLI command for this v4 Live method."
+    "The installed direct CLI does not expose a typed command for this v4 Live method."
 )
 
 V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (

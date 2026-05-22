@@ -353,7 +353,7 @@ Auth/utility tools unrelated to Direct API parity.
 
 ### Transport-blocked operations
 
-Operations in the WSDL/tapi surface that have no `direct-cli` subcommand.
+Operations in the WSDL/tapi surface that have no `direct` subcommand.
 See `server/contract.py` → `TRANSPORT_BLOCKED_OPERATIONS` for details.
 
 | Operation | Reason |

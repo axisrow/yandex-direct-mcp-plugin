@@ -102,7 +102,7 @@ OAuth-приложение само по себе не даёт доступ к 
 
 ### Использование своего приложения
 
-Если нужен собственный OAuth client, настройте его в `direct-cli`:
+Если нужен собственный OAuth client, настройте его через `direct`:
 
 ```bash
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
@@ -303,9 +303,9 @@ mcp__yandex_direct__auth_login()
 ### Error Handling
 
 ```python
-# Токен истёк → direct-cli обновит профиль перед запросом
+# Токен истёк → `direct` обновит профиль direct-cli перед запросом
 mcp__yandex_direct__campaigns_get(state="ON")
-# MCP-плагин refresh не делает; transport и refresh принадлежат direct-cli
+# MCP-плагин refresh не делает; transport и refresh принадлежат `direct`
 
 # Токен или профиль невалиден
 mcp__yandex_direct__campaigns_get(state="ON")
@@ -364,7 +364,7 @@ pytest
 | 1 | Обычный OAuth code отклоняется с подсказкой auth_login | `auth_setup(code=...)` без `y0_` | `{"success": False, "error": "unsupported_oauth_code_flow"}` |
 | 2 | Интерактивный OAuth | `auth_login()` запускает pending PKCE flow и завершает его кодом через direct-cli | `{"success": True, "method": "oauth_code"}` |
 | 3 | Готовый токен | `auth_setup(code="y0_...", login="...")` | `{"success": True, "method": "direct_token"}` |
-| 4 | Refresh токена | Запрос с истёкшим `access_token` | Refresh выполняет `direct-cli` |
+| 4 | Refresh токена | Запрос с истёкшим `access_token` | Refresh выполняет `direct` через профиль direct-cli |
 | 5 | Refresh тоже протух | Профиль невалиден | `{"error": "auth_expired", "hint": "..."}` |
 | 6 | Статус профиля | `auth_status()` | `{"valid": True/False, "profile", "login"}` |
 | **Campaigns** |
@@ -382,9 +382,9 @@ pytest
 | **Reports** |
 | 16 | Статистика за период | `reports_get(date_from=..., date_to=...)` | Массив с CampaignName, Impressions, Clicks, Cost, Conversions |
 | **Edge cases** |
-| 17 | direct-cli не в PATH | Запрос без установленного CLI | `{"error": "cli_not_found"}` |
+| 17 | `direct` не в PATH | Запрос без установленного CLI | `{"error": "cli_not_found"}` |
 | 18 | Пустой ответ API | Кампания без объявлений | `[]` (пустой массив, не ошибка) |
-| 19 | Таймаут direct-cli | CLI зависает >30с | `{"error": "timeout"}` |
+| 19 | Таймаут `direct` | CLI зависает >30с | `{"error": "timeout"}` |
 
 ### Test Structure
 
@@ -459,7 +459,7 @@ Do not point these at production entities. Unsafe tests assume the campaign star
 │  pytest --record                                                │
 │       │                                                         │
 │       ▼                                                         │
-│  direct-cli ──→ Яндекс API ──→ сырые ответы                    │
+│  direct ──→ Яндекс API ──→ сырые ответы                        │
 │       │          (с токенами, названиями кампаний, ставками)     │
 │       │                                                         │
 │       ▼                                                         │
@@ -816,7 +816,7 @@ direct auth login
 |---|---|---|---|
 | **Runtime** | Python | >= 3.11 | Единый язык с direct-cli |
 | **MCP Server** | [mcp](https://pypi.org/project/mcp/) | latest | Python SDK для MCP (stdio transport) |
-| **CLI** | [direct-cli](https://github.com/axisrow/direct-cli) | latest | Обёртка над Яндекс.Директ API |
+| **CLI** | `direct` ([package: direct-cli](https://github.com/axisrow/direct-cli)) | latest | Обёртка над Яндекс.Директ API |
 | **Testing** | [pytest](https://docs.pytest.org/) | >= 8.0 | Тесты, fixtures, markers |
 | **Mocking** | `unittest.mock` | stdlib | Моки subprocess для edge cases |
 | **Cassettes** | `cli_recorder.py` (свой) | — | Запись/воспроизведение CLI stdin/stdout |
