@@ -452,14 +452,19 @@ def format_report(result: AuditResult) -> str:
     has_warnings = bool(
         result.stale_blocked_operations or result.unchecked_blocked_operations
     )
-    if result.exit_code == 0 and has_warnings:
-        lines.extend(["", "Result: OK WITH WARNINGS"])
-    elif result.exit_code == 0:
-        lines.extend(["", "Result: OK"])
+    # Annotate every non-OK summary with " WITH WARNINGS" when stale-blocked
+    # or wildcard-skipped entries are present, mirroring the existing OK
+    # path. The detailed list still lives in the ``## Warnings`` section
+    # above; the suffix is just the at-a-glance summary signal that one
+    # might otherwise miss when ``CONTRACT DRIFT`` or ``INCONCLUSIVE``
+    # captures the reader's attention first.
+    suffix = " WITH WARNINGS" if has_warnings else ""
+    if result.exit_code == 0:
+        lines.extend(["", f"Result: OK{suffix}"])
     elif result.exit_code == 1:
-        lines.extend(["", "Result: CONTRACT DRIFT"])
+        lines.extend(["", f"Result: CONTRACT DRIFT{suffix}"])
     else:
-        lines.extend(["", "Result: INCONCLUSIVE"])
+        lines.extend(["", f"Result: INCONCLUSIVE{suffix}"])
 
     return "\n".join(lines)
 

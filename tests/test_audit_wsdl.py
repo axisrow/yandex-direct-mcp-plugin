@@ -76,6 +76,44 @@ def test_compare_reports_missing_service_method_and_stale_blocked_operation():
     assert "Missing services in DIRECT_API_SERVICE_METHODS" in report
     assert "Missing methods in DIRECT_API_SERVICE_METHODS" in report
     assert "Stale TRANSPORT_BLOCKED_OPERATIONS entries" in report
+    # claude[bot] PR #124 iter 2 minor observation: ``CONTRACT DRIFT``
+    # alone hides the warnings; the summary should mirror the existing
+    # ``OK WITH WARNINGS`` suffix on non-OK exits too.
+    assert "Result: CONTRACT DRIFT WITH WARNINGS" in report
+
+
+def test_format_report_appends_with_warnings_suffix_on_inconclusive():
+    """Stale-blocked entries during an inconclusive run must surface in
+    the summary line, not just the ``## Warnings`` section above it."""
+    inconclusive_with_warnings = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        fetch_errors={"adgroups": "network error"},
+        stale_blocked_operations=frozenset({"bidmodifiers_toggle"}),
+    )
+    report = audit_wsdl.format_report(inconclusive_with_warnings)
+    assert "Result: INCONCLUSIVE WITH WARNINGS" in report
+
+
+def test_format_report_keeps_plain_summary_when_no_warnings():
+    """Plain ``CONTRACT DRIFT`` / ``INCONCLUSIVE`` / ``OK`` summaries
+    must stay unchanged when no warnings are present."""
+    drift_clean = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        missing_services={"futureservice": frozenset({"get"})},
+    )
+    assert "Result: CONTRACT DRIFT\n" in audit_wsdl.format_report(drift_clean) + "\n"
+    assert "WITH WARNINGS" not in audit_wsdl.format_report(drift_clean)
+
+    inconclusive_clean = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        fetch_errors={"adgroups": "network error"},
+    )
+    assert "Result: INCONCLUSIVE" in audit_wsdl.format_report(inconclusive_clean)
+    assert "WITH WARNINGS" not in audit_wsdl.format_report(inconclusive_clean)
+
+    ok = audit_wsdl.AuditResult(checked_services=frozenset({"campaigns"}))
+    assert "Result: OK" in audit_wsdl.format_report(ok)
+    assert "WITH WARNINGS" not in audit_wsdl.format_report(ok)
 
 
 def test_run_live_audit_excludes_reports_and_uses_wsdl_endpoint_aliases():
