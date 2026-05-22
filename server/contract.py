@@ -46,6 +46,13 @@ class ContractTool:
     # camelCase form (``tapi_canonical`` property) is correct.
     tapi_name: str | None = field(default=None)
     drift: ToolDrift = field(default="aligned")
+    # Set only when one MCP tool wraps a multi-action tapi operation and the
+    # runtime currently hard-codes a subset (e.g. v4account AccountManagement
+    # exposes Update only in direct-cli 0.3.10). ``None`` for the usual 1:1
+    # tool→method case. ``deferred_actions`` is the audit trail for actions
+    # tracked by a follow-up issue until the CLI ships their typed surface.
+    supported_actions: tuple[str, ...] | None = field(default=None)
+    deferred_actions: tuple[str, ...] | None = field(default=None)
 
     @property
     def cli_subcommand(self) -> str | None:
@@ -298,6 +305,8 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
+        supported_actions=("Update",),
+        deferred_actions=("Get", "Deposit", "Invoice", "TransferMoney"),
     ),
     ContractTool(
         public_name="v4account_enable_shared_account",
@@ -363,12 +372,6 @@ _PENDING_TYPED_REASON = (
 _NO_CLI_REASON = (
     "direct-cli does not expose a typed CLI command for this v4 Live method."
 )
-_ACCOUNT_MANAGEMENT_DEFERRED_REASON = (
-    "AccountManagement action not in direct-cli 0.3.10 (only --action Update "
-    "is supported). v4account_account_management currently hard-codes Update; "
-    "the remaining actions are deferred to plugin issue #120 until direct-cli "
-    "ships the full action surface and the finance-token handling is gated."
-)
 
 V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
     BlockedV4Method(
@@ -419,34 +422,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "v4finance",
         "create-invoice",
         _FINANCIAL_REASON,
-    ),
-    BlockedV4Method(
-        "AccountManagement.Get",
-        "shared_account",
-        "v4account",
-        "account-management",
-        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
-    ),
-    BlockedV4Method(
-        "AccountManagement.Deposit",
-        "shared_account",
-        "v4account",
-        "account-management",
-        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
-    ),
-    BlockedV4Method(
-        "AccountManagement.Invoice",
-        "shared_account",
-        "v4account",
-        "account-management",
-        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
-    ),
-    BlockedV4Method(
-        "AccountManagement.TransferMoney",
-        "shared_account",
-        "v4account",
-        "account-management",
-        _ACCOUNT_MANAGEMENT_DEFERRED_REASON,
     ),
     BlockedV4Method(
         "DeleteOfflineReport",
@@ -644,6 +619,15 @@ V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
 V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
     blocked.method for blocked in V4_LIVE_BLOCKED_METHODS
 )
+# Action-level audit trail for v4 Live tools whose runtime wraps only a subset
+# of a multi-action tapi method. Keyed by the canonical tapi method name (e.g.
+# ``"AccountManagement"``) so WSDL-diff tooling can join without parsing
+# composite identifiers. See ``ContractTool.deferred_actions``.
+V4_LIVE_DEFERRED_ACTIONS: dict[str, frozenset[str]] = {
+    tool.tapi_canonical: frozenset(tool.deferred_actions)
+    for tool in V4_LIVE_CLI_TOOLS
+    if tool.deferred_actions and tool.tapi_canonical is not None
+}
 PLUGIN_ONLY_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "plugin"
 )
