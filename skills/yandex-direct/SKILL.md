@@ -156,7 +156,7 @@ report-header и summary).
 | Очистить теги объявлений | `v4tags_update_banners(banner_ids="456,789", clear_tags=True)` |
 | Журнал v4 Live событий | `v4events_get_events_log(timestamp_from="2026-05-01T00:00:00", timestamp_to="2026-05-02T00:00:00")` |
 | Отчеты Wordstat v4 Live | `v4wordstat_list_reports()` / `v4wordstat_create_report(phrases="купить диван")` |
-| Прочитать shared-аккаунты | `v4account_get_accounts(logins="login-a,login-b")` или `v4account_get_accounts(account_ids="111,222")`. Без селекторов (`v4account_get_accounts()`) вернёт все shared-аккаунты владельца. |
+| Прочитать shared-аккаунты | `v4account_get_accounts(logins="login-a,login-b")`, `v4account_get_accounts(account_ids="111,222")` или оба сразу (CLI 0.3.11 сериализует их в одно `SelectionCriteria`). Без селекторов (`v4account_get_accounts()`) вернёт все shared-аккаунты владельца. |
 | Обновить shared-аккаунт | `v4account_update_account(account_id=1327944, day_budget="100.50", spend_mode="Default", dry_run=True)` — CLI 0.3.11 требует передавать `day_budget` и `spend_mode` вместе. |
 | Финансовые операции (Deposit/Invoice/TransferMoney) | Только с `dry_run=True` или `sandbox=True`. **Финансовые токены НЕ передаются как параметры** — поставь в env: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`, `YANDEX_DIRECT_FINANCE_LOGIN`. Master-token выдаётся через UI Яндекс.Директ → Инструменты → API → Финансовые операции. Пример: `v4account_deposit(payment=["999999=50000"], currency="rub", origin="Overdraft", operation_num=42, dry_run=True)` |
 | Проверить аккаунт-wide изменения | `changes_check_campaigns(timestamp="2026-05-21T00:00:00Z")` |

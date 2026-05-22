@@ -530,8 +530,9 @@ Closes plugin issues `#110`, `#111`, `#112`.
   CLI 0.3.11 ships typed flags for every action:
 
   - `v4account_get_accounts(logins?, account_ids?)` — read, no
-    `dry_run`/`sandbox` required. Pass at most one selector; omit both
-    to list every shared account the caller owns
+    `dry_run`/`sandbox` required. Any combination of selectors is
+    accepted (both at once map to one ``SelectionCriteria`` on the v4
+    Live side); omit both to list every shared account the caller owns
     (``--action Get`` без ``SelectionCriteria``). Adds the AccountIDs
     selector that `balance_get` does not expose.
   - `v4account_deposit(payment, currency, origin?, contract?, operation_num?)`

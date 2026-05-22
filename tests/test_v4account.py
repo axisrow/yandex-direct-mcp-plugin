@@ -148,9 +148,29 @@ def test_v4account_get_accounts_without_selectors_lists_all():
     )
 
 
-def test_v4account_get_accounts_rejects_both_selectors():
-    result = v4account_get_accounts(logins="a", account_ids="1")
-    assert result["error"] == "conflicting_selectors"
+def test_v4account_get_accounts_accepts_both_selectors():
+    """Codex review (PR #123 iter 5, P2): direct-cli 0.3.11 forwards both
+    ``--logins`` and ``--account-ids`` into one ``SelectionCriteria``,
+    so the MCP wrapper must not reject the combination.
+    """
+    runner = _mock_runner({"method": "AccountManagement"})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        v4account_get_accounts(logins="a,b", account_ids="1,2", dry_run=True)
+    runner.run_json.assert_called_once_with(
+        [
+            "v4account",
+            "account-management",
+            "--action",
+            "Get",
+            "--logins",
+            "a,b",
+            "--account-ids",
+            "1,2",
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
 
 
 def test_v4account_get_accounts_rejects_explicitly_empty_logins():
