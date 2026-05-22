@@ -337,16 +337,16 @@ def test_v4_contract_exposes_only_cli_backed_tools():
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
-    # AccountManagement actions are split across multiple MCP tools:
-    # ``balance_get`` serves Get and ``v4account_account_management`` serves
-    # Update on direct-cli 0.3.10. Deposit/Invoice/TransferMoney are deferred
-    # until plugin issue #120 lands. See ``ContractTool.supported_actions``
-    # and ``ContractTool.deferred_actions``.
-    assert V4_LIVE_SUPPORTED_ACTIONS["AccountManagement"] == frozenset(
-        {"Get", "Update"}
-    )
+    # AccountManagement action coverage on direct-cli 0.3.10:
+    # - ``v4account_account_management`` fully wraps Action=Update.
+    # - ``balance_get`` wraps only the Logins-selector half of Action=Get
+    #   (the AccountIDS selector is not exposed by the CLI), so Get does not
+    #   count as supported and stays deferred together with the financial
+    #   actions until direct-cli ships the full Get surface and plugin
+    #   issue #120 lands.
+    assert V4_LIVE_SUPPORTED_ACTIONS["AccountManagement"] == frozenset({"Update"})
     assert V4_LIVE_DEFERRED_ACTIONS["AccountManagement"] == frozenset(
-        {"Deposit", "Invoice", "TransferMoney"}
+        {"Get", "Deposit", "Invoice", "TransferMoney"}
     )
     # No action may be simultaneously supported and deferred for the same
     # tapi method.

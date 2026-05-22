@@ -217,7 +217,11 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
-        supported_actions=("Get",),
+        # balance_get only wraps the Logins-selector path of the v4 Live
+        # ``AccountManagement Action=Get`` request via the dedicated
+        # ``direct balance`` CLI command. The AccountIDS selector (the other
+        # half of the API shape) is not exposed, so the full Get action is
+        # tracked as deferred on the v4account_account_management record.
     ),
     ContractTool(
         public_name="v4goals_get_stat_goals",
@@ -307,7 +311,11 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="AccountManagement",
         supported_actions=("Update",),
-        deferred_actions=("Deposit", "Invoice", "TransferMoney"),
+        # Get is partially served by ``balance_get`` (Logins selector only).
+        # Tracking the full Get action plus the financial actions here so the
+        # follow-up issue #120 can pick them up after direct-cli ships the
+        # complete typed surface.
+        deferred_actions=("Get", "Deposit", "Invoice", "TransferMoney"),
     ),
     ContractTool(
         public_name="v4account_enable_shared_account",
