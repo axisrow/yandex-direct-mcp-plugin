@@ -123,8 +123,26 @@ class DirectCliRunner:
     Authentication is resolved by `direct` from its active profile.
     """
 
+    # Sentinel distinct from a real `_find_direct()` return value so the
+    # cache can tell "not yet resolved" apart from "resolved to None".
+    _UNCACHED: object = object()
+
     def __init__(self, *, timeout: int = 30) -> None:
         self._timeout = timeout
+        self._direct_bin: str | None | object = DirectCliRunner._UNCACHED
+
+    def _resolved_direct(self) -> str | None:
+        """Cache the resolved `direct` binary across calls.
+
+        ``_find_direct()`` now spawns up to three `direct --version` probes,
+        each capped at a 3s timeout. Without caching, every MCP tool call
+        would re-run those probes; in a degraded environment that adds up
+        to ~9s of latency per call before the real CLI invocation even
+        starts. Cache once per runner instance.
+        """
+        if self._direct_bin is DirectCliRunner._UNCACHED:
+            self._direct_bin = _find_direct()
+        return self._direct_bin  # type: ignore[return-value]
 
     def run(
         self,
@@ -150,7 +168,7 @@ class DirectCliRunner:
         """
         effective_timeout = timeout if timeout is not None else self._timeout
 
-        direct_bin = _find_direct()
+        direct_bin = self._resolved_direct()
         if not direct_bin:
             raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
@@ -173,7 +191,7 @@ class DirectCliRunner:
 
     def is_available(self) -> bool:
         """Check if the `direct` binary is available."""
-        return _find_direct() is not None
+        return self._resolved_direct() is not None
 
     def run_checked(
         self, args: list[str], *, timeout: int | None = None

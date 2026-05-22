@@ -23,6 +23,13 @@ def runner():
 
 @pytest.mark.mocks
 class TestIsAvailable:
+    @pytest.fixture(autouse=True)
+    def _accept_all_versions(self):
+        # Otherwise a real `/usr/bin/direct` below 0.3.10 would cause
+        # `is_available()` to fail-closed and break test_available.
+        with patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 10)):
+            yield
+
     def test_available(self, runner):
         with patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"):
             assert runner.is_available() is True
@@ -159,6 +166,44 @@ class TestFindDirectVersionFloor:
             patch("server.cli.runner._probe_direct_version", return_value=None),
         ):
             assert _find_direct() == str(local_bin)
+
+
+@pytest.mark.mocks
+class TestResolvedDirectCaching:
+    """The version probe is expensive (up to 3s × candidates); resolve it once."""
+
+    def test_resolved_direct_caches_after_first_call(self):
+        runner = DirectCliRunner()
+        with patch(
+            "server.cli.runner._find_direct", return_value="/usr/bin/direct"
+        ) as mock_find:
+            assert runner._resolved_direct() == "/usr/bin/direct"
+            assert runner._resolved_direct() == "/usr/bin/direct"
+            assert runner._resolved_direct() == "/usr/bin/direct"
+            assert mock_find.call_count == 1
+
+    def test_resolved_direct_caches_none_result(self):
+        """Caching must distinguish 'not yet resolved' from 'resolved to None'."""
+        runner = DirectCliRunner()
+        with patch("server.cli.runner._find_direct", return_value=None) as mock_find:
+            assert runner._resolved_direct() is None
+            assert runner._resolved_direct() is None
+            assert mock_find.call_count == 1
+
+    def test_run_uses_cached_binary(self, runner):
+        mock_result = MagicMock()
+        mock_result.stdout = "{}"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with (
+            patch(
+                "server.cli.runner._find_direct", return_value="/usr/bin/direct"
+            ) as mock_find,
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            runner.run(["campaigns", "get"])
+            runner.run(["ads", "get"])
+            assert mock_find.call_count == 1
 
 
 @pytest.mark.mocks
