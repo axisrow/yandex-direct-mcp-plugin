@@ -80,7 +80,7 @@ def dynamic_feed_ad_targets_add(
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         available_items_only: "YES" or "NO" — restrict to currently available
             feed items.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "dynamicfeedadtargets",
@@ -119,7 +119,7 @@ def dynamic_feed_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Target ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["dynamicfeedadtargets", "delete", "--id", str(id)]
     if dry_run:

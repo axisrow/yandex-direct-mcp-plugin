@@ -81,7 +81,7 @@ def smart_ad_targets_add(
         priority: Strategy priority.
         available_items_only: "YES" or "NO" — whether only available items
             are targeted.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "smartadtargets",
@@ -142,7 +142,7 @@ def smart_ad_targets_update(
         average_cpa: New average CPA in micro-units (RUB × 1,000,000).
         priority: New strategy priority.
         available_items_only: "YES" or "NO".
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any(
         (
@@ -198,7 +198,7 @@ def smart_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Target ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["smartadtargets", "delete", "--id", str(id)]
     if dry_run:

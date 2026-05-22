@@ -22,7 +22,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Контракт теперь следует иерархии:
 
-`MCP -> direct-cli -> tapi-yandex-direct -> Yandex.Direct API`
+`MCP -> direct (package: direct-cli) -> tapi-yandex-direct -> Yandex.Direct API`
 
 - Используй только публичные MCP tools.
 - Не опирайся на старые alias-имена (`*_list`, `agency_clients_*`, `keyword_bids_*`, `smart_targets_*` и т.д.).
@@ -32,7 +32,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 ### Правила именования
 
 - `*_list` → `*_get`: `campaigns_get`, `ads_get`, `keywords_get`
-- Имена сервисов совпадают с `direct-cli`: `agencyclients_*`, `audiencetargets_*`, `keywordbids_*`, `smartadtargets_*`, `dynamicads_*`, `negativekeywordsharedsets_*`, `turbopages_get`
+- Имена сервисов совпадают с `direct`: `agencyclients_*`, `audiencetargets_*`, `keywordbids_*`, `smartadtargets_*`, `dynamicads_*`, `negativekeywordsharedsets_*`, `turbopages_get`
 - CLI методы с дефисом становятся snake_case:
   - `changes_check_campaigns`
   - `changes_check_dictionaries`
@@ -194,7 +194,7 @@ CLI 0.2.10+ отвергает значения в диапазоне `0 < x < 1
 ### Авторизация
 - Для интерактивной авторизации используйте `auth_login()` — запустит pending PKCE flow, покажет ссылку и запросит код
 - Для готового токена используйте `auth_setup(code="y0_...", login="...")`; обычный browser OAuth code вводится только в форме `auth_login()`
-- Токен и login сохраняются в профиле `direct-cli`; MCP-запросы используют активный профиль
+- Токен и login сохраняются в активном direct auth profile; MCP-запросы используют этот же профиль
 - Если профиль протух или login неверный, запустите `auth_login()` заново
 
 ### Запуск Python-скриптов

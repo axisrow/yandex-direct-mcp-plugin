@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code plugin for managing Yandex.Direct advertising campaigns. Wraps `direct` CLI (Python) via an MCP server and delegates authentication to direct-cli profiles.
+Claude Code plugin for managing Yandex.Direct advertising campaigns. Wraps `direct` CLI (Python) via an MCP server and delegates authentication to direct auth profiles.
 
 **Status:** Implemented.
 
@@ -112,9 +112,9 @@ Add to `~/.claude/settings.json`:
 ```
 Restart Claude Code. Done.
 
-### 2. direct-cli profile
+### 2. direct auth profile
 
-Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code/token entry). Token and login are saved by `direct-cli` in `~/.direct-cli/auth.json`.
+Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code/token entry). Token and login are saved by `direct` in `~/.direct-cli/auth.json`.
 
 ### Priority
 
@@ -343,17 +343,17 @@ Auth/utility tools unrelated to Direct API parity.
 
 | Tool | Purpose |
 |---|---|
-| `auth_status` | Check direct-cli auth profile status |
+| `auth_status` | Check direct auth profile status |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
 
 | Prompt | Purpose |
 |---|---|
-| `oauth_login` | Start direct-cli profile authorization flow |
+| `oauth_login` | Start direct auth profile authorization flow |
 
 ### Transport-blocked operations
 
-Operations in the WSDL/tapi surface that have no `direct-cli` subcommand.
+Operations in the WSDL/tapi surface that have no `direct` subcommand.
 See `server/contract.py` → `TRANSPORT_BLOCKED_OPERATIONS` for details.
 
 | Operation | Reason |
@@ -377,7 +377,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
-- OAuth tokens are stored by `direct-cli` profiles, normally in `~/.direct-cli/auth.json`.
+- OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
 - CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.10`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English

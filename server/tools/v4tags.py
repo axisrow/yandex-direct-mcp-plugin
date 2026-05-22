@@ -102,7 +102,7 @@ def v4tags_update_campaigns(
         campaign_id: Campaign ID.
         tags: Campaign tags in TAG_ID=TEXT form. Use 0 for a new tag.
         clear_tags: Remove all campaign tags.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     normalized_tags = _normalize_tags(tags)
     if normalized_tags and clear_tags:
@@ -142,7 +142,7 @@ def v4tags_update_banners(
         banner_ids: Comma-separated banner IDs.
         tag_ids: Comma-separated campaign tag IDs, up to 30.
         clear_tags: Remove all banner tags.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     normalized_banner_ids = banner_ids.strip()
     if not normalized_banner_ids:

@@ -148,7 +148,7 @@ def test_handle_cli_errors_error_code_8800_client_login_hint() -> None:
         stderr="error_code=8800, error_detail=The HTTP Client-Login header contains a nonexistent username",
     )()
     assert result["error"] == "not_found"
-    assert "direct-cli profile" in result["hint"]
+    assert "direct auth profile" in result["hint"]
 
 
 def test_handle_cli_errors_maps_error_code_152_to_insufficient_funds() -> None:

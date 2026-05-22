@@ -114,7 +114,7 @@ def _hint_for_cli_error(error: CliError) -> str | None:
         detail = error.stderr.lower()
         if "client-login" in detail or "nonexistent username" in detail:
             return (
-                "The active direct-cli profile has a missing or wrong login. "
+                "The active direct auth profile has a missing or wrong login. "
                 "Run auth_status, then auth_login or auth_setup with the correct login."
             )
     if error.error_code is not None and error.error_code in _HINTS_BY_ERROR_CODE:
@@ -138,7 +138,7 @@ def handle_cli_errors(func):
             return ToolError(
                 error="auth_expired",
                 message=str(e) or "Token expired. Re-authorization required.",
-                hint="Run auth_status to check the active direct-cli profile, then auth_login to re-authorize.",
+                hint="Run auth_status to check the active direct auth profile, then auth_login to re-authorize.",
             ).__dict__
         except CliNotFoundError as e:
             return ToolError(error="cli_not_found", message=str(e)).__dict__
@@ -170,7 +170,7 @@ def handle_cli_errors(func):
 
 
 def get_runner():
-    """Create a DirectCliRunner using direct-cli's active auth profile."""
+    """Create a DirectCliRunner using the active direct auth profile."""
     from server.cli.runner import DirectCliRunner
 
     return DirectCliRunner()

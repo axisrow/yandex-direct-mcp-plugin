@@ -181,7 +181,7 @@ def ads_add(
         sitelink_set_id: Sitelink set ID (TEXT_AD).
         turbo_page_id: Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Comma-separated ad extension IDs (TEXT_AD).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if mobile is not None and mobile not in MOBILE_VALUES:
         return ToolError(
@@ -276,7 +276,7 @@ def ads_update(
         sitelink_set_id: Optional sitelink set ID (TEXT_AD).
         turbo_page_id: Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Optional comma-separated ad extension IDs (TEXT_AD).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any(
         (

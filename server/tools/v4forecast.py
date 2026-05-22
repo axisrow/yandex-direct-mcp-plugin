@@ -20,7 +20,7 @@ def v4forecast_create(
         phrases: Comma-separated phrases, up to 100.
         geo_ids: Comma-separated geo region IDs (optional).
         currency: Forecast currency (default RUB).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     normalized_phrases = phrases.strip()
     if not normalized_phrases:
@@ -83,7 +83,7 @@ def v4forecast_delete(forecast_id: int, dry_run: bool = False) -> dict | list[di
 
     Args:
         forecast_id: Forecast ID to delete.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["v4forecast", "delete", "--forecast-id", str(forecast_id)]
     if dry_run:

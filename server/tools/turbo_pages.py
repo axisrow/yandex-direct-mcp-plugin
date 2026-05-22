@@ -22,7 +22,7 @@ def turbo_pages_list(
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["turbopages", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None

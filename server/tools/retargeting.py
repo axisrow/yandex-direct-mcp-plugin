@@ -61,7 +61,7 @@ def retargeting_add(
         list_type: List type — RETARGETING (default, text & image / mobile
             campaigns) or AUDIENCE (display campaigns).
         rule: Rule spec (CLI DSL form, see above).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if list_type not in _LIST_TYPES:
         return ToolError(
@@ -114,7 +114,7 @@ def retargeting_update(
         name: New name for the list.
         list_type: New list type (RETARGETING | AUDIENCE).
         rule: New rule spec in CLI DSL form.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any((name, list_type, rule)):
         return ToolError(

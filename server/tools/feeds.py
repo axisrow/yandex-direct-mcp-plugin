@@ -53,7 +53,7 @@ def feeds_add(
         url: Feed URL.
         business_type: Business type — one of RETAIL, HOTELS, REALTY,
             AUTOMOBILES, FLIGHTS, OTHER.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if business_type not in BUSINESS_TYPES:
         return ToolError(
@@ -96,7 +96,7 @@ def feeds_update(
         id: Feed ID to update.
         name: Optional new feed name.
         url: Optional new feed URL.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any((name, url)):
         return ToolError(

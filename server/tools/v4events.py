@@ -22,7 +22,7 @@ def v4events_get_events_log(
         currency: Currency code.
         limit: Optional result limit.
         offset: Optional result offset.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     normalized_from = timestamp_from.strip()
     normalized_to = timestamp_to.strip()

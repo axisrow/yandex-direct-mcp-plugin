@@ -1,4 +1,4 @@
-"""Tests for auth MCP tools delegated to direct-cli."""
+"""Tests for auth MCP tools delegated to `direct`."""
 
 import asyncio
 import json

@@ -148,7 +148,7 @@ def campaigns_update(
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         start_date: Optional new start date (YYYY-MM-DD).
         end_date: Optional new end date (YYYY-MM-DD).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if (
         name is None
@@ -270,7 +270,7 @@ def campaigns_add(
             ({"SmsSettings": {...}, "EmailSettings": {...}}).
         time_targeting_json: Optional JSON for `CampaignAddItem.TimeTargeting`
             ({"Schedule": [...], "ConsiderWorkingWeekends": "YES|NO", ...}).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
     if campaign_type:

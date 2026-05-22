@@ -167,7 +167,7 @@ def reports_list_types() -> list[str] | dict:
     - REACH_AND_FREQUENCY_PERFORMANCE_REPORT — reach and frequency for media
       campaigns.
 
-    Returns the live list of report types from direct-cli.
+    Returns the live list of report types from `direct`.
     """
     runner = get_runner()
     return runner.run_json(["reports", "list-types"])
@@ -370,7 +370,7 @@ def reports_custom(
         date_to: End date (YYYY-MM-DD). Required unless date_range_type is set.
             For "last 2 years" pass explicit dates — date_range_type does NOT
             have a "last_2_years" option (only last_5_years is broader).
-        report_type: Direct report type forwarded to direct-cli. Use
+        report_type: Direct report type forwarded to `direct`. Use
             reports_list_types() for the live supported set. CUSTOM_REPORT is
             the default and recommended for any non-trivial query.
             CUSTOM_REPORT supports the widest set of dimensions and filters
@@ -520,7 +520,7 @@ def reports_custom(
             "pass goal IDs via goal_ids instead"
         )
 
-    # report_type / date_range_type values are enforced by direct-cli's
+    # report_type / date_range_type values are enforced by the direct CLI's
     # click.Choice. Plugin-side pre-validation deliberately avoided so the
     # CLI error path (with hint "direct rejected report type") keeps working
     # — see tests/test_reports.py::test_reports_custom_unknown_report_type.

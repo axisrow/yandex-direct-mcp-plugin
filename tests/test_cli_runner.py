@@ -162,7 +162,7 @@ class TestRun:
         assert "YANDEX_DIRECT_CLIENT_SECRET" not in env
 
     def test_cli_not_found(self, runner):
-        """Test 17: direct-cli not in PATH."""
+        """Test 17: direct not in PATH."""
         with patch("server.cli.runner.shutil.which", return_value=None):
             with pytest.raises(CliNotFoundError) as exc_info:
                 runner.run(["campaigns", "get"])

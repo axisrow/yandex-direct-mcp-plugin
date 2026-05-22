@@ -75,7 +75,7 @@ def dynamic_ads_add(
         bid: Search bid in micro-units (RUB × 1,000,000).
         context_bid: Context bid in micro-units (RUB × 1,000,000).
         priority: Strategy priority.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "dynamicads",
@@ -105,7 +105,7 @@ def dynamic_ads_delete(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Target ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["dynamicads", "delete", "--id", str(id)]
     if dry_run:

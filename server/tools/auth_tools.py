@@ -1,4 +1,4 @@
-"""MCP tools and prompts for direct-cli authentication profiles."""
+"""MCP tools and prompts for direct auth profiles."""
 
 import json
 import time
@@ -195,7 +195,7 @@ def _complete_login_with_code(profile: str, code: str) -> dict:
 
 @mcp.tool()
 def auth_status(profile: str | None = None) -> dict:
-    """Check the current direct-cli authentication profile status."""
+    """Check the current direct auth profile status."""
     selected, payload = _read_cli_profile(profile)
     if not selected or payload is None:
         return {
@@ -208,12 +208,12 @@ def auth_status(profile: str | None = None) -> dict:
 
 @mcp.tool()
 def auth_setup(code: str, login: str | None = None, profile: str = "default") -> dict:
-    """Save a direct OAuth token into a direct-cli profile.
+    """Save a direct OAuth token into a direct auth profile.
 
     Args:
         code: Direct OAuth token (starts with y0_).
         login: Optional Yandex.Direct Client-Login to save with the profile.
-        profile: direct-cli profile name to save and activate.
+        profile: direct auth profile name to save and activate.
     """
     if not code:
         return {
@@ -261,11 +261,11 @@ async def auth_login(
     profile: str | None = None,
     force: bool = False,
 ) -> dict:
-    """Start interactive OAuth login through direct-cli.
+    """Start interactive OAuth login through `direct`.
 
     Args:
         login: Optional Yandex.Direct Client-Login to save with the profile.
-        profile: direct-cli profile name (default — active profile).
+        profile: direct auth profile name (default — active profile).
         force: Re-run OAuth flow even if the profile is already valid. Use
             this to switch the active account or to refresh an existing token
             without manually editing ``~/.direct-cli/auth.json``.
@@ -278,7 +278,7 @@ async def auth_login(
     if not _find_direct():
         return {
             "error": "cli_not_found",
-            "message": "direct not found. Install direct-cli.",
+            "message": "direct not found. Install package direct-cli and run `direct`.",
         }
 
     try:
@@ -345,7 +345,7 @@ async def auth_login(
 @mcp.prompt(
     name="oauth_login",
     title="Авторизация в Яндекс.Директ",
-    description="Запустить OAuth авторизацию через direct-cli",
+    description="Запустить OAuth авторизацию через `direct`",
 )
 def oauth_login_prompt() -> list[dict]:
     """Generate OAuth login prompt."""
@@ -354,7 +354,7 @@ def oauth_login_prompt() -> list[dict]:
             "role": "user",
             "content": (
                 "Авторизуй меня в Яндекс.Директ через auth_login. "
-                "Плагин сохранит токен и login в активный профиль direct-cli."
+                "Плагин сохранит токен и login в активный direct auth profile."
             ),
         }
     ]

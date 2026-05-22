@@ -59,7 +59,7 @@ def keyword_bids_set(
         search_bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         network_bid: Optional network bid in micro-units (same rules as `search_bid`).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if search_bid is None and network_bid is None:
         return ToolError(

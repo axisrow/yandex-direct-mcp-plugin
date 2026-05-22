@@ -89,7 +89,7 @@ def audience_targets_add(
         bid: Context bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         priority: Strategy priority.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if retargeting_list_id is None and interest_id is None:
         return ToolError(

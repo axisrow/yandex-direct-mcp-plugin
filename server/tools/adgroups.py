@@ -115,7 +115,7 @@ def adgroups_add(
         feed_id: Feed ID for SMART_AD_GROUP.
         ad_title_source: Title source for SMART_AD_GROUP.
         ad_body_source: Body source for SMART_AD_GROUP.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "adgroups",
@@ -162,7 +162,7 @@ def adgroups_update(
         name: New name for the ad group.
         status: New status.
         region_ids: Comma-separated region IDs for targeting.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any((name, status, region_ids)):
         return ToolError(

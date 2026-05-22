@@ -1,4 +1,4 @@
-"""Interactive direct-cli auth setup for cassette recording.
+"""Interactive direct auth setup for cassette recording.
 
 Run:
     python -m tests.setup
@@ -9,7 +9,7 @@ import sys
 
 
 def main() -> int:
-    """Delegate live test authentication to direct-cli."""
+    """Delegate live test authentication to `direct`."""
     return subprocess.call(["direct", "auth", "login"])
 
 

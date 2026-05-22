@@ -48,7 +48,7 @@ def creatives_add(video_id: str, dry_run: bool = False) -> dict:
 
     Args:
         video_id: Video extension creative video ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["creatives", "add", "--video-id", video_id]
     if dry_run:

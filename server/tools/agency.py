@@ -74,7 +74,7 @@ def agency_clients_add(
         notification_lang: Notification language code, e.g. "RU".
         send_account_news: Whether to send account news emails.
         send_warnings: Whether to send warning emails.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "agencyclients",
@@ -153,7 +153,7 @@ def agency_clients_update(
         tin: Taxpayer identification number.
         grants: List of PRIVILEGE=YES|NO entries (repeats CLI's --grant flag).
         clear_grants: Whether to clear all grants. Mutually exclusive with grants.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any(
         (
@@ -233,7 +233,7 @@ def agency_clients_add_passport_organization(
         notification_lang: Notification language code, e.g. "RU".
         send_account_news: Whether to send account news emails.
         send_warnings: Whether to send warning emails.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "agencyclients",
@@ -276,7 +276,7 @@ def agency_clients_add_passport_organization_member(
         role: Role to assign to the invited user, e.g. "CHIEF".
         invite_email: Email address to send the invitation to.
         invite_phone: Phone number to send the invitation to.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "agencyclients",

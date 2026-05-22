@@ -62,7 +62,7 @@ def clients_update(
         settings: List of OPTION=YES|NO entries (repeats CLI's --setting flag).
         tin_type: TIN type.
         tin: Taxpayer identification number.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any(
         (
