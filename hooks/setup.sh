@@ -12,7 +12,9 @@ _pip_user() {
 }
 
 _has_direct_cli_0310() {
-    "$1" -c "import direct_cli; raise SystemExit(tuple(map(int, direct_cli.__version__.split('.')[:3])) < (0, 3, 10))" 2>/dev/null
+    # Extract the leading X.Y.Z triplet so pre-release / dev suffixes
+    # ("0.3.10rc1", "0.3.10.dev0") don't break int() parsing.
+    "$1" -c "import re, direct_cli; m = re.match(r'^(\d+)\.(\d+)\.(\d+)', direct_cli.__version__); raise SystemExit(1 if not m else (tuple(map(int, m.groups())) < (0, 3, 10)))" 2>/dev/null
 }
 
 # Try plugin venv first (Debian/Docker friendly)

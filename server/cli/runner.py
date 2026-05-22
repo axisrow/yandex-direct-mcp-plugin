@@ -15,6 +15,9 @@ _DIRECT_INSTALL_HINT = (
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _ERROR_CODE_RE = re.compile(r"\berror_code=(\d+)\b")
+_VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
+
+MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 3, 10)
 
 
 def _strip_ansi(text: str) -> str:
@@ -22,14 +25,56 @@ def _strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE_RE.sub("", text)
 
 
+def _probe_direct_version(executable: str) -> tuple[int, int, int] | None:
+    """Return the (major, minor, patch) version of a `direct` binary, or None.
+
+    Used to skip stale installs when PATH contains an older `direct` that
+    would shadow a newer one in ``~/.local/bin``. ``None`` means the probe
+    could not extract a version (binary missing, broken install, no
+    ``--version`` support) — callers treat that as "accept and let runtime
+    surface the real error", not as "fail-closed".
+    """
+    try:
+        result = subprocess.run(
+            [executable, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            env=os.environ.copy(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    match = _VERSION_RE.search(result.stdout or result.stderr)
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def _meets_min_version(executable: str) -> bool:
+    """Accept a `direct` binary unless its version is provably below the floor.
+
+    Fail-open: a probe that cannot read a version (older CLIs without
+    ``--version``, broken installs) is accepted so the runtime surfaces the
+    real CLI error instead of silently skipping the only available binary.
+    """
+    version = _probe_direct_version(executable)
+    return version is None or version >= MIN_DIRECT_VERSION
+
+
 def _find_direct() -> str | None:
     """Locate the `direct` binary across common install locations.
 
     Search order:
-    1. YANDEX_DIRECT_CLI_PATH env var (explicit override)
+    1. YANDEX_DIRECT_CLI_PATH env var (explicit override — version check skipped)
     2. CLAUDE_PLUGIN_DATA/venv/bin/direct (plugin-managed venv)
     3. System PATH (shutil.which)
     4. ~/.local/bin/direct (pip install --user, macOS)
+
+    For options 2-4 the candidate is probed with ``direct --version``;
+    candidates below ``MIN_DIRECT_VERSION`` are skipped so a stale PATH
+    binary cannot shadow a freshly installed ``~/.local/bin/direct``.
     """
     if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
         return explicit if Path(explicit).is_file() else None
@@ -37,14 +82,15 @@ def _find_direct() -> str | None:
     plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
     if plugin_data:
         venv_direct = Path(plugin_data) / "venv" / "bin" / "direct"
-        if venv_direct.is_file():
+        if venv_direct.is_file() and _meets_min_version(str(venv_direct)):
             return str(venv_direct)
 
     if found := shutil.which("direct"):
-        return found
+        if _meets_min_version(found):
+            return found
 
     candidate = Path.home() / ".local" / "bin" / "direct"
-    if candidate.is_file():
+    if candidate.is_file() and _meets_min_version(str(candidate)):
         return str(candidate)
 
     return None

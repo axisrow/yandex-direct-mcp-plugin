@@ -34,6 +34,14 @@ class TestIsAvailable:
 
 @pytest.mark.mocks
 class TestFindDirect:
+    """Treat every probed binary as 0.3.10 so legacy candidates resolve normally;
+    the explicit min-version regression cases live in TestFindDirectVersionFloor."""
+
+    @pytest.fixture(autouse=True)
+    def _accept_all_versions(self):
+        with patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 10)):
+            yield
+
     def test_explicit_env_var(self, tmp_path):
         direct_bin = tmp_path / "direct"
         direct_bin.touch()
@@ -94,7 +102,74 @@ class TestFindDirect:
 
 
 @pytest.mark.mocks
+class TestFindDirectVersionFloor:
+    """Regression for the PATH-skew adversarial finding on PR #122.
+
+    A stale `direct` on $PATH must not shadow a fresh ``~/.local/bin/direct``.
+    """
+
+    def test_stale_path_falls_through_to_user_local_bin(self, tmp_path):
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            if executable == "/usr/bin/direct":
+                return (0, 3, 4)  # stale CLI on PATH
+            if executable == str(local_bin):
+                return (0, 3, 10)  # freshly installed by setup.sh
+            return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            assert _find_direct() == str(local_bin)
+
+    def test_explicit_env_var_skips_version_check(self, tmp_path):
+        """``YANDEX_DIRECT_CLI_PATH`` is trust-the-user — no probe runs."""
+        direct_bin = tmp_path / "direct"
+        direct_bin.touch()
+        with (
+            patch.dict(os.environ, {"YANDEX_DIRECT_CLI_PATH": str(direct_bin)}),
+            patch(
+                "server.cli.runner._probe_direct_version",
+                side_effect=AssertionError("probe must not be called"),
+            ),
+        ):
+            assert _find_direct() == str(direct_bin)
+
+    def test_unprobable_binary_is_accepted_fail_open(self, tmp_path):
+        """If --version cannot run, accept the binary so runtime surfaces the real error."""
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+            patch("server.cli.runner._probe_direct_version", return_value=None),
+        ):
+            assert _find_direct() == str(local_bin)
+
+
+@pytest.mark.mocks
 class TestRun:
+    @pytest.fixture(autouse=True)
+    def _accept_all_versions(self):
+        # Skip the `direct --version` probe so each test's subprocess.run
+        # mock observes only the command under test.
+        with patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 10)):
+            yield
+
     def test_successful_run(self, runner):
         mock_result = MagicMock()
         mock_result.stdout = '[{"Id": 12345}]'
