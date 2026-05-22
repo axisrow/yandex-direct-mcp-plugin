@@ -92,8 +92,8 @@ class BlockedV4Method:
     """v4 Live method intentionally not surfaced as an MCP tool.
 
     Two reasons coexist:
-    - CLI 0.3.8 does not yet expose a typed command for the method.
-    - CLI 0.3.8 exposes the method but the plugin intentionally leaves it
+    - direct-cli does not yet expose a typed subcommand for the method.
+    - direct-cli exposes the method but the plugin intentionally leaves it
       out of the public MCP surface (financial operations, manual review
       needed, etc.). The ``reason`` field distinguishes the two.
     """
@@ -103,7 +103,7 @@ class BlockedV4Method:
     expected_cli_group: str | None
     expected_cli_subcommand: str | None
     reason: str = (
-        "direct-cli does not expose a typed CLI command for this v4 Live method."
+        "direct-cli does not expose a typed subcommand for this v4 Live method."
     )
 
 
@@ -379,7 +379,7 @@ _PENDING_TYPED_REASON = (
     "as an MCP tool — separate scoping needed before public exposure."
 )
 _NO_CLI_REASON = (
-    "direct-cli does not expose a typed CLI command for this v4 Live method."
+    "direct-cli does not expose a typed subcommand for this v4 Live method."
 )
 
 V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
@@ -563,11 +563,11 @@ RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
 # The replacement string describes the new signature so callers can migrate.
 PARAMETER_BREAKING_CHANGES: dict[str, str] = {
     "bidmodifiers_set": (
-        "Signature changed in CLI 0.2.10 alignment: now (id: int, value: int, "
-        "extra_json?). Removed campaign_id and modifier_type — those were the "
-        "legacy form which CLI itself documents as 'broken by design' "
-        "(API rejects with 'required field Id is omitted'). Use the Id "
-        "returned by `bidmodifiers_add` to update an existing modifier."
+        "Signature changed in CLI 0.3.8 alignment: now (id: int, value: int, "
+        "dry_run: bool = False). Removed campaign_id, modifier_type, and "
+        "free-form JSON updates; direct-cli exposes only typed flags for this "
+        "operation. Use the Id returned by `bidmodifiers_add` to update an "
+        "existing modifier."
     ),
 }
 

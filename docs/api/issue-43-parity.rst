@@ -16,7 +16,7 @@ In-scope groups
      - Notes
    * - ``ads``
      - ``get``
-     - ``ads_list``
+     - ``ads_get``
      - implemented
      - Campaign-scoped list wrapper with existing batch/foreign-account guards.
    * - ``ads``
@@ -28,7 +28,7 @@ In-scope groups
      - ``update``
      - ``ads_update``
      - implemented
-     - Supports ``status`` and ``extra_json``; empty updates are rejected.
+     - Supports typed update fields; status changes use suspend/resume/archive/unarchive tools.
    * - ``ads``
      - ``delete`` / ``moderate`` / ``suspend`` / ``resume`` / ``archive`` / ``unarchive``
      - ``ads_delete`` / ``ads_moderate`` / ``ads_suspend`` / ``ads_resume`` / ``ads_archive`` / ``ads_unarchive``
@@ -36,14 +36,14 @@ In-scope groups
      - Batch-limited wrappers.
    * - ``campaigns``
      - ``get``
-     - ``campaigns_list``
+     - ``campaigns_get``
      - implemented
      - State filtering remains MCP-side.
    * - ``campaigns``
      - ``update``
      - ``campaigns_update``
      - implemented
-     - Supports ``name``, ``status``, ``budget``, and ``extra_json``; empty updates are rejected.
+     - Supports typed ``name``, ``status``, ``budget``, ``start_date``, and ``end_date`` updates; empty updates are rejected.
    * - ``campaigns``
      - ``add`` / ``delete`` / ``archive`` / ``unarchive`` / ``suspend`` / ``resume``
      - matching MCP tools
@@ -51,19 +51,19 @@ In-scope groups
      - CLI-backed wrappers.
    * - ``keywords``
      - ``get``
-     - ``keywords_list``
+     - ``keywords_get``
      - implemented
      - Campaign-scoped list wrapper.
    * - ``keywords``
      - ``update``
      - ``keywords_update``
      - implemented
-     - Supports ``bid``, ``context_bid``, ``status``, and ``extra_json``; empty updates are rejected.
+     - Supports typed ``keyword`` and user-param updates; bid changes use ``keywordbids_set``.
    * - ``keywords``
-     - ``add`` / ``delete`` / ``suspend`` / ``resume`` / ``archive`` / ``unarchive``
+     - ``add`` / ``delete`` / ``suspend`` / ``resume``
      - matching MCP tools
      - implemented
-     - CLI-backed wrappers.
+     - CLI-backed wrappers. ``archive`` / ``unarchive`` are not exposed because direct-cli has no such subcommands.
    * - ``reports``
      - ``get``
      - ``reports_get``
