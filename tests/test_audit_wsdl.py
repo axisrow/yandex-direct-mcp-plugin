@@ -104,12 +104,106 @@ def test_run_live_audit_excludes_reports_and_uses_wsdl_endpoint_aliases():
 
 
 def test_run_live_audit_marks_non_wsdl_service_as_inconclusive():
+    """Reports is a JSON API, not a WSDL service — it must skip the WSDL audit."""
     result = audit_wsdl.run_live_audit(timeout=3.0, services=frozenset({"reports"}))
 
     assert result.exit_code == 2
     assert result.fetch_errors == {
-        "reports": "service is not a WSDL-backed Direct v5 contract service"
+        "reports": "non-WSDL service (JSON API); skipped by the WSDL audit"
     }
+
+
+def test_run_live_audit_discovers_canonical_service_missing_from_contract(
+    monkeypatch,
+):
+    """Codex review (PR #124 P2): a service published by Yandex but absent
+    from PUBLIC_CONTRACT must show up in ``missing_services``.
+
+    Previously ``run_live_audit`` would never fetch anything outside the
+    contract, so ``missing_services`` was effectively unreachable in real
+    runs — defeating the original goal of issue #85.
+    """
+    monkeypatch.setattr(
+        audit_wsdl,
+        "CANONICAL_API_SERVICES",
+        frozenset({"futureservice"}),
+    )
+
+    def fake_fetcher(url: str, timeout: float) -> frozenset[str]:
+        if url.endswith("/futureservice?wsdl"):
+            return frozenset({"get", "add"})
+        raise AssertionError(f"unexpected URL: {url}")
+
+    # Explicit scope keeps the test independent of the full live contract
+    # surface — we only care that ``futureservice`` (canonical but absent
+    # from PUBLIC_CONTRACT) gets fetched and reported as missing.
+    result = audit_wsdl.run_live_audit(
+        timeout=1.0,
+        services=frozenset({"futureservice"}),
+        fetcher=fake_fetcher,
+    )
+
+    assert "futureservice" in result.missing_services
+    assert result.missing_services["futureservice"] == frozenset({"get", "add"})
+    assert result.exit_code == 1  # contract drift detected
+
+
+def test_run_live_audit_resolves_wsdl_endpoint_aliases_in_explicit_services():
+    """``--service dynamictextadtargets`` must resolve back to the contract
+    name ``dynamicads`` rather than failing as an unknown service."""
+
+    def fake_fetcher(url: str, timeout: float) -> frozenset[str]:
+        assert url.endswith("/dynamictextadtargets?wsdl")
+        return frozenset({"get", "add", "delete", "suspend", "resume", "setBids"})
+
+    result = audit_wsdl.run_live_audit(
+        timeout=1.0,
+        services=frozenset({"dynamictextadtargets"}),
+        fetcher=fake_fetcher,
+    )
+
+    assert "dynamicads" in result.checked_services
+    assert "dynamictextadtargets" not in result.fetch_errors
+    assert "dynamicads" not in result.fetch_errors
+
+
+def test_run_live_audit_marks_unknown_service_as_inconclusive():
+    """A name that exists neither in contract nor in CANONICAL_API_SERVICES
+    must be reported as inconclusive instead of silently passing."""
+    result = audit_wsdl.run_live_audit(
+        timeout=1.0,
+        services=frozenset({"definitely-not-a-service"}),
+    )
+
+    assert result.exit_code == 2
+    assert "definitely-not-a-service" in result.fetch_errors
+    assert (
+        "not a known v5 WSDL service" in result.fetch_errors["definitely-not-a-service"]
+    )
+
+
+def test_run_live_audit_degrades_gracefully_without_canonical_source(monkeypatch):
+    """When ``direct_cli.wsdl_coverage`` is unavailable, the audit must
+    still work using contract-only coverage and surface a warning in the
+    report instead of crashing."""
+    monkeypatch.setattr(audit_wsdl, "CANONICAL_API_SERVICES", frozenset())
+
+    def fake_fetcher(url: str, timeout: float) -> frozenset[str]:
+        return frozenset(
+            audit_wsdl.auditable_contract_methods()[url.split("/")[-1].split("?")[0]]
+        )
+
+    declared = frozenset(audit_wsdl.auditable_contract_methods())
+    sample = frozenset({"campaigns"}) & declared
+
+    result = audit_wsdl.run_live_audit(
+        timeout=1.0,
+        services=sample,
+        fetcher=fake_fetcher,
+    )
+    assert result.exit_code in {0, 1}
+    report = audit_wsdl.format_report(result)
+    assert "direct_cli.wsdl_coverage" in report
 
 
 def test_fetch_wsdl_operations_wraps_body_read_timeout():

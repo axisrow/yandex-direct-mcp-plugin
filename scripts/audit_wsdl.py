@@ -23,6 +23,26 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from server.contract import PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS  # noqa: E402
 
+# Canonical list of WSDL services straight from the upstream ``direct-cli``
+# package — the authoritative source-of-truth for the live v5 surface. Used
+# to discover services Yandex publishes that the MCP contract has not yet
+# declared (the original goal of issue #85). The import is wrapped because
+# older ``direct-cli`` builds may not ship ``wsdl_coverage``; the audit then
+# degrades gracefully to contract-only coverage and prints a warning.
+try:
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-untyped]  # noqa: E402
+        CANONICAL_API_SERVICES as _CANONICAL_API_SERVICES_RAW,
+    )
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-untyped]  # noqa: E402
+        NON_WSDL_SERVICES as _NON_WSDL_SERVICES_RAW,
+    )
+except Exception:  # pragma: no cover — old direct-cli without wsdl_coverage
+    _CANONICAL_API_SERVICES_RAW: list[str] = []  # type: ignore[no-redef]
+    _NON_WSDL_SERVICES_RAW: set[str] = set()  # type: ignore[no-redef]
+
+CANONICAL_API_SERVICES: frozenset[str] = frozenset(_CANONICAL_API_SERVICES_RAW)
+NON_WSDL_SERVICES: frozenset[str] = frozenset(_NON_WSDL_SERVICES_RAW)
+
 WSDL_BASE_URL = "https://api.direct.yandex.com/v5"
 WSDL_NS = "http://schemas.xmlsoap.org/wsdl/"
 
@@ -31,6 +51,13 @@ WSDL_NS = "http://schemas.xmlsoap.org/wsdl/"
 WSDL_ENDPOINTS_BY_SERVICE: dict[str, str] = {
     "dynamicads": "dynamictextadtargets",
     "retargeting": "retargetinglists",
+}
+
+# Reverse map: WSDL endpoint name -> contract service name. Used when
+# resolving a service discovered from ``CANONICAL_API_SERVICES`` back to a
+# contract identifier (e.g. ``dynamictextadtargets`` -> ``dynamicads``).
+WSDL_TO_CONTRACT_SERVICE: dict[str, str] = {
+    wsdl: contract for contract, wsdl in WSDL_ENDPOINTS_BY_SERVICE.items()
 }
 
 # Legacy names can still appear in TRANSPORT_BLOCKED_OPERATIONS because that
@@ -253,6 +280,18 @@ def compare_wsdl_to_contract(
     )
 
 
+def _resolve_audit_service(name: str) -> str:
+    """Normalise a user-supplied service name to a contract key.
+
+    Accepts both contract names (``dynamicads``) and WSDL endpoint names
+    (``dynamictextadtargets``) — the latter is reverse-mapped via
+    ``WSDL_TO_CONTRACT_SERVICE``. Returns the input unchanged for plain
+    contract names and for unknown values; the caller decides whether the
+    resolved key is auditable.
+    """
+    return WSDL_TO_CONTRACT_SERVICE.get(name, name)
+
+
 def run_live_audit(
     *,
     timeout: float,
@@ -261,15 +300,42 @@ def run_live_audit(
     fetcher: Callable[[str, float], frozenset[str]] = fetch_wsdl_operations,
 ) -> AuditResult:
     declared = auditable_contract_methods()
-    service_names = services or frozenset(declared)
+    declared_services = frozenset(declared)
+    # Union of declared services and any v5 WSDL services upstream publishes.
+    # The latter is what lets ``compare_wsdl_to_contract`` actually populate
+    # ``missing_services`` for newly added Yandex endpoints — the original
+    # goal of issue #85. ``CANONICAL_API_SERVICES`` is WSDL-endpoint named,
+    # so we reverse-map it before union to keep keys consistent.
+    discovered_services = frozenset(
+        _resolve_audit_service(name) for name in CANONICAL_API_SERVICES
+    )
+
+    if services is None:
+        service_names = declared_services | discovered_services
+    else:
+        # Normalise caller input: accept both contract and WSDL-endpoint
+        # spellings so ``--service dynamictextadtargets`` works too.
+        service_names = frozenset(_resolve_audit_service(s) for s in services)
 
     wsdl_methods: dict[str, frozenset[str]] = {}
     fetch_errors: dict[str, str] = {}
 
     for service in sorted(service_names):
-        if service not in declared:
+        if service in NON_WSDL_SERVICES:
             fetch_errors[service] = (
-                "service is not a WSDL-backed Direct v5 contract service"
+                "non-WSDL service (JSON API); skipped by the WSDL audit"
+            )
+            continue
+        wsdl_endpoint = service_to_wsdl_endpoint(service)
+        is_known = (
+            service in declared_services
+            or service in discovered_services
+            or wsdl_endpoint in CANONICAL_API_SERVICES
+        )
+        if not is_known:
+            fetch_errors[service] = (
+                "not a known v5 WSDL service (neither in PUBLIC_CONTRACT nor "
+                "in direct-cli CANONICAL_API_SERVICES)"
             )
             continue
         url = wsdl_url_for_service(service, base_url)
@@ -304,6 +370,17 @@ def format_report(result: AuditResult) -> str:
         "",
         f"Checked WSDL services: {len(result.checked_services)}",
     ]
+
+    if not CANONICAL_API_SERVICES:
+        lines.extend(
+            [
+                "",
+                "WARNING: ``direct_cli.wsdl_coverage`` is unavailable in this "
+                "environment, so the audit cannot discover services outside "
+                "PUBLIC_CONTRACT. Upgrade ``direct-cli`` to restore full "
+                "missing-service detection (issue #85).",
+            ]
+        )
 
     if result.fetch_errors:
         lines.extend(["", "## Inconclusive WSDL Fetches"])
