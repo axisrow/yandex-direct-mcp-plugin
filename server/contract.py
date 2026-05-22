@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 132
+- Direct API tools: 136
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              138
+Total:              142
 """
 
 from __future__ import annotations
@@ -46,11 +46,14 @@ class ContractTool:
     # camelCase form (``tapi_canonical`` property) is correct.
     tapi_name: str | None = field(default=None)
     drift: ToolDrift = field(default="aligned")
-    # Set only when one MCP tool wraps a multi-action tapi operation and the
-    # runtime currently hard-codes a subset (e.g. v4account AccountManagement
-    # exposes Update only in direct-cli 0.3.10). ``None`` for the usual 1:1
-    # tool→method case. ``deferred_actions`` is the audit trail for actions
-    # tracked by a follow-up issue until the CLI ships their typed surface.
+    # Set when an MCP tool wraps a single action of a multi-action tapi
+    # operation. AccountManagement is currently the only such case: five
+    # discrete MCP tools (v4account_get_accounts, v4account_update_account,
+    # v4account_deposit, v4account_invoice, v4account_transfer_money) each
+    # declare their single ``supported_actions`` entry. ``None`` for the
+    # usual 1:1 tool→method case. ``deferred_actions`` is the audit trail
+    # for actions tracked by a follow-up issue until the CLI ships their
+    # typed surface — currently empty.
     supported_actions: tuple[str, ...] | None = field(default=None)
     deferred_actions: tuple[str, ...] | None = field(default=None)
 
@@ -217,11 +220,13 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
-        # balance_get only wraps the Logins-selector path of the v4 Live
-        # ``AccountManagement Action=Get`` request via the dedicated
-        # ``direct balance`` CLI command. The AccountIDS selector (the other
-        # half of the API shape) is not exposed, so the full Get action is
-        # tracked as deferred on the v4account_account_management record.
+        # balance_get wraps the Logins-selector path of AccountManagement Get
+        # via the dedicated ``direct balance`` CLI command (no --account-ids
+        # flag). For the full Get surface (logins OR account_ids) use
+        # ``v4account_get_accounts``. ``supported_actions`` is left None here
+        # because the full Get action is owned by the v4account_* tool family;
+        # balance_get is treated as a convenience alias rather than a separate
+        # action implementation.
     ),
     ContractTool(
         public_name="v4goals_get_stat_goals",
@@ -303,19 +308,56 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="DeleteForecastReport",
     ),
+    # AccountManagement is a multi-action v4 Live method. direct-cli 0.3.11
+    # surfaces it as a single CLI subcommand (``v4account account-management``)
+    # switched by ``--action``, but the plugin splits the five actions into
+    # discrete MCP tools so that mutating / financial operations get distinct
+    # signatures with their own required parameters. ``cli_method`` is the
+    # same for all five entries since they share the underlying CLI command.
     ContractTool(
-        public_name="v4account_account_management",
+        public_name="v4account_get_accounts",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+        supported_actions=("Get",),
+    ),
+    ContractTool(
+        public_name="v4account_update_account",
         cli_service="v4account",
         cli_method="account_management",
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
         supported_actions=("Update",),
-        # Get is partially served by ``balance_get`` (Logins selector only).
-        # Tracking the full Get action plus the financial actions here so the
-        # follow-up issue #120 can pick them up after direct-cli ships the
-        # complete typed surface.
-        deferred_actions=("Get", "Deposit", "Invoice", "TransferMoney"),
+    ),
+    ContractTool(
+        public_name="v4account_deposit",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+        supported_actions=("Deposit",),
+    ),
+    ContractTool(
+        public_name="v4account_invoice",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+        supported_actions=("Invoice",),
+    ),
+    ContractTool(
+        public_name="v4account_transfer_money",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+        supported_actions=("TransferMoney",),
     ),
     ContractTool(
         public_name="v4account_enable_shared_account",
@@ -557,6 +599,12 @@ RENAMED_TOOL_MIGRATION: dict[str, str | None] = {
     "adextensions_list": "adextensions_get",
     "sitelinks_list": "sitelinks_get",
     "bidmodifiers_toggle": None,  # CLI 0.2.8 removed toggle; see TRANSPORT_BLOCKED_OPERATIONS
+    # AccountManagement multi-action split (CLI 0.3.11): the single-action
+    # alias kept only the Update half of the surface. Now five distinct
+    # tools cover Get / Update / Deposit / Invoice / TransferMoney; the old
+    # name maps to the Update replacement so existing keyword-argument
+    # callers can switch with a tool-name rename only.
+    "v4account_account_management": "v4account_update_account",
 }
 
 # Public tools whose parameter shape changed in a backwards-incompatible way.
@@ -568,6 +616,16 @@ PARAMETER_BREAKING_CHANGES: dict[str, str] = {
         "free-form JSON updates; direct-cli exposes only typed flags for this "
         "operation. Use the Id returned by `bidmodifiers_add` to update an "
         "existing modifier."
+    ),
+    "v4account_account_management": (
+        "Renamed to v4account_update_account in CLI 0.3.11 alignment. The "
+        "AccountManagement method was split into five tools "
+        "(v4account_get_accounts / v4account_update_account / "
+        "v4account_deposit / v4account_invoice / v4account_transfer_money) "
+        "so that financial actions get isolated signatures and finance / "
+        "master tokens stay env-only (YANDEX_DIRECT_FINANCE_TOKEN, "
+        "YANDEX_DIRECT_MASTER_TOKEN). The old name is mapped in "
+        "RENAMED_TOOL_MIGRATION."
     ),
 }
 
@@ -631,9 +689,9 @@ V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
 
 
 # Action-level audit trail for v4 Live tapi methods whose actions are split
-# across multiple MCP tools (e.g. ``AccountManagement`` — ``Get`` is served by
-# ``balance_get`` and ``Update`` by ``v4account_account_management``) or only
-# partially wrapped. Both maps are keyed by the canonical tapi method name so
+# across multiple MCP tools. ``AccountManagement`` is the canonical example:
+# Get / Update / Deposit / Invoice / TransferMoney are owned by individual
+# v4account_* tools. Both maps are keyed by the canonical tapi method name so
 # WSDL-diff tooling can join cleanly. Per-method, supported ∩ deferred is
 # guaranteed empty (asserted in tests/test_v4_tools.py).
 def _aggregate_actions(

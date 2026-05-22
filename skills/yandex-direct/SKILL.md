@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (138 tools)
+## Доступный MCP-контракт (142 tools)
 
 Контракт теперь следует иерархии:
 
@@ -54,7 +54,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Стратегии | `strategies_get/add/update/archive/unarchive` |
 | Медиа и расширения | `adimages_get/add/delete`, `advideos_get/add`, `adextensions_get/add/delete`, `sitelinks_get/add/delete`, `vcards_get/add/delete`, `creatives_get/add` |
 | Справочники / изменения / отчёты | `dictionaries_get`, `dictionaries_get_geo_regions`, `changes_check`, `changes_check_campaigns`, `changes_check_dictionaries`, `reports_get` |
-| v4 Live | `balance_get`, `v4account_account_management`, `v4account_enable_shared_account`, `v4events_get_events_log`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners`, `v4forecast_create`, `v4forecast_list`, `v4forecast_get`, `v4forecast_delete`, `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report` |
+| v4 Live | `balance_get`, `v4account_get_accounts`, `v4account_update_account`, `v4account_deposit`, `v4account_invoice`, `v4account_transfer_money`, `v4account_enable_shared_account`, `v4events_get_events_log`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners`, `v4forecast_create`, `v4forecast_list`, `v4forecast_get`, `v4forecast_delete`, `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report` |
 | Прочее | `clients_get/update`, `agencyclients_get/add/update/add_passport_organization/add_passport_organization_member`, `businesses_get`, `feeds_get/add/update/delete`, `leads_get`, `negativekeywordsharedsets_get/add/update/delete`, `keywordsresearch_has_search_volume`, `keywordsresearch_deduplicate`, `turbopages_get` |
 
 ### Явно helper-only tools
@@ -156,6 +156,9 @@ report-header и summary).
 | Очистить теги объявлений | `v4tags_update_banners(banner_ids="456,789", clear_tags=True)` |
 | Журнал v4 Live событий | `v4events_get_events_log(timestamp_from="2026-05-01T00:00:00", timestamp_to="2026-05-02T00:00:00")` |
 | Отчеты Wordstat v4 Live | `v4wordstat_list_reports()` / `v4wordstat_create_report(phrases="купить диван")` |
+| Прочитать shared-аккаунты | `v4account_get_accounts(logins="login-a,login-b")` или `v4account_get_accounts(account_ids="111,222")` |
+| Обновить shared-аккаунт | `v4account_update_account(account_id=1327944, day_budget="100.50", dry_run=True)` |
+| Финансовые операции (Deposit/Invoice/TransferMoney) | Только с `dry_run=True` или `sandbox=True`. **Финансовые токены НЕ передаются как параметры** — поставь в env: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`, `YANDEX_DIRECT_FINANCE_LOGIN`. Master-token выдаётся через UI Яндекс.Директ → Инструменты → API → Финансовые операции. Пример: `v4account_deposit(payment=["999999=50000"], currency="rub", origin="Overdraft", operation_num=42, dry_run=True)` |
 | Проверить аккаунт-wide изменения | `changes_check_campaigns(timestamp="2026-05-21T00:00:00Z")` |
 | Проверить точечно изменения по кампаниям/группам/объявлениям | `changes_check(field_names="CampaignIds,AdGroupIds", timestamp="2026-05-21T00:00:00Z", campaign_ids="123,456")` |
 | Показать группы объявлений | `adgroups_get(campaign_ids="123")` |

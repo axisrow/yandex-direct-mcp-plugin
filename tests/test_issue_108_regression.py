@@ -40,9 +40,39 @@ def test_runtime_code_does_not_reintroduce_freeform_json_transport() -> None:
 
 def test_setup_hook_installs_supported_direct_cli_version() -> None:
     setup = (REPO_ROOT / "hooks" / "setup.sh").read_text()
-    assert "direct-cli>=0.3.10" in setup
+    assert "direct-cli>=0.3.11" in setup
     assert "direct-cli>=0.3.4" not in setup
-    assert "_has_direct_cli_0310" in setup
+    assert "direct-cli>=0.3.10" not in setup
+    assert "_has_direct_cli_0311" in setup
+    assert "_has_direct_cli_0310" not in setup
+
+
+def test_v4account_runtime_does_not_accept_finance_or_master_tokens() -> None:
+    """Issue #120 security policy: finance/master tokens must stay env-only.
+
+    The v4account tool module must never reintroduce ``--finance-token`` /
+    ``--master-token`` / ``--finance-login`` literals in argv construction
+    or accept the corresponding parameter names. ``direct-cli`` 0.3.11
+    reads them from ``YANDEX_DIRECT_FINANCE_TOKEN`` /
+    ``YANDEX_DIRECT_MASTER_TOKEN`` / ``YANDEX_DIRECT_FINANCE_LOGIN``
+    instead, which keeps the secrets out of MCP argv, logs, and Claude
+    context.
+    """
+    source = (REPO_ROOT / "server" / "tools" / "v4account.py").read_text()
+    for forbidden_flag in (
+        '"--finance-token"',
+        '"--master-token"',
+        '"--finance-login"',
+    ):
+        assert forbidden_flag not in source, forbidden_flag
+        single_quoted = forbidden_flag.replace('"', "'")
+        assert single_quoted not in source, single_quoted
+    for forbidden_param in ("finance_token", "master_token", "finance_login"):
+        # Allow the strings inside docstrings that explain the env-only policy
+        # (``YANDEX_DIRECT_FINANCE_TOKEN`` etc.), but the bare snake_case
+        # parameter names must not appear as parameters.
+        assert f"{forbidden_param}:" not in source, forbidden_param
+        assert f"{forbidden_param}=" not in source, forbidden_param
 
 
 def test_breaking_change_notes_describe_typed_bidmodifier_surface() -> None:

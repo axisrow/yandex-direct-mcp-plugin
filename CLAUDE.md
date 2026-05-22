@@ -191,7 +191,7 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (138 total) + 1 Prompt
+## MCP Tools (142 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -315,7 +315,11 @@ WSDL/reports spec wins when there is drift.
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
 | `reports_custom` | Full Reports API surface: arbitrary FieldNames, filters, ordering, pagination, file output, processing-mode/language/attribution/skip-* CLI 0.3.10 flags; honors `response_format` (json/tsv/csv/table) both for in-memory and `output_path` |
-| `v4account_account_management` | Update v4 Live shared-account settings (Action=Update only in direct-cli 0.3.10; dry_run or sandbox required). Get/Deposit/Invoice/TransferMoney tracked in #120. |
+| `v4account_get_accounts` | Read v4 Live shared accounts via AccountManagement Get (pass `logins` OR `account_ids`). |
+| `v4account_update_account` | Update v4 Live shared-account settings via AccountManagement Update (dry_run or sandbox required). |
+| `v4account_deposit` | Deposit funds via AccountManagement Deposit. Finance/master tokens MUST come from env (`YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`). |
+| `v4account_invoice` | Issue invoice payments via AccountManagement Invoice. Same env-only token policy as deposit. |
+| `v4account_transfer_money` | Transfer funds between shared accounts via AccountManagement TransferMoney. Same env-only token policy. |
 | `v4account_enable_shared_account` | Enable v4 Live shared account in dry-run or sandbox |
 | `v4events_get_events_log` | Get v4 Live events log entries |
 | `v4forecast_create` | Create v4 Live budget forecast |
@@ -378,7 +382,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.10`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.11`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -509,3 +513,40 @@ all new parameters are optional.
   validation.
 
 Closes plugin issues `#110`, `#111`, `#112`.
+
+## Breaking Changes (CLI 0.3.11 alignment)
+
+- **`direct-cli>=0.3.11` required**: the minimum CLI version was raised
+  from 0.3.10. Installs running CLI 0.3.10 will be rejected by the
+  version probe in `server/cli/runner.py` (the runtime floor moved to
+  `MIN_DIRECT_VERSION = (0, 3, 11)`).
+
+- **`v4account_account_management` renamed to `v4account_update_account`**:
+  the old name is mapped in `RENAMED_TOOL_MIGRATION`. Existing callers
+  using keyword arguments (`account_id=...`, `day_budget=...`) can switch
+  the tool name with no other change; the signature is identical.
+
+- **New tools** completing the v4 Live AccountManagement surface, now that
+  CLI 0.3.11 ships typed flags for every action:
+
+  - `v4account_get_accounts(logins?, account_ids?)` — read, no
+    `dry_run`/`sandbox` required. Pass exactly one selector. Adds the
+    AccountIDs selector that `balance_get` does not expose.
+  - `v4account_deposit(payment, currency, origin?, contract?, operation_num?)`
+  - `v4account_invoice(payment, currency, operation_num?)`
+  - `v4account_transfer_money(from_account_id, to_account_id, amount, currency, operation_num?)`
+
+  All three financial tools require `dry_run=True` or `sandbox=True`.
+  **Finance, master, and finance-login tokens are NOT accepted as MCP
+  parameters** — set them in environment variables instead:
+  `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`,
+  `YANDEX_DIRECT_FINANCE_LOGIN`. `direct-cli` 0.3.11 reads them from
+  env transparently. This keeps secrets out of MCP argv, logs, and
+  Claude context (closes the high-severity adversarial-review finding
+  from PR #119). The `operation_num` (idempotency token) may be passed
+  as a parameter — it is not a secret.
+
+- **`balance_get` unchanged**: still wraps `direct balance` (Logins-only).
+  For the AccountIDs selector use `v4account_get_accounts`.
+
+Closes plugin issue `#120`.

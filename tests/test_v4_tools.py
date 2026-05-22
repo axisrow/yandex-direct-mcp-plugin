@@ -327,7 +327,11 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "v4forecast_list",
         "v4forecast_get",
         "v4forecast_delete",
-        "v4account_account_management",
+        "v4account_get_accounts",
+        "v4account_update_account",
+        "v4account_deposit",
+        "v4account_invoice",
+        "v4account_transfer_money",
         "v4account_enable_shared_account",
         "v4events_get_events_log",
         "v4wordstat_create_report",
@@ -337,17 +341,16 @@ def test_v4_contract_exposes_only_cli_backed_tools():
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
-    # AccountManagement action coverage on direct-cli 0.3.10:
-    # - ``v4account_account_management`` fully wraps Action=Update.
-    # - ``balance_get`` wraps only the Logins-selector half of Action=Get
-    #   (the AccountIDS selector is not exposed by the CLI), so Get does not
-    #   count as supported and stays deferred together with the financial
-    #   actions until direct-cli ships the full Get surface and plugin
-    #   issue #120 lands.
-    assert V4_LIVE_SUPPORTED_ACTIONS["AccountManagement"] == frozenset({"Update"})
-    assert V4_LIVE_DEFERRED_ACTIONS["AccountManagement"] == frozenset(
-        {"Get", "Deposit", "Invoice", "TransferMoney"}
+    # AccountManagement action coverage on direct-cli 0.3.11: five discrete
+    # MCP tools own one action each — Get / Update / Deposit / Invoice /
+    # TransferMoney — so the full surface is supported. ``balance_get`` is
+    # treated as a Logins-only convenience alias and intentionally does not
+    # claim ``supported_actions`` (the canonical Get is owned by
+    # ``v4account_get_accounts`` which also supports the AccountIDs selector).
+    assert V4_LIVE_SUPPORTED_ACTIONS["AccountManagement"] == frozenset(
+        {"Get", "Update", "Deposit", "Invoice", "TransferMoney"}
     )
+    assert "AccountManagement" not in V4_LIVE_DEFERRED_ACTIONS
     # No action may be simultaneously supported and deferred for the same
     # tapi method.
     for method_name, supported in V4_LIVE_SUPPORTED_ACTIONS.items():
