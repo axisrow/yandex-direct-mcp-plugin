@@ -473,6 +473,94 @@ class TestProbeDirectVersion:
         with patch("server.cli.runner.subprocess.run", return_value=mock_result):
             assert _probe_direct_version("/usr/bin/direct") is None
 
+    def test_anchored_to_direct_program_name(self):
+        """Adversarial-review-round-4 finding 2 regression.
+
+        ``Python version 3.12.0`` ahead of ``direct, version 0.3.4`` used to
+        promote (3, 12, 0) — the regex now requires the program name
+        ``direct`` (or its package alias ``direct-cli``) right before the
+        ``version X.Y.Z`` triplet.
+        """
+        mock_result = MagicMock()
+        mock_result.stdout = "Python version 3.12.0\ndirect, version 0.3.4\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") == (0, 3, 4)
+
+    def test_unrelated_version_banner_without_direct_returns_none(self):
+        """A banner like ``Python version 3.12.0`` alone must not match."""
+        mock_result = MagicMock()
+        mock_result.stdout = "Python version 3.12.0\nsome wrapper 9.9.9\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") is None
+
+    def test_direct_cli_alias_in_version_output_is_parsed(self):
+        """Some wrappers may print ``direct-cli version X.Y.Z`` — accept that too."""
+        mock_result = MagicMock()
+        mock_result.stdout = "direct-cli version 0.3.10\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") == (0, 3, 10)
+
+
+@pytest.mark.mocks
+class TestUnverifiedDirectWarning:
+    """Adversarial-review-round-4 finding 1: warn-and-use fallback.
+
+    Fail-open is intentional (legitimate fresh installs whose --version
+    momentarily fails should still work), but the user must see that
+    the floor could not be verified.
+    """
+
+    def test_warning_emitted_when_returning_unknown(self, tmp_path, capsys):
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+            patch("server.cli.runner._probe_direct_version", return_value=None),
+        ):
+            assert _find_direct() == str(local_bin)
+        captured = capsys.readouterr()
+        assert "could not be verified" in captured.err
+        assert str(local_bin) in captured.err
+
+    def test_no_warning_when_known_good_candidate_exists(self, tmp_path, capsys):
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 10)),
+        ):
+            assert _find_direct() == "/usr/bin/direct"
+        captured = capsys.readouterr()
+        assert captured.err == ""
+
+    def test_no_warning_when_nothing_found(self, tmp_path, capsys):
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
+            assert _find_direct() is None
+        captured = capsys.readouterr()
+        assert captured.err == ""
+
 
 @pytest.mark.mocks
 class TestRun:

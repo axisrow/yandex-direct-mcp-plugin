@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Protocol
 
@@ -15,12 +16,16 @@ _DIRECT_INSTALL_HINT = (
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _ERROR_CODE_RE = re.compile(r"\berror_code=(\d+)\b")
-# Anchor on the literal word ``version`` (case-insensitive) so unrelated
-# X.Y.Z strings that may appear earlier in ``--version`` output — Python
-# runtime banner, DeprecationWarning text, etc. — cannot promote a stale
-# wrapper to known-good. Click's ``version_option`` prints
-# ``"<prog>, version X.Y.Z"``, which matches.
-_VERSION_RE = re.compile(r"version\s+(\d+)\.(\d+)\.(\d+)", re.IGNORECASE)
+# Anchor on the literal program token ``direct`` (or its package alias
+# ``direct-cli``) followed by ``version X.Y.Z``. Matches Click's standard
+# ``version_option`` output ``"direct, version X.Y.Z"`` while rejecting
+# unrelated banner lines like ``"Python version 3.12.0"`` that would
+# otherwise be picked up by an unanchored regex and promote a stale
+# wrapper to known-good.
+_VERSION_RE = re.compile(
+    r"\bdirect(?:-cli)?\b[,\s]+version\s+(\d+)\.(\d+)\.(\d+)",
+    re.IGNORECASE,
+)
 
 MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 3, 10)
 
@@ -144,7 +149,28 @@ def _find_direct() -> str | None:
             return candidate
         # Known-stale fallback candidate: keep searching for known-good.
 
+    if first_unknown is not None:
+        _warn_unverified_direct(first_unknown)
     return first_unknown
+
+
+def _warn_unverified_direct(path: str) -> None:
+    """Surface the fail-open fallback so users notice an unverified binary.
+
+    Adversarial-review-round-4 finding 1 wanted hard fail-closed for
+    unknown-version candidates. Pure fail-closed breaks legitimate edge
+    cases (fresh installs whose ``--version`` momentarily errors, very
+    old CLI binaries without ``--version`` support). The compromise is
+    warn-and-use: pick the candidate so MCP tool calls keep working,
+    but write a single diagnostic to stderr so the user sees that the
+    floor could not be verified. The module-level cache makes this fire
+    at most once per process.
+    """
+    sys.stderr.write(
+        f"warning: direct binary at {path} could not be verified "
+        f"as direct-cli >= {'.'.join(map(str, MIN_DIRECT_VERSION))}; "
+        "using anyway — set YANDEX_DIRECT_CLI_PATH to override.\n"
+    )
 
 
 # Module-level cache: ``DirectCliRunner`` instances are constructed per
