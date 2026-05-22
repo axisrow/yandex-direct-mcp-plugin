@@ -15,7 +15,12 @@ _DIRECT_INSTALL_HINT = (
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _ERROR_CODE_RE = re.compile(r"\berror_code=(\d+)\b")
-_VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
+# Anchor on the literal word ``version`` (case-insensitive) so unrelated
+# X.Y.Z strings that may appear earlier in ``--version`` output — Python
+# runtime banner, DeprecationWarning text, etc. — cannot promote a stale
+# wrapper to known-good. Click's ``version_option`` prints
+# ``"<prog>, version X.Y.Z"``, which matches.
+_VERSION_RE = re.compile(r"version\s+(\d+)\.(\d+)\.(\d+)", re.IGNORECASE)
 
 MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 3, 10)
 
@@ -31,8 +36,9 @@ def _probe_direct_version(executable: str) -> tuple[int, int, int] | None:
     Used to skip stale installs when PATH contains an older `direct` that
     would shadow a newer one in ``~/.local/bin``. ``None`` means the probe
     could not extract a version (binary missing, broken install, no
-    ``--version`` support) — callers treat that as "accept and let runtime
-    surface the real error", not as "fail-closed".
+    ``--version`` support); callers in ``_find_direct`` defer these
+    candidates as a last-resort fallback rather than rejecting them
+    outright.
     """
     try:
         result = subprocess.run(
@@ -53,11 +59,11 @@ def _probe_direct_version(executable: str) -> tuple[int, int, int] | None:
 
 
 def _candidate_paths() -> list[str]:
-    """Ordered list of `direct` binaries to consider.
+    """Ordered list of non-override `direct` binaries to consider.
 
     Order matches the historical search order, minus the
-    ``YANDEX_DIRECT_CLI_PATH`` override (handled separately because that
-    override skips version probing entirely):
+    ``YANDEX_DIRECT_CLI_PATH`` override (handled separately as the
+    highest-priority candidate by ``_find_direct``):
 
     1. ``CLAUDE_PLUGIN_DATA/venv/bin/direct`` (plugin-managed venv)
     2. ``shutil.which("direct")`` (system PATH)
@@ -84,33 +90,50 @@ def _candidate_paths() -> list[str]:
 def _find_direct() -> str | None:
     """Locate the `direct` binary across common install locations.
 
-    Search order:
+    Search order (highest priority first):
 
-    1. ``YANDEX_DIRECT_CLI_PATH`` env var (explicit override — version
-       check skipped, "trust the user")
+    1. ``YANDEX_DIRECT_CLI_PATH`` env var (explicit override)
     2. ``CLAUDE_PLUGIN_DATA/venv/bin/direct`` (plugin-managed venv)
     3. System PATH (``shutil.which``)
     4. ``~/.local/bin/direct`` (``pip install --user``, macOS)
 
-    For options 2-4 each candidate is probed with ``direct --version``
-    and classified three ways:
+    Every candidate is probed with ``direct --version`` and classified
+    three ways: known-good (>= ``MIN_DIRECT_VERSION``), known-stale
+    (below the floor), unknown (probe failed / unparseable output).
 
-    - **known-good** (parsed version >= ``MIN_DIRECT_VERSION``) — preferred
-    - **known-stale** (parsed version < ``MIN_DIRECT_VERSION``) — always skipped
-    - **unknown** (probe failed, returncode != 0, or unparseable output) —
-      only used as a last-resort fallback when no known-good candidate exists
+    The override (step 1) is **strict**: if the user explicitly pinned a
+    stale path, return ``None`` instead of silently falling back to a
+    different binary. A broken/unprobable explicit path still defers to
+    later known-good candidates (treated as unknown) so a fresh install
+    can win when the override is misconfigured but not provably wrong.
 
-    The three-state classification is the fix for the PR #122 adversarial
-    finding: a broken PATH ``direct`` (e.g. wrapper that exits with
-    ``ModuleNotFoundError``) used to be classified as "accept" by the
-    fail-open helper, shadowing a freshly installed
-    ``~/.local/bin/direct``. Now it can be deferred so a later known-good
-    candidate wins.
+    For steps 2-4, known-good wins on first match, known-stale is
+    skipped, and unknown candidates are deferred — used only when no
+    known-good candidate exists anywhere in the search order.
+
+    The three-state classification fixes the PR #122 adversarial
+    findings: (a) a broken PATH ``direct`` no longer shadows a freshly
+    installed ``~/.local/bin/direct``; (b) ``YANDEX_DIRECT_CLI_PATH``
+    can no longer pin the plugin to a stale CLI.
     """
-    if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
-        return explicit if Path(explicit).is_file() else None
-
     first_unknown: str | None = None
+
+    explicit = os.environ.get("YANDEX_DIRECT_CLI_PATH")
+    if explicit and Path(explicit).is_file():
+        version = _probe_direct_version(explicit)
+        if version is None:
+            # Broken explicit override: defer but keep looking for a
+            # known-good fallback. If nothing better turns up we still
+            # return this path as a last resort.
+            first_unknown = explicit
+        elif version >= MIN_DIRECT_VERSION:
+            return explicit
+        else:
+            # Stale explicit override: fail-fast. The user pinned this
+            # path; silently swapping it for a different binary would
+            # violate that contract.
+            return None
+
     for candidate in _candidate_paths():
         version = _probe_direct_version(candidate)
         if version is None:
@@ -119,9 +142,32 @@ def _find_direct() -> str | None:
             continue
         if version >= MIN_DIRECT_VERSION:
             return candidate
-        # Known-stale: keep searching for a known-good candidate.
+        # Known-stale fallback candidate: keep searching for known-good.
 
     return first_unknown
+
+
+# Module-level cache: ``DirectCliRunner`` instances are constructed per
+# request via ``get_runner()``, so an instance-level cache would still
+# re-probe on every MCP tool call. A single resolution per process — with
+# the version probe and ANSI-laden output costs amortised — keeps the
+# steady-state cost negligible and the worst-case cost bounded.
+_UNCACHED: object = object()
+_RESOLVED_DIRECT: str | None | object = _UNCACHED
+
+
+def _resolve_direct_cached() -> str | None:
+    """Return the cached resolved binary path, computing it on first call."""
+    global _RESOLVED_DIRECT
+    if _RESOLVED_DIRECT is _UNCACHED:
+        _RESOLVED_DIRECT = _find_direct()
+    return _RESOLVED_DIRECT  # type: ignore[return-value]
+
+
+def _reset_direct_cache() -> None:
+    """Test helper: clear the cached resolution so the next call re-resolves."""
+    global _RESOLVED_DIRECT
+    _RESOLVED_DIRECT = _UNCACHED
 
 
 def _direct_env() -> dict[str, str]:
@@ -151,26 +197,8 @@ class DirectCliRunner:
     Authentication is resolved by `direct` from its active profile.
     """
 
-    # Sentinel distinct from a real `_find_direct()` return value so the
-    # cache can tell "not yet resolved" apart from "resolved to None".
-    _UNCACHED: object = object()
-
     def __init__(self, *, timeout: int = 30) -> None:
         self._timeout = timeout
-        self._direct_bin: str | None | object = DirectCliRunner._UNCACHED
-
-    def _resolved_direct(self) -> str | None:
-        """Cache the resolved `direct` binary across calls.
-
-        ``_find_direct()`` now spawns up to three `direct --version` probes,
-        each capped at a 3s timeout. Without caching, every MCP tool call
-        would re-run those probes; in a degraded environment that adds up
-        to ~9s of latency per call before the real CLI invocation even
-        starts. Cache once per runner instance.
-        """
-        if self._direct_bin is DirectCliRunner._UNCACHED:
-            self._direct_bin = _find_direct()
-        return self._direct_bin  # type: ignore[return-value]
 
     def run(
         self,
@@ -196,7 +224,7 @@ class DirectCliRunner:
         """
         effective_timeout = timeout if timeout is not None else self._timeout
 
-        direct_bin = self._resolved_direct()
+        direct_bin = _resolve_direct_cached()
         if not direct_bin:
             raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
@@ -219,7 +247,7 @@ class DirectCliRunner:
 
     def is_available(self) -> bool:
         """Check if the `direct` binary is available."""
-        return self._resolved_direct() is not None
+        return _resolve_direct_cached() is not None
 
     def run_checked(
         self, args: list[str], *, timeout: int | None = None

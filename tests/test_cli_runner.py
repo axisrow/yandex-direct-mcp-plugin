@@ -13,12 +13,41 @@ from server.cli.runner import (
     CliTimeoutError,
     DirectCliRunner,
     _find_direct,
+    _probe_direct_version,
+    _reset_direct_cache,
 )
 
 
 @pytest.fixture
 def runner():
     return DirectCliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_direct_cache():
+    """Reset module-level resolved-binary cache around every test.
+
+    ``_resolve_direct_cached`` memoises ``_find_direct()`` for the lifetime
+    of the process. Without per-test isolation, the first test's resolved
+    binary leaks into subsequent tests and makes patches of
+    ``shutil.which``/``_probe_direct_version`` look like they did nothing.
+    """
+    _reset_direct_cache()
+    yield
+    _reset_direct_cache()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_explicit_env_var():
+    """Default-clear ``YANDEX_DIRECT_CLI_PATH`` for every test.
+
+    A developer machine may set this env var to point at a custom binary;
+    that would shadow ``shutil.which`` patches in every test that doesn't
+    explicitly override it. Tests that want to exercise the env-var
+    branch can re-set it via their own ``patch.dict``.
+    """
+    with patch.dict(os.environ, {"YANDEX_DIRECT_CLI_PATH": ""}, clear=False):
+        yield
 
 
 @pytest.mark.mocks
@@ -30,8 +59,15 @@ class TestIsAvailable:
         with patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 10)):
             yield
 
-    def test_available(self, runner):
-        with patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"):
+    def test_available(self, runner, tmp_path):
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+        ):
             assert runner.is_available() is True
 
     def test_not_available(self, runner, tmp_path):
@@ -147,18 +183,99 @@ class TestFindDirectVersionFloor:
         ):
             assert _find_direct() == str(local_bin)
 
-    def test_explicit_env_var_skips_version_check(self, tmp_path):
-        """``YANDEX_DIRECT_CLI_PATH`` is trust-the-user — no probe runs."""
+    def test_explicit_env_var_known_good_wins(self, tmp_path):
+        """``YANDEX_DIRECT_CLI_PATH`` outranks PATH / venv / local_bin when good."""
         direct_bin = tmp_path / "direct"
         direct_bin.touch()
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            return (0, 3, 10)  # everyone is known-good
+
         with (
-            patch.dict(os.environ, {"YANDEX_DIRECT_CLI_PATH": str(direct_bin)}),
-            patch(
-                "server.cli.runner._probe_direct_version",
-                side_effect=AssertionError("probe must not be called"),
+            patch.dict(
+                os.environ,
+                {
+                    "HOME": str(tmp_path),
+                    "CLAUDE_PLUGIN_DATA": "",
+                    "YANDEX_DIRECT_CLI_PATH": str(direct_bin),
+                },
+                clear=False,
             ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
         ):
             assert _find_direct() == str(direct_bin)
+
+    def test_explicit_env_var_stale_returns_none(self, tmp_path):
+        """A stale explicit path must not shadow good fallbacks — fail fast.
+
+        Adversarial-review-round-3 finding 1: if a user pins
+        ``YANDEX_DIRECT_CLI_PATH`` at an older binary, the plugin used to
+        run against an incompatible CLI silently. The new policy: if the
+        explicit path is provably below the floor, return ``None`` so the
+        plugin surfaces a clear "not found" error.
+        """
+        direct_bin = tmp_path / "direct"
+        direct_bin.touch()
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            if executable == str(direct_bin):
+                return (0, 3, 4)  # stale explicit override
+            if executable == str(local_bin):
+                return (0, 3, 10)  # fresh user-local install
+            return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "HOME": str(tmp_path),
+                    "CLAUDE_PLUGIN_DATA": "",
+                    "YANDEX_DIRECT_CLI_PATH": str(direct_bin),
+                },
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            # Explicit stale must NOT silently fall through to local_bin.
+            assert _find_direct() is None
+
+    def test_explicit_env_var_unknown_defers_to_known_good_fallback(self, tmp_path):
+        """A broken explicit override (probe → None) is deferred, not chosen."""
+        direct_bin = tmp_path / "direct"
+        direct_bin.touch()
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            if executable == str(direct_bin):
+                return None  # broken wrapper (e.g. ModuleNotFoundError)
+            if executable == str(local_bin):
+                return (0, 3, 10)
+            return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "HOME": str(tmp_path),
+                    "CLAUDE_PLUGIN_DATA": "",
+                    "YANDEX_DIRECT_CLI_PATH": str(direct_bin),
+                },
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            assert _find_direct() == str(local_bin)
 
     def test_unprobable_binary_is_accepted_fail_open(self, tmp_path):
         """If --version cannot run AND no other candidate exists, accept it."""
@@ -266,27 +383,38 @@ class TestFindDirectVersionFloor:
 
 @pytest.mark.mocks
 class TestResolvedDirectCaching:
-    """The version probe is expensive (up to 3s × candidates); resolve it once."""
+    """Module-level cache so per-request ``DirectCliRunner`` instances share it.
 
-    def test_resolved_direct_caches_after_first_call(self):
-        runner = DirectCliRunner()
+    Adversarial-review-round-3 finding 2: ``get_runner()`` creates a fresh
+    ``DirectCliRunner`` on every MCP tool call, so an instance-level cache
+    misses every time and the ~3s × N-candidate version probe is re-run.
+    """
+
+    def test_resolve_caches_across_runner_instances(self):
+        from server.cli.runner import _resolve_direct_cached
+
         with patch(
             "server.cli.runner._find_direct", return_value="/usr/bin/direct"
         ) as mock_find:
-            assert runner._resolved_direct() == "/usr/bin/direct"
-            assert runner._resolved_direct() == "/usr/bin/direct"
-            assert runner._resolved_direct() == "/usr/bin/direct"
+            assert _resolve_direct_cached() == "/usr/bin/direct"
+            # New runner instance — cache must still hit.
+            DirectCliRunner()
+            assert _resolve_direct_cached() == "/usr/bin/direct"
+            assert _resolve_direct_cached() == "/usr/bin/direct"
             assert mock_find.call_count == 1
 
-    def test_resolved_direct_caches_none_result(self):
-        """Caching must distinguish 'not yet resolved' from 'resolved to None'."""
-        runner = DirectCliRunner()
+    def test_resolve_caches_none_result(self):
+        """Cache must distinguish 'not yet resolved' from 'resolved to None'."""
+        from server.cli.runner import _resolve_direct_cached
+
         with patch("server.cli.runner._find_direct", return_value=None) as mock_find:
-            assert runner._resolved_direct() is None
-            assert runner._resolved_direct() is None
+            assert _resolve_direct_cached() is None
+            assert _resolve_direct_cached() is None
             assert mock_find.call_count == 1
 
-    def test_run_uses_cached_binary(self, runner):
+    def test_run_uses_module_level_cache_across_runners(self):
+        """Two ``run()`` calls — possibly through different runner instances —
+        share one resolution."""
         mock_result = MagicMock()
         mock_result.stdout = "{}"
         mock_result.stderr = ""
@@ -297,9 +425,53 @@ class TestResolvedDirectCaching:
             ) as mock_find,
             patch("server.cli.runner.subprocess.run", return_value=mock_result),
         ):
-            runner.run(["campaigns", "get"])
-            runner.run(["ads", "get"])
+            DirectCliRunner().run(["campaigns", "get"])
+            DirectCliRunner().run(["ads", "get"])
             assert mock_find.call_count == 1
+
+
+@pytest.mark.mocks
+class TestProbeDirectVersion:
+    """Adversarial-review-round-3 finding 3: regex must be anchored.
+
+    Without anchoring, a wrapper banner like ``Python 3.12.0`` is picked
+    up before the actual ``direct, version 0.3.4`` line, promoting a
+    stale install to known-good.
+    """
+
+    def test_anchored_to_version_keyword(self):
+        mock_result = MagicMock()
+        mock_result.stdout = "Python 3.12.0\ndirect, version 0.3.4\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") == (0, 3, 4)
+
+    def test_no_version_keyword_returns_none(self):
+        """Wrapper banner without the literal word ``version`` → unknown."""
+        mock_result = MagicMock()
+        mock_result.stdout = "Python 3.12.0\nsomething 1.2.3\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") is None
+
+    def test_click_version_option_format_parses(self):
+        """Real ``click.version_option`` output: ``direct, version X.Y.Z``."""
+        mock_result = MagicMock()
+        mock_result.stdout = "direct, version 0.3.10\n"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") == (0, 3, 10)
+
+    def test_nonzero_returncode_is_unknown(self):
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = "ModuleNotFoundError: direct_cli"
+        mock_result.returncode = 1
+        with patch("server.cli.runner.subprocess.run", return_value=mock_result):
+            assert _probe_direct_version("/usr/bin/direct") is None
 
 
 @pytest.mark.mocks
