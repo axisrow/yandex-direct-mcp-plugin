@@ -102,9 +102,7 @@ class BlockedV4Method:
     group: str
     expected_cli_group: str | None
     expected_cli_subcommand: str | None
-    reason: str = (
-        "The installed direct CLI does not expose a typed command for this v4 Live method."
-    )
+    reason: str = "The installed direct CLI does not expose a typed command for this v4 Live method."
 
 
 DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {

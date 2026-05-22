@@ -83,7 +83,7 @@ def vcards_add(
         extra_message: Extra message.
         ogrn: OGRN.
         metro_station_id: Metro station ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "vcards",

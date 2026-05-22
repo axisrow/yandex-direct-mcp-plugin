@@ -117,7 +117,7 @@ def strategies_add(
             repeated --priority-goal flag).
         attribution_model: Attribution model — LYDC, FC, LC, LSC, LYDC_WEIGHT,
             CROSSTDEVICE.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if type not in STRATEGY_TYPES:
         return ToolError(
@@ -197,7 +197,7 @@ def strategies_update(
         counter_ids: Comma-separated Metrica counter IDs.
         priority_goals: List of "GOAL_ID:VALUE" specs.
         attribution_model: Attribution model code.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if (
         all(
@@ -279,7 +279,7 @@ def strategies_archive(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Strategy ID to archive.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["strategies", "archive", "--id", str(id)]
     if dry_run:
@@ -294,7 +294,7 @@ def strategies_unarchive(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Strategy ID to unarchive.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["strategies", "unarchive", "--id", str(id)]
     if dry_run:

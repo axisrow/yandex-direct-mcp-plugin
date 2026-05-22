@@ -55,7 +55,7 @@ def advideos_add(
         video_data: Base64-encoded video binary.
         video_file: Path to a video file (CLI base64-encodes it).
         name: Optional video name.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     sources = [s for s in (url, video_data, video_file) if s is not None]
     if len(sources) != 1:

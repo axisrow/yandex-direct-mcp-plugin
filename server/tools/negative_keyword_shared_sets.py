@@ -43,7 +43,7 @@ def negative_keyword_shared_sets_add(
     Args:
         name: Set name.
         keywords: Comma-separated negative keywords.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "negativekeywordsharedsets",
@@ -74,7 +74,7 @@ def negative_keyword_shared_sets_update(
         id: Set ID.
         name: New set name.
         keywords: New comma-separated negative keywords.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any((name, keywords)):
         return ToolError(
@@ -99,7 +99,7 @@ def negative_keyword_shared_sets_delete(id: int, dry_run: bool = False) -> dict:
 
     Args:
         id: Set ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["negativekeywordsharedsets", "delete", "--id", str(id)]
     if dry_run:

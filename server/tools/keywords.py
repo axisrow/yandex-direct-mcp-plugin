@@ -114,7 +114,7 @@ def keywords_update(
         keyword: Optional new keyword text.
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if not any((keyword, user_param_1, user_param_2)):
         return ToolError(
@@ -189,7 +189,7 @@ def keywords_add(
         user_param_2: Optional user parameter 2.
         from_file: Path to a JSONL file with keyword objects (batch mode).
         keywords_json: Inline JSON array of keyword objects (batch mode).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     modes = (bool(keyword), bool(from_file), bool(keywords_json))
     mode_count = sum(modes)

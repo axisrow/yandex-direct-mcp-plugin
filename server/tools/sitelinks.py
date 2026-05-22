@@ -91,8 +91,8 @@ def sitelinks_add(
         sitelinks: Pipe-delimited specs. Example: ``["About|https://x.com/a|Info"]``.
         items: Structured objects. Example:
             ``[{"title": "Главная", "href": "https://x.com/?utm=cid|{cid}"}]``.
-        from_file: Filesystem path passed to direct-cli unchanged.
-        dry_run: Show the direct-cli request without sending it.
+        from_file: Filesystem path passed to `direct` unchanged.
+        dry_run: Show the direct request without sending it.
     """
     provided = [
         name

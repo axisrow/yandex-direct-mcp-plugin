@@ -74,7 +74,7 @@ def bids_set(
         keyword_id: Keyword ID.
         bid: Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
             0 < x < 100_000 with a "did you mean × 1_000_000" hint.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["bids", "set", "--keyword-id", str(keyword_id)]
     if bid is not None:
@@ -112,7 +112,7 @@ def bids_set_auto(
         calculate_by: Bid calculation method.
         context_coverage: Network coverage value.
         scope: Bidding scope.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if campaign_id is None and ad_group_id is None and keyword_id is None:
         return ToolError(

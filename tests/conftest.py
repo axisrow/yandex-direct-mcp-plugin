@@ -108,7 +108,5 @@ def live_plugin_data_dir(monkeypatch, request) -> Path:
 
     plugin_data_dir = _discover_live_plugin_data_dir()
     if plugin_data_dir is None:
-        pytest.skip(
-            "No live direct-cli auth profile found. Run `direct auth login` first."
-        )
+        pytest.skip("No live direct auth profile found. Run `direct auth login` first.")
     return plugin_data_dir

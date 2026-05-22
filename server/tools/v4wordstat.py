@@ -25,7 +25,7 @@ def v4wordstat_create_report(
     Args:
         phrases: Comma-separated phrases, up to 10.
         geo_ids: Optional comma-separated geo region IDs.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     normalized_phrases = phrases.strip()
     phrase_count = (
@@ -70,7 +70,7 @@ def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[
 
     Args:
         report_id: Wordstat report ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["v4wordstat", "get-report", "--report-id", str(report_id)]
     return get_runner().run_json(_append_dry_run_and_format(args, dry_run))
@@ -85,7 +85,7 @@ def v4wordstat_delete_report(
 
     Args:
         report_id: Wordstat report ID.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["v4wordstat", "delete-report", "--report-id", str(report_id)]
     return get_runner().run_json(_append_dry_run_and_format(args, dry_run))

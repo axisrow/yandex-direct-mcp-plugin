@@ -99,7 +99,7 @@ def bidmodifiers_set(
         id: Existing BidModifier ID returned by `bidmodifiers_add`.
         value: Modifier percentage integer (0–1300, e.g. 150 for +50%).
             Not money/micro-units.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = [
         "bidmodifiers",
@@ -158,7 +158,7 @@ def bidmodifiers_add(
         region_id: Regional adjustment region ID.
         serp_layout: SERP layout adjustment value.
         income_grade: Income grade adjustment value.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if modifier_type not in _BIDMOD_TYPES:
         return ToolError(

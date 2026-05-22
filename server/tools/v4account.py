@@ -44,7 +44,7 @@ def v4account_enable_shared_account(
 
     Args:
         client_login: Client login to enable the shared account for.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
         sandbox: Execute against the Direct sandbox.
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
@@ -102,7 +102,7 @@ def v4account_account_management(
         email: Notification email.
         money_warning_value: Balance warning percentage.
         paused_by_day_budget: ``Yes`` / ``No``.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
         sandbox: Execute against the Direct sandbox.
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)

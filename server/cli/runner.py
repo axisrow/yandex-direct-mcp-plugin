@@ -51,7 +51,7 @@ def _find_direct() -> str | None:
 
 
 def _direct_env() -> dict[str, str]:
-    """Build subprocess env for direct-cli."""
+    """Build subprocess env for `direct`."""
     return os.environ.copy()
 
 
@@ -74,7 +74,7 @@ class DirectCliRunner:
 
     The `direct` binary is installed via `pip install direct-cli`.
     It is invoked as: direct <subcommand> [args] --format json.
-    Authentication is resolved by direct-cli from its active profile.
+    Authentication is resolved by `direct` from its active profile.
     """
 
     def __init__(self, *, timeout: int = 30) -> None:

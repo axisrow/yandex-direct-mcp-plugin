@@ -64,7 +64,7 @@ def adextensions_add(callout_text: str, dry_run: bool = False) -> dict:
 
     Args:
         callout_text: Callout text (Callout extension).
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["adextensions", "add", "--callout-text", callout_text]
     if dry_run:

@@ -69,10 +69,10 @@ yandex-direct-plugin/
 }
 ```
 
-## Шаг 2: Авторизация через direct-cli
+## Шаг 2: Авторизация через `direct`
 
 Плагин не реализует собственный OAuth flow. Авторизация делегирована
-`direct-cli`, который хранит token + login в `~/.direct-cli/auth.json`.
+команде `direct` (пакет `direct-cli`), которая хранит token + login в `~/.direct-cli/auth.json`.
 
 ### Первоначальная авторизация
 1. Запустить `direct auth login`
@@ -80,7 +80,7 @@ yandex-direct-plugin/
 3. CLI обменивает код на токены и сохраняет профиль
 
 ### Автообновление
-Refresh выполняет `direct` при использовании активного профиля `direct-cli`.
+Refresh выполняет `direct` при использовании активного direct auth profile.
 
 ### API эндпоинты Яндекс OAuth (из документации)
 

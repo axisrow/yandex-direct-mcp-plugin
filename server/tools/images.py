@@ -66,7 +66,7 @@ def adimages_add(
         image_data: Base64-encoded image data.
         image_file: Path to an image file (CLI base64-encodes it).
         type: Ad image type.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     if image_data is None and image_file is None:
         return ToolError(
@@ -98,7 +98,7 @@ def adimages_delete(hash_value: str, dry_run: bool = False) -> dict:
 
     Args:
         hash_value: Ad image hash to delete.
-        dry_run: Show the direct-cli request without sending it.
+        dry_run: Show the direct request without sending it.
     """
     args = ["adimages", "delete", "--hash", hash_value]
     if dry_run:
