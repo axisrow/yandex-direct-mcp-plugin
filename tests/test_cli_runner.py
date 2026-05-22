@@ -34,8 +34,17 @@ class TestIsAvailable:
         with patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"):
             assert runner.is_available() is True
 
-    def test_not_available(self, runner):
-        with patch("server.cli.runner.shutil.which", return_value=None):
+    def test_not_available(self, runner, tmp_path):
+        # Isolate HOME / CLAUDE_PLUGIN_DATA so a real `~/.local/bin/direct`
+        # on a developer machine doesn't satisfy the fallback search step.
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
             assert runner.is_available() is False
 
 
@@ -281,9 +290,18 @@ class TestRun:
         assert "YANDEX_DIRECT_CLIENT_ID" not in env
         assert "YANDEX_DIRECT_CLIENT_SECRET" not in env
 
-    def test_cli_not_found(self, runner):
+    def test_cli_not_found(self, runner, tmp_path):
         """Test 17: direct not in PATH."""
-        with patch("server.cli.runner.shutil.which", return_value=None):
+        # Isolate HOME / CLAUDE_PLUGIN_DATA so a real `~/.local/bin/direct`
+        # on a developer machine doesn't satisfy the fallback search step.
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value=None),
+        ):
             with pytest.raises(CliNotFoundError) as exc_info:
                 runner.run(["campaigns", "get"])
             assert "Install package direct-cli and run `direct`" in str(exc_info.value)
