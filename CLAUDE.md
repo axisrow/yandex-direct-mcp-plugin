@@ -406,12 +406,13 @@ Key renames:
 | `dynamic_targets_*` | merged into `dynamicads_*` |
 | `smart_targets_*` | merged into `smartadtargets_*` |
 
-## Breaking Changes (CLI 0.2.10 alignment)
+## Breaking Changes (CLI 0.2.10 / 0.3.8 alignment)
 
-- **`bidmodifiers_set`**: signature changed to `(id: int, value: int, extra_json?)`.
-  Removed `campaign_id` and `modifier_type` — those were the legacy "broken by design"
-  form (CLI itself documents that the API rejects it with `required field Id is omitted`).
-  Use the `Id` returned by `bidmodifiers_add` to update an existing modifier.
+- **`bidmodifiers_set`**: signature changed to
+  `(id: int, value: int, dry_run: bool = False)`.
+  Removed `campaign_id`, `modifier_type`, and free-form JSON updates. The CLI
+  now exposes only typed flags for this operation. Use the `Id` returned by
+  `bidmodifiers_add` to update an existing modifier.
 - **`keywords_update`**: removed `bid` / `context_bid` parameters — CLI's
   `keywords update` does not accept bid flags. Use `keywordbids_set` for bid changes.
   New params: `keyword`, `user_param_1`, `user_param_2`.
@@ -447,12 +448,13 @@ were updated accordingly:
   AdExtensions, VCardId, TurboPageId, DisplayUrlPath, Mobile) cannot be passed
   from MCP yet — tracked upstream as `axisrow/direct-cli#202`.
 - **`feeds_add`**: `business_type` is now **required** (one of RETAIL, HOTELS,
-  REALTY, AUTOMOBILES, FLIGHTS, OTHER). `extra_json` parameter removed (CLI
-  0.3.8 dropped the free-form `--json` flag from `feeds add`).
-- **`feeds_update`**: `extra_json` removed for the same reason.
-- **`keywords_add`** / **`keywords_update`**: `extra_json` removed (CLI 0.3.8
-  has no `--json` flag). Bulk keyword loading still requires one CLI call per
-  keyword — tracked upstream as `axisrow/direct-cli#203`.
+  REALTY, AUTOMOBILES, FLIGHTS, OTHER). Free-form JSON payloads were removed
+  because CLI 0.3.8 dropped the `--json` flag from `feeds add`.
+- **`feeds_update`**: free-form JSON payloads were removed for the same reason.
+- **`keywords_add`** / **`keywords_update`**: free-form JSON payloads were
+  removed because CLI 0.3.8 has no `--json` flag. Bulk keyword loading still
+  requires one CLI call per keyword — tracked upstream as
+  `axisrow/direct-cli#203`.
 - **`campaigns_add`**: `bidding_strategy` (which went through `--json`) removed
   in favour of typed `search_strategy: str`, `network_strategy: str`,
   `settings: list[str]` (repeatable `OPTION=VALUE`). Goals / CPA configuration
