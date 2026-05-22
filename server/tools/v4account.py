@@ -116,9 +116,32 @@ def v4account_get_accounts(
         dry_run: Show the direct request without sending it.
         sandbox: Execute against the Direct sandbox.
     """
-    normalized_logins = logins.strip() if logins else ""
-    normalized_account_ids = account_ids.strip() if account_ids else ""
+    # An explicitly-passed selector that strips to empty (``logins=""`` or
+    # ``account_ids="   "``) is treated as a user mistake, not as a request
+    # to list every account. The unfiltered listing requires omitting the
+    # selector argument entirely so the caller's intent is unambiguous.
+    logins_provided = logins is not None
+    account_ids_provided = account_ids is not None
+    normalized_logins = logins.strip() if logins is not None else ""
+    normalized_account_ids = account_ids.strip() if account_ids is not None else ""
 
+    if logins_provided and not normalized_logins:
+        return ToolError(
+            error="empty_selector",
+            message=(
+                "logins was provided but is empty after stripping whitespace; "
+                "omit the argument entirely to list every shared account."
+            ),
+        ).__dict__
+    if account_ids_provided and not normalized_account_ids:
+        return ToolError(
+            error="empty_selector",
+            message=(
+                "account_ids was provided but is empty after stripping "
+                "whitespace; omit the argument entirely to list every "
+                "shared account."
+            ),
+        ).__dict__
     if normalized_logins and normalized_account_ids:
         return ToolError(
             error="conflicting_selectors",

@@ -153,6 +153,24 @@ def test_v4account_get_accounts_rejects_both_selectors():
     assert result["error"] == "conflicting_selectors"
 
 
+def test_v4account_get_accounts_rejects_explicitly_empty_logins():
+    """Codex review (PR #123 iter 3 P2): ``logins=""`` must NOT silently
+    broaden a filtered request into a list-all. The unfiltered mode
+    requires omitting the argument entirely.
+    """
+    for blank in ("", "   ", "\t"):
+        result = v4account_get_accounts(logins=blank)
+        assert result["error"] == "empty_selector", blank
+        assert "logins" in result["message"]
+
+
+def test_v4account_get_accounts_rejects_explicitly_empty_account_ids():
+    for blank in ("", "   ", "\t"):
+        result = v4account_get_accounts(account_ids=blank)
+        assert result["error"] == "empty_selector", blank
+        assert "account_ids" in result["message"]
+
+
 def test_v4account_get_accounts_does_not_require_dry_run_or_sandbox():
     runner = _mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
