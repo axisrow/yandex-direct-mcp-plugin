@@ -9,6 +9,7 @@ the reports API, v4 Live tools, CLI helpers, or plugin-only tools.
 from __future__ import annotations
 
 import argparse
+import http.client
 import sys
 import urllib.error
 import urllib.request
@@ -140,14 +141,18 @@ def fetch_wsdl_operations(url: str, timeout: float) -> frozenset[str]:
         raise WSDLFetchError(f"HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise WSDLFetchError(str(exc.reason)) from exc
-    except (TimeoutError, OSError) as exc:
-        # ``urllib`` only wraps connect-phase failures in ``URLError``. A read
-        # timeout that stalls in the middle of ``response.read()`` surfaces as
-        # a bare ``TimeoutError`` / ``socket.timeout`` (alias of
-        # ``TimeoutError`` since Python 3.10), and connection resets / broken
-        # pipes during the body transfer come through as other ``OSError``
-        # subclasses. Without this clause one slow service would abort the
-        # whole live audit instead of being recorded as an inconclusive fetch.
+    except (TimeoutError, OSError, http.client.HTTPException) as exc:
+        # ``urllib`` only wraps connect-phase failures in ``URLError``. Body-
+        # phase failures escape it through three distinct channels:
+        #   - ``TimeoutError`` / ``socket.timeout`` (alias of ``TimeoutError``
+        #     on Python 3.10+) when the read stalls past ``timeout``.
+        #   - ``OSError`` subclasses (``ConnectionResetError``,
+        #     ``BrokenPipeError`` …) when the connection drops mid-body.
+        #   - ``http.client.HTTPException`` subclasses such as
+        #     ``IncompleteRead`` when the server promises ``Content-Length``
+        #     bytes but closes the socket early — this is *not* an
+        #     ``OSError`` and would otherwise abort the whole live audit on
+        #     a single truncated response.
         raise WSDLFetchError(f"network error: {exc}") from exc
     except ET.ParseError as exc:
         raise WSDLFetchError(f"XML parse error: {exc}") from exc

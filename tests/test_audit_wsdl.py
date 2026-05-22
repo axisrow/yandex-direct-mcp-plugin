@@ -206,6 +206,40 @@ def test_run_live_audit_degrades_gracefully_without_canonical_source(monkeypatch
     assert "direct_cli.wsdl_coverage" in report
 
 
+def test_fetch_wsdl_operations_wraps_incomplete_read():
+    """``http.client.IncompleteRead`` raised mid-read must be wrapped.
+
+    Codex review (PR #124 iter 2, P2): truncated responses surface as
+    ``HTTPException`` subclasses, not ``OSError`` / ``TimeoutError`` /
+    ``URLError``. Without an explicit catch one flaky endpoint would
+    abort the entire live audit instead of being recorded as an
+    inconclusive fetch in ``fetch_errors``.
+    """
+    import http.client
+    import urllib.request
+    from unittest.mock import MagicMock, patch
+
+    class _TruncatedResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return False
+
+        def read(self):
+            raise http.client.IncompleteRead(b"<?xml partial", expected=99999)
+
+    with patch.object(
+        urllib.request, "urlopen", MagicMock(return_value=_TruncatedResponse())
+    ):
+        try:
+            audit_wsdl.fetch_wsdl_operations("https://example.invalid/?wsdl", 1.0)
+        except audit_wsdl.WSDLFetchError as exc:
+            assert "network error" in str(exc)
+        else:  # pragma: no cover — defensive
+            raise AssertionError("WSDLFetchError was not raised")
+
+
 def test_fetch_wsdl_operations_wraps_body_read_timeout():
     """A ``TimeoutError`` raised mid-read must be wrapped in WSDLFetchError.
 
