@@ -52,48 +52,76 @@ def _probe_direct_version(executable: str) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3))
 
 
-def _meets_min_version(executable: str) -> bool:
-    """Accept a `direct` binary unless its version is provably below the floor.
+def _candidate_paths() -> list[str]:
+    """Ordered list of `direct` binaries to consider.
 
-    Fail-open: a probe that cannot read a version (older CLIs without
-    ``--version``, broken installs) is accepted so the runtime surfaces the
-    real CLI error instead of silently skipping the only available binary.
+    Order matches the historical search order, minus the
+    ``YANDEX_DIRECT_CLI_PATH`` override (handled separately because that
+    override skips version probing entirely):
+
+    1. ``CLAUDE_PLUGIN_DATA/venv/bin/direct`` (plugin-managed venv)
+    2. ``shutil.which("direct")`` (system PATH)
+    3. ``~/.local/bin/direct`` (``pip install --user``)
     """
-    version = _probe_direct_version(executable)
-    return version is None or version >= MIN_DIRECT_VERSION
+    candidates: list[str] = []
+
+    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    if plugin_data:
+        venv_direct = Path(plugin_data) / "venv" / "bin" / "direct"
+        if venv_direct.is_file():
+            candidates.append(str(venv_direct))
+
+    if found := shutil.which("direct"):
+        candidates.append(found)
+
+    local_bin = Path.home() / ".local" / "bin" / "direct"
+    if local_bin.is_file():
+        candidates.append(str(local_bin))
+
+    return candidates
 
 
 def _find_direct() -> str | None:
     """Locate the `direct` binary across common install locations.
 
     Search order:
-    1. YANDEX_DIRECT_CLI_PATH env var (explicit override — version check skipped)
-    2. CLAUDE_PLUGIN_DATA/venv/bin/direct (plugin-managed venv)
-    3. System PATH (shutil.which)
-    4. ~/.local/bin/direct (pip install --user, macOS)
 
-    For options 2-4 the candidate is probed with ``direct --version``;
-    candidates below ``MIN_DIRECT_VERSION`` are skipped so a stale PATH
-    binary cannot shadow a freshly installed ``~/.local/bin/direct``.
+    1. ``YANDEX_DIRECT_CLI_PATH`` env var (explicit override — version
+       check skipped, "trust the user")
+    2. ``CLAUDE_PLUGIN_DATA/venv/bin/direct`` (plugin-managed venv)
+    3. System PATH (``shutil.which``)
+    4. ``~/.local/bin/direct`` (``pip install --user``, macOS)
+
+    For options 2-4 each candidate is probed with ``direct --version``
+    and classified three ways:
+
+    - **known-good** (parsed version >= ``MIN_DIRECT_VERSION``) — preferred
+    - **known-stale** (parsed version < ``MIN_DIRECT_VERSION``) — always skipped
+    - **unknown** (probe failed, returncode != 0, or unparseable output) —
+      only used as a last-resort fallback when no known-good candidate exists
+
+    The three-state classification is the fix for the PR #122 adversarial
+    finding: a broken PATH ``direct`` (e.g. wrapper that exits with
+    ``ModuleNotFoundError``) used to be classified as "accept" by the
+    fail-open helper, shadowing a freshly installed
+    ``~/.local/bin/direct``. Now it can be deferred so a later known-good
+    candidate wins.
     """
     if explicit := os.environ.get("YANDEX_DIRECT_CLI_PATH"):
         return explicit if Path(explicit).is_file() else None
 
-    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
-    if plugin_data:
-        venv_direct = Path(plugin_data) / "venv" / "bin" / "direct"
-        if venv_direct.is_file() and _meets_min_version(str(venv_direct)):
-            return str(venv_direct)
+    first_unknown: str | None = None
+    for candidate in _candidate_paths():
+        version = _probe_direct_version(candidate)
+        if version is None:
+            if first_unknown is None:
+                first_unknown = candidate
+            continue
+        if version >= MIN_DIRECT_VERSION:
+            return candidate
+        # Known-stale: keep searching for a known-good candidate.
 
-    if found := shutil.which("direct"):
-        if _meets_min_version(found):
-            return found
-
-    candidate = Path.home() / ".local" / "bin" / "direct"
-    if candidate.is_file() and _meets_min_version(str(candidate)):
-        return str(candidate)
-
-    return None
+    return first_unknown
 
 
 def _direct_env() -> dict[str, str]:

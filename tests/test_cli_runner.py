@@ -161,7 +161,7 @@ class TestFindDirectVersionFloor:
             assert _find_direct() == str(direct_bin)
 
     def test_unprobable_binary_is_accepted_fail_open(self, tmp_path):
-        """If --version cannot run, accept the binary so runtime surfaces the real error."""
+        """If --version cannot run AND no other candidate exists, accept it."""
         local_bin = tmp_path / ".local" / "bin" / "direct"
         local_bin.parent.mkdir(parents=True)
         local_bin.touch()
@@ -175,6 +175,93 @@ class TestFindDirectVersionFloor:
             patch("server.cli.runner._probe_direct_version", return_value=None),
         ):
             assert _find_direct() == str(local_bin)
+
+    def test_broken_path_falls_through_to_known_good_user_local_bin(self, tmp_path):
+        """Regression for PR #122 adversarial round 2.
+
+        A broken PATH `direct` (probe returns None — e.g. wrapper that
+        exits with ModuleNotFoundError, or an old CLI without --version)
+        must not shadow a freshly installed ``~/.local/bin/direct`` whose
+        version satisfies the floor.
+        """
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            if executable == "/usr/bin/direct":
+                return None  # broken PATH binary (e.g. ModuleNotFoundError)
+            if executable == str(local_bin):
+                return (0, 3, 10)
+            return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            assert _find_direct() == str(local_bin)
+
+    def test_broken_path_is_last_resort_when_no_known_good_exists(self, tmp_path):
+        """If every candidate is unknown, fall back to the first one in order."""
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            return None  # everything broken
+
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            assert _find_direct() == "/usr/bin/direct"
+
+    def test_only_stale_candidates_returns_none(self, tmp_path):
+        """If every candidate is provably below the floor, return None."""
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", return_value=(0, 3, 4)),
+        ):
+            assert _find_direct() is None
+
+    def test_broken_path_with_stale_local_bin_returns_broken_path(self, tmp_path):
+        """Broken trumps stale: unknown is preferred over known-stale."""
+        local_bin = tmp_path / ".local" / "bin" / "direct"
+        local_bin.parent.mkdir(parents=True)
+        local_bin.touch()
+
+        def fake_probe(executable: str) -> tuple[int, int, int] | None:
+            if executable == "/usr/bin/direct":
+                return None  # broken
+            if executable == str(local_bin):
+                return (0, 3, 4)  # known-stale
+            return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {"HOME": str(tmp_path), "CLAUDE_PLUGIN_DATA": ""},
+                clear=False,
+            ),
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner._probe_direct_version", side_effect=fake_probe),
+        ):
+            assert _find_direct() == "/usr/bin/direct"
 
 
 @pytest.mark.mocks
