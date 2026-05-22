@@ -261,11 +261,44 @@ def _count_json_rows(path: Path) -> int | None:
     return None if array_started else 0
 
 
-def _count_rows_written(output_path: str, response_format: str) -> int | None:
+def _resolved_skip(value: bool | None, cli_default: bool) -> bool:
+    """Effective skip-flag value (plugin's None falls back to CLI default).
+
+    CLI 0.3.10 defaults: skip_report_header=True, skip_report_summary=True,
+    skip_column_header=False (column headers are emitted).
+    """
+    return cli_default if value is None else value
+
+
+def _tsv_overhead_rows(
+    *,
+    skip_report_header: bool | None,
+    skip_column_header: bool,
+    skip_report_summary: bool | None,
+) -> int:
+    """Number of non-data rows a TSV/CSV report contains given skip-flag state.
+
+    CLI 0.3.10 defaults to: report-header skipped, column-header kept,
+    summary skipped. Each ``False`` adds one non-data line to the file.
+    """
+    overhead = 0
+    if not _resolved_skip(skip_report_header, cli_default=True):
+        overhead += 1
+    if not skip_column_header:
+        overhead += 1
+    if not _resolved_skip(skip_report_summary, cli_default=True):
+        overhead += 1
+    return overhead
+
+
+def _count_rows_written(
+    output_path: str, response_format: str, overhead_rows: int = 1
+) -> int | None:
     """Count data rows in a written report file.
 
     Returns 0 only when the file is missing; returns None when an existing file
-    cannot be counted.
+    cannot be counted. ``overhead_rows`` is subtracted for non-JSON formats —
+    callers must compute it from the resolved skip-flag state.
     """
     path = Path(output_path)
     if not path.exists():
@@ -274,7 +307,7 @@ def _count_rows_written(output_path: str, response_format: str) -> int | None:
         if response_format == "json":
             return _count_json_rows(path)
         line_count = sum(1 for _ in path.open())
-        return max(0, line_count - 1)
+        return max(0, line_count - overhead_rows)
     except Exception:
         return None
 
@@ -582,13 +615,21 @@ def reports_custom(
             "request_body": request_body,
         }
 
+    overhead = _tsv_overhead_rows(
+        skip_report_header=skip_report_header,
+        skip_column_header=skip_column_header,
+        skip_report_summary=skip_report_summary,
+    )
+
     if resolved_output_path is not None:
         # CLI writes the file itself; stdout is irrelevant for parsing.
-        runner.run(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
+        # run_checked raises CliError on non-zero exit so handle_cli_errors
+        # can convert it into a structured ToolError.
+        runner.run_checked(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
         return {
             "output_path": str(resolved_output_path),
             "rows_written": _count_rows_written(
-                str(resolved_output_path), response_format
+                str(resolved_output_path), response_format, overhead_rows=overhead
             ),
             "report_type": report_type,
             "format": response_format,
@@ -599,8 +640,9 @@ def reports_custom(
 
     # In-memory TSV / CSV / table: return the raw stdout payload — CLI
     # already strips the report-header and summary rows by default, so the
-    # text is ready for downstream consumers.
-    completed = runner.run(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
+    # text is ready for downstream consumers. run_checked surfaces non-zero
+    # exits as CliError instead of silently returning empty content.
+    completed = runner.run_checked(args, timeout=CUSTOM_REPORT_TIMEOUT_SECONDS)
     return {
         "format": response_format,
         "report_type": report_type,

@@ -37,14 +37,16 @@ def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
 def _mock_runner(return_value):
     """Create a mock get_runner that returns a runner with the given run_json result.
 
-    The mock also exposes ``runner.run`` returning an empty stdout
+    The mock also exposes ``runner.run_checked`` returning an empty stdout
     CompletedProcess by default — required for paths that go through
-    ``runner.run`` instead of ``runner.run_json`` (file output, non-JSON
-    in-memory).
+    ``runner.run_checked`` instead of ``runner.run_json`` (file output,
+    non-JSON in-memory). ``run_checked`` already raises on non-zero CLI
+    exit codes; tests that need to assert that behaviour can set
+    ``runner.run_checked.side_effect = CliError(...)``.
     """
     runner = MagicMock()
     runner.run_json.return_value = return_value
-    runner.run.return_value = _completed()
+    runner.run_checked.return_value = _completed()
     return runner
 
 
@@ -321,7 +323,7 @@ def test_reports_custom_output_path(tmp_path):
         out.write_text(json.dumps([{"x": 1}, {"x": 2}, {"x": 3}]))
         return _completed()
 
-    runner.run.side_effect = fake_run
+    runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -331,7 +333,7 @@ def test_reports_custom_output_path(tmp_path):
             response_format="json",
         )
 
-    args = _custom_args(runner.run.call_args)
+    args = _custom_args(runner.run_checked.call_args)
     assert "--output" in args and args[args.index("--output") + 1] == str(out.resolve())
     # response_format wins over the implicit JSON default
     assert args[-2:] == ["--format", "json"]
@@ -371,7 +373,7 @@ def test_reports_custom_output_path_uncountable_file(tmp_path):
         out.write_text("not json")
         return _completed()
 
-    runner.run.side_effect = fake_run
+    runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -401,7 +403,7 @@ def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
             f.write("]")
         return _completed()
 
-    runner.run.side_effect = fake_run
+    runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -638,7 +640,9 @@ def test_reports_custom_default_response_format_threads_json():
 def test_reports_custom_response_format_tsv_in_memory():
     """response_format=tsv without output_path returns raw stdout payload."""
     runner = MagicMock()
-    runner.run.return_value = _completed(stdout="Date\tCost\n2026-01-01\t12.5\n")
+    runner.run_checked.return_value = _completed(
+        stdout="Date\tCost\n2026-01-01\t12.5\n"
+    )
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -646,7 +650,7 @@ def test_reports_custom_response_format_tsv_in_memory():
             date_to="2026-01-31",
             response_format="tsv",
         )
-    args = _custom_args(runner.run.call_args)
+    args = _custom_args(runner.run_checked.call_args)
     assert args[-2:] == ["--format", "tsv"]
     assert result == {
         "format": "tsv",
@@ -658,7 +662,7 @@ def test_reports_custom_response_format_tsv_in_memory():
 
 def test_reports_custom_response_format_csv_in_memory():
     runner = MagicMock()
-    runner.run.return_value = _completed(stdout="Date,Cost\n2026-01-01,12.5\n")
+    runner.run_checked.return_value = _completed(stdout="Date,Cost\n2026-01-01,12.5\n")
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -666,7 +670,7 @@ def test_reports_custom_response_format_csv_in_memory():
             date_to="2026-01-31",
             response_format="csv",
         )
-    args = _custom_args(runner.run.call_args)
+    args = _custom_args(runner.run_checked.call_args)
     assert args[-2:] == ["--format", "csv"]
     assert result["format"] == "csv"
     assert result["content"].startswith("Date,Cost")
@@ -697,7 +701,7 @@ def test_reports_custom_rejects_invalid_processing_mode():
         )
     assert result["error"] == "invalid_processing_mode"
     runner.run_json.assert_not_called()
-    runner.run.assert_not_called()
+    runner.run_checked.assert_not_called()
 
 
 def test_reports_custom_language_threads_through():
@@ -797,7 +801,7 @@ def test_reports_custom_output_path_with_tsv_format(tmp_path):
         out.write_text("Date\tCost\n2026-01-01\t12.5\n")
         return _completed()
 
-    runner.run.side_effect = fake_run
+    runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -807,7 +811,153 @@ def test_reports_custom_output_path_with_tsv_format(tmp_path):
             response_format="tsv",
         )
 
-    args = _custom_args(runner.run.call_args)
+    args = _custom_args(runner.run_checked.call_args)
     assert args[-2:] == ["--format", "tsv"]
     assert result["format"] == "tsv"
     assert result["output_path"] == str(out.resolve())
+
+
+# --- non-zero exit code propagation (review #118 cycle 1) ---------------
+
+
+def test_reports_custom_output_path_surfaces_cli_failure(tmp_path):
+    """Non-zero CLI exit in the output_path branch must NOT silently
+    produce a success-shaped dict. handle_cli_errors should convert the
+    CliError raised by run_checked into a ToolError dict."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_checked.side_effect = CliError(
+        "direct failed (exit 1): boom", error_code=53, stderr="401 Unauthorized"
+    )
+    out = tmp_path / "report.json"
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            output_path=str(out),
+        )
+    assert "error" in result
+    assert "output_path" not in result
+    assert not out.exists()
+
+
+def test_reports_custom_in_memory_tsv_surfaces_cli_failure():
+    """Non-zero CLI exit in the in-memory TSV branch must NOT silently
+    return {content: ""} as success."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_checked.side_effect = CliError(
+        "direct failed (exit 2): bad field", error_code=8000, stderr="error_code: 8000"
+    )
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Bogus",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            response_format="tsv",
+        )
+    assert "error" in result
+    assert "content" not in result
+
+
+# --- _count_rows_written overhead given skip-flag state -----------------
+
+
+def test_reports_custom_rows_written_default_skip_state(tmp_path):
+    """Default CLI behaviour writes column header + N data rows; rows_written
+    must equal N (overhead=1)."""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        # 1 header line + 3 data lines = 4 total
+        out.write_text("Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
+        return _completed()
+
+    runner.run_checked.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-03",
+            output_path=str(out),
+            response_format="tsv",
+        )
+    assert result["rows_written"] == 3
+
+
+def test_reports_custom_rows_written_with_skip_column_header(tmp_path):
+    """skip_column_header=True removes the header — overhead becomes 0."""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        # 3 data lines, no header
+        out.write_text("2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
+        return _completed()
+
+    runner.run_checked.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-03",
+            output_path=str(out),
+            response_format="tsv",
+            skip_column_header=True,
+        )
+    assert result["rows_written"] == 3
+
+
+def test_reports_custom_rows_written_with_summary_kept(tmp_path):
+    """skip_report_summary=False adds a "Total rows: N" trailer — overhead 2."""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        # 1 col header + 3 data lines + 1 summary line = 5 total
+        out.write_text(
+            "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\nTotal rows: 3\n"
+        )
+        return _completed()
+
+    runner.run_checked.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-03",
+            output_path=str(out),
+            response_format="tsv",
+            skip_report_summary=False,
+        )
+    assert result["rows_written"] == 3
+
+
+def test_reports_custom_rows_written_with_report_header_kept(tmp_path):
+    """skip_report_header=False adds the report title line — overhead 2."""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        # 1 report header + 1 col header + 3 data lines = 5 total
+        out.write_text(
+            '"X (2026-01-01 - 2026-01-03)"\n'
+            "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n"
+        )
+        return _completed()
+
+    runner.run_checked.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-03",
+            output_path=str(out),
+            response_format="tsv",
+            skip_report_header=False,
+        )
+    assert result["rows_written"] == 3

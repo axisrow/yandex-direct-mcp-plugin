@@ -129,6 +129,22 @@ class DirectCliRunner:
         """Check if the `direct` binary is available."""
         return _find_direct() is not None
 
+    def run_checked(
+        self, args: list[str], *, timeout: int | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        """Run a command and raise CliError on non-zero exit.
+
+        Mirrors run_json's failure handling (auth / registration / error_code
+        detection) but leaves stdout parsing to the caller — useful when the
+        CLI emits TSV/CSV/table or writes the payload directly to a file.
+
+        Raises:
+            CliError: On CLI execution failures.
+        """
+        result = self.run(args, timeout=timeout)
+        _raise_for_status(result)
+        return result
+
     def run_json(
         self, args: list[str], *, timeout: int | None = None
     ) -> list[dict] | dict:
@@ -140,26 +156,7 @@ class DirectCliRunner:
         Raises:
             CliError: On CLI execution failures.
         """
-        result = self.run(args, timeout=timeout)
-
-        if result.returncode != 0:
-            stderr = _strip_ansi(result.stderr).strip()
-            error_code: int | None = None
-            if match := _ERROR_CODE_RE.search(stderr):
-                error_code = int(match.group(1))
-            if "401" in stderr or "Unauthorized" in stderr or error_code == 53:
-                raise CliAuthError("Token expired or invalid")
-            if error_code == 58:
-                raise CliRegistrationError(
-                    "Незаконченная регистрация. "
-                    "Вам нужно подать или переподать заявку на регистрацию приложения "
-                    "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
-                )
-            raise CliError(
-                f"direct failed (exit {result.returncode}): {stderr or _strip_ansi(result.stdout)[:200]}",
-                error_code=error_code,
-                stderr=stderr,
-            )
+        result = self.run_checked(args, timeout=timeout)
 
         output = result.stdout.strip()
         if not output:
@@ -169,6 +166,29 @@ class DirectCliRunner:
             return json.loads(output)
         except json.JSONDecodeError as e:
             raise CliError(f"Failed to parse CLI output as JSON: {e}") from e
+
+
+def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:
+    """Raise a structured CliError (or subclass) for a non-zero exit code."""
+    if result.returncode == 0:
+        return
+    stderr = _strip_ansi(result.stderr).strip()
+    error_code: int | None = None
+    if match := _ERROR_CODE_RE.search(stderr):
+        error_code = int(match.group(1))
+    if "401" in stderr or "Unauthorized" in stderr or error_code == 53:
+        raise CliAuthError("Token expired or invalid")
+    if error_code == 58:
+        raise CliRegistrationError(
+            "Незаконченная регистрация. "
+            "Вам нужно подать или переподать заявку на регистрацию приложения "
+            "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
+        )
+    raise CliError(
+        f"direct failed (exit {result.returncode}): {stderr or _strip_ansi(result.stdout)[:200]}",
+        error_code=error_code,
+        stderr=stderr,
+    )
 
 
 class CliError(Exception):
