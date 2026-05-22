@@ -69,10 +69,7 @@ def v4account_enable_shared_account(
 @mcp.tool(name="v4account_account_management")
 @handle_cli_errors
 def v4account_account_management(
-    action: str,
-    logins: str | None = None,
-    account_ids: str | None = None,
-    account_id: int | None = None,
+    account_id: int,
     day_budget: str | None = None,
     spend_mode: str | None = None,
     money_in_sms: str | None = None,
@@ -83,26 +80,28 @@ def v4account_account_management(
     email: str | None = None,
     money_warning_value: int | None = None,
     paused_by_day_budget: str | None = None,
-    payments: list[str] | None = None,
-    currency: str | None = None,
-    origin: str | None = None,
-    contract: str | None = None,
-    from_account_id: int | None = None,
-    to_account_id: int | None = None,
-    amount: str | None = None,
-    finance_token: str | None = None,
-    master_token: str | None = None,
-    operation_num: int | None = None,
-    finance_login: str | None = None,
     dry_run: bool = False,
     sandbox: bool = False,
 ) -> dict | list[dict]:
-    """Manage shared accounts via v4 Live AccountManagement.
+    """Update shared-account settings via v4 Live AccountManagement (Update action).
+
+    direct-cli 0.3.10 supports only ``--action Update`` for this command. The
+    other AccountManagement actions (Get / Deposit / Invoice / TransferMoney)
+    and the related finance/master tokens are tracked in plugin issue #120 and
+    will be exposed after direct-cli releases the full action set.
 
     Args:
-        action: AccountManagement action: Get, Update, Deposit, Invoice,
-            or TransferMoney.
-        payments: Payment entries in ACCOUNT_ID=AMOUNT form. Repeatable.
+        account_id: Shared account ID to update.
+        day_budget: Daily budget amount (non-negative).
+        spend_mode: ``Default`` or ``Stretched``.
+        money_in_sms: ``Yes`` / ``No``.
+        money_out_sms: ``Yes`` / ``No``.
+        paused_by_day_budget_sms: ``Yes`` / ``No``.
+        sms_time_from: SMS start time ``HH:MM`` (minutes 00/15/30/45).
+        sms_time_to: SMS end time ``HH:MM`` (minutes 00/15/30/45).
+        email: Notification email.
+        money_warning_value: Balance warning percentage.
+        paused_by_day_budget: ``Yes`` / ``No``.
         dry_run: Show the direct-cli request without sending it.
         sandbox: Execute against the Direct sandbox.
     """
@@ -110,19 +109,17 @@ def v4account_account_management(
     if safety_error:
         return safety_error.__dict__
 
-    normalized_action = action.strip()
-    if not normalized_action:
-        return ToolError(
-            error="missing_action",
-            message="Provide AccountManagement action.",
-        ).__dict__
-
     args = _base_args(sandbox=sandbox)
-    args.extend(["account-management", "--action", normalized_action])
+    args.extend(
+        [
+            "account-management",
+            "--action",
+            "Update",
+            "--account-id",
+            str(account_id),
+        ]
+    )
 
-    _append_optional_text(args, "--logins", logins)
-    _append_optional_text(args, "--account-ids", account_ids)
-    _append_optional(args, "--account-id", account_id)
     _append_optional_text(args, "--day-budget", day_budget)
     _append_optional_text(args, "--spend-mode", spend_mode)
     _append_optional_text(args, "--money-in-sms", money_in_sms)
@@ -133,20 +130,6 @@ def v4account_account_management(
     _append_optional_text(args, "--email", email)
     _append_optional(args, "--money-warning-value", money_warning_value)
     _append_optional_text(args, "--paused-by-day-budget", paused_by_day_budget)
-    for payment in payments or []:
-        normalized_payment = payment.strip()
-        if normalized_payment:
-            args.extend(["--payment", normalized_payment])
-    _append_optional_text(args, "--currency", currency)
-    _append_optional_text(args, "--origin", origin)
-    _append_optional_text(args, "--contract", contract)
-    _append_optional(args, "--from-account-id", from_account_id)
-    _append_optional(args, "--to-account-id", to_account_id)
-    _append_optional_text(args, "--amount", amount)
-    _append_optional_text(args, "--finance-token", finance_token)
-    _append_optional_text(args, "--master-token", master_token)
-    _append_optional(args, "--operation-num", operation_num)
-    _append_optional_text(args, "--finance-login", finance_login)
 
     if dry_run:
         args.append("--dry-run")

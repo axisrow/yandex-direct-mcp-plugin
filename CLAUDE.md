@@ -315,7 +315,7 @@ WSDL/reports spec wins when there is drift.
 | `turbopages_get` | List turbo pages |
 | `reports_get` | Campaign statistics for date range |
 | `reports_custom` | Full Reports API surface: arbitrary FieldNames, filters, ordering, pagination, file output, processing-mode/language/attribution/skip-* CLI 0.3.10 flags; honors `response_format` (json/tsv/csv/table) both for in-memory and `output_path` |
-| `v4account_account_management` | Manage v4 Live shared accounts (Get / Update / Deposit / Invoice / TransferMoney; dry_run or sandbox required) |
+| `v4account_account_management` | Update v4 Live shared-account settings (Action=Update only in direct-cli 0.3.10; dry_run or sandbox required). Get/Deposit/Invoice/TransferMoney tracked in #120. |
 | `v4account_enable_shared_account` | Enable v4 Live shared account in dry-run or sandbox |
 | `v4events_get_events_log` | Get v4 Live events log entries |
 | `v4forecast_create` | Create v4 Live budget forecast |
