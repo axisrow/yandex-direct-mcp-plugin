@@ -744,6 +744,22 @@ def test_reports_custom_attribution_models_threads_through():
     assert args[idx + 1] == "LSC,LYDCCD"
 
 
+def test_reports_custom_attribution_models_normalizes_whitespace():
+    """Whitespace around tokens is stripped before forwarding to the CLI so
+    `\"LSC, FC\"` becomes `\"LSC,FC\"` — matches what validation accepted."""
+    runner = _mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            attribution_models="LSC, FC , LYDCCD",
+        )
+    args = _custom_args(runner.run_json.call_args)
+    idx = args.index("--attribution-models")
+    assert args[idx + 1] == "LSC,FC,LYDCCD"
+
+
 def test_reports_custom_rejects_unknown_attribution_model():
     runner = _mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):

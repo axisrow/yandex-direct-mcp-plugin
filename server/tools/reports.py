@@ -499,11 +499,8 @@ def reports_custom(
             ),
         ).__dict__
     if attribution_models is not None:
-        unknown = [
-            m
-            for m in (t.strip() for t in attribution_models.split(","))
-            if m and m not in VALID_ATTRIBUTION_MODELS
-        ]
+        tokens = [t.strip() for t in attribution_models.split(",") if t.strip()]
+        unknown = [m for m in tokens if m not in VALID_ATTRIBUTION_MODELS]
         if unknown:
             return ToolError(
                 error="invalid_attribution_models",
@@ -512,6 +509,9 @@ def reports_custom(
                     f"Allowed: {sorted(VALID_ATTRIBUTION_MODELS)}."
                 ),
             ).__dict__
+        # Normalize: send a whitespace-clean CSV to the CLI so what we
+        # validated is bit-for-bit what reaches the CLI.
+        attribution_models = ",".join(tokens)
 
     effective_filters: list[str] = list(filters) if filters else []
     if any(_is_goals_filter(f) for f in effective_filters):
