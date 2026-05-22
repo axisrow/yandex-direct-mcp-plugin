@@ -217,6 +217,7 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
+        supported_actions=("Get",),
     ),
     ContractTool(
         public_name="v4goals_get_stat_goals",
@@ -306,7 +307,7 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="AccountManagement",
         supported_actions=("Update",),
-        deferred_actions=("Get", "Deposit", "Invoice", "TransferMoney"),
+        deferred_actions=("Deposit", "Invoice", "TransferMoney"),
     ),
     ContractTool(
         public_name="v4account_enable_shared_account",
@@ -619,15 +620,31 @@ V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
 V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
     blocked.method for blocked in V4_LIVE_BLOCKED_METHODS
 )
-# Action-level audit trail for v4 Live tools whose runtime wraps only a subset
-# of a multi-action tapi method. Keyed by the canonical tapi method name (e.g.
-# ``"AccountManagement"``) so WSDL-diff tooling can join without parsing
-# composite identifiers. See ``ContractTool.deferred_actions``.
-V4_LIVE_DEFERRED_ACTIONS: dict[str, frozenset[str]] = {
-    tool.tapi_canonical: frozenset(tool.deferred_actions)
-    for tool in V4_LIVE_CLI_TOOLS
-    if tool.deferred_actions and tool.tapi_canonical is not None
-}
+
+
+# Action-level audit trail for v4 Live tapi methods whose actions are split
+# across multiple MCP tools (e.g. ``AccountManagement`` — ``Get`` is served by
+# ``balance_get`` and ``Update`` by ``v4account_account_management``) or only
+# partially wrapped. Both maps are keyed by the canonical tapi method name so
+# WSDL-diff tooling can join cleanly. Per-method, supported ∩ deferred is
+# guaranteed empty (asserted in tests/test_v4_tools.py).
+def _aggregate_actions(
+    field_name: str,
+) -> dict[str, frozenset[str]]:
+    aggregated: dict[str, set[str]] = {}
+    for tool in V4_LIVE_CLI_TOOLS:
+        actions = getattr(tool, field_name)
+        if actions and tool.tapi_canonical is not None:
+            aggregated.setdefault(tool.tapi_canonical, set()).update(actions)
+    return {name: frozenset(actions) for name, actions in aggregated.items()}
+
+
+V4_LIVE_SUPPORTED_ACTIONS: dict[str, frozenset[str]] = _aggregate_actions(
+    "supported_actions"
+)
+V4_LIVE_DEFERRED_ACTIONS: dict[str, frozenset[str]] = _aggregate_actions(
+    "deferred_actions"
+)
 PLUGIN_ONLY_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "plugin"
 )

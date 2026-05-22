@@ -7,6 +7,7 @@ from server.contract import (
     PUBLIC_TOOL_NAMES,
     V4_LIVE_BLOCKED_METHOD_NAMES,
     V4_LIVE_DEFERRED_ACTIONS,
+    V4_LIVE_SUPPORTED_ACTIONS,
     V4_LIVE_TOOL_NAMES,
 )
 from server.tools.balance import balance_get
@@ -336,13 +337,25 @@ def test_v4_contract_exposes_only_cli_backed_tools():
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
-    # AccountManagement is exposed as Update only in direct-cli 0.3.10; the
-    # remaining actions stay tracked as deferred-action metadata on the same
-    # ContractTool record until plugin issue #120 lands. See
-    # server/tools/v4account.py and ``ContractTool.deferred_actions``.
-    assert V4_LIVE_DEFERRED_ACTIONS["AccountManagement"] == frozenset(
-        {"Get", "Deposit", "Invoice", "TransferMoney"}
+    # AccountManagement actions are split across multiple MCP tools:
+    # ``balance_get`` serves Get and ``v4account_account_management`` serves
+    # Update on direct-cli 0.3.10. Deposit/Invoice/TransferMoney are deferred
+    # until plugin issue #120 lands. See ``ContractTool.supported_actions``
+    # and ``ContractTool.deferred_actions``.
+    assert V4_LIVE_SUPPORTED_ACTIONS["AccountManagement"] == frozenset(
+        {"Get", "Update"}
     )
+    assert V4_LIVE_DEFERRED_ACTIONS["AccountManagement"] == frozenset(
+        {"Deposit", "Invoice", "TransferMoney"}
+    )
+    # No action may be simultaneously supported and deferred for the same
+    # tapi method.
+    for method_name, supported in V4_LIVE_SUPPORTED_ACTIONS.items():
+        deferred = V4_LIVE_DEFERRED_ACTIONS.get(method_name, frozenset())
+        assert supported.isdisjoint(deferred), (
+            f"{method_name}: supported and deferred actions overlap: "
+            f"{supported & deferred}"
+        )
     assert {
         "GetBannersTags",
         "GetCampaignsTags",
