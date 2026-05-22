@@ -124,9 +124,28 @@ def test_v4account_get_accounts_by_account_ids_argv():
     )
 
 
-def test_v4account_get_accounts_requires_selector():
-    result = v4account_get_accounts()
-    assert result["error"] == "missing_selector"
+def test_v4account_get_accounts_without_selectors_lists_all():
+    """``--action Get`` without a selector is a valid CLI 0.3.11 mode.
+
+    Codex review (PR #123 P2): the v4 Live API allows AccountManagement
+    Get without ``SelectionCriteria`` and direct-cli builds the request
+    as ``{"Action": "Get"}``. The MCP wrapper must not impose a stricter
+    barrier than the CLI itself.
+    """
+    runner = _mock_runner({"method": "AccountManagement"})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        v4account_get_accounts(dry_run=True)
+    runner.run_json.assert_called_once_with(
+        [
+            "v4account",
+            "account-management",
+            "--action",
+            "Get",
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
 
 
 def test_v4account_get_accounts_rejects_both_selectors():

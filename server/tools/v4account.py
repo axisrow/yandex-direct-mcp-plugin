@@ -103,13 +103,16 @@ def v4account_get_accounts(
 ) -> dict | list[dict]:
     """Read shared-account info via v4 Live AccountManagement (Get action).
 
-    Pass exactly one of ``logins`` (comma-separated client logins, max 50)
-    or ``account_ids`` (comma-separated shared account IDs, max 100).
+    Pass at most one selector: ``logins`` (comma-separated client logins,
+    max 50) or ``account_ids`` (comma-separated shared account IDs,
+    max 100). Omit both selectors to list every shared account the caller
+    owns — the v4 Live API allows ``Get`` without ``SelectionCriteria``
+    and ``direct-cli`` 0.3.11 builds the request as ``{"Action": "Get"}``.
     This is a read-only operation and does not require dry_run or sandbox.
 
     Args:
-        logins: Comma-separated client logins selector.
-        account_ids: Comma-separated shared account IDs selector.
+        logins: Optional comma-separated client logins selector.
+        account_ids: Optional comma-separated shared account IDs selector.
         dry_run: Show the direct request without sending it.
         sandbox: Execute against the Direct sandbox.
     """
@@ -119,19 +122,14 @@ def v4account_get_accounts(
     if normalized_logins and normalized_account_ids:
         return ToolError(
             error="conflicting_selectors",
-            message="Pass exactly one of logins / account_ids, not both.",
-        ).__dict__
-    if not normalized_logins and not normalized_account_ids:
-        return ToolError(
-            error="missing_selector",
-            message="Provide either logins or account_ids.",
+            message="Pass at most one of logins / account_ids, not both.",
         ).__dict__
 
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Get"])
     if normalized_logins:
         args.extend(["--logins", normalized_logins])
-    else:
+    elif normalized_account_ids:
         args.extend(["--account-ids", normalized_account_ids])
     if dry_run:
         args.append("--dry-run")
