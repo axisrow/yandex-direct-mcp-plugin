@@ -21,10 +21,32 @@ from server.cli.runner import (
 # Use the runtime floor as the "known-good" version in mocks so that future
 # bumps of MIN_DIRECT_VERSION don't silently turn every mocked binary stale.
 _KNOWN_GOOD_VERSION = MIN_DIRECT_VERSION
-_KNOWN_STALE_VERSION = (
-    MIN_DIRECT_VERSION[0],
-    MIN_DIRECT_VERSION[1],
-    max(0, MIN_DIRECT_VERSION[2] - 1),
+
+
+def _stale_version_below(floor: tuple[int, int, int]) -> tuple[int, int, int]:
+    """Return a version strictly below ``floor`` for rejection-path tests.
+
+    claude[bot] PR #123 cycle-review (Low): naively doing ``patch - 1`` and
+    clamping at zero collapsed to ``floor`` itself for ``.0`` patches, e.g.
+    a floor of ``(0, 4, 0)`` would produce ``(0, 4, 0)`` and silently turn
+    every rejection assertion into a tautology. Decrement minor (or major)
+    when the lower component is already zero, so the result is guaranteed
+    less than ``floor`` for every realistic floor.
+    """
+    major, minor, patch = floor
+    if patch > 0:
+        return (major, minor, patch - 1)
+    if minor > 0:
+        return (major, minor - 1, 0)
+    if major > 0:
+        return (major - 1, 0, 0)
+    raise ValueError(f"cannot derive a stale version below {floor!r}")
+
+
+_KNOWN_STALE_VERSION = _stale_version_below(MIN_DIRECT_VERSION)
+assert _KNOWN_STALE_VERSION < MIN_DIRECT_VERSION, (
+    "_KNOWN_STALE_VERSION must be strictly below the runtime floor "
+    "or the version-rejection tests degenerate into tautologies"
 )
 
 
