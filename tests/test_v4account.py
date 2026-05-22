@@ -348,6 +348,56 @@ def test_v4account_deposit_validates_payment_format():
     assert result["error"] == "invalid_payment_format"
 
 
+def test_v4account_normalize_payment_rejects_empty_sides():
+    """claude[bot] PR #123 cycle-review finding 2 (Low): tighten
+    ACCOUNT_ID=AMOUNT shape — both sides must be non-empty so a CLI
+    error like ``invalid integer for ACCOUNT_ID`` becomes an explicit
+    ``invalid_payment_format`` ToolError up-front.
+    """
+    for bad in ("=50000", "123=", "=", "  =  "):
+        result = v4account_deposit(payment=[bad], currency="rub", dry_run=True)
+        assert result["error"] == "invalid_payment_format", bad
+
+
+def test_v4account_deposit_rejects_empty_currency():
+    """claude[bot] PR #123 cycle-review finding 1 (Medium): financial
+    tools previously forwarded ``currency=" "`` to argv producing a
+    cryptic CLI error; surface ``missing_currency`` ToolError instead."""
+    for blank in ("", "   ", "\t"):
+        result = v4account_deposit(payment=["1=100"], currency=blank, dry_run=True)
+        assert result["error"] == "missing_currency", blank
+
+
+def test_v4account_invoice_rejects_empty_currency():
+    for blank in ("", "   "):
+        result = v4account_invoice(payment=["1=100"], currency=blank, dry_run=True)
+        assert result["error"] == "missing_currency", blank
+
+
+def test_v4account_transfer_money_rejects_empty_currency():
+    for blank in ("", "   "):
+        result = v4account_transfer_money(
+            from_account_id=1,
+            to_account_id=2,
+            amount="10",
+            currency=blank,
+            dry_run=True,
+        )
+        assert result["error"] == "missing_currency", blank
+
+
+def test_v4account_transfer_money_rejects_empty_amount():
+    for blank in ("", "   "):
+        result = v4account_transfer_money(
+            from_account_id=1,
+            to_account_id=2,
+            amount=blank,
+            currency="rub",
+            dry_run=True,
+        )
+        assert result["error"] == "missing_amount", blank
+
+
 def test_v4account_deposit_does_not_pass_finance_token():
     """Even with full optional surface, no finance/master/login flag leaks."""
     runner = _mock_runner({"result": "ok"})

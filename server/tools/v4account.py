@@ -36,9 +36,10 @@ def _append_optional_text(args: list[str], flag: str, value: str | None) -> None
 def _normalize_payment(payment: list[str]) -> ToolError | list[str]:
     """Validate ``--payment`` entries.
 
-    Each entry must be ``ACCOUNT_ID=AMOUNT``. CLI validates the numeric
-    types; the plugin only catches structurally malformed entries early
-    so the operator sees a clear error instead of a CLI traceback.
+    Each entry must be ``ACCOUNT_ID=AMOUNT`` with both sides non-empty.
+    CLI validates the numeric types; the plugin only catches structurally
+    malformed entries early so the operator sees a clear ``ToolError``
+    instead of a CLI traceback.
     """
     if not payment:
         return ToolError(
@@ -48,15 +49,37 @@ def _normalize_payment(payment: list[str]) -> ToolError | list[str]:
     normalized: list[str] = []
     for entry in payment:
         stripped = entry.strip() if isinstance(entry, str) else ""
-        if "=" not in stripped:
+        # Tighten the ACCOUNT_ID=AMOUNT shape: both sides must be present.
+        # ``"=50000"`` / ``"123="`` / ``"="`` previously slipped through and
+        # got forwarded to the CLI verbatim, yielding cryptic errors for the
+        # caller.
+        account_id, sep, amount = stripped.partition("=")
+        if not sep or not account_id.strip() or not amount.strip():
             return ToolError(
                 error="invalid_payment_format",
                 message=(
-                    "Each payment entry must be in ACCOUNT_ID=AMOUNT format; "
-                    f"got {entry!r}."
+                    "Each payment entry must be in ACCOUNT_ID=AMOUNT format "
+                    f"with both sides non-empty; got {entry!r}."
                 ),
             )
         normalized.append(stripped)
+    return normalized
+
+
+def _require_non_empty(value: str, *, field: str, error: str) -> ToolError | str:
+    """Trim and reject an empty required string parameter.
+
+    Used by the financial v4account tools to surface ``ToolError`` before
+    the empty value reaches the subprocess argv (where the CLI would emit
+    a less specific error). Mirrors the existing
+    ``missing_client_login`` guard in ``v4account_enable_shared_account``.
+    """
+    normalized = value.strip()
+    if not normalized:
+        return ToolError(
+            error=error,
+            message=f"Provide a non-empty {field}.",
+        )
     return normalized
 
 
@@ -260,11 +283,17 @@ def v4account_deposit(
     if isinstance(normalized, ToolError):
         return normalized.__dict__
 
+    normalized_currency = _require_non_empty(
+        currency, field="currency", error="missing_currency"
+    )
+    if isinstance(normalized_currency, ToolError):
+        return normalized_currency.__dict__
+
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Deposit"])
     for entry in normalized:
         args.extend(["--payment", entry])
-    args.extend(["--currency", currency.strip()])
+    args.extend(["--currency", normalized_currency])
     _append_optional_text(args, "--origin", origin)
     _append_optional_text(args, "--contract", contract)
     _append_optional(args, "--operation-num", operation_num)
@@ -303,11 +332,17 @@ def v4account_invoice(
     if isinstance(normalized, ToolError):
         return normalized.__dict__
 
+    normalized_currency = _require_non_empty(
+        currency, field="currency", error="missing_currency"
+    )
+    if isinstance(normalized_currency, ToolError):
+        return normalized_currency.__dict__
+
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Invoice"])
     for entry in normalized:
         args.extend(["--payment", entry])
-    args.extend(["--currency", currency.strip()])
+    args.extend(["--currency", normalized_currency])
     _append_optional(args, "--operation-num", operation_num)
 
     if dry_run:
@@ -344,6 +379,18 @@ def v4account_transfer_money(
     if safety_error:
         return safety_error.__dict__
 
+    normalized_amount = _require_non_empty(
+        amount, field="amount", error="missing_amount"
+    )
+    if isinstance(normalized_amount, ToolError):
+        return normalized_amount.__dict__
+
+    normalized_currency = _require_non_empty(
+        currency, field="currency", error="missing_currency"
+    )
+    if isinstance(normalized_currency, ToolError):
+        return normalized_currency.__dict__
+
     args = _base_args(sandbox=sandbox)
     args.extend(
         [
@@ -355,9 +402,9 @@ def v4account_transfer_money(
             "--to-account-id",
             str(to_account_id),
             "--amount",
-            amount.strip(),
+            normalized_amount,
             "--currency",
-            currency.strip(),
+            normalized_currency,
         ]
     )
     _append_optional(args, "--operation-num", operation_num)
