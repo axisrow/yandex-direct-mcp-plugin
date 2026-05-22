@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 125
+- Direct API tools: 132
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              131
+Total:              138
 """
 
 from __future__ import annotations
@@ -46,6 +46,13 @@ class ContractTool:
     # camelCase form (``tapi_canonical`` property) is correct.
     tapi_name: str | None = field(default=None)
     drift: ToolDrift = field(default="aligned")
+    # Set only when one MCP tool wraps a multi-action tapi operation and the
+    # runtime currently hard-codes a subset (e.g. v4account AccountManagement
+    # exposes Update only in direct-cli 0.3.10). ``None`` for the usual 1:1
+    # tool→method case. ``deferred_actions`` is the audit trail for actions
+    # tracked by a follow-up issue until the CLI ships their typed surface.
+    supported_actions: tuple[str, ...] | None = field(default=None)
+    deferred_actions: tuple[str, ...] | None = field(default=None)
 
     @property
     def cli_subcommand(self) -> str | None:
@@ -210,6 +217,11 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         authority="v4-live",
         classification="direct_api",
         tapi_name="AccountManagement",
+        # balance_get only wraps the Logins-selector path of the v4 Live
+        # ``AccountManagement Action=Get`` request via the dedicated
+        # ``direct balance`` CLI command. The AccountIDS selector (the other
+        # half of the API shape) is not exposed, so the full Get action is
+        # tracked as deferred on the v4account_account_management record.
     ),
     ContractTool(
         public_name="v4goals_get_stat_goals",
@@ -291,6 +303,68 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="DeleteForecastReport",
     ),
+    ContractTool(
+        public_name="v4account_account_management",
+        cli_service="v4account",
+        cli_method="account_management",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AccountManagement",
+        supported_actions=("Update",),
+        # Get is partially served by ``balance_get`` (Logins selector only).
+        # Tracking the full Get action plus the financial actions here so the
+        # follow-up issue #120 can pick them up after direct-cli ships the
+        # complete typed surface.
+        deferred_actions=("Get", "Deposit", "Invoice", "TransferMoney"),
+    ),
+    ContractTool(
+        public_name="v4account_enable_shared_account",
+        cli_service="v4account",
+        cli_method="enable_shared_account",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="EnableSharedAccount",
+    ),
+    ContractTool(
+        public_name="v4events_get_events_log",
+        cli_service="v4events",
+        cli_method="get_events_log",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetEventsLog",
+    ),
+    ContractTool(
+        public_name="v4wordstat_create_report",
+        cli_service="v4wordstat",
+        cli_method="create_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="CreateNewWordstatReport",
+    ),
+    ContractTool(
+        public_name="v4wordstat_list_reports",
+        cli_service="v4wordstat",
+        cli_method="list_reports",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetWordstatReportList",
+    ),
+    ContractTool(
+        public_name="v4wordstat_get_report",
+        cli_service="v4wordstat",
+        cli_method="get_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetWordstatReport",
+    ),
+    ContractTool(
+        public_name="v4wordstat_delete_report",
+        cli_service="v4wordstat",
+        cli_method="delete_report",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="DeleteWordstatReport",
+    ),
 )
 
 # Methods either not yet typed by direct-cli OR typed but intentionally not
@@ -357,48 +431,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "v4finance",
         "create-invoice",
         _FINANCIAL_REASON,
-    ),
-    BlockedV4Method(
-        "EnableSharedAccount",
-        "shared_account",
-        "v4account",
-        "enable-shared-account",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetEventsLog",
-        "events",
-        "v4events",
-        "get-events-log",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "CreateNewWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "create-report",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetWordstatReportList",
-        "wordstat",
-        "v4wordstat",
-        "list-reports",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "GetWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "get-report",
-        _PENDING_TYPED_REASON,
-    ),
-    BlockedV4Method(
-        "DeleteWordstatReport",
-        "wordstat",
-        "v4wordstat",
-        "delete-report",
-        _PENDING_TYPED_REASON,
     ),
     BlockedV4Method(
         "DeleteOfflineReport",
@@ -595,6 +627,31 @@ CLI_HELPER_TOOL_NAMES = frozenset(
 V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
 V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
     blocked.method for blocked in V4_LIVE_BLOCKED_METHODS
+)
+
+
+# Action-level audit trail for v4 Live tapi methods whose actions are split
+# across multiple MCP tools (e.g. ``AccountManagement`` — ``Get`` is served by
+# ``balance_get`` and ``Update`` by ``v4account_account_management``) or only
+# partially wrapped. Both maps are keyed by the canonical tapi method name so
+# WSDL-diff tooling can join cleanly. Per-method, supported ∩ deferred is
+# guaranteed empty (asserted in tests/test_v4_tools.py).
+def _aggregate_actions(
+    field_name: str,
+) -> dict[str, frozenset[str]]:
+    aggregated: dict[str, set[str]] = {}
+    for tool in V4_LIVE_CLI_TOOLS:
+        actions = getattr(tool, field_name)
+        if actions and tool.tapi_canonical is not None:
+            aggregated.setdefault(tool.tapi_canonical, set()).update(actions)
+    return {name: frozenset(actions) for name, actions in aggregated.items()}
+
+
+V4_LIVE_SUPPORTED_ACTIONS: dict[str, frozenset[str]] = _aggregate_actions(
+    "supported_actions"
+)
+V4_LIVE_DEFERRED_ACTIONS: dict[str, frozenset[str]] = _aggregate_actions(
+    "deferred_actions"
 )
 PLUGIN_ONLY_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "plugin"

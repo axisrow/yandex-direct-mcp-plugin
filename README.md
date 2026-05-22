@@ -108,7 +108,7 @@ OAuth-приложение само по себе не даёт доступ к 
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
 
-## MCP contract (129 tools)
+## MCP contract (138 tools)
 
 The public contract is now defined as:
 
@@ -116,7 +116,7 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.8`.
+- The package is still installed as `direct-cli` and must be `>=0.3.10`.
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -186,13 +186,19 @@ The machine-readable parity source lives in
 - `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`
 - `v4tags_get_campaigns`, `v4tags_get_banners`
 - `v4tags_update_campaigns`, `v4tags_update_banners`
+- `v4account_account_management`, `v4account_enable_shared_account`
+- `v4events_get_events_log`
+- `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report`
 
 ### v4 Live coverage
 
-`direct-cli` 0.3.8 exposes typed v4 Live commands for the methods below. Only
+`direct-cli` 0.3.10 exposes typed v4 Live commands for the methods below. Only
 typed public commands are registered as MCP tools:
 
 - `direct balance` → `balance_get`
+- `direct v4account account-management` → `v4account_account_management`
+- `direct v4account enable-shared-account` → `v4account_enable_shared_account`
+- `direct v4events get-events-log` → `v4events_get_events_log`
 - `direct v4goals get-stat-goals` → `v4goals_get_stat_goals`
 - `direct v4goals get-retargeting-goals` → `v4goals_get_retargeting_goals`
 - `direct v4tags get-campaigns` → `v4tags_get_campaigns`
@@ -203,10 +209,15 @@ typed public commands are registered as MCP tools:
 - `direct v4forecast list` → `v4forecast_list`
 - `direct v4forecast get` → `v4forecast_get`
 - `direct v4forecast delete` → `v4forecast_delete`
+- `direct v4wordstat create-report` → `v4wordstat_create_report`
+- `direct v4wordstat list-reports` → `v4wordstat_list_reports`
+- `direct v4wordstat get-report` → `v4wordstat_get_report`
+- `direct v4wordstat delete-report` → `v4wordstat_delete_report`
 
 Other methods from `direct_cli.v4_contracts` are tracked in
 `server/contract.py` as blocked/future metadata and are not exposed until the CLI
-publishes typed commands for them.
+publishes typed commands for them. Standalone `v4finance` commands remain
+blocked from the public MCP surface pending separate financial-operation gates.
 
 ## Skills
 
@@ -834,7 +845,7 @@ version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.8",
+    "direct-cli>=0.3.10",
 ]
 
 [project.optional-dependencies]

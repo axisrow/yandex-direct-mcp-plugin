@@ -112,10 +112,22 @@ V4 Live
 .. automodule:: server.tools.balance
    :members:
 
+.. automodule:: server.tools.v4account
+   :members:
+
+.. automodule:: server.tools.v4events
+   :members:
+
 .. automodule:: server.tools.v4goals
    :members:
 
 .. automodule:: server.tools.v4tags
+   :members:
+
+.. automodule:: server.tools.v4forecast
+   :members:
+
+.. automodule:: server.tools.v4wordstat
    :members:
 
 Authentication
