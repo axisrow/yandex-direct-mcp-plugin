@@ -274,14 +274,22 @@ def test_fetch_wsdl_operations_wraps_body_read_timeout():
 
 
 def test_run_live_audit_continues_after_single_service_timeout():
-    """One slow service must not abort the audit of the rest of the suite."""
+    """One slow service must not abort the audit of the rest of the suite.
+
+    Tests the pure-inconclusive path: a flaky fetch alongside services that
+    perfectly match the contract → ``exit_code == 2`` (drift would override).
+    """
+    declared = audit_wsdl.auditable_contract_methods()
 
     def flaky_fetcher(url: str, timeout: float) -> frozenset[str]:
         if "campaigns?wsdl" in url:
             raise audit_wsdl.WSDLFetchError("network error: timed out")
-        return frozenset({"get"})
+        # Mirror the declared surface for non-flaky services so no drift
+        # signal is produced — this test isolates the inconclusive path.
+        service = url.split("/")[-1].split("?")[0]
+        return declared.get(service, frozenset())
 
-    contract_services = frozenset(audit_wsdl.auditable_contract_methods())
+    contract_services = frozenset(declared)
     sample_services = frozenset({"campaigns", "bidmodifiers"}) & contract_services
 
     result = audit_wsdl.run_live_audit(
@@ -295,3 +303,63 @@ def test_run_live_audit_continues_after_single_service_timeout():
     # The other service still made it through the run.
     assert "bidmodifiers" not in result.fetch_errors
     assert result.exit_code == 2  # inconclusive because of the fetch_error
+
+
+def test_audit_result_exit_code_prioritises_drift_over_fetch_errors():
+    """claude[bot] PR #124 cycle-review (Critical): real drift must beat
+    inconclusive fetch errors in ``exit_code``. A CI job that uses the exit
+    code to alert on drift would otherwise silently skip the alert whenever
+    *any* WSDL endpoint hiccuped.
+    """
+    drift_only = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        missing_services={"futureservice": frozenset({"get"})},
+    )
+    assert drift_only.exit_code == 1
+
+    fetch_errors_only = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        fetch_errors={"adgroups": "network error: timed out"},
+    )
+    assert fetch_errors_only.exit_code == 2
+
+    drift_and_fetch_errors = audit_wsdl.AuditResult(
+        checked_services=frozenset({"campaigns"}),
+        missing_services={"futureservice": frozenset({"get"})},
+        fetch_errors={"adgroups": "network error: timed out"},
+    )
+    # Drift wins: a real contract gap must not be hidden by an unrelated
+    # transient network failure.
+    assert drift_and_fetch_errors.exit_code == 1
+
+    clean = audit_wsdl.AuditResult(checked_services=frozenset({"campaigns"}))
+    assert clean.exit_code == 0
+
+
+def test_run_live_audit_counts_discovered_services_in_checked_services():
+    """claude[bot] PR #124 cycle-review (Moderate) + Copilot: services
+    discovered via ``CANONICAL_API_SERVICES`` but not yet in the contract
+    were genuinely fetched, so the report's ``Checked WSDL services``
+    counter must include them — otherwise a 29-service live run with one
+    newly-published Yandex service prints ``Checked WSDL services: 28``
+    and quietly under-reports.
+    """
+    monkeypatch_target = audit_wsdl
+    original = audit_wsdl.CANONICAL_API_SERVICES
+    try:
+        audit_wsdl.CANONICAL_API_SERVICES = frozenset({"futureservice"})
+
+        def fake_fetcher(url: str, timeout: float) -> frozenset[str]:
+            if url.endswith("/futureservice?wsdl"):
+                return frozenset({"get", "add"})
+            raise AssertionError(f"unexpected URL: {url}")
+
+        result = audit_wsdl.run_live_audit(
+            timeout=1.0,
+            services=frozenset({"futureservice"}),
+            fetcher=fake_fetcher,
+        )
+        assert "futureservice" in result.checked_services
+        assert "futureservice" in result.missing_services
+    finally:
+        monkeypatch_target.CANONICAL_API_SERVICES = original

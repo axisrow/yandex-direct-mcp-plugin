@@ -98,10 +98,16 @@ class AuditResult:
 
     @property
     def exit_code(self) -> int:
-        if self.fetch_errors:
-            return 2
+        # Drift takes priority over inconclusive fetches: a CI job relying on
+        # exit codes must still alert on real contract drift even when one
+        # WSDL endpoint hiccups. Conflating "we don't know" with "we know
+        # there's no drift" silently swallows the signal from the
+        # successfully-audited services. ``2`` is reserved for the pure
+        # inconclusive case (only fetch errors, no drift).
         if self.has_contract_drift:
             return 1
+        if self.fetch_errors:
+            return 2
         return 0
 
 
@@ -161,7 +167,20 @@ def fetch_wsdl_operations(url: str, timeout: float) -> frozenset[str]:
 def auditable_contract_methods(
     contract_methods: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, frozenset[str]]:
-    """Return only Direct v5 WSDL-backed service methods in WSDL naming."""
+    """Return service methods to audit, normalised to WSDL camelCase naming.
+
+    Two modes:
+
+    * **Default (``contract_methods is None``)** — derive from
+      ``PUBLIC_CONTRACT``, filtering down to tools whose
+      ``authority == "wsdl"`` so only Direct v5 WSDL-backed services are
+      returned. This is the production path called by ``run_live_audit``.
+    * **Test override (``contract_methods`` provided)** — the caller is
+      responsible for passing only WSDL-relevant entries. The mapping is
+      returned as-is (with snake_case method names converted to
+      camelCase). Non-WSDL services such as ``reports`` will pass through
+      unfiltered, so tests must not include them in this dict.
+    """
     if contract_methods is not None:
         return {
             service: frozenset(method_to_wsdl_name(method) for method in methods)
@@ -276,7 +295,13 @@ def compare_wsdl_to_contract(
             stale_blocked.add(public_name)
 
     return AuditResult(
-        checked_services=frozenset(wsdl_services & declared_services),
+        # All WSDLs we successfully fetched — including services discovered
+        # via ``CANONICAL_API_SERVICES`` but not yet declared in the
+        # contract. These services were genuinely examined (which is what
+        # ``Checked WSDL services`` in the report claims); intersecting with
+        # ``declared_services`` here would silently drop the newly-found
+        # ones that ``missing_services`` is about to flag.
+        checked_services=frozenset(wsdl_services),
         missing_services=missing_services,
         missing_methods=missing_methods,
         extra_contract_methods=extra_contract_methods,
