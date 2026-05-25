@@ -16,6 +16,7 @@ def adextensions_list(
     limit: int | None = None,
     fetch_all: bool = False,
     fields: str | None = None,
+    callout_field_names: str | None = None,
 ) -> list[dict] | dict:
     """List ad extensions.
 
@@ -28,6 +29,7 @@ def adextensions_list(
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
+        callout_field_names: Comma-separated CalloutFieldNames.
     """
     cmd = ["adextensions", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
@@ -51,6 +53,8 @@ def adextensions_list(
         cmd.append("--fetch-all")
     if fields is not None:
         cmd.extend(["--fields", fields])
+    if callout_field_names is not None:
+        cmd.extend(["--callout-field-names", callout_field_names])
     return get_runner().run_json(cmd)
 
 

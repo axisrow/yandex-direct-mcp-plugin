@@ -103,6 +103,32 @@ class TestAdextensionsList:
             ]
         )
 
+    def test_list_extensions_with_callout_field_names(self):
+        """Test CalloutFieldNames are passed through 1:1 via the CLI flag."""
+        runner = MagicMock()
+        runner.run_json.return_value = []
+        with patch("server.tools.adextensions.get_runner", return_value=runner):
+            adextensions_list(
+                types="CALLOUT",
+                fields="Id,Type,State,Status",
+                callout_field_names="CalloutText",
+            )
+
+        runner.run_json.assert_called_once_with(
+            [
+                "adextensions",
+                "get",
+                "--format",
+                "json",
+                "--types",
+                "CALLOUT",
+                "--fields",
+                "Id,Type,State,Status",
+                "--callout-field-names",
+                "CalloutText",
+            ]
+        )
+
     def test_list_extensions_empty_result(self):
         """Test empty response returns empty list."""
         with patch(
