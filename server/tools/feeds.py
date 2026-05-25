@@ -59,14 +59,20 @@ def feeds_add(
 ) -> dict:
     """Add a new feed.
 
-    CLI 0.3.8 requires --business-type (WSDL FeedAddItem.BusinessType,
-    minOccurs=1) and removed the free-form --json flag.
+    CLI 0.3.12 supports URL feeds and file-feed uploads through typed flags.
+    Provide `url` for a UrlFeed source, or `file_feed_path` plus optional
+    `file_feed_filename` for a FileFeed upload.
 
     Args:
         name: Feed name.
-        url: Feed URL.
         business_type: Business type — one of RETAIL, HOTELS, REALTY,
             AUTOMOBILES, FLIGHTS, OTHER.
+        url: Feed URL for UrlFeed.
+        file_feed_path: Local file path to upload for FileFeed.
+        file_feed_filename: Optional uploaded file name override.
+        remove_utm_tags: Optional remove-UTM setting.
+        feed_login: Optional feed basic-auth login.
+        feed_password: Optional feed basic-auth password.
         dry_run: Show the direct request without sending it.
     """
     if business_type not in BUSINESS_TYPES:

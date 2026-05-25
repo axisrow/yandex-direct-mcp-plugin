@@ -8,8 +8,8 @@ import re
 from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
-import direct_cli  # type: ignore[import-not-found]
-from direct_cli.cli import cli  # type: ignore[import-not-found]
+import direct_cli  # type: ignore[import-not-found, import-untyped]
+from direct_cli.cli import cli  # type: ignore[import-not-found, import-untyped]
 
 from server.tools.adgroups import adgroups_add, adgroups_update
 from server.tools.ads import ads_add, ads_update

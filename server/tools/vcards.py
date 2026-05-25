@@ -107,6 +107,11 @@ def vcards_add(
         extra_message: Extra message.
         ogrn: OGRN.
         metro_station_id: Metro station ID.
+        instant_messenger_client: Instant messenger client name.
+        instant_messenger_login: Instant messenger login.
+        point_on_map_x/point_on_map_y: Point-on-map coordinates.
+        point_on_map_x1/point_on_map_y1: First map bounds coordinate pair.
+        point_on_map_x2/point_on_map_y2: Second map bounds coordinate pair.
         dry_run: Show the direct request without sending it.
     """
     args = [

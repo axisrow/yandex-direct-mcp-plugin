@@ -353,10 +353,10 @@ def ads_update(
 ) -> dict:
     """Update an ad.
 
-    CLI 0.3.8 made `--type` required for `ads update` and removed the
-    `--status` flag (use `ads_suspend / ads_resume / ads_archive /
-    ads_unarchive` for status changes). CLI 0.3.9 added typed flags for
-    every TextAdUpdateItem WSDL field. Field/type compatibility:
+    CLI 0.3.12 exposes typed flags for supported ad update subtypes. `type`
+    is optional when the CLI can apply the supplied fields without an explicit
+    subtype, and `status` is accepted for typed status updates.
+    Field/type compatibility examples:
 
     - TEXT_AD: title, text, href, title2, display_url_path, mobile, vcard_id,
       sitelink_set_id, turbo_page_id, ad_extensions, image_hash.
@@ -365,14 +365,20 @@ def ads_update(
 
     Args:
         id: Ad ID to update.
-        type: Ad subtype (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD). Required.
+        type: Optional ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and
+            newer 0.3.12 subtype families).
+        status: Optional ad status value.
         title: Optional new title (TEXT_AD / MOBILE_APP_AD).
         text: Optional new text (TEXT_AD / MOBILE_APP_AD).
+        titles: Structured title list for responsive/shopping/listing subtypes.
+        texts: Structured text list for responsive/shopping/listing subtypes.
         href: Optional new URL (TEXT_AD / TEXT_IMAGE_AD).
         image_hash: Optional new image hash (TEXT_AD / TEXT_IMAGE_AD / MOBILE_APP_AD).
+        image_hashes: Structured image hash list for multi-image subtypes.
         tracking_url: Optional MOBILE_APP_AD tracking URL.
         action: Optional MOBILE_APP_AD call-to-action.
         age_label: Optional MOBILE_APP_AD age label.
+        mobile_app_features: Repeated MOBILE_APP_AD feature specs.
         title2: Optional second headline (TEXT_AD).
         display_url_path: Optional display URL path (TEXT_AD).
         mobile: Optional "YES"/"NO" mobile-only ad flag (TEXT_AD).
@@ -380,6 +386,16 @@ def ads_update(
         sitelink_set_id: Optional sitelink set ID (TEXT_AD).
         turbo_page_id: Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Optional comma-separated ad extension IDs (TEXT_AD).
+        callouts_add/callouts_remove/callouts_set: Callout update operations.
+        video_extension_*: Video extension typed fields.
+        price_extension_*: Price extension typed fields.
+        business_id/prefer_vcard_over_business: Business/VCard binding fields.
+        erir_ad_description: ERIR ad description.
+        logo_extension_hash: Logo extension hash.
+        creative_id/creative_erir_ad_description: Ad builder creative fields.
+        final_url/tracking_pixels: Final URL and tracking pixel fields.
+        feed_filter_conditions: Repeated feed filter condition specs.
+        title_sources/text_sources/default_texts: Smart/ad builder text sources.
         dry_run: Show the direct request without sending it.
     """
     if not any(
@@ -429,11 +445,14 @@ def ads_update(
         return ToolError(
             error="missing_update_fields",
             message=(
-                "Provide at least one of: title, text, href, image_hash, "
-                "tracking_url, action, age_label, title2, display_url_path, "
-                "mobile, vcard_id, sitelink_set_id, turbo_page_id, "
-                "ad_extensions. For status changes use ads_suspend / "
-                "ads_resume / ads_archive / ads_unarchive."
+                "Provide at least one typed update field, for example: title, "
+                "text, href, image_hash, tracking_url, action, age_label, "
+                "title2, display_url_path, mobile, vcard_id, sitelink_set_id, "
+                "turbo_page_id, ad_extensions, status, callouts_*, "
+                "video_extension_*, price_extension_*, business_id, "
+                "creative_id, final_url, tracking_pixels, "
+                "feed_filter_conditions, title_sources, text_sources, or "
+                "default_texts."
             ),
         ).__dict__
     if mobile is not None and mobile not in MOBILE_VALUES:

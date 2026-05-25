@@ -164,8 +164,19 @@ def adgroups_add(
         region_ids: Comma-separated region IDs for targeting.
         domain_url: Domain URL for DYNAMIC_TEXT_AD_GROUP.
         feed_id: Feed ID for SMART_AD_GROUP.
+        feed_category_ids: Comma-separated feed category IDs.
         ad_title_source: Title source for SMART_AD_GROUP.
         ad_body_source: Body source for SMART_AD_GROUP.
+        autotargeting_categories: Repeated autotargeting category specs.
+        autotargeting_settings_*: Autotargeting setting values.
+        offer_retargeting: Offer retargeting setting.
+        store_url: Mobile app store URL.
+        target_device_types: Mobile app target device types.
+        target_carrier: Mobile app target carrier.
+        target_operating_system_version: Mobile app target OS version.
+        negative_keywords: Ad group negative keyword specs.
+        negative_keyword_shared_set_ids: Negative keyword shared set IDs.
+        tracking_params: Tracking parameter specs.
         dry_run: Show the direct request without sending it.
     """
     args = [

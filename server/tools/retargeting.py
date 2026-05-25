@@ -62,7 +62,10 @@ def retargeting_add(
         name: Name for the retargeting list.
         list_type: List type — RETARGETING (default, text & image / mobile
             campaigns) or AUDIENCE (display campaigns).
-        rule: Rule spec (CLI DSL form, see above).
+        description: Optional retargeting list description.
+        rule: Single rule spec (CLI DSL form, see above).
+        rules: Additional rule specs; each item is forwarded as repeated
+            ``--rule``.
         dry_run: Show the direct request without sending it.
     """
     if list_type not in _LIST_TYPES:

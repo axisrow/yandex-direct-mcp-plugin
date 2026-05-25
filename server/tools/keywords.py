@@ -146,15 +146,22 @@ def keywords_update(
 ) -> dict:
     """Update keyword text or user params.
 
-    Note: bid changes go through `keywordbids_set`, not this tool — CLI's
-    `keywords update` does not accept `--bid` flags. CLI 0.3.8 also removed
-    the free-form `--json` flag.
+    CLI 0.3.12 accepts typed bid, status, and autotargeting projection fields
+    here. `keywordbids_set` remains the bulk bid-management tool, but this
+    wrapper mirrors the `direct keywords update` flags for single keyword
+    updates.
 
     Args:
         id: Keyword ID.
         keyword: Optional new keyword text.
         user_param_1: Optional user parameter 1.
         user_param_2: Optional user parameter 2.
+        autotargeting_categories: Repeated autotargeting category specs.
+        autotargeting_brand_options: Repeated autotargeting brand option specs.
+        autotargeting_settings_*: Autotargeting setting values.
+        bid: Optional search bid.
+        context_bid: Optional context bid.
+        status: Optional keyword status.
         dry_run: Show the direct request without sending it.
     """
     values = locals()
