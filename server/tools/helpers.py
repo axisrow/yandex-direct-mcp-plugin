@@ -1,5 +1,8 @@
 """Shared helpers for MCP tool modules."""
 
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+
 from server.cli.runner import (
     CliAuthError,
     CliNotFoundError,
@@ -9,6 +12,45 @@ from server.cli.runner import (
 from server.tools import ToolError
 
 MAX_BATCH_SIZE = 10
+
+
+@dataclass(frozen=True)
+class CliOption:
+    """Declarative mapping from an MCP parameter to a `direct` CLI flag."""
+
+    name: str
+    flag: str
+    repeat: bool = False
+    is_flag: bool = False
+
+
+def append_cli_options(
+    args: list[str],
+    values: Mapping[str, object],
+    options: Sequence[CliOption],
+) -> None:
+    """Append optional `direct` CLI flags from function locals."""
+    for option in options:
+        value = values.get(option.name)
+        if value is None:
+            continue
+        if option.is_flag:
+            if value:
+                args.append(option.flag)
+            continue
+        if option.repeat:
+            if not value:
+                continue
+            if isinstance(value, str):
+                args.extend([option.flag, value])
+                continue
+            if not isinstance(value, Iterable):
+                args.extend([option.flag, str(value)])
+                continue
+            for item in value:
+                args.extend([option.flag, str(item)])
+            continue
+        args.extend([option.flag, str(value)])
 
 
 def parse_ids(ids_str: str) -> list[str]:

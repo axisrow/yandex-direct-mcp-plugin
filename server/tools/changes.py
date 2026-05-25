@@ -48,8 +48,9 @@ def _validate_field_names(field_names: str) -> ToolError | None:
 @mcp.tool()
 @handle_cli_errors
 def changes_check(
-    field_names: str,
     timestamp: str,
+    field_names: str | None = None,
+    fields: str | None = None,
     campaign_ids: str | None = None,
     ad_group_ids: str | None = None,
     ad_ids: str | None = None,
@@ -71,9 +72,11 @@ def changes_check(
         ad_ids: Comma-separated ad IDs (up to 50000). Mutually exclusive
             with ``campaign_ids`` and ``ad_group_ids``.
     """
-    field_error = _validate_field_names(field_names)
-    if field_error:
-        return field_error.__dict__
+    selected_fields = fields if fields is not None else field_names
+    if selected_fields is not None:
+        field_error = _validate_field_names(selected_fields)
+        if field_error:
+            return field_error.__dict__
 
     provided: list[tuple[str, str, str, int]] = []
     for cli_flag, label, value, limit in (
@@ -119,11 +122,10 @@ def changes_check(
         value,
         "--timestamp",
         _normalize_timestamp(timestamp),
-        "--fields",
-        field_names,
-        "--format",
-        "json",
     ]
+    if selected_fields is not None:
+        args.extend(["--fields", selected_fields])
+    args.extend(["--format", "json"])
     return get_runner().run_json(args)
 
 

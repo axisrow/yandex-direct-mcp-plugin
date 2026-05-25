@@ -3,7 +3,7 @@
 from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import CliOption, append_cli_options, check_batch_limit
 
 CAMPAIGN_GET_SELECTOR_FLAGS = (
     ("text_campaign_fields", "--text-campaign-fields"),
@@ -28,6 +28,76 @@ CAMPAIGN_GET_SELECTOR_FLAGS = (
         "unified_campaign_package_bidding_strategy_platforms_fields",
         "--unified-campaign-package-bidding-strategy-platforms-fields",
     ),
+)
+
+CAMPAIGN_MUTATION_OPTIONS = (
+    CliOption("settings", "--setting", repeat=True),
+    CliOption("search_strategy", "--search-strategy"),
+    CliOption("network_strategy", "--network-strategy"),
+    CliOption("filter_average_cpc", "--filter-average-cpc"),
+    CliOption("counter_id", "--counter-id"),
+    CliOption("counter_ids", "--counter-ids"),
+    CliOption("dynamic_placement_search_results", "--dynamic-placement-search-results"),
+    CliOption(
+        "dynamic_placement_product_gallery",
+        "--dynamic-placement-product-gallery",
+    ),
+    CliOption("goal_id", "--goal-id"),
+    CliOption("priority_goals", "--priority-goals"),
+    CliOption("relevant_keywords_budget_percent", "--relevant-keywords-budget-percent"),
+    CliOption("relevant_keywords_mode", "--relevant-keywords-mode"),
+    CliOption(
+        "relevant_keywords_optimize_goal_id",
+        "--relevant-keywords-optimize-goal-id",
+    ),
+    CliOption("attribution_model", "--attribution-model"),
+    CliOption("package_strategy_id", "--package-strategy-id"),
+    CliOption(
+        "package_strategy_from_campaign_id", "--package-strategy-from-campaign-id"
+    ),
+    CliOption("package_platform_search", "--package-platform-search"),
+    CliOption("package_platform_search_result", "--package-platform-search-result"),
+    CliOption("package_platform_product_gallery", "--package-platform-product-gallery"),
+    CliOption("package_platform_maps", "--package-platform-maps"),
+    CliOption(
+        "package_platform_search_organization_list",
+        "--package-platform-search-organization-list",
+    ),
+    CliOption("package_platform_network", "--package-platform-network"),
+    CliOption("package_platform_dynamic_places", "--package-platform-dynamic-places"),
+    CliOption("negative_keyword_shared_set_ids", "--negative-keyword-shared-set-ids"),
+    CliOption("frequency_cap_impressions", "--frequency-cap-impressions"),
+    CliOption("frequency_cap_period_days", "--frequency-cap-period-days"),
+    CliOption("frequency_cap_period_all", "--frequency-cap-period-all", is_flag=True),
+    CliOption("video_target", "--video-target"),
+    CliOption("average_cpa", "--average-cpa"),
+    CliOption("crr", "--crr"),
+    CliOption("bid_ceiling", "--bid-ceiling"),
+    CliOption("notification", "--notification"),
+    CliOption("time_targeting", "--time-targeting"),
+    CliOption("client_info", "--client-info"),
+    CliOption("sms_events", "--sms-events"),
+    CliOption("sms_time_from", "--sms-time-from"),
+    CliOption("sms_time_to", "--sms-time-to"),
+    CliOption("notification_email", "--notification-email"),
+    CliOption(
+        "notification_check_position_interval",
+        "--notification-check-position-interval",
+    ),
+    CliOption("notification_warning_balance", "--notification-warning-balance"),
+    CliOption("notification_send_account_news", "--notification-send-account-news"),
+    CliOption("notification_send_warnings", "--notification-send-warnings"),
+    CliOption("time_zone", "--time-zone"),
+    CliOption("negative_keywords", "--negative-keywords"),
+    CliOption("blocked_ips", "--blocked-ips"),
+    CliOption("excluded_sites", "--excluded-sites"),
+    CliOption("time_targeting_schedule", "--time-targeting-schedule", repeat=True),
+    CliOption("consider_working_weekends", "--consider-working-weekends"),
+    CliOption("holidays_suspend_on_holidays", "--holidays-suspend-on-holidays"),
+    CliOption("holidays_bid_percent", "--holidays-bid-percent"),
+    CliOption("holidays_start_hour", "--holidays-start-hour"),
+    CliOption("holidays_end_hour", "--holidays-end-hour"),
+    CliOption("tracking_params", "--tracking-params"),
 )
 
 
@@ -132,6 +202,55 @@ def campaigns_update(
     budget: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    settings: list[str] | None = None,
+    counter_id: int | None = None,
+    counter_ids: str | None = None,
+    dynamic_placement_search_results: str | None = None,
+    dynamic_placement_product_gallery: str | None = None,
+    priority_goals: str | None = None,
+    relevant_keywords_budget_percent: int | None = None,
+    relevant_keywords_mode: str | None = None,
+    relevant_keywords_optimize_goal_id: int | None = None,
+    attribution_model: str | None = None,
+    package_strategy_id: int | None = None,
+    package_strategy_from_campaign_id: int | None = None,
+    package_platform_search: str | None = None,
+    package_platform_search_result: str | None = None,
+    package_platform_product_gallery: str | None = None,
+    package_platform_maps: str | None = None,
+    package_platform_search_organization_list: str | None = None,
+    package_platform_network: str | None = None,
+    package_platform_dynamic_places: str | None = None,
+    negative_keyword_shared_set_ids: str | None = None,
+    frequency_cap_impressions: int | None = None,
+    frequency_cap_period_days: int | None = None,
+    frequency_cap_period_all: bool = False,
+    video_target: str | None = None,
+    notification: str | None = None,
+    time_targeting: str | None = None,
+    client_info: str | None = None,
+    sms_events: str | None = None,
+    sms_time_from: str | None = None,
+    sms_time_to: str | None = None,
+    notification_email: str | None = None,
+    notification_check_position_interval: str | None = None,
+    notification_warning_balance: int | None = None,
+    notification_send_account_news: str | None = None,
+    notification_send_warnings: str | None = None,
+    time_zone: str | None = None,
+    negative_keywords: str | None = None,
+    blocked_ips: str | None = None,
+    excluded_sites: str | None = None,
+    time_targeting_schedule: list[str] | None = None,
+    consider_working_weekends: str | None = None,
+    holidays_suspend_on_holidays: str | None = None,
+    holidays_bid_percent: int | None = None,
+    holidays_start_hour: int | None = None,
+    holidays_end_hour: int | None = None,
+    campaign_type: str | None = None,
+    tracking_params: str | None = None,
+    notification_json: str | None = None,
+    time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update campaign fields.
@@ -150,16 +269,20 @@ def campaigns_update(
         end_date: Optional new end date (YYYY-MM-DD).
         dry_run: Show the direct request without sending it.
     """
-    if (
-        name is None
-        and status is None
-        and budget is None
-        and start_date is None
-        and end_date is None
-    ):
+    values = locals()
+    if notification is None and notification_json is not None:
+        values["notification"] = notification_json
+    if time_targeting is None and time_targeting_json is not None:
+        values["time_targeting"] = time_targeting_json
+    optional_values = [
+        value
+        for key, value in values.items()
+        if key not in {"id", "dry_run", "notification_json", "time_targeting_json"}
+    ]
+    if not any(optional_values):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, status, budget, start_date, end_date",
+            message="Provide at least one typed campaign field to update.",
         ).__dict__
 
     args = ["campaigns", "update", "--id", str(id)]
@@ -173,6 +296,9 @@ def campaigns_update(
         args.extend(["--start-date", start_date])
     if end_date:
         args.extend(["--end-date", end_date])
+    if campaign_type is not None:
+        args.extend(["--type", campaign_type])
+    append_cli_options(args, values, CAMPAIGN_MUTATION_OPTIONS)
     if dry_run:
         args.append("--dry-run")
 
@@ -226,6 +352,48 @@ def campaigns_add(
     average_cpa: int | None = None,
     crr: int | None = None,
     bid_ceiling: int | None = None,
+    dynamic_placement_search_results: str | None = None,
+    dynamic_placement_product_gallery: str | None = None,
+    relevant_keywords_budget_percent: int | None = None,
+    relevant_keywords_mode: str | None = None,
+    relevant_keywords_optimize_goal_id: int | None = None,
+    attribution_model: str | None = None,
+    package_strategy_id: int | None = None,
+    package_strategy_from_campaign_id: int | None = None,
+    package_platform_search: str | None = None,
+    package_platform_search_result: str | None = None,
+    package_platform_product_gallery: str | None = None,
+    package_platform_maps: str | None = None,
+    package_platform_search_organization_list: str | None = None,
+    package_platform_network: str | None = None,
+    package_platform_dynamic_places: str | None = None,
+    negative_keyword_shared_set_ids: str | None = None,
+    frequency_cap_impressions: int | None = None,
+    frequency_cap_period_days: int | None = None,
+    frequency_cap_period_all: bool = False,
+    video_target: str | None = None,
+    notification: str | None = None,
+    time_targeting: str | None = None,
+    client_info: str | None = None,
+    sms_events: str | None = None,
+    sms_time_from: str | None = None,
+    sms_time_to: str | None = None,
+    notification_email: str | None = None,
+    notification_check_position_interval: str | None = None,
+    notification_warning_balance: int | None = None,
+    notification_send_account_news: str | None = None,
+    notification_send_warnings: str | None = None,
+    time_zone: str | None = None,
+    negative_keywords: str | None = None,
+    blocked_ips: str | None = None,
+    excluded_sites: str | None = None,
+    time_targeting_schedule: list[str] | None = None,
+    consider_working_weekends: str | None = None,
+    holidays_suspend_on_holidays: str | None = None,
+    holidays_bid_percent: int | None = None,
+    holidays_start_hour: int | None = None,
+    holidays_end_hour: int | None = None,
+    tracking_params: str | None = None,
     notification_json: str | None = None,
     time_targeting_json: str | None = None,
     dry_run: bool = False,
@@ -302,10 +470,26 @@ def campaigns_add(
         args.extend(["--crr", str(crr)])
     if bid_ceiling is not None:
         args.extend(["--bid-ceiling", str(bid_ceiling)])
-    if notification_json:
-        args.extend(["--notification", notification_json])
-    if time_targeting_json:
-        args.extend(["--time-targeting", time_targeting_json])
+    values = locals()
+    if notification is None and notification_json is not None:
+        values["notification"] = notification_json
+    if time_targeting is None and time_targeting_json is not None:
+        values["time_targeting"] = time_targeting_json
+    for already_appended in (
+        "search_strategy",
+        "network_strategy",
+        "settings",
+        "filter_average_cpc",
+        "counter_id",
+        "counter_ids",
+        "goal_id",
+        "priority_goals",
+        "average_cpa",
+        "crr",
+        "bid_ceiling",
+    ):
+        values[already_appended] = None
+    append_cli_options(args, values, CAMPAIGN_MUTATION_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

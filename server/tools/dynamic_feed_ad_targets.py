@@ -63,6 +63,7 @@ def dynamic_feed_ad_targets_list(
 def dynamic_feed_ad_targets_add(
     ad_group_id: int,
     name: str,
+    conditions: list[str] | None = None,
     condition: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
@@ -92,6 +93,9 @@ def dynamic_feed_ad_targets_add(
     ]
     if condition is not None:
         args.extend(["--condition", condition])
+    if conditions:
+        for spec in conditions:
+            args.extend(["--condition", spec])
     if bid is not None:
         args.extend(["--bid", str(bid)])
     if context_bid is not None:

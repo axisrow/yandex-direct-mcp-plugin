@@ -2,6 +2,35 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import CliOption, append_cli_options
+
+ERIR_OPTIONS = (
+    CliOption("erir_organization_name", "--erir-organization-name"),
+    CliOption("erir_organization_kpp", "--erir-organization-kpp"),
+    CliOption("erir_organization_epay_number", "--erir-organization-epay-number"),
+    CliOption("erir_organization_reg_number", "--erir-organization-reg-number"),
+    CliOption("erir_organization_oksm_number", "--erir-organization-oksm-number"),
+    CliOption("erir_organization_okved_code", "--erir-organization-okved-code"),
+    CliOption("erir_contract_number", "--erir-contract-number"),
+    CliOption("erir_contract_date", "--erir-contract-date"),
+    CliOption("erir_contract_type", "--erir-contract-type"),
+    CliOption("erir_contract_action_type", "--erir-contract-action-type"),
+    CliOption("erir_contract_subject_type", "--erir-contract-subject-type"),
+    CliOption("erir_contract_is_agency_payment", "--erir-contract-is-agency-payment"),
+    CliOption("erir_contract_price_amount", "--erir-contract-price-amount"),
+    CliOption(
+        "erir_contract_price_including_vat",
+        "--erir-contract-price-including-vat",
+    ),
+    CliOption("erir_contragent_name", "--erir-contragent-name"),
+    CliOption("erir_contragent_kpp", "--erir-contragent-kpp"),
+    CliOption("erir_contragent_phone", "--erir-contragent-phone"),
+    CliOption("erir_contragent_epay_number", "--erir-contragent-epay-number"),
+    CliOption("erir_contragent_reg_number", "--erir-contragent-reg-number"),
+    CliOption("erir_contragent_oksm_number", "--erir-contragent-oksm-number"),
+    CliOption("erir_contragent_tin_type", "--erir-contragent-tin-type"),
+    CliOption("erir_contragent_tin", "--erir-contragent-tin"),
+)
 
 
 @mcp.tool()
@@ -44,6 +73,28 @@ def clients_update(
     settings: list[str] | None = None,
     tin_type: str | None = None,
     tin: str | None = None,
+    erir_organization_name: str | None = None,
+    erir_organization_kpp: str | None = None,
+    erir_organization_epay_number: str | None = None,
+    erir_organization_reg_number: str | None = None,
+    erir_organization_oksm_number: str | None = None,
+    erir_organization_okved_code: str | None = None,
+    erir_contract_number: str | None = None,
+    erir_contract_date: str | None = None,
+    erir_contract_type: str | None = None,
+    erir_contract_action_type: str | None = None,
+    erir_contract_subject_type: str | None = None,
+    erir_contract_is_agency_payment: str | None = None,
+    erir_contract_price_amount: str | None = None,
+    erir_contract_price_including_vat: str | None = None,
+    erir_contragent_name: str | None = None,
+    erir_contragent_kpp: str | None = None,
+    erir_contragent_phone: str | None = None,
+    erir_contragent_epay_number: str | None = None,
+    erir_contragent_reg_number: str | None = None,
+    erir_contragent_oksm_number: str | None = None,
+    erir_contragent_tin_type: str | None = None,
+    erir_contragent_tin: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update the authenticated client's settings.
@@ -64,24 +115,11 @@ def clients_update(
         tin: Taxpayer identification number.
         dry_run: Show the direct request without sending it.
     """
-    if not any(
-        (
-            client_info,
-            phone,
-            notification_email,
-            notification_lang,
-            email_subscriptions,
-            settings,
-            tin_type,
-            tin,
-        )
-    ):
+    values = locals()
+    if not any(value for key, value in values.items() if key not in {"dry_run"}):
         return ToolError(
             error="missing_update_fields",
-            message=(
-                "Provide at least one of: client_info, phone, notification_email, "
-                "notification_lang, email_subscriptions, settings, tin_type, tin"
-            ),
+            message="Provide at least one typed client field to update.",
         ).__dict__
 
     args = ["clients", "update"]
@@ -103,6 +141,7 @@ def clients_update(
         args.extend(["--tin-type", tin_type])
     if tin is not None:
         args.extend(["--tin", tin])
+    append_cli_options(args, values, ERIR_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)

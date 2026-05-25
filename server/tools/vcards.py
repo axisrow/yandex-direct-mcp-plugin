@@ -2,7 +2,23 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_single_id_batch
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    check_batch_limit,
+    run_single_id_batch,
+)
+
+VCARD_0312_OPTIONS = (
+    CliOption("instant_messenger_client", "--instant-messenger-client"),
+    CliOption("instant_messenger_login", "--instant-messenger-login"),
+    CliOption("point_on_map_x", "--point-on-map-x"),
+    CliOption("point_on_map_y", "--point-on-map-y"),
+    CliOption("point_on_map_x1", "--point-on-map-x1"),
+    CliOption("point_on_map_y1", "--point-on-map-y1"),
+    CliOption("point_on_map_x2", "--point-on-map-x2"),
+    CliOption("point_on_map_y2", "--point-on-map-y2"),
+)
 
 
 @mcp.tool(name="vcards_get")
@@ -58,6 +74,14 @@ def vcards_add(
     extra_message: str | None = None,
     ogrn: str | None = None,
     metro_station_id: int | None = None,
+    instant_messenger_client: str | None = None,
+    instant_messenger_login: str | None = None,
+    point_on_map_x: str | None = None,
+    point_on_map_y: str | None = None,
+    point_on_map_x1: str | None = None,
+    point_on_map_y1: str | None = None,
+    point_on_map_x2: str | None = None,
+    point_on_map_y2: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Add a vCard.
@@ -125,6 +149,7 @@ def vcards_add(
         args.extend(["--ogrn", ogrn])
     if metro_station_id is not None:
         args.extend(["--metro-station-id", str(metro_station_id)])
+    append_cli_options(args, locals(), VCARD_0312_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)

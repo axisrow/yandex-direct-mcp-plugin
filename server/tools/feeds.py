@@ -2,8 +2,17 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import CliOption, append_cli_options
 
 BUSINESS_TYPES = ("RETAIL", "HOTELS", "REALTY", "AUTOMOBILES", "FLIGHTS", "OTHER")
+
+FEED_SOURCE_OPTIONS = (
+    CliOption("file_feed_path", "--file-feed-path"),
+    CliOption("file_feed_filename", "--file-feed-filename"),
+    CliOption("remove_utm_tags", "--remove-utm-tags"),
+    CliOption("feed_login", "--feed-login"),
+    CliOption("feed_password", "--feed-password"),
+)
 
 
 @mcp.tool(name="feeds_get")
@@ -39,8 +48,13 @@ def feeds_list(
 @handle_cli_errors
 def feeds_add(
     name: str,
-    url: str,
     business_type: str,
+    url: str | None = None,
+    file_feed_path: str | None = None,
+    file_feed_filename: str | None = None,
+    remove_utm_tags: str | None = None,
+    feed_login: str | None = None,
+    feed_password: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Add a new feed.
@@ -69,11 +83,11 @@ def feeds_add(
         "add",
         "--name",
         name,
-        "--url",
-        url,
-        "--business-type",
-        business_type,
     ]
+    if url is not None:
+        args.extend(["--url", url])
+    append_cli_options(args, locals(), FEED_SOURCE_OPTIONS)
+    args.extend(["--business-type", business_type])
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
@@ -86,6 +100,13 @@ def feeds_update(
     id: int,
     name: str | None = None,
     url: str | None = None,
+    file_feed_path: str | None = None,
+    file_feed_filename: str | None = None,
+    remove_utm_tags: str | None = None,
+    feed_login: str | None = None,
+    feed_password: str | None = None,
+    clear_feed_login: bool = False,
+    clear_feed_password: bool = False,
     dry_run: bool = False,
 ) -> dict:
     """Update an existing feed.
@@ -98,10 +119,11 @@ def feeds_update(
         url: Optional new feed URL.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, url)):
+    values = locals()
+    if not any(value for key, value in values.items() if key not in {"id", "dry_run"}):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, url",
+            message="Provide at least one typed feed field to update.",
         ).__dict__
 
     args = ["feeds", "update", "--id", str(id)]
@@ -109,6 +131,11 @@ def feeds_update(
         args.extend(["--name", name])
     if url is not None:
         args.extend(["--url", url])
+    append_cli_options(args, values, FEED_SOURCE_OPTIONS)
+    if clear_feed_login:
+        args.append("--clear-feed-login")
+    if clear_feed_password:
+        args.append("--clear-feed-password")
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

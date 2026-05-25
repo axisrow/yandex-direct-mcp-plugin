@@ -151,6 +151,31 @@ class TestBidModifiersAdd:
             ]
         )
 
+    def test_bidmodifiers_add_accepts_smart_tv_adjustment(self):
+        """direct-cli 0.3.12 exposes SMART_TV_ADJUSTMENT."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"success": True}
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            result = bidmodifiers_add(
+                campaign_id=12345,
+                modifier_type="SMART_TV_ADJUSTMENT",
+                value=120,
+            )
+
+        assert result["success"] is True
+        runner.run_json.assert_called_once_with(
+            [
+                "bidmodifiers",
+                "add",
+                "--type",
+                "SMART_TV_ADJUSTMENT",
+                "--value",
+                "120",
+                "--campaign-id",
+                "12345",
+            ]
+        )
+
     def test_bidmodifiers_add_requires_scope(self):
         result = bidmodifiers_add(modifier_type="MOBILE_ADJUSTMENT", value=120)
         assert result["error"] == "missing_target_scope"

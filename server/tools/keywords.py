@@ -2,8 +2,36 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import CliOption, append_cli_options
 
 MAX_BATCH_SIZE = 10
+
+KEYWORD_AUTOTARGETING_OPTIONS = (
+    CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
+    CliOption(
+        "autotargeting_brand_options", "--autotargeting-brand-option", repeat=True
+    ),
+    CliOption("autotargeting_settings_exact", "--autotargeting-settings-exact"),
+    CliOption("autotargeting_settings_narrow", "--autotargeting-settings-narrow"),
+    CliOption(
+        "autotargeting_settings_alternative",
+        "--autotargeting-settings-alternative",
+    ),
+    CliOption("autotargeting_settings_accessory", "--autotargeting-settings-accessory"),
+    CliOption("autotargeting_settings_broader", "--autotargeting-settings-broader"),
+    CliOption(
+        "autotargeting_settings_without_brands",
+        "--autotargeting-settings-without-brands",
+    ),
+    CliOption(
+        "autotargeting_settings_with_advertiser_brand",
+        "--autotargeting-settings-with-advertiser-brand",
+    ),
+    CliOption(
+        "autotargeting_settings_with_competitors_brand",
+        "--autotargeting-settings-with-competitors-brand",
+    ),
+)
 
 
 def _check_batch_limit(ids_str: str) -> ToolError | None:
@@ -101,6 +129,19 @@ def keywords_update(
     keyword: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
+    autotargeting_categories: list[str] | None = None,
+    autotargeting_brand_options: list[str] | None = None,
+    autotargeting_settings_exact: str | None = None,
+    autotargeting_settings_narrow: str | None = None,
+    autotargeting_settings_alternative: str | None = None,
+    autotargeting_settings_accessory: str | None = None,
+    autotargeting_settings_broader: str | None = None,
+    autotargeting_settings_without_brands: str | None = None,
+    autotargeting_settings_with_advertiser_brand: str | None = None,
+    autotargeting_settings_with_competitors_brand: str | None = None,
+    bid: str | None = None,
+    context_bid: str | None = None,
+    status: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update keyword text or user params.
@@ -116,10 +157,11 @@ def keywords_update(
         user_param_2: Optional user parameter 2.
         dry_run: Show the direct request without sending it.
     """
-    if not any((keyword, user_param_1, user_param_2)):
+    values = locals()
+    if not any(value for key, value in values.items() if key not in {"id", "dry_run"}):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: keyword, user_param_1, user_param_2",
+            message="Provide at least one typed keyword field to update.",
         ).__dict__
 
     runner = get_runner()
@@ -130,6 +172,13 @@ def keywords_update(
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
+    append_cli_options(args, values, KEYWORD_AUTOTARGETING_OPTIONS)
+    if bid is not None:
+        args.extend(["--bid", bid])
+    if context_bid is not None:
+        args.extend(["--context-bid", context_bid])
+    if status is not None:
+        args.extend(["--status", status])
     if dry_run:
         args.append("--dry-run")
     cli_output = runner.run_json(args)
@@ -157,6 +206,18 @@ def keywords_add(
     keyword: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
+    autotargeting_search_bid_is_auto: str | None = None,
+    priority: str | None = None,
+    autotargeting_categories: list[str] | None = None,
+    autotargeting_brand_options: list[str] | None = None,
+    autotargeting_settings_exact: str | None = None,
+    autotargeting_settings_narrow: str | None = None,
+    autotargeting_settings_alternative: str | None = None,
+    autotargeting_settings_accessory: str | None = None,
+    autotargeting_settings_broader: str | None = None,
+    autotargeting_settings_without_brands: str | None = None,
+    autotargeting_settings_with_advertiser_brand: str | None = None,
+    autotargeting_settings_with_competitors_brand: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
     from_file: str | None = None,
@@ -223,6 +284,16 @@ def keywords_add(
         args.extend(["--bid", str(bid)])
     if context_bid is not None:
         args.extend(["--context-bid", str(context_bid)])
+    if autotargeting_search_bid_is_auto is not None:
+        args.extend(
+            [
+                "--autotargeting-search-bid-is-auto",
+                autotargeting_search_bid_is_auto,
+            ]
+        )
+    if priority is not None:
+        args.extend(["--priority", priority])
+    append_cli_options(args, locals(), KEYWORD_AUTOTARGETING_OPTIONS)
     if user_param_1 is not None:
         args.extend(["--user-param-1", user_param_1])
     if user_param_2 is not None:

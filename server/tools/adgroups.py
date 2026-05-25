@@ -2,9 +2,42 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import CliOption, append_cli_options, check_batch_limit
 
 MAX_BATCH_SIZE = 10
+
+ADGROUP_EXTRA_OPTIONS = (
+    CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
+    CliOption("autotargeting_settings_exact", "--autotargeting-settings-exact"),
+    CliOption("autotargeting_settings_narrow", "--autotargeting-settings-narrow"),
+    CliOption(
+        "autotargeting_settings_alternative",
+        "--autotargeting-settings-alternative",
+    ),
+    CliOption("autotargeting_settings_accessory", "--autotargeting-settings-accessory"),
+    CliOption("autotargeting_settings_broader", "--autotargeting-settings-broader"),
+    CliOption(
+        "autotargeting_settings_without_brands",
+        "--autotargeting-settings-without-brands",
+    ),
+    CliOption(
+        "autotargeting_settings_with_advertiser_brand",
+        "--autotargeting-settings-with-advertiser-brand",
+    ),
+    CliOption(
+        "autotargeting_settings_with_competitors_brand",
+        "--autotargeting-settings-with-competitors-brand",
+    ),
+    CliOption("feed_category_ids", "--feed-category-ids"),
+    CliOption("offer_retargeting", "--offer-retargeting"),
+    CliOption("store_url", "--store-url"),
+    CliOption("target_device_types", "--target-device-types"),
+    CliOption("target_carrier", "--target-carrier"),
+    CliOption("target_operating_system_version", "--target-operating-system-version"),
+    CliOption("negative_keywords", "--negative-keywords"),
+    CliOption("negative_keyword_shared_set_ids", "--negative-keyword-shared-set-ids"),
+    CliOption("tracking_params", "--tracking-params"),
+)
 
 
 def _check_batch_limit(ids_str: str) -> ToolError | None:
@@ -97,8 +130,26 @@ def adgroups_add(
     region_ids: str | None = None,
     domain_url: str | None = None,
     feed_id: int | None = None,
+    feed_category_ids: str | None = None,
     ad_title_source: str | None = None,
     ad_body_source: str | None = None,
+    autotargeting_categories: list[str] | None = None,
+    autotargeting_settings_exact: str | None = None,
+    autotargeting_settings_narrow: str | None = None,
+    autotargeting_settings_alternative: str | None = None,
+    autotargeting_settings_accessory: str | None = None,
+    autotargeting_settings_broader: str | None = None,
+    autotargeting_settings_without_brands: str | None = None,
+    autotargeting_settings_with_advertiser_brand: str | None = None,
+    autotargeting_settings_with_competitors_brand: str | None = None,
+    offer_retargeting: str | None = None,
+    store_url: str | None = None,
+    target_device_types: str | None = None,
+    target_carrier: str | None = None,
+    target_operating_system_version: str | None = None,
+    negative_keywords: str | None = None,
+    negative_keyword_shared_set_ids: str | None = None,
+    tracking_params: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create a new ad group.
@@ -137,6 +188,7 @@ def adgroups_add(
         args.extend(["--ad-title-source", ad_title_source])
     if ad_body_source is not None:
         args.extend(["--ad-body-source", ad_body_source])
+    append_cli_options(args, locals(), ADGROUP_EXTRA_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
@@ -150,6 +202,28 @@ def adgroups_update(
     name: str | None = None,
     status: str | None = None,
     region_ids: str | None = None,
+    domain_url: str | None = None,
+    dynamic_feed: str | None = None,
+    negative_keywords: str | None = None,
+    negative_keyword_shared_set_ids: str | None = None,
+    tracking_params: str | None = None,
+    feed_id: int | None = None,
+    feed_category_ids: str | None = None,
+    ad_title_source: str | None = None,
+    ad_body_source: str | None = None,
+    offer_retargeting: str | None = None,
+    target_device_types: str | None = None,
+    target_carrier: str | None = None,
+    target_operating_system_version: str | None = None,
+    autotargeting_categories: list[str] | None = None,
+    autotargeting_settings_exact: str | None = None,
+    autotargeting_settings_narrow: str | None = None,
+    autotargeting_settings_alternative: str | None = None,
+    autotargeting_settings_accessory: str | None = None,
+    autotargeting_settings_broader: str | None = None,
+    autotargeting_settings_without_brands: str | None = None,
+    autotargeting_settings_with_advertiser_brand: str | None = None,
+    autotargeting_settings_with_competitors_brand: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update an ad group.
@@ -164,10 +238,11 @@ def adgroups_update(
         region_ids: Comma-separated region IDs for targeting.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, status, region_ids)):
+    values = locals()
+    if not any(value for key, value in values.items() if key not in {"id", "dry_run"}):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, status, region_ids",
+            message="Provide at least one typed ad group field to update.",
         ).__dict__
 
     args = ["adgroups", "update", "--id", str(id)]
@@ -177,6 +252,17 @@ def adgroups_update(
         args.extend(["--status", status])
     if region_ids is not None:
         args.extend(["--region-ids", region_ids])
+    if domain_url is not None:
+        args.extend(["--domain-url", domain_url])
+    if dynamic_feed is not None:
+        args.extend(["--dynamic-feed", dynamic_feed])
+    if feed_id is not None:
+        args.extend(["--feed-id", str(feed_id)])
+    if ad_title_source is not None:
+        args.extend(["--ad-title-source", ad_title_source])
+    if ad_body_source is not None:
+        args.extend(["--ad-body-source", ad_body_source])
+    append_cli_options(args, values, ADGROUP_EXTRA_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

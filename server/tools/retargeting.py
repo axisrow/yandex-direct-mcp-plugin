@@ -46,6 +46,8 @@ def retargeting_list(
 def retargeting_add(
     name: str,
     list_type: str = "RETARGETING",
+    description: str | None = None,
+    rules: list[str] | None = None,
     rule: str | None = None,
     dry_run: bool = False,
 ) -> dict:
@@ -78,6 +80,11 @@ def retargeting_add(
     ]
     if rule is not None:
         args.extend(["--rule", rule])
+    if description is not None:
+        args.extend(["--description", description])
+    if rules:
+        for spec in rules:
+            args.extend(["--rule", spec])
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)
@@ -101,7 +108,9 @@ def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
 def retargeting_update(
     id: int,
     name: str | None = None,
+    description: str | None = None,
     list_type: str | None = None,
+    rules: list[str] | None = None,
     rule: str | None = None,
     dry_run: bool = False,
 ) -> dict:
@@ -116,10 +125,10 @@ def retargeting_update(
         rule: New rule spec in CLI DSL form.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, list_type, rule)):
+    if not any((name, description, list_type, rules, rule)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, list_type, rule",
+            message="Provide at least one of: name, description, list_type, rule",
         ).__dict__
     if list_type is not None and list_type not in _LIST_TYPES:
         return ToolError(
@@ -130,10 +139,15 @@ def retargeting_update(
     args = ["retargeting", "update", "--id", str(id)]
     if name is not None:
         args.extend(["--name", name])
+    if description is not None:
+        args.extend(["--description", description])
     if list_type is not None:
         args.extend(["--type", list_type])
     if rule is not None:
         args.extend(["--rule", rule])
+    if rules:
+        for spec in rules:
+            args.extend(["--rule", spec])
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)

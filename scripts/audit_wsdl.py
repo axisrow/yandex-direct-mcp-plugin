@@ -31,10 +31,10 @@ from server.contract import PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS  # noq
 # older ``direct-cli`` builds may not ship ``wsdl_coverage``; the audit then
 # degrades gracefully to contract-only coverage and prints a warning.
 try:
-    from direct_cli.wsdl_coverage import (  # type: ignore[import-untyped]  # noqa: E402
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]  # noqa: E402
         CANONICAL_API_SERVICES as _CANONICAL_API_SERVICES_RAW,
     )
-    from direct_cli.wsdl_coverage import (  # type: ignore[import-untyped]  # noqa: E402
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]  # noqa: E402
         NON_WSDL_SERVICES as _NON_WSDL_SERVICES_RAW,
     )
 except Exception:  # pragma: no cover — old direct-cli without wsdl_coverage

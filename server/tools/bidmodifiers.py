@@ -17,6 +17,7 @@ _BIDMOD_TYPES = (
     "RETARGETING_ADJUSTMENT",
     "SERP_LAYOUT_ADJUSTMENT",
     "SMART_AD_ADJUSTMENT",
+    "SMART_TV_ADJUSTMENT",
     "TABLET_ADJUSTMENT",
     "VIDEO_ADJUSTMENT",
 )
@@ -143,6 +144,7 @@ def bidmodifiers_add(
     region_id: int | None = None,
     serp_layout: str | None = None,
     income_grade: str | None = None,
+    operating_system_type: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Add a bid modifier.
@@ -190,6 +192,8 @@ def bidmodifiers_add(
         args.extend(["--serp-layout", serp_layout])
     if income_grade is not None:
         args.extend(["--income-grade", income_grade])
+    if operating_system_type is not None:
+        args.extend(["--operating-system-type", operating_system_type])
     if dry_run:
         args.append("--dry-run")
 
