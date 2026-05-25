@@ -113,6 +113,12 @@ def clients_update(
         settings: List of OPTION=YES|NO entries (repeats CLI's --setting flag).
         tin_type: TIN type.
         tin: Taxpayer identification number.
+        erir_organization_*: ERIR organization fields, including name, KPP,
+            ePay number, registration number, OKSM number, and OKVED code.
+        erir_contract_*: ERIR contract fields, including number, date, type,
+            action type, subject type, agency payment, price amount, and VAT flag.
+        erir_contragent_*: ERIR contragent fields, including name, KPP, phone,
+            ePay number, registration number, OKSM number, TIN type, and TIN.
         dry_run: Show the direct request without sending it.
     """
     values = locals()

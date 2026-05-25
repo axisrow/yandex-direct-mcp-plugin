@@ -76,7 +76,9 @@ def smart_ad_targets_add(
         ad_group_id: Ad group ID.
         name: Target name.
         audience: Audience value.
-        condition: Condition spec (OPERAND:OPERATOR:ARG1|ARG2).
+        condition: Single condition spec (OPERAND:OPERATOR:ARG1|ARG2).
+        conditions: Additional condition specs; each item is forwarded as
+            repeated ``--condition``.
         average_cpc: Average CPC in micro-units (RUB × 1,000,000).
         average_cpa: Average CPA in micro-units (RUB × 1,000,000).
         priority: Strategy priority.
@@ -142,7 +144,9 @@ def smart_ad_targets_update(
         id: Target ID.
         name: New target name.
         audience: New audience value.
-        condition: New condition spec.
+        condition: Single new condition spec.
+        conditions: Additional new condition specs; each item is forwarded as
+            repeated ``--condition``.
         average_cpc: New average CPC in micro-units (RUB × 1,000,000).
         average_cpa: New average CPA in micro-units (RUB × 1,000,000).
         priority: New strategy priority.

@@ -104,12 +104,13 @@ def strategies_add(
 
     Args:
         name: Strategy name.
-        type: Strategy type — one of WbMaximumClicks, WbMaximumClicksPerBid,
-            WbMaximumConversionRate, WbMaximumConversionRatePerBid,
-            AverageCpc, AverageCpa, AverageCpaPerFilter, AverageCpaPerCampaign,
-            AverageCrr, AverageCrrPerCampaign, MaxProfit, MaxProfitPerFilter,
-            MaxProfitPerCampaign, PayForConversion, PayForConversionPerFilter,
-            PayForConversionPerCampaign.
+        type: Strategy type — one of WbMaximumClicks,
+            WbMaximumConversionRate, AverageCpc, AverageCpcPerCampaign,
+            AverageCpcPerFilter, AverageCpa, AverageCpaPerCampaign,
+            AverageCpaPerFilter, AverageCpaMultipleGoals, AverageCrr,
+            MaxProfit, PayForConversion, PayForConversionPerCampaign,
+            PayForConversionPerFilter, PayForConversionCrr,
+            PayForConversionMultipleGoals.
         average_cpc: Average CPC in micro-units (RUB × 1,000,000).
         average_cpa: Average CPA in micro-units (RUB × 1,000,000).
         average_crr: Average cost-revenue ratio (integer percent).
@@ -117,6 +118,11 @@ def strategies_add(
         spend_limit: Spend limit in micro-units.
         weekly_spend_limit: Weekly spend limit in micro-units.
         bid_ceiling: Bid ceiling in micro-units.
+        custom_period_spend_limit: Custom period spend limit in micro-units.
+        custom_period_start_date: Custom period start date.
+        custom_period_end_date: Custom period end date.
+        custom_period_auto_continue: Custom period auto-continue flag.
+        minimum_exploration_budget: Minimum exploration budget in micro-units.
         counter_ids: Comma-separated Metrica counter IDs.
         priority_goals: List of "GOAL_ID:VALUE" specs (each becomes a
             repeated --priority-goal flag).

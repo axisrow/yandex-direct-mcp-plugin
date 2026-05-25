@@ -59,10 +59,14 @@ def keyword_bids_set(
     """Set keyword bids.
 
     Args:
-        keyword_id: Keyword ID.
+        keyword_id: Keyword ID selector.
+        campaign_id: Campaign ID selector.
+        ad_group_id: Ad group ID selector.
         search_bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         network_bid: Optional network bid in micro-units (same rules as `search_bid`).
+        autotargeting_search_bid_is_auto: Autotargeting search bid auto flag.
+        priority: Strategy priority.
         dry_run: Show the direct request without sending it.
     """
     if keyword_id is None and campaign_id is None and ad_group_id is None:

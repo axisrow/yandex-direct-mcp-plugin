@@ -124,14 +124,20 @@ def retargeting_update(
     Args:
         id: Retargeting list ID to update.
         name: New name for the list.
+        description: New list description.
         list_type: New list type (RETARGETING | AUDIENCE).
-        rule: New rule spec in CLI DSL form.
+        rule: Single new rule spec in CLI DSL form.
+        rules: Additional new rule specs; each item is forwarded as repeated
+            ``--rule``.
         dry_run: Show the direct request without sending it.
     """
     if not any((name, description, list_type, rules, rule)):
         return ToolError(
             error="missing_update_fields",
-            message="Provide at least one of: name, description, list_type, rule",
+            message=(
+                "Provide at least one of: name, description, list_type, "
+                "rule, rules. Use rule for one spec or rules for repeated specs."
+            ),
         ).__dict__
     if list_type is not None and list_type not in _LIST_TYPES:
         return ToolError(

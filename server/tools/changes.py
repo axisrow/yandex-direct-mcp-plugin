@@ -61,10 +61,13 @@ def changes_check(
     https://yandex.ru/dev/direct/doc/ref-v5/changes/check.html.
 
     Args:
-        field_names: Comma-separated FieldNames (required by API). Allowed:
-            ``CampaignIds``, ``AdGroupIds``, ``AdIds``, ``CampaignsStat``.
         timestamp: ISO 8601 timestamp. A bare ``YYYY-MM-DDTHH:MM:SS`` is
             normalized to UTC (``...Z``); explicit offsets are kept as-is.
+        field_names: Backward-compatible alias for ``fields``.
+        fields: Optional comma-separated FieldNames. If omitted, no ``--fields``
+            flag is forwarded and the CLI/API default applies. Allowed:
+            ``CampaignIds``, ``AdGroupIds``, ``AdIds``, ``CampaignsStat``.
+            When both aliases are passed, ``fields`` takes precedence.
         campaign_ids: Comma-separated campaign IDs (up to 3000). Mutually
             exclusive with ``ad_group_ids`` and ``ad_ids``.
         ad_group_ids: Comma-separated ad group IDs (up to 10000). Mutually

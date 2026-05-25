@@ -75,7 +75,9 @@ def dynamic_feed_ad_targets_add(
     Args:
         ad_group_id: Ad group ID.
         name: Target name.
-        condition: Condition spec (e.g. "OPERAND:OPERATOR:ARG1|ARG2").
+        condition: Single condition spec (e.g. "OPERAND:OPERATOR:ARG1|ARG2").
+        conditions: Additional condition specs; each item is forwarded as
+            repeated ``--condition``.
         bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         context_bid: Optional context bid in micro-units (same rules as `bid`).

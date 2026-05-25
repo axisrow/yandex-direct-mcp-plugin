@@ -101,6 +101,17 @@ CAMPAIGN_MUTATION_OPTIONS = (
 )
 
 
+def _provided_update_value(value: object) -> bool:
+    """Return whether an optional update value should satisfy the update guard."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return True
+
+
 @mcp.tool(name="campaigns_get")
 @handle_cli_errors
 def campaigns_list(
@@ -279,7 +290,7 @@ def campaigns_update(
         for key, value in values.items()
         if key not in {"id", "dry_run", "notification_json", "time_targeting_json"}
     ]
-    if not any(optional_values):
+    if not any(_provided_update_value(value) for value in optional_values):
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one typed campaign field to update.",

@@ -273,6 +273,24 @@ class TestCampaignsUpdate:
         assert result["error"] == "missing_update_fields"
         runner.run_json.assert_not_called()
 
+    def test_campaigns_update_accepts_zero_values(self):
+        """Zero-valued typed fields are valid updates and must reach the CLI."""
+        runner = _mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(id=12345, holidays_start_hour=0)
+
+        runner.run_json.assert_called_once_with(
+            [
+                "campaigns",
+                "update",
+                "--id",
+                "12345",
+                "--holidays-start-hour",
+                "0",
+            ]
+        )
+        assert result == {"success": True, "id": 12345}
+
 
 class TestCampaignsCrudOperations:
     """Tests for campaign CRUD operations (add, delete, archive, unarchive)."""

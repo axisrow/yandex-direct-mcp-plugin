@@ -73,12 +73,18 @@ def bids_set(
 ) -> dict:
     """Set a keyword bid.
 
-    CLI 0.3.8 dropped --json; the only typed knob is --bid for a single keyword.
+    CLI 0.3.12 supports keyword-, campaign-, and ad-group-scoped bid updates
+    with typed search/context bid, autotargeting, and priority fields.
 
     Args:
-        keyword_id: Keyword ID.
+        keyword_id: Keyword ID selector.
+        campaign_id: Campaign ID selector.
+        ad_group_id: Ad group ID selector.
         bid: Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
             0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        context_bid: Context bid in micro-units.
+        autotargeting_search_bid_is_auto: Autotargeting search bid auto flag.
+        priority: Strategy priority.
         dry_run: Show the direct request without sending it.
     """
     if keyword_id is None and campaign_id is None and ad_group_id is None:
