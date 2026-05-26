@@ -243,6 +243,13 @@ def keywords_add(
        ad_group_id default.
     3. Inline JSON: keywords_json = a JSON array of the same objects.
 
+    `Bid` and `ContextBid` are documented Yandex Direct `Keywords.add`
+    fields, but they are strategy-dependent: `Bid` is only for manual
+    strategies, and `ContextBid` is only for manual strategies with
+    independent ad-network bid management. For automatic strategies, Yandex
+    ignores these values and returns warning 10160; omit them in
+    auto-strategy / RSYA JSONL inputs.
+
     CLI 0.3.9 forwards the array as a single Yandex Direct API request (up to
     1000 keywords per call).
 

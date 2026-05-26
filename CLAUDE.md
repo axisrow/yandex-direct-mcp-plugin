@@ -498,7 +498,10 @@ all new parameters are optional.
   invoking the CLI. Per-row WSDL CamelCase keys
   (`AdGroupId`, `Keyword`, `Bid`, `ContextBid`, `UserParam1`,
   `UserParam2`); top-level `ad_group_id` acts as a default that each row
-  can override. CLI 0.3.9 forwards the array as a single Yandex Direct
+  can override. `Bid`/`ContextBid` are documented `Keywords.add` fields,
+  but they are strategy-dependent: omit them for auto-strategy / РСЯ
+  imports because Yandex ignores them and returns warning `10160`.
+  CLI 0.3.9 forwards the array as a single Yandex Direct
   API request (up to 1000 keywords per call). The plugin does not read
   `from_file` itself — CLI opens the path.
 - **`campaigns_add`**: 8 new optional fields for CPA strategies and
