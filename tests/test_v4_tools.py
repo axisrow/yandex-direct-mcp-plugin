@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-
+from server.cli.runner import DirectCliRunner
 from server.contract import (
     PUBLIC_TOOL_NAMES,
     V4_LIVE_BLOCKED_METHOD_NAMES,
@@ -27,6 +27,14 @@ def _mock_runner(return_value):
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
+
+
+def _completed(stdout: str) -> MagicMock:
+    result = MagicMock()
+    result.stdout = stdout
+    result.stderr = ""
+    result.returncode = 0
+    return result
 
 
 def test_balance_get_without_logins():
@@ -289,8 +297,15 @@ def test_v4tags_update_banners_clear_tags_dry_run():
 
 
 def test_v4tags_update_banners_returns_wrapped_scalar():
-    runner = _mock_runner({"result": 1})
-    with patch("server.tools.v4tags.get_runner", return_value=runner):
+    runner = DirectCliRunner()
+    with (
+        patch("server.tools.v4tags.get_runner", return_value=runner),
+        patch(
+            "server.cli.runner._resolve_direct_cached",
+            return_value="/usr/bin/direct",
+        ),
+        patch("server.cli.runner.subprocess.run", return_value=_completed("1")),
+    ):
         result = v4tags_update_banners(
             banner_ids="111,222",
             tag_ids="10,20",

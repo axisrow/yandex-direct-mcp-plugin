@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+from server.cli.runner import DirectCliRunner
 from server.tools.v4forecast import (
     v4forecast_create,
     v4forecast_delete,
@@ -14,6 +15,14 @@ def _mock_runner(return_value):
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
+
+
+def _completed(stdout: str) -> MagicMock:
+    result = MagicMock()
+    result.stdout = stdout
+    result.stderr = ""
+    result.returncode = 0
+    return result
 
 
 def test_v4forecast_create_argv():
@@ -60,8 +69,18 @@ def test_v4forecast_create_dry_run():
 
 
 def test_v4forecast_create_returns_wrapped_scalar():
-    runner = _mock_runner({"result": 987654321})
-    with patch("server.tools.v4forecast.get_runner", return_value=runner):
+    runner = DirectCliRunner()
+    with (
+        patch("server.tools.v4forecast.get_runner", return_value=runner),
+        patch(
+            "server.cli.runner._resolve_direct_cached",
+            return_value="/usr/bin/direct",
+        ),
+        patch(
+            "server.cli.runner.subprocess.run",
+            return_value=_completed("987654321"),
+        ),
+    ):
         result = v4forecast_create(phrases="phrase")
     assert result == {"result": 987654321}
 
@@ -114,7 +133,14 @@ def test_v4forecast_delete_dry_run():
 
 
 def test_v4forecast_delete_returns_wrapped_scalar():
-    runner = _mock_runner({"result": 1})
-    with patch("server.tools.v4forecast.get_runner", return_value=runner):
+    runner = DirectCliRunner()
+    with (
+        patch("server.tools.v4forecast.get_runner", return_value=runner),
+        patch(
+            "server.cli.runner._resolve_direct_cached",
+            return_value="/usr/bin/direct",
+        ),
+        patch("server.cli.runner.subprocess.run", return_value=_completed("1")),
+    ):
         result = v4forecast_delete(forecast_id=42)
     assert result == {"result": 1}

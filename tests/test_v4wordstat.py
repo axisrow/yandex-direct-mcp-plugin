@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+from server.cli.runner import DirectCliRunner
 from server.tools.v4wordstat import (
     v4wordstat_create_report,
     v4wordstat_delete_report,
@@ -14,6 +15,14 @@ def _mock_runner(return_value):
     runner = MagicMock()
     runner.run_json.return_value = return_value
     return runner
+
+
+def _completed(stdout: str) -> MagicMock:
+    result = MagicMock()
+    result.stdout = stdout
+    result.stderr = ""
+    result.returncode = 0
+    return result
 
 
 def test_v4wordstat_create_report_argv():
@@ -62,8 +71,18 @@ def test_v4wordstat_create_report_dry_run():
 
 
 def test_v4wordstat_create_report_returns_wrapped_scalar():
-    runner = _mock_runner({"result": 1233756017})
-    with patch("server.tools.v4wordstat.get_runner", return_value=runner):
+    runner = DirectCliRunner()
+    with (
+        patch("server.tools.v4wordstat.get_runner", return_value=runner),
+        patch(
+            "server.cli.runner._resolve_direct_cached",
+            return_value="/usr/bin/direct",
+        ),
+        patch(
+            "server.cli.runner.subprocess.run",
+            return_value=_completed("1233756017"),
+        ),
+    ):
         result = v4wordstat_create_report(phrases="phrase")
     assert result == {"result": 1233756017}
 
@@ -131,7 +150,14 @@ def test_v4wordstat_delete_report_dry_run():
 
 
 def test_v4wordstat_delete_report_returns_wrapped_scalar():
-    runner = _mock_runner({"result": 1})
-    with patch("server.tools.v4wordstat.get_runner", return_value=runner):
+    runner = DirectCliRunner()
+    with (
+        patch("server.tools.v4wordstat.get_runner", return_value=runner),
+        patch(
+            "server.cli.runner._resolve_direct_cached",
+            return_value="/usr/bin/direct",
+        ),
+        patch("server.cli.runner.subprocess.run", return_value=_completed("1")),
+    ):
         result = v4wordstat_delete_report(report_id=42)
     assert result == {"result": 1}
