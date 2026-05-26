@@ -631,6 +631,13 @@ PARAMETER_BREAKING_CHANGES: dict[str, str] = {
 
 REMOVED_LEGACY_PUBLIC_NAMES = frozenset(RENAMED_TOOL_MIGRATION.keys())
 
+# Changes timestamps follow the Yandex Direct API wire format and must include
+# an explicit timezone. The plugin rejects bare local datetimes before invoking
+# ``direct`` so callers cannot accidentally depend on server-local fallback.
+EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS = frozenset(
+    {"changes_check", "changes_check_campaigns"}
+)
+
 
 def _tool_name(service: str, method: str) -> str:
     return f"{service}_{method}"

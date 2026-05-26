@@ -8,20 +8,23 @@ from server.tools.helpers import check_batch_limit, parse_ids
 
 ALLOWED_FIELD_NAMES = {"CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"}
 
-_TZ_SUFFIX_RE = re.compile(r"(Z|[+-]\d{2}:?\d{2})$")
+_TIMESTAMP_WITH_TIMEZONE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$"
+)
 
 
-def _normalize_timestamp(ts: str) -> str:
-    """Append 'Z' (UTC) when the timestamp carries no timezone suffix.
-
-    Yandex Direct ``Changes.check`` requires ISO 8601 with an explicit zone;
-    without it the API silently treats the value as local server time, which
-    shifts the change window. Strip surrounding whitespace first — a trailing
-    newline would otherwise let Python's ``$`` anchor match before it and mask
-    a missing zone, and a trailing space would inject an invalid character.
-    """
+def _validate_timestamp(ts: str) -> str | ToolError:
+    """Validate Yandex Direct Changes timestamp with explicit timezone."""
     ts = ts.strip()
-    return ts if _TZ_SUFFIX_RE.search(ts) else f"{ts}Z"
+    if _TIMESTAMP_WITH_TIMEZONE_RE.fullmatch(ts):
+        return ts
+    return ToolError(
+        error="invalid_timestamp",
+        message=(
+            "Timestamp must include timezone, e.g. "
+            "2025-06-01T00:00:00Z or 2025-06-01T00:00:00+03:00."
+        ),
+    )
 
 
 def _validate_field_names(field_names: str) -> ToolError | None:
@@ -61,8 +64,8 @@ def changes_check(
     https://yandex.ru/dev/direct/doc/ref-v5/changes/check.html.
 
     Args:
-        timestamp: ISO 8601 timestamp. A bare ``YYYY-MM-DDTHH:MM:SS`` is
-            normalized to UTC (``...Z``); explicit offsets are kept as-is.
+        timestamp: ISO 8601 timestamp with explicit timezone, for example
+            ``YYYY-MM-DDTHH:MM:SSZ`` or ``YYYY-MM-DDTHH:MM:SS+03:00``.
         field_names: Backward-compatible alias for ``fields``.
         fields: Optional comma-separated FieldNames. If omitted, no ``--fields``
             flag is forwarded and the CLI/API default applies. Allowed:
@@ -80,6 +83,9 @@ def changes_check(
         field_error = _validate_field_names(selected_fields)
         if field_error:
             return field_error.__dict__
+    validated_timestamp = _validate_timestamp(timestamp)
+    if isinstance(validated_timestamp, ToolError):
+        return validated_timestamp.__dict__
 
     provided: list[tuple[str, str, str, int]] = []
     for cli_flag, label, value, limit in (
@@ -124,7 +130,7 @@ def changes_check(
         cli_flag,
         value,
         "--timestamp",
-        _normalize_timestamp(timestamp),
+        validated_timestamp,
     ]
     if selected_fields is not None:
         args.extend(["--fields", selected_fields])
@@ -138,15 +144,18 @@ def changes_checkcamp(timestamp: str) -> dict:
     """Check account-wide campaign changes since ``timestamp``.
 
     Args:
-        timestamp: ISO 8601 timestamp. A bare ``YYYY-MM-DDTHH:MM:SS`` is
-            normalized to UTC (``...Z``).
+        timestamp: ISO 8601 timestamp with explicit timezone, for example
+            ``YYYY-MM-DDTHH:MM:SSZ`` or ``YYYY-MM-DDTHH:MM:SS+03:00``.
     """
+    validated_timestamp = _validate_timestamp(timestamp)
+    if isinstance(validated_timestamp, ToolError):
+        return validated_timestamp.__dict__
     return get_runner().run_json(
         [
             "changes",
             "check-campaigns",
             "--timestamp",
-            _normalize_timestamp(timestamp),
+            validated_timestamp,
             "--format",
             "json",
         ]

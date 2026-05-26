@@ -8,6 +8,7 @@ from server.tools.changes import (
     changes_checkcamp,
     changes_checkdict,
 )
+from server.contract import EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS
 
 
 def _mock_runner(return_value):
@@ -176,17 +177,17 @@ class TestChangesCheck:
         argv = _argv_for(runner)
         assert argv[2:4] == ["--ad-ids", "42"]
 
-    def test_normalizes_timestamp_without_z(self):
+    def test_rejects_timestamp_without_timezone(self):
         runner = _mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
-            changes_check(
+            result = changes_check(
                 field_names="CampaignIds",
                 timestamp="2026-01-01T00:00:00",
                 campaign_ids="1",
             )
-        argv = _argv_for(runner)
-        ts_idx = argv.index("--timestamp")
-        assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
+        assert result["error"] == "invalid_timestamp"
+        assert "Timestamp must include timezone" in result["message"]
+        runner.run_json.assert_not_called()
 
     def test_keeps_existing_z(self):
         runner = _mock_runner({})
@@ -212,18 +213,16 @@ class TestChangesCheck:
         ts_idx = argv.index("--timestamp")
         assert argv[ts_idx + 1] == "2026-01-01T00:00:00+03:00"
 
-    def test_strips_trailing_space_before_normalizing(self):
-        """Trailing space must not result in '... Z' (invalid for the API)."""
+    def test_rejects_trailing_space_without_timezone(self):
         runner = _mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
-            changes_check(
+            result = changes_check(
                 field_names="CampaignIds",
                 timestamp="2026-01-01T00:00:00 ",
                 campaign_ids="1",
             )
-        argv = _argv_for(runner)
-        ts_idx = argv.index("--timestamp")
-        assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
+        assert result["error"] == "invalid_timestamp"
+        runner.run_json.assert_not_called()
 
     def test_strips_trailing_newline_after_z(self):
         """Trailing '\\n' must be stripped — Python's ``$`` would otherwise
@@ -259,13 +258,21 @@ class TestChangesCheckCamp:
             ]
         )
 
-    def test_check_campaign_changes_normalizes_timestamp(self):
+    def test_check_campaign_changes_rejects_timestamp_without_timezone(self):
         runner = _mock_runner({"Campaigns": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
-            changes_checkcamp(timestamp="2026-01-01T00:00:00")
+            result = changes_checkcamp(timestamp="2026-01-01T00:00:00")
+        assert result["error"] == "invalid_timestamp"
+        assert "Timestamp must include timezone" in result["message"]
+        runner.run_json.assert_not_called()
+
+    def test_check_campaign_changes_keeps_explicit_offset(self):
+        runner = _mock_runner({"Campaigns": []})
+        with patch("server.tools.changes.get_runner", return_value=runner):
+            changes_checkcamp(timestamp="2026-01-01T00:00:00+03:00")
         argv = _argv_for(runner)
         ts_idx = argv.index("--timestamp")
-        assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
+        assert argv[ts_idx + 1] == "2026-01-01T00:00:00+03:00"
 
 
 class TestChangesCheckDict:
@@ -278,3 +285,10 @@ class TestChangesCheckDict:
         runner.run_json.assert_called_once_with(
             ["changes", "check-dictionaries", "--format", "json"]
         )
+
+
+def test_changes_timestamp_contract_requires_explicit_timezone():
+    assert EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS == {
+        "changes_check",
+        "changes_check_campaigns",
+    }
