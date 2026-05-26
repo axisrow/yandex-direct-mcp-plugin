@@ -495,12 +495,13 @@ all new parameters are optional.
   file) or `keywords_json` (inline JSON array). Mutex with the single
   `keyword` form — passing zero or more than one of the three returns
   `ToolError(error="missing_mode" | "conflicting_modes")` without
-  invoking the CLI. Per-row WSDL CamelCase keys
-  (`AdGroupId`, `Keyword`, `Bid`, `ContextBid`, `UserParam1`,
-  `UserParam2`); top-level `ad_group_id` acts as a default that each row
-  can override. `Bid`/`ContextBid` are documented `Keywords.add` fields,
-  but they are strategy-dependent: omit them for auto-strategy / РСЯ
-  imports because Yandex ignores them and returns warning `10160`.
+  invoking the CLI. Per-row WSDL CamelCase keys: required `Keyword` and
+  `AdGroupId` unless top-level `ad_group_id` provides the default; optional
+  `Bid`, `ContextBid`, `UserParam1`, and `UserParam2`. Per-row `AdGroupId`
+  overrides the default. `Bid`/`ContextBid` are documented `Keywords.add`
+  fields, but they are strategy-dependent: do not set them for auto-strategy /
+  RSYA (РСЯ) JSONL or inline JSON imports because Yandex ignores them and
+  returns warning `10160`.
   CLI 0.3.9 forwards the array as a single Yandex Direct
   API request (up to 1000 keywords per call). The plugin does not read
   `from_file` itself — CLI opens the path.
