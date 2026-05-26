@@ -309,9 +309,13 @@ class DirectCliRunner:
             return []
 
         try:
-            return json.loads(output)
+            parsed = json.loads(output)
         except json.JSONDecodeError as e:
             raise CliError(f"Failed to parse CLI output as JSON: {e}") from e
+
+        if isinstance(parsed, (dict, list)):
+            return parsed
+        return {"result": parsed}
 
 
 def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:

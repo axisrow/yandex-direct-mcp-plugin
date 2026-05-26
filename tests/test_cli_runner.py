@@ -753,6 +753,19 @@ class TestRunJson:
             assert len(result) == 1
             assert result[0]["Id"] == 12345
 
+    def test_scalar_json_response_is_wrapped(self, runner):
+        mock_result = MagicMock()
+        mock_result.stdout = "1"
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            result = runner.run_json(["v4tags", "update-banners", "--format", "json"])
+            assert result == {"result": 1}
+
     def test_auth_error(self, runner):
         """Test 401 response."""
         mock_result = MagicMock()

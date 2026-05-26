@@ -59,6 +59,13 @@ def test_v4forecast_create_dry_run():
         assert "--dry-run" in argv
 
 
+def test_v4forecast_create_returns_wrapped_scalar():
+    runner = _mock_runner({"result": 987654321})
+    with patch("server.tools.v4forecast.get_runner", return_value=runner):
+        result = v4forecast_create(phrases="phrase")
+    assert result == {"result": 987654321}
+
+
 def test_v4forecast_list_argv():
     runner = _mock_runner([])
     with patch("server.tools.v4forecast.get_runner", return_value=runner):
@@ -104,3 +111,10 @@ def test_v4forecast_delete_dry_run():
         v4forecast_delete(forecast_id=42, dry_run=True)
         argv = runner.run_json.call_args[0][0]
         assert "--dry-run" in argv
+
+
+def test_v4forecast_delete_returns_wrapped_scalar():
+    runner = _mock_runner({"result": 1})
+    with patch("server.tools.v4forecast.get_runner", return_value=runner):
+        result = v4forecast_delete(forecast_id=42)
+    assert result == {"result": 1}

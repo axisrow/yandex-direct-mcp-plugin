@@ -288,6 +288,17 @@ def test_v4tags_update_banners_clear_tags_dry_run():
     )
 
 
+def test_v4tags_update_banners_returns_wrapped_scalar():
+    runner = _mock_runner({"result": 1})
+    with patch("server.tools.v4tags.get_runner", return_value=runner):
+        result = v4tags_update_banners(
+            banner_ids="111,222",
+            tag_ids="10,20",
+        )
+
+    assert result == {"result": 1}
+
+
 def test_v4tags_update_banners_requires_banner_ids():
     result = v4tags_update_banners(banner_ids="   ", tag_ids="10")
     assert result["error"] == "missing_banner_ids"
