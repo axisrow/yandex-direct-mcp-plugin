@@ -237,11 +237,19 @@ def keywords_add(
 
     1. Single: ad_group_id + keyword (+ optional bid / context_bid / user_params).
     2. JSONL batch: from_file = path to a .jsonl file, one keyword object per line.
-       Per-line schema (WSDL CamelCase): {"AdGroupId": int, "Keyword": str,
-       "Bid": int (micro-RUB), "ContextBid": int, "UserParam1": str,
-       "UserParam2": str}. Per-line AdGroupId overrides the top-level
-       ad_group_id default.
+       Per-line schema uses WSDL CamelCase: required keys are "Keyword" and
+       "AdGroupId" unless a top-level ad_group_id default is provided. Optional
+       keys are "Bid" (micro-RUB), "ContextBid" (micro-RUB), "UserParam1", and
+       "UserParam2". Per-line AdGroupId overrides the top-level ad_group_id
+       default.
     3. Inline JSON: keywords_json = a JSON array of the same objects.
+
+    `Bid` and `ContextBid` are documented Yandex Direct `Keywords.add`
+    fields, but they are strategy-dependent: `Bid` is only for manual
+    strategies, and `ContextBid` is only for manual strategies with
+    independent ad-network bid management. For automatic strategies, Yandex
+    ignores these values and returns warning 10160; do not set them in
+    auto-strategy / RSYA (РСЯ) JSONL or inline JSON inputs.
 
     CLI 0.3.9 forwards the array as a single Yandex Direct API request (up to
     1000 keywords per call).
