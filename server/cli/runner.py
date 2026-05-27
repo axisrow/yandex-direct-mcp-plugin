@@ -27,7 +27,7 @@ _VERSION_RE = re.compile(
     re.IGNORECASE,
 )
 
-MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 3, 11)
+MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 3, 13)
 
 
 def _strip_ansi(text: str) -> str:
