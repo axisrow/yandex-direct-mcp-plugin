@@ -522,32 +522,38 @@ def reports_custom(
             )
         )
     if processing_mode is not None and processing_mode not in VALID_PROCESSING_MODES:
-        return ToolError(
-            error="invalid_processing_mode",
-            message=(
-                f"processing_mode must be one of {sorted(VALID_PROCESSING_MODES)}; "
-                f"got {processing_mode!r}."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_processing_mode",
+                message=(
+                    f"processing_mode must be one of {sorted(VALID_PROCESSING_MODES)}; "
+                    f"got {processing_mode!r}."
+                ),
+            )
+        )
     if language is not None and language not in VALID_REPORT_LANGUAGES:
-        return ToolError(
-            error="invalid_language",
-            message=(
-                f"language must be one of {sorted(VALID_REPORT_LANGUAGES)}; "
-                f"got {language!r}."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_language",
+                message=(
+                    f"language must be one of {sorted(VALID_REPORT_LANGUAGES)}; "
+                    f"got {language!r}."
+                ),
+            )
+        )
     if attribution_models is not None:
         tokens = [t.strip() for t in attribution_models.split(",") if t.strip()]
         unknown = [m for m in tokens if m not in VALID_ATTRIBUTION_MODELS]
         if unknown:
-            return ToolError(
-                error="invalid_attribution_models",
-                message=(
-                    f"Unknown attribution models: {unknown}. "
-                    f"Allowed: {sorted(VALID_ATTRIBUTION_MODELS)}."
-                ),
-            ).__dict__
+            return tool_error_dict(
+                ToolError(
+                    error="invalid_attribution_models",
+                    message=(
+                        f"Unknown attribution models: {unknown}. "
+                        f"Allowed: {sorted(VALID_ATTRIBUTION_MODELS)}."
+                    ),
+                )
+            )
         # Normalize: send a whitespace-clean CSV to the CLI so what we
         # validated is bit-for-bit what reaches the CLI.
         attribution_models = ",".join(tokens)
