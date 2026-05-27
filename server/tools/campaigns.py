@@ -620,15 +620,29 @@ def campaigns_update(
 ) -> dict:
     """Update campaign fields.
 
-    All money parameters (anything ending in *spend_limit, *_cpc, *_cpa,
-    *_cpi, *_cpm, *_cpv, *_pay_cpa, *_bid_ceiling, *_exploration_budget,
-    *_exploration_min, *_exploration_min_budget, *_profitability, *_roi_coef,
-    *_filter_average_cpa, *_filter_average_cpc, plus top-level budget,
-    average_cpa, bid_ceiling, average_cpm, average_cpv, strategy_spend_limit)
-    are in **micro-units**: 15 RUB = 15_000_000. The agent must convert
-    user-supplied rubles before calling this tool — never ask the user
-    to multiply by 1_000_000. CLI rejects 0 < x < 100_000 with a
-    "did you mean × 1_000_000" hint.
+    Money parameters (anything ending in *_spend_limit, *_cpc, *_cpa, *_cpi,
+    *_cpm, *_cpv, *_pay_cpa, *_bid_ceiling, *_exploration_budget,
+    *_exploration_min, *_exploration_min_budget, *_filter_average_cpa,
+    *_filter_average_cpc, plus top-level budget, average_cpa, bid_ceiling,
+    average_cpm, average_cpv, strategy_spend_limit) are in **micro-units**:
+    15 RUB = 15_000_000. The agent must convert user-supplied rubles before
+    calling this tool — never ask the user to multiply by 1_000_000. CLI
+    rejects 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+
+    Encoded-ratio parameters in micro-units (NOT rubles, but the same
+    × 1_000_000 scale per Yandex Direct WSDL): `text_search_profitability`,
+    `text_search_roi_coef`, `text_network_profitability`,
+    `text_network_roi_coef`, `smart_search_profitability`,
+    `smart_search_roi_coef`, `smart_network_profitability`,
+    `smart_network_roi_coef`. Pass 20% as 20_000_000, ratio 1.0 as 1_000_000.
+
+    Plain integer parameters (NOT micro-units): `*_reserve_return` (percent
+    0-100), `*_limit_percent` (percent 10-100), `*_clicks_per_week` (count),
+    `*_crr` (percent 1-1000 for dyn_*; same for smart_*), `*_goal_id`,
+    `dyn_search_profitability`, `dyn_search_roi_coef`,
+    `dyn_network_profitability`, `dyn_network_roi_coef` (these dyn_* four
+    are plain integers per CLI, unlike their text_*/smart_* siblings).
+    Pass these as-is — do NOT multiply by 1_000_000.
 
     Args:
         id: Campaign ID to update.
@@ -934,15 +948,29 @@ def campaigns_add(
 ) -> dict:
     """Create a new campaign.
 
-    All money parameters (budget, average_cpa, bid_ceiling, average_cpm,
+    Money parameters (budget, average_cpa, bid_ceiling, average_cpm,
     average_cpv, strategy_spend_limit, and every strategy-detail parameter
     ending in *_spend_limit, *_cpc, *_cpa, *_cpi, *_pay_cpa, *_bid_ceiling,
     *_exploration_budget, *_exploration_min, *_exploration_min_budget,
-    *_profitability, *_roi_coef, *_filter_average_cpa, *_filter_average_cpc)
-    are in **micro-units**: 15 RUB = 15_000_000. The agent must convert
-    user-supplied rubles before calling this tool — never ask the user
-    to multiply by 1_000_000. CLI rejects 0 < x < 100_000 with a
-    "did you mean × 1_000_000" hint.
+    *_filter_average_cpa, *_filter_average_cpc) are in **micro-units**:
+    15 RUB = 15_000_000. The agent must convert user-supplied rubles before
+    calling this tool — never ask the user to multiply by 1_000_000. CLI
+    rejects 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+
+    Encoded-ratio parameters in micro-units (NOT rubles, but the same
+    × 1_000_000 scale per Yandex Direct WSDL): `text_search_profitability`,
+    `text_search_roi_coef`, `text_network_profitability`,
+    `text_network_roi_coef`, `smart_search_profitability`,
+    `smart_search_roi_coef`, `smart_network_profitability`,
+    `smart_network_roi_coef`. Pass 20% as 20_000_000, ratio 1.0 as 1_000_000.
+
+    Plain integer parameters (NOT micro-units): `*_reserve_return` (percent
+    0-100), `*_limit_percent` (percent 10-100), `*_clicks_per_week` (count),
+    `*_crr` (percent 1-1000 for dyn_*; same for smart_*), `*_goal_id`,
+    `dyn_search_profitability`, `dyn_search_roi_coef`,
+    `dyn_network_profitability`, `dyn_network_roi_coef` (these dyn_* four
+    are plain integers per CLI, unlike their text_*/smart_* siblings).
+    Pass these as-is — do NOT multiply by 1_000_000.
 
     CLI 0.3.9+ enforces strict WSDL parity. Incompatible combinations (e.g.
     `crr` on AVERAGE_CPA, `priority_goals` without a `*_MULTIPLE_GOALS`
