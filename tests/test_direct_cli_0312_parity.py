@@ -5,13 +5,16 @@ from __future__ import annotations
 import importlib
 import inspect
 import re
+import tomllib
 from collections.abc import Callable
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 import direct_cli  # type: ignore[import-not-found, import-untyped]
 from direct_cli.cli import cli  # type: ignore[import-not-found, import-untyped]
 
+from server.cli.runner import MIN_DIRECT_VERSION
 from server.tools.adgroups import adgroups_add, adgroups_update
 from server.tools.ads import ads_add, ads_update
 from server.tools.bidmodifiers import bidmodifiers_add
@@ -105,6 +108,21 @@ def _direct_cli_version() -> tuple[int, int, int]:
 def _require_direct_cli_0312() -> None:
     if _direct_cli_version() < (0, 3, 12):
         pytest.skip("direct-cli 0.3.12 parity check waits for the PyPI release")
+
+
+def test_runtime_and_package_require_direct_cli_0312_or_newer() -> None:
+    """Issue #128: runtime and install contract must not regress below 0.3.12."""
+    assert MIN_DIRECT_VERSION >= (0, 3, 12)
+
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    dependencies = pyproject["project"]["dependencies"]
+    direct_dependency = next(
+        dep for dep in dependencies if dep.startswith("direct-cli")
+    )
+
+    match = re.search(r">=\s*(\d+)\.(\d+)\.(\d+)", direct_dependency)
+    assert match is not None
+    assert tuple(map(int, match.groups())) >= (0, 3, 12)
 
 
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:

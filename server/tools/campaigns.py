@@ -112,12 +112,26 @@ CAMPAIGN_MUTATION_OPTIONS = (
     # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
     CliOption("text_search_average_cpc", "--text-search-average-cpc"),
     CliOption("text_search_clicks_per_week", "--text-search-clicks-per-week"),
-    CliOption("text_search_custom_period_auto_continue", "--text-search-custom-period-auto-continue"),
-    CliOption("text_search_custom_period_end_date", "--text-search-custom-period-end-date"),
-    CliOption("text_search_custom_period_spend_limit", "--text-search-custom-period-spend-limit"),
-    CliOption("text_search_custom_period_start_date", "--text-search-custom-period-start-date"),
-    CliOption("text_search_exploration_is_custom", "--text-search-exploration-is-custom"),
-    CliOption("text_search_exploration_min_budget", "--text-search-exploration-min-budget"),
+    CliOption(
+        "text_search_custom_period_auto_continue",
+        "--text-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "text_search_custom_period_end_date", "--text-search-custom-period-end-date"
+    ),
+    CliOption(
+        "text_search_custom_period_spend_limit",
+        "--text-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "text_search_custom_period_start_date", "--text-search-custom-period-start-date"
+    ),
+    CliOption(
+        "text_search_exploration_is_custom", "--text-search-exploration-is-custom"
+    ),
+    CliOption(
+        "text_search_exploration_min_budget", "--text-search-exploration-min-budget"
+    ),
     CliOption("text_search_pay_cpa", "--text-search-pay-cpa"),
     CliOption("text_search_profitability", "--text-search-profitability"),
     CliOption("text_search_reserve_return", "--text-search-reserve-return"),
@@ -126,12 +140,27 @@ CAMPAIGN_MUTATION_OPTIONS = (
     # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
     CliOption("text_network_average_cpc", "--text-network-average-cpc"),
     CliOption("text_network_clicks_per_week", "--text-network-clicks-per-week"),
-    CliOption("text_network_custom_period_auto_continue", "--text-network-custom-period-auto-continue"),
-    CliOption("text_network_custom_period_end_date", "--text-network-custom-period-end-date"),
-    CliOption("text_network_custom_period_spend_limit", "--text-network-custom-period-spend-limit"),
-    CliOption("text_network_custom_period_start_date", "--text-network-custom-period-start-date"),
-    CliOption("text_network_exploration_is_custom", "--text-network-exploration-is-custom"),
-    CliOption("text_network_exploration_min_budget", "--text-network-exploration-min-budget"),
+    CliOption(
+        "text_network_custom_period_auto_continue",
+        "--text-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "text_network_custom_period_end_date", "--text-network-custom-period-end-date"
+    ),
+    CliOption(
+        "text_network_custom_period_spend_limit",
+        "--text-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "text_network_custom_period_start_date",
+        "--text-network-custom-period-start-date",
+    ),
+    CliOption(
+        "text_network_exploration_is_custom", "--text-network-exploration-is-custom"
+    ),
+    CliOption(
+        "text_network_exploration_min_budget", "--text-network-exploration-min-budget"
+    ),
     CliOption("text_network_limit_percent", "--text-network-limit-percent"),
     CliOption("text_network_pay_cpa", "--text-network-pay-cpa"),
     CliOption("text_network_profitability", "--text-network-profitability"),
@@ -145,12 +174,23 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("dyn_search_clicks_per_week", "--dyn-search-clicks-per-week"),
     CliOption("dyn_search_cpa", "--dyn-search-cpa"),
     CliOption("dyn_search_crr", "--dyn-search-crr"),
-    CliOption("dyn_search_custom_period_auto_continue", "--dyn-search-custom-period-auto-continue"),
-    CliOption("dyn_search_custom_period_end_date", "--dyn-search-custom-period-end-date"),
-    CliOption("dyn_search_custom_period_spend_limit", "--dyn-search-custom-period-spend-limit"),
-    CliOption("dyn_search_custom_period_start_date", "--dyn-search-custom-period-start-date"),
+    CliOption(
+        "dyn_search_custom_period_auto_continue",
+        "--dyn-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "dyn_search_custom_period_end_date", "--dyn-search-custom-period-end-date"
+    ),
+    CliOption(
+        "dyn_search_custom_period_spend_limit", "--dyn-search-custom-period-spend-limit"
+    ),
+    CliOption(
+        "dyn_search_custom_period_start_date", "--dyn-search-custom-period-start-date"
+    ),
     CliOption("dyn_search_exploration_budget", "--dyn-search-exploration-budget"),
-    CliOption("dyn_search_exploration_budget_custom", "--dyn-search-exploration-budget-custom"),
+    CliOption(
+        "dyn_search_exploration_budget_custom", "--dyn-search-exploration-budget-custom"
+    ),
     CliOption("dyn_search_goal_id", "--dyn-search-goal-id"),
     CliOption("dyn_search_profitability", "--dyn-search-profitability"),
     CliOption("dyn_search_reserve_return", "--dyn-search-reserve-return"),
@@ -163,12 +203,25 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("dyn_network_clicks_per_week", "--dyn-network-clicks-per-week"),
     CliOption("dyn_network_cpa", "--dyn-network-cpa"),
     CliOption("dyn_network_crr", "--dyn-network-crr"),
-    CliOption("dyn_network_custom_period_auto_continue", "--dyn-network-custom-period-auto-continue"),
-    CliOption("dyn_network_custom_period_end_date", "--dyn-network-custom-period-end-date"),
-    CliOption("dyn_network_custom_period_spend_limit", "--dyn-network-custom-period-spend-limit"),
-    CliOption("dyn_network_custom_period_start_date", "--dyn-network-custom-period-start-date"),
+    CliOption(
+        "dyn_network_custom_period_auto_continue",
+        "--dyn-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "dyn_network_custom_period_end_date", "--dyn-network-custom-period-end-date"
+    ),
+    CliOption(
+        "dyn_network_custom_period_spend_limit",
+        "--dyn-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "dyn_network_custom_period_start_date", "--dyn-network-custom-period-start-date"
+    ),
     CliOption("dyn_network_exploration_budget", "--dyn-network-exploration-budget"),
-    CliOption("dyn_network_exploration_budget_custom", "--dyn-network-exploration-budget-custom"),
+    CliOption(
+        "dyn_network_exploration_budget_custom",
+        "--dyn-network-exploration-budget-custom",
+    ),
     CliOption("dyn_network_goal_id", "--dyn-network-goal-id"),
     CliOption("dyn_network_limit_percent", "--dyn-network-limit-percent"),
     CliOption("dyn_network_profitability", "--dyn-network-profitability"),
@@ -186,7 +239,9 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("smart_search_cpa", "--smart-search-cpa"),
     CliOption("smart_search_crr", "--smart-search-crr"),
     CliOption("smart_search_exploration_min", "--smart-search-exploration-min"),
-    CliOption("smart_search_exploration_min_custom", "--smart-search-exploration-min-custom"),
+    CliOption(
+        "smart_search_exploration_min_custom", "--smart-search-exploration-min-custom"
+    ),
     CliOption("smart_search_filter_average_cpa", "--smart-search-filter-average-cpa"),
     CliOption("smart_search_filter_average_cpc", "--smart-search-filter-average-cpc"),
     CliOption("smart_search_goal_id", "--smart-search-goal-id"),
@@ -205,7 +260,9 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("smart_network_cpa", "--smart-network-cpa"),
     CliOption("smart_network_crr", "--smart-network-crr"),
     CliOption("smart_network_exploration_min", "--smart-network-exploration-min"),
-    CliOption("smart_network_exploration_min_custom", "--smart-network-exploration-min-custom"),
+    CliOption(
+        "smart_network_exploration_min_custom", "--smart-network-exploration-min-custom"
+    ),
     CliOption("smart_network_filter_average_cpa", "--smart-network-filter-average-cpa"),
     CliOption("smart_network_filter_average_cpc", "--smart-network-filter-average-cpc"),
     CliOption("smart_network_goal_id", "--smart-network-goal-id"),
@@ -216,50 +273,114 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("smart_network_weekly_spend_limit", "--smart-network-weekly-spend-limit"),
     # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
     CliOption("unified_search_average_cpc", "--unified-search-average-cpc"),
-    CliOption("unified_search_custom_period_auto_continue", "--unified-search-custom-period-auto-continue"),
-    CliOption("unified_search_custom_period_end_date", "--unified-search-custom-period-end-date"),
-    CliOption("unified_search_custom_period_spend_limit", "--unified-search-custom-period-spend-limit"),
-    CliOption("unified_search_custom_period_start_date", "--unified-search-custom-period-start-date"),
-    CliOption("unified_search_exploration_is_custom", "--unified-search-exploration-is-custom"),
-    CliOption("unified_search_exploration_min_budget", "--unified-search-exploration-min-budget"),
+    CliOption(
+        "unified_search_custom_period_auto_continue",
+        "--unified-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "unified_search_custom_period_end_date",
+        "--unified-search-custom-period-end-date",
+    ),
+    CliOption(
+        "unified_search_custom_period_spend_limit",
+        "--unified-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "unified_search_custom_period_start_date",
+        "--unified-search-custom-period-start-date",
+    ),
+    CliOption(
+        "unified_search_exploration_is_custom", "--unified-search-exploration-is-custom"
+    ),
+    CliOption(
+        "unified_search_exploration_min_budget",
+        "--unified-search-exploration-min-budget",
+    ),
     CliOption("unified_search_pay_cpa", "--unified-search-pay-cpa"),
     CliOption("unified_search_placement_maps", "--unified-search-placement-maps"),
     CliOption(
         "unified_search_placement_search_organization_list",
         "--unified-search-placement-search-organization-list",
     ),
-    CliOption("unified_search_weekly_spend_limit", "--unified-search-weekly-spend-limit"),
+    CliOption(
+        "unified_search_weekly_spend_limit", "--unified-search-weekly-spend-limit"
+    ),
     # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
     CliOption("unified_network_average_cpc", "--unified-network-average-cpc"),
     CliOption("unified_network_cpa", "--unified-network-cpa"),
-    CliOption("unified_network_custom_period_auto_continue", "--unified-network-custom-period-auto-continue"),
-    CliOption("unified_network_custom_period_end_date", "--unified-network-custom-period-end-date"),
-    CliOption("unified_network_custom_period_spend_limit", "--unified-network-custom-period-spend-limit"),
-    CliOption("unified_network_custom_period_start_date", "--unified-network-custom-period-start-date"),
-    CliOption("unified_network_exploration_is_custom", "--unified-network-exploration-is-custom"),
-    CliOption("unified_network_exploration_min_budget", "--unified-network-exploration-min-budget"),
-    CliOption("unified_network_weekly_spend_limit", "--unified-network-weekly-spend-limit"),
+    CliOption(
+        "unified_network_custom_period_auto_continue",
+        "--unified-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "unified_network_custom_period_end_date",
+        "--unified-network-custom-period-end-date",
+    ),
+    CliOption(
+        "unified_network_custom_period_spend_limit",
+        "--unified-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "unified_network_custom_period_start_date",
+        "--unified-network-custom-period-start-date",
+    ),
+    CliOption(
+        "unified_network_exploration_is_custom",
+        "--unified-network-exploration-is-custom",
+    ),
+    CliOption(
+        "unified_network_exploration_min_budget",
+        "--unified-network-exploration-min-budget",
+    ),
+    CliOption(
+        "unified_network_weekly_spend_limit", "--unified-network-weekly-spend-limit"
+    ),
     # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
     CliOption("mobile_search_average_cpc", "--mobile-search-average-cpc"),
     CliOption("mobile_search_average_cpi", "--mobile-search-average-cpi"),
     CliOption("mobile_search_bid_ceiling", "--mobile-search-bid-ceiling"),
     CliOption("mobile_search_clicks_per_week", "--mobile-search-clicks-per-week"),
-    CliOption("mobile_search_custom_period_auto_continue", "--mobile-search-custom-period-auto-continue"),
-    CliOption("mobile_search_custom_period_end_date", "--mobile-search-custom-period-end-date"),
-    CliOption("mobile_search_custom_period_spend_limit", "--mobile-search-custom-period-spend-limit"),
-    CliOption("mobile_search_custom_period_start_date", "--mobile-search-custom-period-start-date"),
+    CliOption(
+        "mobile_search_custom_period_auto_continue",
+        "--mobile-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "mobile_search_custom_period_end_date", "--mobile-search-custom-period-end-date"
+    ),
+    CliOption(
+        "mobile_search_custom_period_spend_limit",
+        "--mobile-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "mobile_search_custom_period_start_date",
+        "--mobile-search-custom-period-start-date",
+    ),
     CliOption("mobile_search_weekly_spend_limit", "--mobile-search-weekly-spend-limit"),
     # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
     CliOption("mobile_network_average_cpc", "--mobile-network-average-cpc"),
     CliOption("mobile_network_average_cpi", "--mobile-network-average-cpi"),
     CliOption("mobile_network_bid_ceiling", "--mobile-network-bid-ceiling"),
     CliOption("mobile_network_clicks_per_week", "--mobile-network-clicks-per-week"),
-    CliOption("mobile_network_custom_period_auto_continue", "--mobile-network-custom-period-auto-continue"),
-    CliOption("mobile_network_custom_period_end_date", "--mobile-network-custom-period-end-date"),
-    CliOption("mobile_network_custom_period_spend_limit", "--mobile-network-custom-period-spend-limit"),
-    CliOption("mobile_network_custom_period_start_date", "--mobile-network-custom-period-start-date"),
+    CliOption(
+        "mobile_network_custom_period_auto_continue",
+        "--mobile-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "mobile_network_custom_period_end_date",
+        "--mobile-network-custom-period-end-date",
+    ),
+    CliOption(
+        "mobile_network_custom_period_spend_limit",
+        "--mobile-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "mobile_network_custom_period_start_date",
+        "--mobile-network-custom-period-start-date",
+    ),
     CliOption("mobile_network_limit_percent", "--mobile-network-limit-percent"),
-    CliOption("mobile_network_weekly_spend_limit", "--mobile-network-weekly-spend-limit"),
+    CliOption(
+        "mobile_network_weekly_spend_limit", "--mobile-network-weekly-spend-limit"
+    ),
 )
 
 # Update-only flags: CLI exposes `--*-budget-type` only on `campaigns update`,
