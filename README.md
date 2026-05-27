@@ -2,6 +2,24 @@
 
 Claude Code plugin for managing Yandex.Direct advertising campaigns.
 
+## Project Status
+
+The project is implemented and publicly available at
+[`axisrow/yandex-direct-mcp-plugin`](https://github.com/axisrow/yandex-direct-mcp-plugin).
+It packages a Python MCP server, Yandex.Direct domain skills, and OAuth helpers
+around the `direct` CLI, which remains the only transport boundary to the
+Yandex.Direct API.
+
+Current distribution focus:
+
+- keep the open-source MCP server and core skills free under the MIT license;
+- publish installable plugin bundles for Claude Code and Codex-compatible
+  environments;
+- keep the README and generated docs strong enough for public onboarding, demos,
+  and registry listings;
+- reserve paid work for advanced analytics skills, agency integrations,
+  white-label packaging, and consulting around Yandex.Direct automation.
+
 ## Features
 
 - **MCP Server** — structured tools for campaigns, ads, keywords, and reports
@@ -116,7 +134,8 @@ The public contract is now defined as:
 
 - MCP never calls Yandex.Direct directly.
 - `direct` remains the only execution/transport boundary.
-- The package is still installed as `direct-cli` and must be `>=0.3.11`.
+- The package is installed as `direct-cli`; the runtime version floor lives in
+  [`server/cli/runner.py`](server/cli/runner.py).
 - `tapi-yandex-direct` naming is the default source reused by the CLI.
 - WSDL / Reports spec wins when old CLI convenience names drift.
 - v4 Live methods are exposed only when `direct` has a typed public command.
@@ -852,7 +871,7 @@ version = "0.1.10"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.11",
+    "direct-cli>=0.3.12",
 ]
 
 [project.optional-dependencies]
