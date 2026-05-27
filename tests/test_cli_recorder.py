@@ -76,6 +76,26 @@ class TestReplay:
         with pytest.raises(CassetteNotFoundError):
             recorder.replay(["direct", "unknown", "command"])
 
+    def test_cli_recorder_fixture_replays_committed_cassette(self, cli_recorder):
+        """Default replay mode must use cassettes instead of the real CLI."""
+        result = subprocess.run(
+            ["direct", "campaigns", "get", "--format", "json"],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0
+        assert "TEXT_CAMPAIGN" in result.stdout
+
+    def test_cli_recorder_fixture_fails_closed_on_missing_cassette(self, cli_recorder):
+        """Missing cassettes must not fall through to a live subprocess."""
+        with pytest.raises(CassetteNotFoundError):
+            subprocess.run(
+                ["direct", "unknown", "command"],
+                capture_output=True,
+                text=True,
+            )
+
 
 class TestIsRecording:
     def test_recording_mode_on(self, recorder):

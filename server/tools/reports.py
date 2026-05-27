@@ -17,6 +17,7 @@ from pathlib import Path
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 DEFAULT_REPORT_TYPE = "CAMPAIGN_PERFORMANCE_REPORT"
 DEFAULT_REPORT_NAME = "mcp_campaign_performance"
@@ -73,21 +74,45 @@ def _is_goals_filter(filter_expr: str) -> bool:
     return filter_expr.lstrip().lower().startswith("goals:")
 
 
+def _invalid_date_format(field_name: str, value: str) -> ToolError:
+    return ToolError(
+        error="invalid_date_format",
+        message=f"{field_name} must use YYYY-MM-DD format; got {value!r}.",
+    )
+
+
+def _parse_report_date(field_name: str, value: str) -> date | ToolError:
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return _invalid_date_format(field_name, value)
+
+
 def _resolve_report_dates(
     date_from: str | None, date_to: str | None
-) -> tuple[str, str]:
+) -> tuple[str, str] | ToolError:
     """Resolve the reporting window to match Direct's default day range."""
     if date_from and date_to:
+        parsed_from = _parse_report_date("date_from", date_from)
+        if isinstance(parsed_from, ToolError):
+            return parsed_from
+        parsed_to = _parse_report_date("date_to", date_to)
+        if isinstance(parsed_to, ToolError):
+            return parsed_to
         return date_from, date_to
 
     if date_to:
-        resolved_to = date.fromisoformat(date_to)
+        resolved_to = _parse_report_date("date_to", date_to)
+        if isinstance(resolved_to, ToolError):
+            return resolved_to
         resolved_from = resolved_to - timedelta(days=DEFAULT_WINDOW_DAYS)
         return resolved_from.isoformat(), date_to
 
     if date_from:
-        resolved_from = date.fromisoformat(date_from)
-        resolved_to = resolved_from + timedelta(days=DEFAULT_WINDOW_DAYS)
+        parsed_from = _parse_report_date("date_from", date_from)
+        if isinstance(parsed_from, ToolError):
+            return parsed_from
+        resolved_to = parsed_from + timedelta(days=DEFAULT_WINDOW_DAYS)
         return date_from, resolved_to.isoformat()
 
     today = date.today()
@@ -120,7 +145,10 @@ def reports_get(
         date_to: End date (YYYY-MM-DD). Defaults to today.
     """
     runner = get_runner()
-    resolved_from, resolved_to = _resolve_report_dates(date_from, date_to)
+    resolved_dates = _resolve_report_dates(date_from, date_to)
+    if isinstance(resolved_dates, ToolError):
+        return tool_error_dict(resolved_dates)
+    resolved_from, resolved_to = resolved_dates
     args = [
         "reports",
         "get",
@@ -470,17 +498,28 @@ def reports_custom(
         this in advance, run with `dry_run=True`.
     """
     if response_format not in VALID_RESPONSE_FORMATS:
-        raise ValueError(
-            f"unknown response_format {response_format!r}; "
-            f"expected one of {sorted(VALID_RESPONSE_FORMATS)}"
+        return tool_error_dict(
+            ToolError(
+                error="invalid_response_format",
+                message=(
+                    f"response_format must be one of {sorted(VALID_RESPONSE_FORMATS)}; "
+                    f"got {response_format!r}."
+                ),
+            )
         )
     if date_range_type and (date_from or date_to):
-        raise ValueError(
-            "pass either date_range_type OR explicit date_from/date_to, not both"
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_date_inputs",
+                message="Pass either date_range_type OR explicit date_from/date_to, not both.",
+            )
         )
     if not date_range_type and (not date_from or not date_to):
-        raise ValueError(
-            "pass both date_from and date_to, or use date_range_type for a preset range"
+        return tool_error_dict(
+            ToolError(
+                error="missing_date_range",
+                message="Pass both date_from and date_to, or use date_range_type for a preset range.",
+            )
         )
     if processing_mode is not None and processing_mode not in VALID_PROCESSING_MODES:
         return ToolError(
@@ -515,9 +554,14 @@ def reports_custom(
 
     effective_filters: list[str] = list(filters) if filters else []
     if any(_is_goals_filter(f) for f in effective_filters):
-        raise ValueError(
-            "Goals filters are not supported by Reports API Filter.Field; "
-            "pass goal IDs via goal_ids instead"
+        return tool_error_dict(
+            ToolError(
+                error="invalid_goals_filter",
+                message=(
+                    "Goals filters are not supported by Reports API Filter.Field; "
+                    "pass goal IDs via goal_ids instead."
+                ),
+            )
         )
 
     # report_type / date_range_type values are enforced by the direct CLI's
@@ -532,7 +576,10 @@ def reports_custom(
     if date_range_type:
         args.extend(["--date-range-type", date_range_type])
     else:
-        resolved_from, resolved_to = _resolve_report_dates(date_from, date_to)
+        resolved_dates = _resolve_report_dates(date_from, date_to)
+        if isinstance(resolved_dates, ToolError):
+            return tool_error_dict(resolved_dates)
+        resolved_from, resolved_to = resolved_dates
         args.extend(["--from", resolved_from, "--to", resolved_to])
 
     args.extend(["--name", name, "--fields", field_names])
@@ -594,7 +641,12 @@ def reports_custom(
 
     resolved_output_path: Path | None = None
     if output_path and not dry_run:
-        resolved_output_path = _resolve_output_path(output_path)
+        try:
+            resolved_output_path = _resolve_output_path(output_path)
+        except ValueError as e:
+            return tool_error_dict(
+                ToolError(error="invalid_output_path", message=str(e))
+            )
         args.extend(["--output", str(resolved_output_path)])
     args.extend(["--format", response_format])
 

@@ -14,7 +14,7 @@ from server.tools.campaigns import (
     campaigns_suspend,
     campaigns_resume,
 )
-from server.cli.runner import CliAuthError
+from server.cli.runner import CliAuthError, CliError
 
 
 @pytest.fixture
@@ -207,7 +207,9 @@ class TestCampaignsUpdate:
     def test_not_found_campaign(self):
         """Test 10: Nonexistent campaign."""
         runner = MagicMock()
-        runner.run_json.side_effect = Exception("Campaign 999 not found")
+        runner.run_json.side_effect = CliError(
+            "Campaign 999 not found", error_code=8800
+        )
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(id=999, status="ON")
             assert "error" in result
@@ -290,6 +292,22 @@ class TestCampaignsUpdate:
             ]
         )
         assert result == {"success": True, "id": 12345}
+
+    def test_campaigns_update_passes_notification_and_time_targeting_json(self):
+        """Update supports JSON aliases just like add."""
+        runner = _mock_runner({"Id": 12345})
+        notification = '{"EmailSettings":{"Email":"ops@example.com"}}'
+        time_targeting = '{"ConsiderWorkingWeekends":"YES"}'
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_update(
+                id=12345,
+                notification_json=notification,
+                time_targeting_json=time_targeting,
+            )
+
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--notification") + 1] == notification
+        assert argv[argv.index("--time-targeting") + 1] == time_targeting
 
 
 class TestCampaignsCrudOperations:
@@ -470,9 +488,12 @@ class TestCampaignsCrudOperations:
     def test_campaigns_delete_batch_limit(self):
         """Test batch limit validation for delete."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = campaigns_delete(ids=ids)
+        runner = _mock_runner({"success": True})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_delete(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+        runner.run_json.assert_not_called()
 
     def test_campaigns_archive_success(self):
         """Test archiving campaigns successfully."""

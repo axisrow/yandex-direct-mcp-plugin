@@ -111,6 +111,26 @@ def test_keywords_update_dry_run():
         assert "--dry-run" in argv
 
 
+def test_keywords_update_accepts_zero_bids():
+    """Zero bid values are provided updates and must be stringified for CLI."""
+    runner = _mock_runner(None)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_update(id=99999, bid=0, context_bid=0)
+
+    runner.run_json.assert_called_once_with(
+        [
+            "keywords",
+            "update",
+            "--id",
+            "99999",
+            "--bid",
+            "0",
+            "--context-bid",
+            "0",
+        ]
+    )
+
+
 def test_keywords_update_requires_changes():
     """Test that empty updates are rejected before CLI call."""
     runner = _mock_runner(None)

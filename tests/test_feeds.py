@@ -140,6 +140,16 @@ class TestFeedsUpdate:
         assert "error" in result
         assert result["error"] == "missing_update_fields"
 
+    def test_feeds_update_accepts_empty_string_field(self):
+        """Empty strings are provided values; CLI owns semantic validation."""
+        runner = _mock_runner({"id": 1})
+        with patch("server.tools.feeds.get_runner", return_value=runner):
+            feeds_update(id=1, name="")
+
+        runner.run_json.assert_called_once_with(
+            ["feeds", "update", "--id", "1", "--name", ""]
+        )
+
 
 class TestFeedsDelete:
     """Tests for feeds_delete tool."""

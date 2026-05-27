@@ -113,6 +113,17 @@ class TestClientsUpdate:
         result = clients_update()
         assert result["error"] == "missing_update_fields"
 
+    def test_update_client_accepts_empty_string_field(self):
+        """Empty strings are provided values; CLI owns semantic validation."""
+        runner = MagicMock()
+        runner.run_json.return_value = {"Login": "client1"}
+        with patch("server.tools.clients.get_runner", return_value=runner):
+            clients_update(client_info="")
+
+        runner.run_json.assert_called_once_with(
+            ["clients", "update", "--client-info", ""]
+        )
+
     def test_update_client_dry_run(self):
         runner = MagicMock()
         runner.run_json.return_value = {"_dry_run": True}

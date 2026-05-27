@@ -192,6 +192,12 @@ def test_reports_get_auth_error():
         assert result["error"] == "auth_expired"
 
 
+def test_reports_get_invalid_date_format():
+    result = reports_get(date_from="2026/03/30", date_to="2026-04-06")
+    assert result["error"] == "invalid_date_format"
+    assert "date_from" in result["message"]
+
+
 # --- reports_custom -----------------------------------------------------
 
 
@@ -290,7 +296,7 @@ def test_reports_custom_rejects_goals_filter_with_goal_ids():
             filters=["Goals:IN:222"],
         )
 
-    assert result["error"] == "unknown"
+    assert result["error"] == "invalid_goals_filter"
     assert "pass goal IDs via goal_ids instead" in result["message"]
     runner.run_json.assert_not_called()
 
@@ -306,7 +312,7 @@ def test_reports_custom_rejects_goals_filter_without_goal_ids():
             filters=[" goals:IN:111"],
         )
 
-    assert result["error"] == "unknown"
+    assert result["error"] == "invalid_goals_filter"
     assert "Goals filters are not supported" in result["message"]
     runner.run_json.assert_not_called()
 
@@ -357,7 +363,7 @@ def test_reports_custom_output_path_rejects_unsafe_location():
             output_path="/etc/cron.d/direct-report.json",
         )
 
-    assert result["error"] == "unknown"
+    assert result["error"] == "invalid_output_path"
     assert "output_path must be under one of" in result["message"]
     runner.run_json.assert_not_called()
 
@@ -521,20 +527,37 @@ def test_reports_custom_date_range_type_conflict():
         date_from="2026-01-01",
         date_range_type="last_7_days",
     )
-    assert result["error"] == "unknown"
+    assert result["error"] == "conflicting_date_inputs"
     assert "date_range_type OR explicit" in result["message"]
 
 
 def test_reports_custom_requires_complete_explicit_date_range():
     """Custom reports reject partial explicit date ranges."""
-    assert (
-        "pass both date_from and date_to"
-        in reports_custom(field_names="Date,Cost", date_from="2026-01-01")["message"]
+    from_only = reports_custom(field_names="Date,Cost", date_from="2026-01-01")
+    to_only = reports_custom(field_names="Date,Cost", date_to="2026-01-31")
+    assert from_only["error"] == "missing_date_range"
+    assert to_only["error"] == "missing_date_range"
+    assert "Pass both date_from and date_to" in from_only["message"]
+
+
+def test_reports_custom_rejects_invalid_response_format():
+    result = reports_custom(
+        field_names="Date,Cost",
+        date_from="2026-01-01",
+        date_to="2026-01-31",
+        response_format="xml",
     )
-    assert (
-        "pass both date_from and date_to"
-        in reports_custom(field_names="Date,Cost", date_to="2026-01-31")["message"]
+    assert result["error"] == "invalid_response_format"
+
+
+def test_reports_custom_rejects_invalid_date_format():
+    result = reports_custom(
+        field_names="Date,Cost",
+        date_from="2026/01/01",
+        date_to="2026-01-31",
     )
+    assert result["error"] == "invalid_date_format"
+    assert "date_from" in result["message"]
 
 
 def test_reports_custom_override_report_type():

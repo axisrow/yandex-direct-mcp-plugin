@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options
+from server.tools.helpers import CliOption, append_cli_options, provided_update_value
 
 MAX_BATCH_SIZE = 10
 
@@ -139,8 +139,8 @@ def keywords_update(
     autotargeting_settings_without_brands: str | None = None,
     autotargeting_settings_with_advertiser_brand: str | None = None,
     autotargeting_settings_with_competitors_brand: str | None = None,
-    bid: str | None = None,
-    context_bid: str | None = None,
+    bid: int | None = None,
+    context_bid: int | None = None,
     status: str | None = None,
     dry_run: bool = False,
 ) -> dict:
@@ -165,7 +165,11 @@ def keywords_update(
         dry_run: Show the direct request without sending it.
     """
     values = locals()
-    if not any(value for key, value in values.items() if key not in {"id", "dry_run"}):
+    if not any(
+        provided_update_value(value)
+        for key, value in values.items()
+        if key not in {"id", "dry_run"}
+    ):
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one typed keyword field to update.",
@@ -181,9 +185,9 @@ def keywords_update(
         args.extend(["--user-param-2", user_param_2])
     append_cli_options(args, values, KEYWORD_AUTOTARGETING_OPTIONS)
     if bid is not None:
-        args.extend(["--bid", bid])
+        args.extend(["--bid", str(bid)])
     if context_bid is not None:
-        args.extend(["--context-bid", context_bid])
+        args.extend(["--context-bid", str(context_bid)])
     if status is not None:
         args.extend(["--status", status])
     if dry_run:

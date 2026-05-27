@@ -1,5 +1,7 @@
 """Tests for shared tool decorators and helper functions."""
 
+from unittest.mock import MagicMock
+
 import server.tools as tools
 from server.cli.runner import (
     CliAuthError,
@@ -11,6 +13,11 @@ from server.cli.runner import (
 from server.tools.ads import _check_batch_limit as ads_check_batch_limit
 from server.tools.ads import _parse_ids
 from server.tools.auth_tools import _human_readable_time
+from server.tools.helpers import (
+    provided_update_value,
+    run_single_id_batch,
+    tool_error_dict,
+)
 from server.tools.keywords import _check_batch_limit as keywords_check_batch_limit
 
 
@@ -197,3 +204,35 @@ def test_keywords_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:
     result = keywords_check_batch_limit(",".join(str(i) for i in range(11)))
     assert result is not None
     assert result.error == "batch_limit"
+
+
+def test_tool_error_dict_uses_stable_dataclass_conversion() -> None:
+    error = tools.ToolError(error="bad", message="Nope", hint="Try again")
+    assert tool_error_dict(error) == {
+        "error": "bad",
+        "message": "Nope",
+        "auth_url": None,
+        "hint": "Try again",
+    }
+
+
+def test_provided_update_value_matches_cli_forwarding_semantics() -> None:
+    assert provided_update_value(None) is False
+    assert provided_update_value(False) is False
+    assert provided_update_value(True) is True
+    assert provided_update_value(0) is True
+    assert provided_update_value("") is True
+    assert provided_update_value([]) is False
+    assert provided_update_value(["x"]) is True
+
+
+def test_run_single_id_batch_reports_partial_failure() -> None:
+    runner = MagicMock()
+    runner.run_json.side_effect = [{"success": True}, RuntimeError("boom")]
+
+    result = run_single_id_batch(runner, "ads", "delete", "1,2")
+
+    assert result["success"] is False
+    assert result["succeeded"] == ["1"]
+    assert result["failed"] == ["2"]
+    assert result["results"][1] == {"success": False, "id": "2", "error": "boom"}

@@ -1,7 +1,7 @@
 """Shared helpers for MCP tool modules."""
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 from server.cli.runner import (
     CliAuthError,
@@ -69,6 +69,22 @@ def check_batch_limit(ids_str: str, max_size: int = MAX_BATCH_SIZE) -> ToolError
     return None
 
 
+def tool_error_dict(error: ToolError) -> dict:
+    """Return a stable dict representation for MCP error payloads."""
+    return asdict(error)
+
+
+def provided_update_value(value: object) -> bool:
+    """Return whether an optional update value should satisfy update guards."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return True
+
+
 def validate_state(state: str, allowed: tuple[str, ...]) -> ToolError | None:
     """Validate state value against allowed options."""
     if state not in allowed:
@@ -108,14 +124,16 @@ def run_single_id_batch(
     """
     batch_error = check_batch_limit(ids_str)
     if batch_error:
-        return batch_error.__dict__
+        return tool_error_dict(batch_error)
 
     ids = parse_ids(ids_str)
     if not ids:
-        return ToolError(
-            error="missing_ids",
-            message=f"Provide at least one {resource} ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_ids",
+                message=f"Provide at least one {resource} ID.",
+            )
+        )
     results = []
     succeeded = []
     failed = []

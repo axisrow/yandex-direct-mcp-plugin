@@ -114,6 +114,16 @@ class TestAdgroupsUpdate:
         assert "error" in result
         assert result["error"] == "missing_update_fields"
 
+    def test_adgroups_update_accepts_empty_string_field(self):
+        """Empty strings are provided values; CLI owns semantic validation."""
+        runner = _mock_runner({"Id": 123})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_update(id=123, name="")
+
+        runner.run_json.assert_called_once_with(
+            ["adgroups", "update", "--id", "123", "--name", ""]
+        )
+
     def test_adgroups_update_with_status(self):
         """Test updating with status."""
         runner = MagicMock()

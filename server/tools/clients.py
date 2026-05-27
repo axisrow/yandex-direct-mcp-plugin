@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options
+from server.tools.helpers import CliOption, append_cli_options, provided_update_value
 
 ERIR_OPTIONS = (
     CliOption("erir_organization_name", "--erir-organization-name"),
@@ -122,7 +122,11 @@ def clients_update(
         dry_run: Show the direct request without sending it.
     """
     values = locals()
-    if not any(value for key, value in values.items() if key not in {"dry_run"}):
+    if not any(
+        provided_update_value(value)
+        for key, value in values.items()
+        if key not in {"dry_run"}
+    ):
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one typed client field to update.",

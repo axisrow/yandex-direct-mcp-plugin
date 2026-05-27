@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.cli_recorder import CassetteNotFoundError, CliRecorder
+from tests.cli_recorder import CliRecorder
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
 LIVE_MARKERS = {"integration", "live_safe", "live_unsafe"}
@@ -46,6 +46,13 @@ def pytest_collection_modifyitems(config, items):
         elif item.get_closest_marker("live_safe") and not run_live_safe:
             item.add_marker(skip_live_safe)
 
+        if (
+            not _is_live_test(item)
+            and "cli_recorder" not in getattr(item, "fixturenames", ())
+            and not item.get_closest_marker("mocks")
+        ):
+            item.add_marker(pytest.mark.mocks)
+
 
 @pytest.fixture(autouse=True)
 def isolate_env(monkeypatch, tmp_path, request):
@@ -70,16 +77,8 @@ def cli_recorder(monkeypatch, request):
         yield recorder
     else:
         # Replay mode: patch subprocess.run
-        import subprocess
-
-        original_run = subprocess.run
-
         def _patched_run(args, **kwargs):
-            try:
-                return recorder.replay(args)
-            except CassetteNotFoundError:
-                # No cassette found — fall through to real subprocess
-                return original_run(args, **kwargs)
+            return recorder.replay(args)
 
         with patch("subprocess.run", side_effect=_patched_run):
             yield recorder
