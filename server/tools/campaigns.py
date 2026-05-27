@@ -98,6 +98,305 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("holidays_start_hour", "--holidays-start-hour"),
     CliOption("holidays_end_hour", "--holidays-end-hour"),
     CliOption("tracking_params", "--tracking-params"),
+    # --- TextCampaign Search PlacementTypes (3 flags) ---
+    CliOption("search_placement_dynamic_places", "--search-placement-dynamic-places"),
+    CliOption("search_placement_product_gallery", "--search-placement-product-gallery"),
+    CliOption("search_placement_search_results", "--search-placement-search-results"),
+    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    CliOption("average_cpm", "--average-cpm"),
+    CliOption("average_cpv", "--average-cpv"),
+    CliOption("strategy_auto_continue", "--strategy-auto-continue"),
+    CliOption("strategy_end_date", "--strategy-end-date"),
+    CliOption("strategy_spend_limit", "--strategy-spend-limit"),
+    CliOption("strategy_start_date", "--strategy-start-date"),
+    # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
+    CliOption("text_search_average_cpc", "--text-search-average-cpc"),
+    CliOption("text_search_clicks_per_week", "--text-search-clicks-per-week"),
+    CliOption(
+        "text_search_custom_period_auto_continue",
+        "--text-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "text_search_custom_period_end_date", "--text-search-custom-period-end-date"
+    ),
+    CliOption(
+        "text_search_custom_period_spend_limit",
+        "--text-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "text_search_custom_period_start_date", "--text-search-custom-period-start-date"
+    ),
+    CliOption(
+        "text_search_exploration_is_custom", "--text-search-exploration-is-custom"
+    ),
+    CliOption(
+        "text_search_exploration_min_budget", "--text-search-exploration-min-budget"
+    ),
+    CliOption("text_search_pay_cpa", "--text-search-pay-cpa"),
+    CliOption("text_search_profitability", "--text-search-profitability"),
+    CliOption("text_search_reserve_return", "--text-search-reserve-return"),
+    CliOption("text_search_roi_coef", "--text-search-roi-coef"),
+    CliOption("text_search_weekly_spend_limit", "--text-search-weekly-spend-limit"),
+    # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
+    CliOption("text_network_average_cpc", "--text-network-average-cpc"),
+    CliOption("text_network_clicks_per_week", "--text-network-clicks-per-week"),
+    CliOption(
+        "text_network_custom_period_auto_continue",
+        "--text-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "text_network_custom_period_end_date", "--text-network-custom-period-end-date"
+    ),
+    CliOption(
+        "text_network_custom_period_spend_limit",
+        "--text-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "text_network_custom_period_start_date",
+        "--text-network-custom-period-start-date",
+    ),
+    CliOption(
+        "text_network_exploration_is_custom", "--text-network-exploration-is-custom"
+    ),
+    CliOption(
+        "text_network_exploration_min_budget", "--text-network-exploration-min-budget"
+    ),
+    CliOption("text_network_limit_percent", "--text-network-limit-percent"),
+    CliOption("text_network_pay_cpa", "--text-network-pay-cpa"),
+    CliOption("text_network_profitability", "--text-network-profitability"),
+    CliOption("text_network_reserve_return", "--text-network-reserve-return"),
+    CliOption("text_network_roi_coef", "--text-network-roi-coef"),
+    CliOption("text_network_weekly_spend_limit", "--text-network-weekly-spend-limit"),
+    # --- DynamicTextCampaign.BiddingStrategy.Search (17 flags) ---
+    CliOption("dyn_search_average_cpa", "--dyn-search-average-cpa"),
+    CliOption("dyn_search_average_cpc", "--dyn-search-average-cpc"),
+    CliOption("dyn_search_bid_ceiling", "--dyn-search-bid-ceiling"),
+    CliOption("dyn_search_clicks_per_week", "--dyn-search-clicks-per-week"),
+    CliOption("dyn_search_cpa", "--dyn-search-cpa"),
+    CliOption("dyn_search_crr", "--dyn-search-crr"),
+    CliOption(
+        "dyn_search_custom_period_auto_continue",
+        "--dyn-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "dyn_search_custom_period_end_date", "--dyn-search-custom-period-end-date"
+    ),
+    CliOption(
+        "dyn_search_custom_period_spend_limit", "--dyn-search-custom-period-spend-limit"
+    ),
+    CliOption(
+        "dyn_search_custom_period_start_date", "--dyn-search-custom-period-start-date"
+    ),
+    CliOption("dyn_search_exploration_budget", "--dyn-search-exploration-budget"),
+    CliOption(
+        "dyn_search_exploration_budget_custom", "--dyn-search-exploration-budget-custom"
+    ),
+    CliOption("dyn_search_goal_id", "--dyn-search-goal-id"),
+    CliOption("dyn_search_profitability", "--dyn-search-profitability"),
+    CliOption("dyn_search_reserve_return", "--dyn-search-reserve-return"),
+    CliOption("dyn_search_roi_coef", "--dyn-search-roi-coef"),
+    CliOption("dyn_search_weekly_spend_limit", "--dyn-search-weekly-spend-limit"),
+    # --- DynamicTextCampaign.BiddingStrategy.Network (18 flags) ---
+    CliOption("dyn_network_average_cpa", "--dyn-network-average-cpa"),
+    CliOption("dyn_network_average_cpc", "--dyn-network-average-cpc"),
+    CliOption("dyn_network_bid_ceiling", "--dyn-network-bid-ceiling"),
+    CliOption("dyn_network_clicks_per_week", "--dyn-network-clicks-per-week"),
+    CliOption("dyn_network_cpa", "--dyn-network-cpa"),
+    CliOption("dyn_network_crr", "--dyn-network-crr"),
+    CliOption(
+        "dyn_network_custom_period_auto_continue",
+        "--dyn-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "dyn_network_custom_period_end_date", "--dyn-network-custom-period-end-date"
+    ),
+    CliOption(
+        "dyn_network_custom_period_spend_limit",
+        "--dyn-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "dyn_network_custom_period_start_date", "--dyn-network-custom-period-start-date"
+    ),
+    CliOption("dyn_network_exploration_budget", "--dyn-network-exploration-budget"),
+    CliOption(
+        "dyn_network_exploration_budget_custom",
+        "--dyn-network-exploration-budget-custom",
+    ),
+    CliOption("dyn_network_goal_id", "--dyn-network-goal-id"),
+    CliOption("dyn_network_limit_percent", "--dyn-network-limit-percent"),
+    CliOption("dyn_network_profitability", "--dyn-network-profitability"),
+    CliOption("dyn_network_reserve_return", "--dyn-network-reserve-return"),
+    CliOption("dyn_network_roi_coef", "--dyn-network-roi-coef"),
+    CliOption("dyn_network_weekly_spend_limit", "--dyn-network-weekly-spend-limit"),
+    # --- SmartCampaign.BiddingStrategy.Search (18 flags) ---
+    CliOption("smart_search_average_cpa", "--smart-search-average-cpa"),
+    CliOption("smart_search_average_cpc", "--smart-search-average-cpc"),
+    CliOption("smart_search_bid_ceiling", "--smart-search-bid-ceiling"),
+    CliOption("smart_search_cp_auto_continue", "--smart-search-cp-auto-continue"),
+    CliOption("smart_search_cp_end_date", "--smart-search-cp-end-date"),
+    CliOption("smart_search_cp_spend_limit", "--smart-search-cp-spend-limit"),
+    CliOption("smart_search_cp_start_date", "--smart-search-cp-start-date"),
+    CliOption("smart_search_cpa", "--smart-search-cpa"),
+    CliOption("smart_search_crr", "--smart-search-crr"),
+    CliOption("smart_search_exploration_min", "--smart-search-exploration-min"),
+    CliOption(
+        "smart_search_exploration_min_custom", "--smart-search-exploration-min-custom"
+    ),
+    CliOption("smart_search_filter_average_cpa", "--smart-search-filter-average-cpa"),
+    CliOption("smart_search_filter_average_cpc", "--smart-search-filter-average-cpc"),
+    CliOption("smart_search_goal_id", "--smart-search-goal-id"),
+    CliOption("smart_search_profitability", "--smart-search-profitability"),
+    CliOption("smart_search_reserve_return", "--smart-search-reserve-return"),
+    CliOption("smart_search_roi_coef", "--smart-search-roi-coef"),
+    CliOption("smart_search_weekly_spend_limit", "--smart-search-weekly-spend-limit"),
+    # --- SmartCampaign.BiddingStrategy.Network (19 flags) ---
+    CliOption("smart_network_average_cpa", "--smart-network-average-cpa"),
+    CliOption("smart_network_average_cpc", "--smart-network-average-cpc"),
+    CliOption("smart_network_bid_ceiling", "--smart-network-bid-ceiling"),
+    CliOption("smart_network_cp_auto_continue", "--smart-network-cp-auto-continue"),
+    CliOption("smart_network_cp_end_date", "--smart-network-cp-end-date"),
+    CliOption("smart_network_cp_spend_limit", "--smart-network-cp-spend-limit"),
+    CliOption("smart_network_cp_start_date", "--smart-network-cp-start-date"),
+    CliOption("smart_network_cpa", "--smart-network-cpa"),
+    CliOption("smart_network_crr", "--smart-network-crr"),
+    CliOption("smart_network_exploration_min", "--smart-network-exploration-min"),
+    CliOption(
+        "smart_network_exploration_min_custom", "--smart-network-exploration-min-custom"
+    ),
+    CliOption("smart_network_filter_average_cpa", "--smart-network-filter-average-cpa"),
+    CliOption("smart_network_filter_average_cpc", "--smart-network-filter-average-cpc"),
+    CliOption("smart_network_goal_id", "--smart-network-goal-id"),
+    CliOption("smart_network_limit_percent", "--smart-network-limit-percent"),
+    CliOption("smart_network_profitability", "--smart-network-profitability"),
+    CliOption("smart_network_reserve_return", "--smart-network-reserve-return"),
+    CliOption("smart_network_roi_coef", "--smart-network-roi-coef"),
+    CliOption("smart_network_weekly_spend_limit", "--smart-network-weekly-spend-limit"),
+    # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
+    CliOption("unified_search_average_cpc", "--unified-search-average-cpc"),
+    CliOption(
+        "unified_search_custom_period_auto_continue",
+        "--unified-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "unified_search_custom_period_end_date",
+        "--unified-search-custom-period-end-date",
+    ),
+    CliOption(
+        "unified_search_custom_period_spend_limit",
+        "--unified-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "unified_search_custom_period_start_date",
+        "--unified-search-custom-period-start-date",
+    ),
+    CliOption(
+        "unified_search_exploration_is_custom", "--unified-search-exploration-is-custom"
+    ),
+    CliOption(
+        "unified_search_exploration_min_budget",
+        "--unified-search-exploration-min-budget",
+    ),
+    CliOption("unified_search_pay_cpa", "--unified-search-pay-cpa"),
+    CliOption("unified_search_placement_maps", "--unified-search-placement-maps"),
+    CliOption(
+        "unified_search_placement_search_organization_list",
+        "--unified-search-placement-search-organization-list",
+    ),
+    CliOption(
+        "unified_search_weekly_spend_limit", "--unified-search-weekly-spend-limit"
+    ),
+    # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
+    CliOption("unified_network_average_cpc", "--unified-network-average-cpc"),
+    CliOption("unified_network_cpa", "--unified-network-cpa"),
+    CliOption(
+        "unified_network_custom_period_auto_continue",
+        "--unified-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "unified_network_custom_period_end_date",
+        "--unified-network-custom-period-end-date",
+    ),
+    CliOption(
+        "unified_network_custom_period_spend_limit",
+        "--unified-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "unified_network_custom_period_start_date",
+        "--unified-network-custom-period-start-date",
+    ),
+    CliOption(
+        "unified_network_exploration_is_custom",
+        "--unified-network-exploration-is-custom",
+    ),
+    CliOption(
+        "unified_network_exploration_min_budget",
+        "--unified-network-exploration-min-budget",
+    ),
+    CliOption(
+        "unified_network_weekly_spend_limit", "--unified-network-weekly-spend-limit"
+    ),
+    # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
+    CliOption("mobile_search_average_cpc", "--mobile-search-average-cpc"),
+    CliOption("mobile_search_average_cpi", "--mobile-search-average-cpi"),
+    CliOption("mobile_search_bid_ceiling", "--mobile-search-bid-ceiling"),
+    CliOption("mobile_search_clicks_per_week", "--mobile-search-clicks-per-week"),
+    CliOption(
+        "mobile_search_custom_period_auto_continue",
+        "--mobile-search-custom-period-auto-continue",
+    ),
+    CliOption(
+        "mobile_search_custom_period_end_date", "--mobile-search-custom-period-end-date"
+    ),
+    CliOption(
+        "mobile_search_custom_period_spend_limit",
+        "--mobile-search-custom-period-spend-limit",
+    ),
+    CliOption(
+        "mobile_search_custom_period_start_date",
+        "--mobile-search-custom-period-start-date",
+    ),
+    CliOption("mobile_search_weekly_spend_limit", "--mobile-search-weekly-spend-limit"),
+    # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
+    CliOption("mobile_network_average_cpc", "--mobile-network-average-cpc"),
+    CliOption("mobile_network_average_cpi", "--mobile-network-average-cpi"),
+    CliOption("mobile_network_bid_ceiling", "--mobile-network-bid-ceiling"),
+    CliOption("mobile_network_clicks_per_week", "--mobile-network-clicks-per-week"),
+    CliOption(
+        "mobile_network_custom_period_auto_continue",
+        "--mobile-network-custom-period-auto-continue",
+    ),
+    CliOption(
+        "mobile_network_custom_period_end_date",
+        "--mobile-network-custom-period-end-date",
+    ),
+    CliOption(
+        "mobile_network_custom_period_spend_limit",
+        "--mobile-network-custom-period-spend-limit",
+    ),
+    CliOption(
+        "mobile_network_custom_period_start_date",
+        "--mobile-network-custom-period-start-date",
+    ),
+    CliOption("mobile_network_limit_percent", "--mobile-network-limit-percent"),
+    CliOption(
+        "mobile_network_weekly_spend_limit", "--mobile-network-weekly-spend-limit"
+    ),
+)
+
+# Update-only flags: CLI exposes `--*-budget-type` only on `campaigns update`,
+# letting callers switch a strategy between WEEKLY_BUDGET and CUSTOM_PERIOD_BUDGET
+# without re-sending the rest of the strategy. Values are validated by CLI.
+CAMPAIGN_UPDATE_ONLY_OPTIONS = (
+    CliOption("text_search_budget_type", "--text-search-budget-type"),
+    CliOption("text_network_budget_type", "--text-network-budget-type"),
+    CliOption("dyn_search_budget_type", "--dyn-search-budget-type"),
+    CliOption("dyn_network_budget_type", "--dyn-network-budget-type"),
+    CliOption("smart_search_budget_type", "--smart-search-budget-type"),
+    CliOption("smart_network_budget_type", "--smart-network-budget-type"),
+    CliOption("unified_search_budget_type", "--unified-search-budget-type"),
+    CliOption("unified_network_budget_type", "--unified-network-budget-type"),
+    CliOption("mobile_search_budget_type", "--mobile-search-budget-type"),
+    CliOption("mobile_network_budget_type", "--mobile-network-budget-type"),
 )
 
 
@@ -260,24 +559,223 @@ def campaigns_update(
     holidays_end_hour: int | None = None,
     campaign_type: str | None = None,
     tracking_params: str | None = None,
+    search_strategy: str | None = None,
+    network_strategy: str | None = None,
+    goal_id: int | None = None,
+    average_cpa: int | None = None,
+    crr: int | None = None,
+    bid_ceiling: int | None = None,
+    # --- TextCampaign Search PlacementTypes (3 flags) ---
+    search_placement_dynamic_places: str | None = None,
+    search_placement_product_gallery: str | None = None,
+    search_placement_search_results: str | None = None,
+    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    average_cpm: int | None = None,
+    average_cpv: int | None = None,
+    strategy_auto_continue: str | None = None,
+    strategy_end_date: str | None = None,
+    strategy_spend_limit: int | None = None,
+    strategy_start_date: str | None = None,
+    # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
+    text_search_average_cpc: int | None = None,
+    text_search_clicks_per_week: int | None = None,
+    text_search_custom_period_auto_continue: str | None = None,
+    text_search_custom_period_end_date: str | None = None,
+    text_search_custom_period_spend_limit: int | None = None,
+    text_search_custom_period_start_date: str | None = None,
+    text_search_exploration_is_custom: str | None = None,
+    text_search_exploration_min_budget: int | None = None,
+    text_search_pay_cpa: int | None = None,
+    text_search_profitability: int | None = None,
+    text_search_reserve_return: int | None = None,
+    text_search_roi_coef: int | None = None,
+    text_search_weekly_spend_limit: int | None = None,
+    # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
+    text_network_average_cpc: int | None = None,
+    text_network_clicks_per_week: int | None = None,
+    text_network_custom_period_auto_continue: str | None = None,
+    text_network_custom_period_end_date: str | None = None,
+    text_network_custom_period_spend_limit: int | None = None,
+    text_network_custom_period_start_date: str | None = None,
+    text_network_exploration_is_custom: str | None = None,
+    text_network_exploration_min_budget: int | None = None,
+    text_network_limit_percent: int | None = None,
+    text_network_pay_cpa: int | None = None,
+    text_network_profitability: int | None = None,
+    text_network_reserve_return: int | None = None,
+    text_network_roi_coef: int | None = None,
+    text_network_weekly_spend_limit: int | None = None,
+    # --- DynamicTextCampaign.BiddingStrategy.Search (17 flags) ---
+    dyn_search_average_cpa: int | None = None,
+    dyn_search_average_cpc: int | None = None,
+    dyn_search_bid_ceiling: int | None = None,
+    dyn_search_clicks_per_week: int | None = None,
+    dyn_search_cpa: int | None = None,
+    dyn_search_crr: int | None = None,
+    dyn_search_custom_period_auto_continue: str | None = None,
+    dyn_search_custom_period_end_date: str | None = None,
+    dyn_search_custom_period_spend_limit: int | None = None,
+    dyn_search_custom_period_start_date: str | None = None,
+    dyn_search_exploration_budget: int | None = None,
+    dyn_search_exploration_budget_custom: str | None = None,
+    dyn_search_goal_id: int | None = None,
+    dyn_search_profitability: int | None = None,
+    dyn_search_reserve_return: int | None = None,
+    dyn_search_roi_coef: int | None = None,
+    dyn_search_weekly_spend_limit: int | None = None,
+    # --- DynamicTextCampaign.BiddingStrategy.Network (18 flags) ---
+    dyn_network_average_cpa: int | None = None,
+    dyn_network_average_cpc: int | None = None,
+    dyn_network_bid_ceiling: int | None = None,
+    dyn_network_clicks_per_week: int | None = None,
+    dyn_network_cpa: int | None = None,
+    dyn_network_crr: int | None = None,
+    dyn_network_custom_period_auto_continue: str | None = None,
+    dyn_network_custom_period_end_date: str | None = None,
+    dyn_network_custom_period_spend_limit: int | None = None,
+    dyn_network_custom_period_start_date: str | None = None,
+    dyn_network_exploration_budget: int | None = None,
+    dyn_network_exploration_budget_custom: str | None = None,
+    dyn_network_goal_id: int | None = None,
+    dyn_network_limit_percent: int | None = None,
+    dyn_network_profitability: int | None = None,
+    dyn_network_reserve_return: int | None = None,
+    dyn_network_roi_coef: int | None = None,
+    dyn_network_weekly_spend_limit: int | None = None,
+    # --- SmartCampaign.BiddingStrategy.Search (18 flags) ---
+    smart_search_average_cpa: int | None = None,
+    smart_search_average_cpc: int | None = None,
+    smart_search_bid_ceiling: int | None = None,
+    smart_search_cp_auto_continue: str | None = None,
+    smart_search_cp_end_date: str | None = None,
+    smart_search_cp_spend_limit: int | None = None,
+    smart_search_cp_start_date: str | None = None,
+    smart_search_cpa: int | None = None,
+    smart_search_crr: int | None = None,
+    smart_search_exploration_min: int | None = None,
+    smart_search_exploration_min_custom: str | None = None,
+    smart_search_filter_average_cpa: int | None = None,
+    smart_search_filter_average_cpc: int | None = None,
+    smart_search_goal_id: int | None = None,
+    smart_search_profitability: int | None = None,
+    smart_search_reserve_return: int | None = None,
+    smart_search_roi_coef: int | None = None,
+    smart_search_weekly_spend_limit: int | None = None,
+    # --- SmartCampaign.BiddingStrategy.Network (19 flags) ---
+    smart_network_average_cpa: int | None = None,
+    smart_network_average_cpc: int | None = None,
+    smart_network_bid_ceiling: int | None = None,
+    smart_network_cp_auto_continue: str | None = None,
+    smart_network_cp_end_date: str | None = None,
+    smart_network_cp_spend_limit: int | None = None,
+    smart_network_cp_start_date: str | None = None,
+    smart_network_cpa: int | None = None,
+    smart_network_crr: int | None = None,
+    smart_network_exploration_min: int | None = None,
+    smart_network_exploration_min_custom: str | None = None,
+    smart_network_filter_average_cpa: int | None = None,
+    smart_network_filter_average_cpc: int | None = None,
+    smart_network_goal_id: int | None = None,
+    smart_network_limit_percent: int | None = None,
+    smart_network_profitability: int | None = None,
+    smart_network_reserve_return: int | None = None,
+    smart_network_roi_coef: int | None = None,
+    smart_network_weekly_spend_limit: int | None = None,
+    # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
+    unified_search_average_cpc: int | None = None,
+    unified_search_custom_period_auto_continue: str | None = None,
+    unified_search_custom_period_end_date: str | None = None,
+    unified_search_custom_period_spend_limit: int | None = None,
+    unified_search_custom_period_start_date: str | None = None,
+    unified_search_exploration_is_custom: str | None = None,
+    unified_search_exploration_min_budget: int | None = None,
+    unified_search_pay_cpa: int | None = None,
+    unified_search_placement_maps: str | None = None,
+    unified_search_placement_search_organization_list: str | None = None,
+    unified_search_weekly_spend_limit: int | None = None,
+    # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
+    unified_network_average_cpc: int | None = None,
+    unified_network_cpa: int | None = None,
+    unified_network_custom_period_auto_continue: str | None = None,
+    unified_network_custom_period_end_date: str | None = None,
+    unified_network_custom_period_spend_limit: int | None = None,
+    unified_network_custom_period_start_date: str | None = None,
+    unified_network_exploration_is_custom: str | None = None,
+    unified_network_exploration_min_budget: int | None = None,
+    unified_network_weekly_spend_limit: int | None = None,
+    # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
+    mobile_search_average_cpc: int | None = None,
+    mobile_search_average_cpi: int | None = None,
+    mobile_search_bid_ceiling: int | None = None,
+    mobile_search_clicks_per_week: int | None = None,
+    mobile_search_custom_period_auto_continue: str | None = None,
+    mobile_search_custom_period_end_date: str | None = None,
+    mobile_search_custom_period_spend_limit: int | None = None,
+    mobile_search_custom_period_start_date: str | None = None,
+    mobile_search_weekly_spend_limit: int | None = None,
+    # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
+    mobile_network_average_cpc: int | None = None,
+    mobile_network_average_cpi: int | None = None,
+    mobile_network_bid_ceiling: int | None = None,
+    mobile_network_clicks_per_week: int | None = None,
+    mobile_network_custom_period_auto_continue: str | None = None,
+    mobile_network_custom_period_end_date: str | None = None,
+    mobile_network_custom_period_spend_limit: int | None = None,
+    mobile_network_custom_period_start_date: str | None = None,
+    mobile_network_limit_percent: int | None = None,
+    mobile_network_weekly_spend_limit: int | None = None,
+    # --- update-only: switch between WEEKLY_BUDGET / CUSTOM_PERIOD_BUDGET (10 flags) ---
+    text_search_budget_type: str | None = None,
+    text_network_budget_type: str | None = None,
+    dyn_search_budget_type: str | None = None,
+    dyn_network_budget_type: str | None = None,
+    smart_search_budget_type: str | None = None,
+    smart_network_budget_type: str | None = None,
+    unified_search_budget_type: str | None = None,
+    unified_network_budget_type: str | None = None,
+    mobile_search_budget_type: str | None = None,
+    mobile_network_budget_type: str | None = None,
     notification_json: str | None = None,
     time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update campaign fields.
 
-    CLI 0.3.8 removed the free-form `--json` flag from `campaigns update`;
-    only the typed flags listed below are accepted. Notification / strategy
-    changes are not yet typed in CLI — file an upstream issue if needed.
+    Money parameters (anything ending in *_spend_limit, *_cpc, *_cpa, *_cpi,
+    *_cpm, *_cpv, *_pay_cpa, *_bid_ceiling, *_exploration_budget,
+    *_exploration_min, *_exploration_min_budget, *_filter_average_cpa,
+    *_filter_average_cpc, plus top-level budget, average_cpa, bid_ceiling,
+    average_cpm, average_cpv, strategy_spend_limit) are in **micro-units**:
+    15 RUB = 15_000_000. The agent must convert user-supplied rubles before
+    calling this tool — never ask the user to multiply by 1_000_000. CLI
+    rejects 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+
+    Encoded-ratio parameters in micro-units (NOT rubles, but the same
+    × 1_000_000 scale per Yandex Direct WSDL): `text_search_profitability`,
+    `text_search_roi_coef`, `text_network_profitability`,
+    `text_network_roi_coef`, `smart_search_profitability`,
+    `smart_search_roi_coef`, `smart_network_profitability`,
+    `smart_network_roi_coef`. Pass 20% as 20_000_000, ratio 1.0 as 1_000_000.
+
+    Plain integer parameters (NOT micro-units): `*_reserve_return` (percent
+    0-100), `*_limit_percent` (percent 10-100), `*_clicks_per_week` (count),
+    `*_crr` (percent 1-1000 for dyn_*; same for smart_*), `*_goal_id`,
+    `dyn_search_profitability`, `dyn_search_roi_coef`,
+    `dyn_network_profitability`, `dyn_network_roi_coef` (these dyn_* four
+    are plain integers per CLI, unlike their text_*/smart_* siblings).
+    Pass these as-is — do NOT multiply by 1_000_000.
 
     Args:
         id: Campaign ID to update.
         name: Optional new campaign name.
         status: Optional new campaign status.
-        budget: Optional new daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
-            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        budget: Optional new daily budget in micro-units (RUB × 1_000_000).
         start_date: Optional new start date (YYYY-MM-DD).
         end_date: Optional new end date (YYYY-MM-DD).
+        text_search_budget_type / text_network_budget_type / dyn_*_budget_type /
+            smart_*_budget_type / unified_*_budget_type / mobile_*_budget_type:
+            Switch the existing strategy between WEEKLY_BUDGET and
+            CUSTOM_PERIOD_BUDGET. Update-only; not accepted by campaigns_add.
         dry_run: Show the direct request without sending it.
     """
     values = locals()
@@ -310,6 +808,7 @@ def campaigns_update(
     if campaign_type is not None:
         args.extend(["--type", campaign_type])
     append_cli_options(args, values, CAMPAIGN_MUTATION_OPTIONS)
+    append_cli_options(args, values, CAMPAIGN_UPDATE_ONLY_OPTIONS)
     if dry_run:
         args.append("--dry-run")
 
@@ -405,24 +904,208 @@ def campaigns_add(
     holidays_start_hour: int | None = None,
     holidays_end_hour: int | None = None,
     tracking_params: str | None = None,
+    # --- TextCampaign Search PlacementTypes (3 flags) ---
+    search_placement_dynamic_places: str | None = None,
+    search_placement_product_gallery: str | None = None,
+    search_placement_search_results: str | None = None,
+    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    average_cpm: int | None = None,
+    average_cpv: int | None = None,
+    strategy_auto_continue: str | None = None,
+    strategy_end_date: str | None = None,
+    strategy_spend_limit: int | None = None,
+    strategy_start_date: str | None = None,
+    # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
+    text_search_average_cpc: int | None = None,
+    text_search_clicks_per_week: int | None = None,
+    text_search_custom_period_auto_continue: str | None = None,
+    text_search_custom_period_end_date: str | None = None,
+    text_search_custom_period_spend_limit: int | None = None,
+    text_search_custom_period_start_date: str | None = None,
+    text_search_exploration_is_custom: str | None = None,
+    text_search_exploration_min_budget: int | None = None,
+    text_search_pay_cpa: int | None = None,
+    text_search_profitability: int | None = None,
+    text_search_reserve_return: int | None = None,
+    text_search_roi_coef: int | None = None,
+    text_search_weekly_spend_limit: int | None = None,
+    # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
+    text_network_average_cpc: int | None = None,
+    text_network_clicks_per_week: int | None = None,
+    text_network_custom_period_auto_continue: str | None = None,
+    text_network_custom_period_end_date: str | None = None,
+    text_network_custom_period_spend_limit: int | None = None,
+    text_network_custom_period_start_date: str | None = None,
+    text_network_exploration_is_custom: str | None = None,
+    text_network_exploration_min_budget: int | None = None,
+    text_network_limit_percent: int | None = None,
+    text_network_pay_cpa: int | None = None,
+    text_network_profitability: int | None = None,
+    text_network_reserve_return: int | None = None,
+    text_network_roi_coef: int | None = None,
+    text_network_weekly_spend_limit: int | None = None,
+    # --- DynamicTextCampaign.BiddingStrategy.Search (17 flags) ---
+    dyn_search_average_cpa: int | None = None,
+    dyn_search_average_cpc: int | None = None,
+    dyn_search_bid_ceiling: int | None = None,
+    dyn_search_clicks_per_week: int | None = None,
+    dyn_search_cpa: int | None = None,
+    dyn_search_crr: int | None = None,
+    dyn_search_custom_period_auto_continue: str | None = None,
+    dyn_search_custom_period_end_date: str | None = None,
+    dyn_search_custom_period_spend_limit: int | None = None,
+    dyn_search_custom_period_start_date: str | None = None,
+    dyn_search_exploration_budget: int | None = None,
+    dyn_search_exploration_budget_custom: str | None = None,
+    dyn_search_goal_id: int | None = None,
+    dyn_search_profitability: int | None = None,
+    dyn_search_reserve_return: int | None = None,
+    dyn_search_roi_coef: int | None = None,
+    dyn_search_weekly_spend_limit: int | None = None,
+    # --- DynamicTextCampaign.BiddingStrategy.Network (18 flags) ---
+    dyn_network_average_cpa: int | None = None,
+    dyn_network_average_cpc: int | None = None,
+    dyn_network_bid_ceiling: int | None = None,
+    dyn_network_clicks_per_week: int | None = None,
+    dyn_network_cpa: int | None = None,
+    dyn_network_crr: int | None = None,
+    dyn_network_custom_period_auto_continue: str | None = None,
+    dyn_network_custom_period_end_date: str | None = None,
+    dyn_network_custom_period_spend_limit: int | None = None,
+    dyn_network_custom_period_start_date: str | None = None,
+    dyn_network_exploration_budget: int | None = None,
+    dyn_network_exploration_budget_custom: str | None = None,
+    dyn_network_goal_id: int | None = None,
+    dyn_network_limit_percent: int | None = None,
+    dyn_network_profitability: int | None = None,
+    dyn_network_reserve_return: int | None = None,
+    dyn_network_roi_coef: int | None = None,
+    dyn_network_weekly_spend_limit: int | None = None,
+    # --- SmartCampaign.BiddingStrategy.Search (18 flags) ---
+    smart_search_average_cpa: int | None = None,
+    smart_search_average_cpc: int | None = None,
+    smart_search_bid_ceiling: int | None = None,
+    smart_search_cp_auto_continue: str | None = None,
+    smart_search_cp_end_date: str | None = None,
+    smart_search_cp_spend_limit: int | None = None,
+    smart_search_cp_start_date: str | None = None,
+    smart_search_cpa: int | None = None,
+    smart_search_crr: int | None = None,
+    smart_search_exploration_min: int | None = None,
+    smart_search_exploration_min_custom: str | None = None,
+    smart_search_filter_average_cpa: int | None = None,
+    smart_search_filter_average_cpc: int | None = None,
+    smart_search_goal_id: int | None = None,
+    smart_search_profitability: int | None = None,
+    smart_search_reserve_return: int | None = None,
+    smart_search_roi_coef: int | None = None,
+    smart_search_weekly_spend_limit: int | None = None,
+    # --- SmartCampaign.BiddingStrategy.Network (19 flags) ---
+    smart_network_average_cpa: int | None = None,
+    smart_network_average_cpc: int | None = None,
+    smart_network_bid_ceiling: int | None = None,
+    smart_network_cp_auto_continue: str | None = None,
+    smart_network_cp_end_date: str | None = None,
+    smart_network_cp_spend_limit: int | None = None,
+    smart_network_cp_start_date: str | None = None,
+    smart_network_cpa: int | None = None,
+    smart_network_crr: int | None = None,
+    smart_network_exploration_min: int | None = None,
+    smart_network_exploration_min_custom: str | None = None,
+    smart_network_filter_average_cpa: int | None = None,
+    smart_network_filter_average_cpc: int | None = None,
+    smart_network_goal_id: int | None = None,
+    smart_network_limit_percent: int | None = None,
+    smart_network_profitability: int | None = None,
+    smart_network_reserve_return: int | None = None,
+    smart_network_roi_coef: int | None = None,
+    smart_network_weekly_spend_limit: int | None = None,
+    # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
+    unified_search_average_cpc: int | None = None,
+    unified_search_custom_period_auto_continue: str | None = None,
+    unified_search_custom_period_end_date: str | None = None,
+    unified_search_custom_period_spend_limit: int | None = None,
+    unified_search_custom_period_start_date: str | None = None,
+    unified_search_exploration_is_custom: str | None = None,
+    unified_search_exploration_min_budget: int | None = None,
+    unified_search_pay_cpa: int | None = None,
+    unified_search_placement_maps: str | None = None,
+    unified_search_placement_search_organization_list: str | None = None,
+    unified_search_weekly_spend_limit: int | None = None,
+    # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
+    unified_network_average_cpc: int | None = None,
+    unified_network_cpa: int | None = None,
+    unified_network_custom_period_auto_continue: str | None = None,
+    unified_network_custom_period_end_date: str | None = None,
+    unified_network_custom_period_spend_limit: int | None = None,
+    unified_network_custom_period_start_date: str | None = None,
+    unified_network_exploration_is_custom: str | None = None,
+    unified_network_exploration_min_budget: int | None = None,
+    unified_network_weekly_spend_limit: int | None = None,
+    # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
+    mobile_search_average_cpc: int | None = None,
+    mobile_search_average_cpi: int | None = None,
+    mobile_search_bid_ceiling: int | None = None,
+    mobile_search_clicks_per_week: int | None = None,
+    mobile_search_custom_period_auto_continue: str | None = None,
+    mobile_search_custom_period_end_date: str | None = None,
+    mobile_search_custom_period_spend_limit: int | None = None,
+    mobile_search_custom_period_start_date: str | None = None,
+    mobile_search_weekly_spend_limit: int | None = None,
+    # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
+    mobile_network_average_cpc: int | None = None,
+    mobile_network_average_cpi: int | None = None,
+    mobile_network_bid_ceiling: int | None = None,
+    mobile_network_clicks_per_week: int | None = None,
+    mobile_network_custom_period_auto_continue: str | None = None,
+    mobile_network_custom_period_end_date: str | None = None,
+    mobile_network_custom_period_spend_limit: int | None = None,
+    mobile_network_custom_period_start_date: str | None = None,
+    mobile_network_limit_percent: int | None = None,
+    mobile_network_weekly_spend_limit: int | None = None,
     notification_json: str | None = None,
     time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create a new campaign.
 
-    CLI 0.3.9 enforces strict WSDL parity for CPA strategies. Incompatible
-    combinations (e.g. `--crr` on AVERAGE_CPA, `--priority-goals` without a
-    `*_MULTIPLE_GOALS` strategy, `--counter-ids` on Smart) are rejected by the
-    CLI with `UsageError` before any API call — the plugin does not duplicate
-    these cross-field checks.
+    Money parameters (budget, average_cpa, bid_ceiling, average_cpm,
+    average_cpv, strategy_spend_limit, and every strategy-detail parameter
+    ending in *_spend_limit, *_cpc, *_cpa, *_cpi, *_pay_cpa, *_bid_ceiling,
+    *_exploration_budget, *_exploration_min, *_exploration_min_budget,
+    *_filter_average_cpa, *_filter_average_cpc) are in **micro-units**:
+    15 RUB = 15_000_000. The agent must convert user-supplied rubles before
+    calling this tool — never ask the user to multiply by 1_000_000. CLI
+    rejects 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+
+    Encoded-ratio parameters in micro-units (NOT rubles, but the same
+    × 1_000_000 scale per Yandex Direct WSDL): `text_search_profitability`,
+    `text_search_roi_coef`, `text_network_profitability`,
+    `text_network_roi_coef`, `smart_search_profitability`,
+    `smart_search_roi_coef`, `smart_network_profitability`,
+    `smart_network_roi_coef`. Pass 20% as 20_000_000, ratio 1.0 as 1_000_000.
+
+    Plain integer parameters (NOT micro-units): `*_reserve_return` (percent
+    0-100), `*_limit_percent` (percent 10-100), `*_clicks_per_week` (count),
+    `*_crr` (percent 1-1000 for dyn_*; same for smart_*), `*_goal_id`,
+    `dyn_search_profitability`, `dyn_search_roi_coef`,
+    `dyn_network_profitability`, `dyn_network_roi_coef` (these dyn_* four
+    are plain integers per CLI, unlike their text_*/smart_* siblings).
+    Pass these as-is — do NOT multiply by 1_000_000.
+
+    CLI 0.3.9+ enforces strict WSDL parity. Incompatible combinations (e.g.
+    `crr` on AVERAGE_CPA, `priority_goals` without a `*_MULTIPLE_GOALS`
+    strategy, `counter_ids` on Smart, strategy-detail flags on the wrong
+    campaign type, mutex of `*_weekly_spend_limit` with
+    `*_custom_period_spend_limit`) are rejected by CLI with `UsageError`
+    before any API call — the plugin does not duplicate these checks.
 
     Args:
         name: Campaign name.
         start_date: Campaign start date in YYYY-MM-DD format.
-        campaign_type: Campaign type (optional).
-        budget: Optional daily budget in micro-units (RUB × 1,000,000); CLI 0.2.10+
-            rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
+        campaign_type: Campaign type (TEXT_CAMPAIGN, DYNAMIC_TEXT_CAMPAIGN,
+            SMART_CAMPAIGN, UNIFIED_CAMPAIGN, MOBILE_APP_CAMPAIGN, CPM_BANNER_CAMPAIGN).
+        budget: Optional daily budget in micro-units (RUB × 1_000_000).
         end_date: Optional campaign end date in YYYY-MM-DD format.
         search_strategy: Optional search bidding strategy type
             (e.g. "HIGHEST_POSITION", "WB_MAXIMUM_CLICKS").
@@ -430,8 +1113,8 @@ def campaigns_add(
             (e.g. "MAXIMUM_COVERAGE", "WB_MAXIMUM_CLICKS").
         settings: Optional list of campaign settings as OPTION=VALUE strings
             (e.g. ["EnableEmailNotification=YES", "RequireServicing=NO"]).
-        filter_average_cpc: Optional Smart campaign filter average CPC in micro-units
-            (RUB × 1,000,000); CLI 0.2.10+ rejects values 0 < x < 100_000.
+        filter_average_cpc: Optional Smart campaign filter average CPC
+            (micro-units).
         counter_id: Optional Smart campaign Metrika counter ID (single).
         counter_ids: Optional comma-separated Metrika counter IDs for
             TextCampaign / DynamicTextCampaign (`CounterIds`).
@@ -439,12 +1122,26 @@ def campaigns_add(
             PAY_FOR_CONVERSION_CRR / AVERAGE_CPA_PER_CAMPAIGN /
             AVERAGE_CPA_PER_FILTER strategies.
         priority_goals: Optional comma-separated 'goal_id:value' pairs for
-            AVERAGE_CPA_MULTIPLE_GOALS / PAY_FOR_CONVERSION_MULTIPLE_GOALS.
-        average_cpa: Optional target CPA in micro-units (RUB × 1,000,000)
-            for AVERAGE_CPA strategies.
+            AVERAGE_CPA_MULTIPLE_GOALS / PAY_FOR_CONVERSION_MULTIPLE_GOALS
+            (and Smart / Unified PriorityGoals).
+        average_cpa: Optional target CPA in micro-units.
         crr: Optional cost-revenue-ratio percentage for PAY_FOR_CONVERSION_CRR.
         bid_ceiling: Optional bid ceiling in micro-units for the chosen
             CPA strategy.
+        average_cpm / average_cpv / strategy_spend_limit / strategy_start_date /
+            strategy_end_date / strategy_auto_continue: CpmBannerCampaign bidding
+            strategy flags (money in micro-units).
+        text_search_* / text_network_*: TextCampaign Search/Network bidding
+            strategy detail flags (WSDL parity).
+        dyn_search_* / dyn_network_*: DynamicTextCampaign Search/Network.
+        smart_search_* / smart_network_*: SmartCampaign Search/Network
+            (per-campaign / per-filter variants — `*_filter_average_*` are
+            per-filter, others per-campaign).
+        unified_search_* / unified_network_*: UnifiedCampaign Search/Network.
+        mobile_search_* / mobile_network_*: MobileAppCampaign Search/Network.
+        search_placement_search_results / search_placement_product_gallery /
+            search_placement_dynamic_places: TextCampaign / Unified /
+            DynamicText Search PlacementTypes (YES/NO).
         notification_json: Optional JSON for `CampaignBase.Notification`
             ({"SmsSettings": {...}, "EmailSettings": {...}}).
         time_targeting_json: Optional JSON for `CampaignAddItem.TimeTargeting`

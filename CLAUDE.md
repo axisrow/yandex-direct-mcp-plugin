@@ -382,7 +382,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.11`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.13`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -557,3 +557,65 @@ Closes plugin issues `#110`, `#111`, `#112`.
   For the AccountIDs selector use `v4account_get_accounts`.
 
 Closes plugin issue `#120`.
+
+## Breaking Changes (CLI 0.3.13 alignment)
+
+- **`direct-cli>=0.3.13` required**: the minimum CLI version was raised
+  from 0.3.11. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
+  `(0, 3, 13)`. Installs running CLI 0.3.12 or below will be rejected by
+  the version probe.
+
+- **CLI money-unit contract restored**: CLI 0.3.13 reverted the brief
+  decimal-rubles experiment and reunified every campaigns money flag on
+  `MICRO_RUBLES` (`axisrow/direct-cli#399`). The plugin can therefore
+  forward all 147 new bidding-strategy detail flags as plain `int`
+  micro-units without compensating for split unit types.
+
+- **`campaigns_add` and `campaigns_update`**: 147 new optional
+  bidding-strategy detail parameters covering every campaign type ×
+  Search/Network in WSDL-parity form:
+
+  - TextCampaign Search PlacementTypes (3): `search_placement_*`.
+  - CpmBannerCampaign strategy (6): `average_cpm`, `average_cpv`,
+    `strategy_spend_limit` (micro-units), `strategy_start_date`,
+    `strategy_end_date`, `strategy_auto_continue` (YES/NO).
+  - TextCampaign Search/Network (13 + 14): `text_search_*`,
+    `text_network_*`.
+  - DynamicTextCampaign Search/Network (17 + 18): `dyn_search_*`,
+    `dyn_network_*`.
+  - SmartCampaign Search/Network (18 + 19): `smart_search_*`,
+    `smart_network_*` (with per-campaign and per-filter variants —
+    `*_filter_average_cpa` / `*_filter_average_cpc` map to the
+    per-filter strategy subtype, everything else is per-campaign).
+  - UnifiedCampaign Search/Network (11 + 9): `unified_search_*`,
+    `unified_network_*`.
+  - MobileAppCampaign Search/Network (9 + 10): `mobile_search_*`,
+    `mobile_network_*`.
+
+  Money parameters end in `*_spend_limit`, `*_cpc`, `*_cpa`, `*_cpi`,
+  `*_pay_cpa`, `*_bid_ceiling`, `*_exploration_budget`,
+  `*_exploration_min`, `*_exploration_min_budget`, `*_profitability`,
+  `*_roi_coef`, `*_filter_average_cpa`, `*_filter_average_cpc` — all in
+  **micro-units** (`int`), matching the `--budget` / `--average-cpa`
+  contract. The agent converts user-supplied rubles before calling the
+  tool; users are not expected to multiply by 1_000_000.
+
+- **`campaigns_update` only**: 10 new `*_budget_type` parameters
+  (`text_search_budget_type`, `text_network_budget_type`,
+  `dyn_search_budget_type`, `dyn_network_budget_type`,
+  `smart_search_budget_type`, `smart_network_budget_type`,
+  `unified_search_budget_type`, `unified_network_budget_type`,
+  `mobile_search_budget_type`, `mobile_network_budget_type`) switch a
+  running strategy between `WEEKLY_BUDGET` and `CUSTOM_PERIOD_BUDGET`
+  without re-sending the rest of the strategy. CLI exposes these only on
+  `campaigns update`; `campaigns_add` rejects them by signature.
+
+- **All new parameters are optional**: no breaking change for existing
+  callers. Strategy-subtype compatibility (e.g. `*_filter_average_cpa`
+  only on the `*_PER_FILTER` Smart subtype, `*_weekly_spend_limit`
+  mutually exclusive with `*_custom_period_spend_limit`,
+  `*_clicks_per_week` only on `WEEKLY_CLICK_PACKAGE`) is enforced by CLI
+  `UsageError` and propagates through `handle_cli_errors` — the plugin
+  does not duplicate cross-field validation.
+
+Closes plugin issue tracking the 0.3.13 bump.
