@@ -867,11 +867,11 @@ direct auth login
 ```toml
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "0.1.10"
+version = "0.2.1.4"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.12",
+    "direct-cli>=0.3.14",
 ]
 
 [project.optional-dependencies]
