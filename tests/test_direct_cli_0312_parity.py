@@ -122,7 +122,13 @@ def test_runtime_and_package_require_direct_cli_0312_or_newer() -> None:
 
     match = re.search(r">=\s*(\d+)\.(\d+)\.(\d+)", direct_dependency)
     assert match is not None
-    assert tuple(map(int, match.groups())) >= (0, 3, 12)
+    pyproject_floor = tuple(map(int, match.groups()))
+    assert pyproject_floor >= (0, 3, 12)
+    assert pyproject_floor >= MIN_DIRECT_VERSION, (
+        f"pyproject.toml floor {pyproject_floor} is below the runtime probe "
+        f"{MIN_DIRECT_VERSION}; a fresh install could satisfy the package "
+        "constraint and still be rejected by the runtime version probe."
+    )
 
 
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
