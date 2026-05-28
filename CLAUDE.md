@@ -382,7 +382,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.13`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.14`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -619,3 +619,43 @@ Closes plugin issue `#120`.
   does not duplicate cross-field validation.
 
 Closes plugin issue tracking the 0.3.13 bump.
+
+## Breaking Changes (CLI 0.3.14 alignment)
+
+- **`direct-cli>=0.3.14` required**: the minimum CLI version was raised
+  from 0.3.13. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
+  `(0, 3, 14)`. Installs running CLI 0.3.13 or below will be rejected by
+  the version probe.
+
+- **No `campaigns_add` / `campaigns_update` signature changes**: CLI
+  0.3.14 ships ~210 typed flags (200 shared add+update + 10 update-only
+  `*-budget-type` switches) on `campaigns add` / `campaigns update`,
+  all of which were already proxied through `CAMPAIGN_MUTATION_OPTIONS`
+  and `CAMPAIGN_UPDATE_ONLY_OPTIONS` in the 0.3.13 alignment. The
+  micro-units contract is preserved (`MICRO_RUBLES` everywhere).
+
+- **New `v4finance` CLI group**: CLI 0.3.14 exposes typed `v4finance`
+  subcommands for the v4 Live Financial API — `get-clients-units`,
+  `get-credit-limits`, `check-payment`, `create-invoice`,
+  `transfer-money`, `pay-campaigns`. These are **intentionally not
+  surfaced as MCP tools** and remain catalogued in
+  `server/contract.py` → `V4_LIVE_BLOCKED_METHODS` with
+  `_FINANCIAL_REASON`. Financial operations require manual review and
+  master-token issuance through the Direct UI; exposing them via MCP
+  would put high-value mutating endpoints behind an LLM tool call.
+
+  Unlike `v4account_deposit` / `v4account_invoice` /
+  `v4account_transfer_money` (which operate on shared-accounts and
+  enforce `dry_run=True` or `sandbox=True`), the new v4finance group
+  has no shared-account / dry-run safety net at the API level — every
+  call is a real money movement against a live campaign or client
+  balance. That is why the v4account family is exposed (with env-only
+  finance tokens) but v4finance is not.
+
+  The blocked list already covered all six methods before the bump
+  (CLI added the typed subcommands in 0.3.14, but the v4 methods
+  themselves existed earlier), so no contract changes were needed.
+  `PayCampaignsByCard` is still listed with `_NO_CLI_REASON` — CLI
+  0.3.14 does not type that subcommand.
+
+Closes plugin issue tracking the 0.3.14 bump.
