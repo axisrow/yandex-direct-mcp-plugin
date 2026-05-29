@@ -695,10 +695,16 @@ Closes plugin issue tracking the 0.3.15 bump.
 
 ## Breaking Changes (CLI 0.3.16 alignment)
 
-- **`direct-cli>=0.3.16` required**: the minimum CLI version was raised
-  from 0.3.15. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
-  `(0, 3, 16)`. Installs running CLI 0.3.15 or below will be rejected by
-  the version probe.
+- **`direct-cli>=0.3.16` documented**: CLI 0.3.16 was the alignment
+  target. Historical note: this doc bump only updated `CLAUDE.md` — the
+  runtime floor (`MIN_DIRECT_VERSION` in `server/cli/runner.py`,
+  `pyproject.toml`, `README.md`) was *not* moved and stayed at
+  `(0, 3, 15)` / `>=0.3.15`. The intended `(0, 3, 16)` / `>=0.3.16`
+  bump never landed in code; the runtime floor was next raised directly
+  to `(0, 4, 0)` / `>=0.4.0` in the CLI 0.4.0 alignment below, which
+  resynced all four locations. Because 0.3.16 was a v4finance-only
+  regression fix with no MCP-surface impact, the stale runtime floor had
+  no functional effect.
 
 - **No plugin signature changes**: CLI 0.3.16 is a regression-fix that
   reverts the 0.3.15 wire-shape changes (PRs #441/#442/#443), confined
