@@ -240,11 +240,13 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
     result = _run_auth_command(_token_setup_args(code, login=login, profile=profile))
     if not result.get("success"):
         return result
+    _selected, _payload = _read_cli_profile(profile)
+    saved_login = (_payload or {}).get("login") or login or ""
     return {
         "success": True,
         "method": "direct_token",
         "profile": profile,
-        "login": login or "",
+        "login": saved_login,
     }
 
 
@@ -331,11 +333,13 @@ async def auth_login(
     finish_result = _complete_login_with_code(target_profile, result.data.value)
     if not finish_result.get("success"):
         return {**finish_result, "auth_url": auth_url}
+    _selected, _payload = _read_cli_profile(target_profile)
+    saved_login = (_payload or {}).get("login") or login or ""
     return {
         "success": True,
         "method": "oauth_code",
         "profile": target_profile,
-        "login": login or "",
+        "login": saved_login,
     }
 
 
