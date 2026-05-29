@@ -126,6 +126,13 @@ OAuth-приложение само по себе не даёт доступ к 
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
 
+### Язык вывода CLI (`--locale`)
+
+`direct-cli` 0.4.0+ поддерживает глобальный флаг `--locale ru|en` (или
+переменную окружения `YANDEX_DIRECT_CLI_LOCALE`) для языка справки и сообщений.
+Это удобство уровня CLI: плагин использует значение по умолчанию и не
+пробрасывает флаг, поэтому на работу MCP-инструментов он не влияет.
+
 ## MCP contract (142 tools)
 
 The public contract is now defined as:
@@ -867,11 +874,11 @@ direct auth login
 ```toml
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "0.2.2"
+version = "0.2.3"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.3.15",
+    "direct-cli>=0.4.0",
 ]
 
 [project.optional-dependencies]

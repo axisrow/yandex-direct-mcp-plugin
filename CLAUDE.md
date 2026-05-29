@@ -382,7 +382,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.15`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.0`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -728,3 +728,59 @@ Closes plugin issue tracking the 0.3.15 bump.
   issuance through the Direct UI rather than an LLM tool call.
 
 Closes plugin issue tracking the 0.3.16 bump.
+
+## Breaking Changes (CLI 0.4.0 alignment)
+
+- **`direct-cli>=0.4.0` required**: the minimum CLI version was raised
+  from 0.3.15 to 0.4.0. `MIN_DIRECT_VERSION` in `server/cli/runner.py`
+  moved to `(0, 4, 0)`. This also unifies the runtime floor with the
+  documented one — the 0.3.16 doc bump left `MIN_DIRECT_VERSION`,
+  `pyproject.toml`, and `README.md` at `0.3.15` (only `CLAUDE.md`
+  advanced), so this release resyncs all four. Installs running CLI
+  0.3.x or below will be rejected by the version probe.
+
+- **No plugin signature changes**: CLI 0.4.0 is a large release —
+  rewritten auth, ~hundreds of typed bidding-strategy / ad-type flags,
+  and a new `--locale` switch — but every change either was already
+  proxied ahead of time in the 0.3.x alignments or does not touch the
+  MCP surface:
+
+  - **Auth contract already implemented.** CLI 0.4.0 makes
+    `direct auth login` canonical (`--profile`, `--oauth-token`,
+    `--code -` / `--code-stdin`, OAuth refresh tokens), removes
+    `direct auth setup`, and makes the deprecated `direct-cli`
+    entrypoint exit with an error. `server/tools/auth_tools.py` already
+    drives `direct auth login --profile … --oauth-token …` and
+    `--code -` / `--code-stdin` — it never called `auth setup`. The
+    `~/.direct-cli/auth.json` shape the plugin reads (`profiles`,
+    `active_profile`, per-profile `token` / `login` / `expires_at` /
+    `refresh_token` / `source`) matches CLI 0.4.0 exactly. The MCP
+    tools `auth_status` / `auth_setup` / `auth_login` are unchanged.
+
+  - **All typed flags already proxied.** Every CLI 0.4.0 typed flag for
+    the mutating commands (`ads add/update`, `adgroups add/update`,
+    `campaigns add/update` — all 218 add/update flags build from the
+    plugin — `bidmodifiers add`, `bids`, `keywordbids`, `keywords`,
+    `vcards`, `clients` ERIR, `agencyclients`, `strategies`,
+    `retargeting`, `sitelinks`, `adimages`, `advideos`) was already
+    wired through MCP in the 0.3.9–0.3.16 alignments. No tool signature
+    needed to change.
+
+  - **New global `--locale ru|en`** (env `YANDEX_DIRECT_CLI_LOCALE`)
+    switches CLI help/message language. It is read-only ergonomics; the
+    plugin uses the CLI default and does not forward it, so it does not
+    affect any tool.
+
+  - **`v4finance` stays blocked.** CLI 0.4.0 keeps the six v4finance
+    subcommands (`get-clients-units`, `check-payment`, `create-invoice`,
+    `transfer-money`, `pay-campaigns`, `get-credit-limits`); they remain
+    catalogued in `server/contract.py` → `V4_LIVE_BLOCKED_METHODS` with
+    `_FINANCIAL_REASON` / `_NO_CLI_REASON` and are intentionally not
+    surfaced as MCP tools (real money movements with no shared-account /
+    dry-run safety net; master-token issuance through the Direct UI).
+
+  - **All CLI 0.4.0 groups/subcommands are covered** by existing tools;
+    no new API service appeared that would require a new tool.
+    `v4goals` / `v4tags` were already added in earlier releases.
+
+Closes plugin issue tracking the 0.4.0 bump.
