@@ -148,6 +148,35 @@ class TestAuthSetup:
             timeout=None,
         )
 
+    def test_auth_setup_returns_saved_login_when_param_omitted(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        # Regression: the saved CLI profile login must win over the
+        # (omitted) login parameter, so the response is not "".
+        monkeypatch.setenv("HOME", str(tmp_path))
+        auth_path = tmp_path / ".direct-cli" / "auth.json"
+        auth_path.parent.mkdir()
+        auth_path.write_text(
+            json.dumps(
+                {
+                    "active_profile": "default",
+                    "profiles": {
+                        "default": {"token": "token", "login": "gtoil-ru-direct"}
+                    },
+                }
+            )
+        )
+        with patch("server.tools.auth_tools._run_auth_command") as mock_run:
+            mock_run.return_value = {"success": True, "message": "ok"}
+            result = auth_setup("y0_token")
+
+        assert result == {
+            "success": True,
+            "method": "direct_token",
+            "profile": "default",
+            "login": "gtoil-ru-direct",
+        }
+
     def test_auth_setup_ignores_plugin_client_options(self, monkeypatch) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
