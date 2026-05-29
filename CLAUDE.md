@@ -382,7 +382,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.15`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.3.16`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -692,3 +692,39 @@ Closes plugin issue tracking the 0.3.14 bump.
   Direct UI rather than an LLM tool call.
 
 Closes plugin issue tracking the 0.3.15 bump.
+
+## Breaking Changes (CLI 0.3.16 alignment)
+
+- **`direct-cli>=0.3.16` required**: the minimum CLI version was raised
+  from 0.3.15. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
+  `(0, 3, 16)`. Installs running CLI 0.3.15 or below will be rejected by
+  the version probe.
+
+- **No plugin signature changes**: CLI 0.3.16 is a regression-fix that
+  reverts the 0.3.15 wire-shape changes (PRs #441/#442/#443), confined
+  entirely to the `v4finance` group, which the plugin intentionally does
+  **not** surface as MCP tools (all six v4finance methods stay catalogued
+  in `server/contract.py` → `V4_LIVE_BLOCKED_METHODS` with
+  `_FINANCIAL_REASON` / `_NO_CLI_REASON`). The restored CLI flags were
+  never proxied through MCP, so no tool signatures or contract entries
+  changed. The micro-units / `MICRO_RUBLES` contract is preserved.
+
+  CLI 0.3.16 realigns the v4finance wire-bodies with the **Live 4** docs
+  (`dg-v4/live/*`) rather than the legacy reference docs
+  (`dg-v4/reference/*`) that 0.3.15 mistakenly targeted:
+
+  - `v4finance transfer-money` / `create-invoice` / `pay-campaigns`
+    require `--currency` again and re-emit `Currency` on every
+    `PayCampElement` / `Payments[]` item — `dg-v4/live/*` marks
+    `Currency` obligatory.
+  - `v4finance pay-campaigns` accepts `--pay-method Overdraft` again
+    (Live 4 adds it for direct advertisers, paired with `Bank` for
+    agencies; only `Bank` keeps the `--contract-id` requirement).
+
+  These remain inaccessible from MCP for the same reason given in the
+  0.3.14/0.3.15 sections: v4finance calls are real money movements
+  against live campaign/client balances with no shared-account /
+  dry-run safety net, so they require manual review and master-token
+  issuance through the Direct UI rather than an LLM tool call.
+
+Closes plugin issue tracking the 0.3.16 bump.
