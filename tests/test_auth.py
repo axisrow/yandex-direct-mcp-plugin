@@ -118,7 +118,10 @@ class TestAuthStatus:
 
 
 class TestAuthSetup:
-    def test_auth_setup_with_direct_token(self) -> None:
+    def test_auth_setup_with_direct_token(self, tmp_path, monkeypatch) -> None:
+        # Isolate from the real ~/.direct-cli/auth.json so the saved profile
+        # login does not shadow the passed-in login parameter.
+        monkeypatch.setenv("HOME", str(tmp_path))
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=_completed("✓ Profile 'default' is saved and active.\n"),
@@ -144,6 +147,35 @@ class TestAuthSetup:
             ],
             timeout=None,
         )
+
+    def test_auth_setup_returns_saved_login_when_param_omitted(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        # Regression: the saved CLI profile login must win over the
+        # (omitted) login parameter, so the response is not "".
+        monkeypatch.setenv("HOME", str(tmp_path))
+        auth_path = tmp_path / ".direct-cli" / "auth.json"
+        auth_path.parent.mkdir()
+        auth_path.write_text(
+            json.dumps(
+                {
+                    "active_profile": "default",
+                    "profiles": {
+                        "default": {"token": "token", "login": "gtoil-ru-direct"}
+                    },
+                }
+            )
+        )
+        with patch("server.tools.auth_tools._run_auth_command") as mock_run:
+            mock_run.return_value = {"success": True, "message": "ok"}
+            result = auth_setup("y0_token")
+
+        assert result == {
+            "success": True,
+            "method": "direct_token",
+            "profile": "default",
+            "login": "gtoil-ru-direct",
+        }
 
     def test_auth_setup_ignores_plugin_client_options(self, monkeypatch) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
@@ -405,6 +437,9 @@ class TestAuthLogin:
         result = asyncio.run(auth_login(self._accepted_ctx()))
 
         assert result["profile"] == "agency"
+        # Regression: login is read back from the saved CLI profile even when
+        # the caller did not pass a login parameter (was "" before the fix).
+        assert result["login"] == "client"
         assert mock_run.call_args_list[0].args[0] == [
             "auth",
             "login",
@@ -425,11 +460,15 @@ class TestAuthLogin:
         _mock_find,
         _mock_status,
         monkeypatch,
+        tmp_path,
     ) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
+        # Isolate from the real ~/.direct-cli/auth.json so the saved profile
+        # login does not shadow the passed-in login parameter.
+        monkeypatch.setenv("HOME", str(tmp_path))
         mock_run.side_effect = [
             _completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
@@ -483,8 +522,10 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
     @patch("server.tools.auth_tools.DirectCliRunner.run")
     def test_auth_login_falls_back_to_legacy_code_stdin(
-        self, mock_run, _mock_resolve, _mock_find, _mock_status
+        self, mock_run, _mock_resolve, _mock_find, _mock_status, monkeypatch, tmp_path
     ) -> None:
+        # No saved profile and no login parameter → response login is "".
+        monkeypatch.setenv("HOME", str(tmp_path))
         mock_run.side_effect = [
             _completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
