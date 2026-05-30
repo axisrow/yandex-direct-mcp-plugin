@@ -133,7 +133,7 @@ direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-
 Это удобство уровня CLI: плагин использует значение по умолчанию и не
 пробрасывает флаг, поэтому на работу MCP-инструментов он не влияет.
 
-## MCP contract (142 tools)
+## MCP contract (145 tools)
 
 The public contract is now defined as:
 
@@ -218,7 +218,7 @@ The machine-readable parity source lives in
 
 ### v4 Live coverage
 
-`direct-cli` 0.3.11 exposes typed v4 Live commands for the methods below. Only
+`direct-cli` 0.4.1 exposes typed v4 Live commands for the methods below. Only
 typed public commands are registered as MCP tools. The single
 ``v4account account-management`` CLI subcommand drives five discrete MCP
 tools (one per ``--action``) so financial mutations get isolated signatures
@@ -246,6 +246,9 @@ and finance/master tokens stay env-only:
 - `direct v4wordstat list-reports` → `v4wordstat_list_reports`
 - `direct v4wordstat get-report` → `v4wordstat_get_report`
 - `direct v4wordstat delete-report` → `v4wordstat_delete_report`
+- `direct v4keywords get-suggestion` → `v4keywords_get_suggestion`
+- `direct v4adimage get` → `v4adimage_get`
+- `direct v4adimage set` → `v4adimage_set`
 
 Other methods from `direct_cli.v4_contracts` are tracked in
 `server/contract.py` as blocked/future metadata and are not exposed until the CLI
@@ -878,7 +881,7 @@ version = "0.2.3"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.4.0",
+    "direct-cli>=0.4.1",
 ]
 
 [project.optional-dependencies]

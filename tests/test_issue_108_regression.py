@@ -40,10 +40,12 @@ def test_runtime_code_does_not_reintroduce_freeform_json_transport() -> None:
 
 def test_setup_hook_installs_supported_direct_cli_version() -> None:
     setup = (REPO_ROOT / "hooks" / "setup.sh").read_text()
-    assert "direct-cli>=0.3.11" in setup
+    assert "direct-cli>=0.4.1" in setup
+    assert "direct-cli>=0.3.11" not in setup
     assert "direct-cli>=0.3.4" not in setup
     assert "direct-cli>=0.3.10" not in setup
-    assert "_has_direct_cli_0311" in setup
+    assert "_has_direct_cli_0401" in setup
+    assert "_has_direct_cli_0311" not in setup
     assert "_has_direct_cli_0310" not in setup
 
 
@@ -90,6 +92,7 @@ def test_blocked_v4_methods_have_explicit_non_stale_reasons() -> None:
         "GetCreditLimits",
         "TransferMoney",
         "PayCampaigns",
+        "PayCampaignsByCard",
         "CheckPayment",
         "CreateInvoice",
     ):

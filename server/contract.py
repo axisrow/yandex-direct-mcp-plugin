@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 136
+- Direct API tools: 139
 - CLI helper tools:   3
 - Plugin tools:       3
-Total:              142
+Total:              145
 """
 
 from __future__ import annotations
@@ -407,6 +407,36 @@ V4_LIVE_CLI_TOOLS: tuple[ContractTool, ...] = (
         classification="direct_api",
         tapi_name="DeleteWordstatReport",
     ),
+    ContractTool(
+        public_name="v4keywords_get_suggestion",
+        cli_service="v4keywords",
+        cli_method="get_suggestion",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="GetKeywordsSuggestion",
+    ),
+    # AdImageAssociation is a multi-action v4 Live method. direct-cli 0.4.1
+    # surfaces it as two typed CLI subcommands (``v4adimage get`` for
+    # Action=Get, ``v4adimage set`` for Action=Set); the plugin mirrors that
+    # split with two discrete MCP tools, each owning its single action.
+    ContractTool(
+        public_name="v4adimage_get",
+        cli_service="v4adimage",
+        cli_method="get",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AdImageAssociation",
+        supported_actions=("Get",),
+    ),
+    ContractTool(
+        public_name="v4adimage_set",
+        cli_service="v4adimage",
+        cli_method="set",
+        authority="v4-live",
+        classification="direct_api",
+        tapi_name="AdImageAssociation",
+        supported_actions=("Set",),
+    ),
 )
 
 # Methods either not yet typed by direct-cli OR typed but intentionally not
@@ -458,7 +488,7 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "finance",
         "v4finance",
         "pay-campaigns-by-card",
-        _NO_CLI_REASON,
+        _FINANCIAL_REASON,
     ),
     BlockedV4Method(
         "CheckPayment",
@@ -486,20 +516,6 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
         "offline_reports",
         None,
         "delete-report",
-        _NO_CLI_REASON,
-    ),
-    BlockedV4Method(
-        "AdImageAssociation",
-        "ad_image",
-        None,
-        "ad-image-association",
-        _NO_CLI_REASON,
-    ),
-    BlockedV4Method(
-        "GetKeywordsSuggestion",
-        "keywords",
-        None,
-        "get-keywords-suggestion",
         _NO_CLI_REASON,
     ),
     BlockedV4Method("PingAPI", "meta", "v4meta", "ping-api", _NO_CLI_REASON),

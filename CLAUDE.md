@@ -191,13 +191,13 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (142 total) + 1 Prompt
+## MCP Tools (145 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (125)
+### Direct API tools (128)
 
 | Tool | Purpose |
 |---|---|
@@ -330,6 +330,9 @@ WSDL/reports spec wins when there is drift.
 | `v4wordstat_list_reports` | List v4 Live Wordstat reports |
 | `v4wordstat_get_report` | Get a ready v4 Live Wordstat report |
 | `v4wordstat_delete_report` | Delete v4 Live Wordstat report |
+| `v4keywords_get_suggestion` | Get related keyword suggestions (up to 20 phrases; spends API points) |
+| `v4adimage_get` | Read ad-image associations (AdImageAssociation Get) |
+| `v4adimage_set` | Link/unlink ad images (AdImageAssociation Set) |
 
 ### CLI helper tools (3)
 
@@ -790,3 +793,53 @@ Closes plugin issue tracking the 0.3.16 bump.
     `v4goals` / `v4tags` were already added in earlier releases.
 
 Closes plugin issue tracking the 0.4.0 bump.
+
+## Breaking Changes (CLI 0.4.1 alignment)
+
+- **`direct-cli>=0.4.1` required**: the minimum CLI version was raised
+  from 0.4.0. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
+  `(0, 4, 1)`, and `pyproject.toml`, `README.md`, and `hooks/setup.sh`
+  were resynced. `hooks/setup.sh` had drifted (it still installed
+  `direct-cli>=0.3.11` via `_has_direct_cli_0311`); the probe is now
+  `_has_direct_cli_0401` / `>=0.4.1`, matching the runtime floor.
+
+- **Three new v4 Live MCP tools.** CLI 0.4.1 ships typed subcommands for
+  three v4 Live methods that were previously catalogued in
+  `server/contract.py` → `V4_LIVE_BLOCKED_METHODS` with `_NO_CLI_REASON`
+  ("direct-cli does not expose a typed subcommand"). Two are now exposed
+  as MCP tools; the third stays blocked under the financial policy:
+
+  - `v4keywords get-suggestion` → **`v4keywords_get_suggestion(keywords)`**
+    (GetKeywordsSuggestion). Returns up to 20 related phrases; spends API
+    points (error_code=152 when exhausted). New module
+    `server/tools/v4keywords.py`.
+  - `v4adimage get` / `v4adimage set` → **`v4adimage_get(...)`** /
+    **`v4adimage_set(associations, dry_run=False)`** (AdImageAssociation
+    Get/Set). `get` reads ad↔image links (empty filter ⇒ up to 10000);
+    `set` links (`AD_ID=HASH`) or unlinks (`AD_ID`) up to 10000 per call.
+    New module `server/tools/v4adimage.py`. The single AdImageAssociation
+    method is split into two action-scoped tools, mirroring the CLI's two
+    subcommands (same split pattern as `v4account_*` for AccountManagement).
+  - `v4finance pay-campaigns-by-card` → **stays blocked**. CLI 0.4.1 types
+    the subcommand, so its `V4_LIVE_BLOCKED_METHODS` entry switched from
+    `_NO_CLI_REASON` to `_FINANCIAL_REASON` — like every other `v4finance`
+    method it is a real money movement with no shared-account / dry-run
+    safety net and is intentionally not surfaced via MCP.
+
+  Method support was verified with live calls against the Yandex API
+  (`v4keywords get-suggestion` returned suggestions; `v4adimage get`
+  returned real associations; `v4adimage set --dry-run` built the correct
+  request body); CLI sources carry a `Docs-verified 2026-05-28 against
+  dg-v4/live/AdImageAssociation` marker.
+
+- **Tool count 142 → 145** (Direct API 136 → 139). Updated in
+  `server/contract.py`, `CLAUDE.md`, `README.md`, and `tests/test_server.py`.
+
+- **Other CLI 0.4.1 changes do not touch the MCP surface**: stricter
+  pre-call validation (`bids`/`keywordbids get`, `bids set-auto`,
+  `reports get` empty-field rejection), error-handling consistency, an
+  auth fix that resolves bare Client-Login via the v5 API, and a new
+  Russian-default i18n layer with the `--locale` switch (the plugin uses
+  the CLI default and does not forward it).
+
+Closes plugin issue tracking the 0.4.1 bump.

@@ -45,9 +45,11 @@ import server.tools.smart_ad_targets  # noqa: E402, F401
 import server.tools.strategies  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
 import server.tools.v4account  # noqa: E402, F401
+import server.tools.v4adimage  # noqa: E402, F401
 import server.tools.v4events  # noqa: E402, F401
 import server.tools.v4forecast  # noqa: E402, F401
 import server.tools.v4goals  # noqa: E402, F401
+import server.tools.v4keywords  # noqa: E402, F401
 import server.tools.v4tags  # noqa: E402, F401
 import server.tools.v4wordstat  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401

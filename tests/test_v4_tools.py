@@ -11,10 +11,12 @@ from server.contract import (
     V4_LIVE_TOOL_NAMES,
 )
 from server.tools.balance import balance_get
+from server.tools.v4adimage import v4adimage_get, v4adimage_set
 from server.tools.v4goals import (
     v4goals_get_retargeting_goals,
     v4goals_get_stat_goals,
 )
+from server.tools.v4keywords import v4keywords_get_suggestion
 from server.tools.v4tags import (
     v4tags_get_banners,
     v4tags_get_campaigns,
@@ -364,6 +366,9 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "v4wordstat_list_reports",
         "v4wordstat_get_report",
         "v4wordstat_delete_report",
+        "v4keywords_get_suggestion",
+        "v4adimage_get",
+        "v4adimage_set",
     }
     assert V4_LIVE_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert {"GetClientsUnits", "PingAPI"} <= V4_LIVE_BLOCKED_METHOD_NAMES
@@ -401,7 +406,111 @@ def test_v4_contract_exposes_only_cli_backed_tools():
         "GetWordstatReportList",
         "GetWordstatReport",
         "DeleteWordstatReport",
+        # CLI 0.4.1 typed these two v4 Live methods and the plugin now exposes
+        # them as MCP tools, so they must no longer be in the blocked set.
+        "AdImageAssociation",
+        "GetKeywordsSuggestion",
     }.isdisjoint(V4_LIVE_BLOCKED_METHOD_NAMES)
+    # PayCampaignsByCard stays blocked despite being typed in CLI 0.4.1 —
+    # it is a real money movement gated behind the financial policy.
+    assert "PayCampaignsByCard" in V4_LIVE_BLOCKED_METHOD_NAMES
     assert "v4finance_get_clients_units" not in PUBLIC_TOOL_NAMES
     assert "v4finance_transfer_money" not in PUBLIC_TOOL_NAMES
+    assert "v4finance_pay_campaigns_by_card" not in PUBLIC_TOOL_NAMES
     assert "v4meta_ping_api" not in PUBLIC_TOOL_NAMES
+
+
+def test_v4keywords_get_suggestion() -> None:
+    runner = _mock_runner(["мебельные ручки", "ручка мебельная"])
+    with patch("server.tools.v4keywords.get_runner", return_value=runner):
+        result = v4keywords_get_suggestion(keywords=[" ручки для шкафа ", "стол"])
+
+    assert result == ["мебельные ручки", "ручка мебельная"]
+    runner.run_json.assert_called_once_with(
+        [
+            "v4keywords",
+            "get-suggestion",
+            "--keyword",
+            "ручки для шкафа",
+            "--keyword",
+            "стол",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_v4keywords_get_suggestion_requires_keywords() -> None:
+    result = v4keywords_get_suggestion(keywords=["   "])
+    assert result["error"] == "missing_keywords"
+
+
+def test_v4adimage_get_without_filters() -> None:
+    runner = _mock_runner({"AdImageAssociations": [], "TotalObjectsCount": "0"})
+    with patch("server.tools.v4adimage.get_runner", return_value=runner):
+        result = v4adimage_get()
+
+    assert result == {"AdImageAssociations": [], "TotalObjectsCount": "0"}
+    runner.run_json.assert_called_once_with(["v4adimage", "get", "--format", "json"])
+
+
+def test_v4adimage_get_with_filters() -> None:
+    runner = _mock_runner({"AdImageAssociations": []})
+    with patch("server.tools.v4adimage.get_runner", return_value=runner):
+        result = v4adimage_get(
+            campaign_ids=" 123,456 ",
+            status_moderate=[" yes ", "ready"],
+            limit=3,
+            offset=10,
+            dry_run=True,
+        )
+
+    assert result == {"AdImageAssociations": []}
+    runner.run_json.assert_called_once_with(
+        [
+            "v4adimage",
+            "get",
+            "--status-moderate",
+            "yes",
+            "--status-moderate",
+            "ready",
+            "--campaign-ids",
+            "123,456",
+            "--limit",
+            "3",
+            "--offset",
+            "10",
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_v4adimage_set() -> None:
+    runner = _mock_runner({"AdImageAssociations": []})
+    with patch("server.tools.v4adimage.get_runner", return_value=runner):
+        result = v4adimage_set(
+            associations=[" 15552664629=aX63TKm1t_G4hJ93AKlAxg ", "16344915985"],
+            dry_run=True,
+        )
+
+    assert result == {"AdImageAssociations": []}
+    runner.run_json.assert_called_once_with(
+        [
+            "v4adimage",
+            "set",
+            "--association",
+            "15552664629=aX63TKm1t_G4hJ93AKlAxg",
+            "--association",
+            "16344915985",
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_v4adimage_set_requires_associations() -> None:
+    result = v4adimage_set(associations=["   "])
+    assert result["error"] == "missing_associations"
