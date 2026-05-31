@@ -59,6 +59,18 @@ def test_balance_get_with_logins():
     )
 
 
+def test_balance_get_passes_email_shaped_logins_to_direct_unchanged():
+    """Issue #145: Client-Login normalization belongs to direct-cli auth."""
+    runner = _mock_runner({"Accounts": []})
+    with patch("server.tools.balance.get_runner", return_value=runner):
+        result = balance_get(logins=" client@yandex.ru ")
+
+    assert result == {"Accounts": []}
+    runner.run_json.assert_called_once_with(
+        ["balance", "--format", "json", "--logins", "client@yandex.ru"]
+    )
+
+
 def test_v4goals_get_stat_goals():
     runner = _mock_runner({"Goals": []})
     with patch("server.tools.v4goals.get_runner", return_value=runner):

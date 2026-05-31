@@ -105,6 +105,26 @@ def test_v4account_get_accounts_by_logins_argv():
     )
 
 
+def test_v4account_get_accounts_passes_email_shaped_logins_to_direct_unchanged():
+    """Issue #145: do not guess Client-Login from Passport email in MCP."""
+    runner = _mock_runner({"method": "AccountManagement"})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        v4account_get_accounts(logins=" client@yandex.ru ", dry_run=True)
+    runner.run_json.assert_called_once_with(
+        [
+            "v4account",
+            "account-management",
+            "--action",
+            "Get",
+            "--logins",
+            "client@yandex.ru",
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+
+
 def test_v4account_get_accounts_by_account_ids_argv():
     runner = _mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):

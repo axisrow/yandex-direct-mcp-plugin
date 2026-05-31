@@ -49,6 +49,12 @@ def test_setup_hook_installs_supported_direct_cli_version() -> None:
     assert "_has_direct_cli_0310" not in setup
 
 
+def test_claude_notes_use_supported_direct_cli_version() -> None:
+    notes = (REPO_ROOT / "CLAUDE.md").read_text()
+    assert "Minimum required: `direct-cli>=0.4.1`" in notes
+    assert "Minimum required: `direct-cli>=0.4.0`" not in notes
+
+
 def test_v4account_runtime_does_not_accept_finance_or_master_tokens() -> None:
     """Issue #120 security policy: finance/master tokens must stay env-only.
 
