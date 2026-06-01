@@ -1,6 +1,6 @@
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "0.2.4.2"
+version = "0.2.4.3"
 requires-python = ">=3.11"
 dependencies = ["mcp", "direct-cli>=0.4.1"]
 
