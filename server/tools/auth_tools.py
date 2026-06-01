@@ -2,8 +2,6 @@
 
 import json
 import time
-from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -41,68 +39,117 @@ def _runner() -> DirectCliRunner:
     return DirectCliRunner()
 
 
-def _auth_store_path() -> Path:
-    return Path.home() / ".direct-cli" / "auth.json"
+def _status_args(profile: str | None = None) -> list[str]:
+    args = ["auth", "status"]
+    if profile:
+        args.extend(["--profile", profile])
+    args.extend(["--format", "json"])
+    return args
 
 
-def _read_auth_store(path: Path | None = None) -> dict[str, Any]:
-    store_path = path or _auth_store_path()
-    try:
-        raw = store_path.read_text(encoding="utf-8")
-    except OSError:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _read_cli_profile(
-    name: str | None = None,
-) -> tuple[str | None, dict[str, Any] | None]:
-    store = _read_auth_store()
-    selected = name
-    if selected is None:
-        active = store.get("active_profile")
-        selected = active if isinstance(active, str) else None
-    if not selected:
-        return None, None
-    profiles = store.get("profiles")
-    if not isinstance(profiles, dict):
-        return selected, None
-    profile = profiles.get(selected)
-    if not isinstance(profile, dict):
-        return selected, None
-    return selected, profile
-
-
-def _normalize_status(profile: str, payload: dict[str, Any]) -> dict:
-    token = payload.get("token")
-    expires_at = payload.get("expires_at")
-    result: dict[str, Any] = {
-        "profile": profile,
-        "source": payload.get("source") or "oauth",
-        "has_token": bool(token),
-        "login": payload.get("login") or "",
+def _not_authenticated(profile: str | None = None, message: str | None = None) -> dict:
+    result = {
+        "valid": False,
+        "reason": "not_authenticated",
+        "profile": profile or "default",
     }
-    if isinstance(expires_at, int | float):
-        expires_in_value = max(0, int(float(expires_at) - time.time()))
-        result["valid"] = bool(token) and expires_in_value > 0
-        result["expires_at"] = float(expires_at)
-        result["expires_in"] = expires_in_value
-        result["expires_in_human"] = _human_readable_time(expires_in_value)
-    else:
-        result["valid"] = bool(token)
-        result["refresh_unavailable"] = True
+    if message:
+        result["message"] = message
     return result
 
 
+def _is_not_authenticated_message(message: str) -> bool:
+    normalized = message.casefold()
+    return (
+        "нет активного профиля" in normalized
+        or "no active profile" in normalized
+        or "not authenticated" in normalized
+    )
+
+
+def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
+    has_token = bool(payload.get("has_token"))
+    payload_profile = payload.get("profile")
+    selected_profile = payload_profile if isinstance(payload_profile, str) else profile
+    if not has_token:
+        return _not_authenticated(selected_profile or profile)
+
+    expires_at = payload.get("expires_at")
+    expires_in = payload.get("expires_in_seconds")
+    if not isinstance(expires_in, (int, float)) and isinstance(
+        expires_at, (int, float)
+    ):
+        expires_in = max(0, int(float(expires_at) - time.time()))
+
+    result: dict[str, object] = {
+        "profile": selected_profile,
+        "source": payload.get("source") or "",
+        "has_token": has_token,
+        "login": payload.get("login") or "",
+        "valid": has_token,
+    }
+    if isinstance(expires_at, (int, float)):
+        result["expires_at"] = float(expires_at)
+    if isinstance(expires_in, (int, float)):
+        expires_in_value = max(0, int(expires_in))
+        result["valid"] = has_token and expires_in_value > 0
+        result["expires_in"] = expires_in_value
+        result["expires_in_human"] = _human_readable_time(expires_in_value)
+    return result
+
+
+def _status_from_cli(profile: str | None = None) -> dict:
+    def _error(error: str, message: str) -> dict:
+        return {
+            "valid": False,
+            "error": error,
+            "message": message,
+            "profile": _resolve_profile_name(profile),
+        }
+
+    try:
+        result = _runner().run(_status_args(profile))
+    except CliError as e:
+        # CliNotFoundError / CliTimeoutError are CliError subclasses (same
+        # catch order as _run_auth_command); map the type to an error code.
+        error = {
+            CliNotFoundError: "cli_not_found",
+            CliTimeoutError: "timeout",
+        }.get(type(e), "auth_failed")
+        return _error(error, str(e))
+
+    stdout = _strip_ansi(result.stdout).strip()
+    stderr = _strip_ansi(result.stderr).strip()
+    if result.returncode != 0:
+        return _not_authenticated(profile, stderr or stdout)
+
+    try:
+        payload = json.loads(stdout) if stdout else {}
+    except json.JSONDecodeError:
+        if _is_not_authenticated_message(stdout or stderr):
+            return _not_authenticated(profile)
+        return _error(
+            "auth_failed", stdout or "direct auth status did not return JSON."
+        )
+    if not isinstance(payload, dict):
+        return _error(
+            "auth_failed", "direct auth status returned an unexpected payload."
+        )
+    return _normalize_status_payload(profile, payload)
+
+
+def _status_login(status: dict) -> str:
+    login = status.get("login")
+    return login if isinstance(login, str) else ""
+
+
+def _status_profile(profile: str, status: dict) -> str:
+    selected = status.get("profile")
+    return selected if isinstance(selected, str) and selected else profile
+
+
 def _resolve_profile_name(profile: str | None = None) -> str:
-    if profile:
-        return profile
-    selected, _payload = _read_cli_profile(None)
-    return selected or "default"
+    return profile or "default"
 
 
 def _run_auth_command(
@@ -196,14 +243,7 @@ def _complete_login_with_code(profile: str, code: str) -> dict:
 @mcp.tool()
 def auth_status(profile: str | None = None) -> dict:
     """Check the current direct auth profile status."""
-    selected, payload = _read_cli_profile(profile)
-    if not selected or payload is None:
-        return {
-            "valid": False,
-            "reason": "not_authenticated",
-            "profile": selected or profile or "default",
-        }
-    return _normalize_status(selected, payload)
+    return _status_from_cli(profile)
 
 
 @mcp.tool()
@@ -240,13 +280,12 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
     result = _run_auth_command(_token_setup_args(code, login=login, profile=profile))
     if not result.get("success"):
         return result
-    _selected, _payload = _read_cli_profile(profile)
-    saved_login = (_payload or {}).get("login") or login or ""
+    status = auth_status(profile)
     return {
         "success": True,
         "method": "direct_token",
-        "profile": profile,
-        "login": saved_login,
+        "profile": _status_profile(profile, status),
+        "login": _status_login(status),
     }
 
 
@@ -267,10 +306,10 @@ async def auth_login(
 
     Args:
         login: Optional Yandex.Direct Client-Login to save with the profile.
-        profile: direct auth profile name (default — active profile).
+        profile: direct auth profile name (default — "default").
         force: Re-run OAuth flow even if the profile is already valid. Use
             this to switch the active account or to refresh an existing token
-            without manually editing ``~/.direct-cli/auth.json``.
+            without manually changing CLI auth configuration.
     """
     status = auth_status(profile)
     if status.get("valid") and not force:
@@ -333,13 +372,12 @@ async def auth_login(
     finish_result = _complete_login_with_code(target_profile, result.data.value)
     if not finish_result.get("success"):
         return {**finish_result, "auth_url": auth_url}
-    _selected, _payload = _read_cli_profile(target_profile)
-    saved_login = (_payload or {}).get("login") or login or ""
+    status = auth_status(target_profile)
     return {
         "success": True,
         "method": "oauth_code",
-        "profile": target_profile,
-        "login": saved_login,
+        "profile": _status_profile(target_profile, status),
+        "login": _status_login(status),
     }
 
 

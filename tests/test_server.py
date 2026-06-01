@@ -27,6 +27,8 @@ def _read_response(proc: subprocess.Popen[str]) -> dict:
 def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
     proc_env = os.environ.copy()
     proc_env["HOME"] = "/tmp/yandex-direct-mcp-plugin-test-home"
+    proc_env.pop("YANDEX_DIRECT_TOKEN", None)
+    proc_env.pop("YANDEX_DIRECT_LOGIN", None)
     if env:
         proc_env.update(env)
     return subprocess.Popen(
@@ -35,7 +37,7 @@ def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        cwd=str(PROJECT_ROOT),
+        cwd="/tmp",
         env=proc_env,
     )
 

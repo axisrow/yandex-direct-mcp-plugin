@@ -391,12 +391,14 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 
 ## Breaking Changes (CLI 0.4.1 alignment)
 
-- **`direct-cli>=0.4.1` required**: the minimum CLI version was raised
-  from 0.4.0. `MIN_DIRECT_VERSION` in `server/cli/runner.py` moved to
-  `(0, 4, 1)`, and `pyproject.toml`, `README.md`, and `hooks/setup.sh`
-  were resynced. `hooks/setup.sh` had drifted (it still installed
-  `direct-cli>=0.3.11` via `_has_direct_cli_0311`); the probe is now
-  `_has_direct_cli_0401` / `>=0.4.1`, matching the runtime floor.
+- **Auth status delegated to `direct`**: the plugin no longer
+  reads `~/.direct-cli/auth.json` directly. `auth_status()` delegates to
+  `direct auth status --format json`, so effective env/.env/profile
+  precedence stays owned by `direct-cli`.
+
+- **`direct-cli>=0.4.1` alignment**: the minimum CLI bump
+  exposed additional v4 Live commands and resynced `pyproject.toml`,
+  `README.md`, and `hooks/setup.sh`. The current runtime floor is 0.4.1.
 
 - **Three new v4 Live MCP tools.** CLI 0.4.1 ships typed subcommands for
   three v4 Live methods that were previously catalogued in

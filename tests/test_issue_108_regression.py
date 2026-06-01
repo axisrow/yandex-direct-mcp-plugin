@@ -45,6 +45,7 @@ def test_setup_hook_installs_supported_direct_cli_version() -> None:
     assert "direct-cli>=0.3.4" not in setup
     assert "direct-cli>=0.3.10" not in setup
     assert "_has_direct_cli_0401" in setup
+    assert "_has_direct_cli_0402" not in setup
     assert "_has_direct_cli_0311" not in setup
     assert "_has_direct_cli_0310" not in setup
 
@@ -52,6 +53,7 @@ def test_setup_hook_installs_supported_direct_cli_version() -> None:
 def test_claude_notes_use_supported_direct_cli_version() -> None:
     notes = (REPO_ROOT / "CLAUDE.md").read_text()
     assert "Minimum required: `direct-cli>=0.4.1`" in notes
+    assert "Minimum required: `direct-cli>=0.4.2`" not in notes
     assert "Minimum required: `direct-cli>=0.4.0`" not in notes
 
 
