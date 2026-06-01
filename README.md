@@ -85,8 +85,9 @@ mcp__yandex_direct__auth_setup(code="y0_AgAAAA...", login="client-login")
 ### Token storage
 
 Tokens are saved by `direct-cli` in its profile store, normally
-`~/.direct-cli/auth.json`. The MCP `auth_status` tool reads that file directly
-to inspect the active profile.
+`~/.direct-cli/auth.json`. The MCP plugin does not read that store directly:
+`auth_status` delegates to `direct auth status --format json` so `direct`
+remains the only auth boundary.
 
 ## Setup: Creating Yandex Applications
 
@@ -881,7 +882,7 @@ version = "0.2.3"
 requires-python = ">=3.11"
 dependencies = [
     "mcp",
-    "direct-cli>=0.4.1",
+    "direct-cli>=0.4.2",
 ]
 
 [project.optional-dependencies]

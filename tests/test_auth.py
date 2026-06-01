@@ -3,7 +3,7 @@
 import asyncio
 import json
 import subprocess
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError
 from server.tools.auth_tools import (
@@ -29,102 +29,152 @@ def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
 
 
 class TestAuthStatus:
-    def test_auth_status_returns_invalid_without_active_profile(
-        self, tmp_path, monkeypatch
-    ) -> None:
-        monkeypatch.setenv("HOME", str(tmp_path))
-        assert auth_status() == {
+    def test_auth_status_returns_invalid_without_credentials(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(
+                json.dumps(
+                    {
+                        "profile": None,
+                        "source": None,
+                        "has_token": False,
+                        "login": None,
+                    }
+                )
+            ),
+        ) as mock_run:
+            result = auth_status()
+
+        assert result == {
             "valid": False,
             "reason": "not_authenticated",
             "profile": "default",
         }
+        mock_run.assert_called_once_with(["auth", "status", "--format", "json"])
 
-    def test_auth_status_reads_direct_cli_profile(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setenv("HOME", str(tmp_path))
-        auth_path = tmp_path / ".direct-cli" / "auth.json"
-        auth_path.parent.mkdir()
-        auth_path.write_text(
-            json.dumps(
-                {
-                    "active_profile": "default",
-                    "profiles": {
-                        "default": {
-                            "token": "token",
-                            "login": "client",
-                            "source": "oauth",
-                            "expires_at": 2_000_000_000.0,
-                        }
-                    },
-                }
-            )
-        )
-
-        result = auth_status()
+    def test_auth_status_reads_direct_cli_status(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(
+                json.dumps(
+                    {
+                        "profile": "default",
+                        "source": "oauth",
+                        "has_token": True,
+                        "login": "client",
+                        "expires_at": 2_000_000_000.0,
+                        "expires_in_seconds": 3600,
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
         assert result["valid"] is True
         assert result["profile"] == "default"
+        assert result["source"] == "oauth"
+        assert result["has_token"] is True
         assert result["login"] == "client"
-        assert result["expires_in"] > 0
-        assert "expires_in_human" in result
+        assert result["expires_at"] == 2_000_000_000.0
+        assert result["expires_in"] == 3600
+        assert result["expires_in_human"] == "1 ч."
 
-    def test_auth_status_marks_old_profile_refresh_unavailable(
-        self, tmp_path, monkeypatch
-    ) -> None:
-        monkeypatch.setenv("HOME", str(tmp_path))
-        auth_path = tmp_path / ".direct-cli" / "auth.json"
-        auth_path.parent.mkdir()
-        auth_path.write_text(
-            json.dumps(
-                {
-                    "profiles": {
-                        "legacy": {
-                            "token": "token",
-                            "login": "client",
-                            "source": "manual",
-                        }
+    def test_auth_status_explicit_profile_delegates_to_direct(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(
+                json.dumps(
+                    {
+                        "profile": "legacy",
+                        "source": "manual",
+                        "has_token": True,
+                        "login": "client",
                     }
-                }
-            )
-        )
+                )
+            ),
+        ) as mock_run:
+            result = auth_status("legacy")
 
-        result = auth_status("legacy")
         assert result["valid"] is True
-        assert result["refresh_unavailable"] is True
-
-    def test_auth_status_marks_expired_profile_invalid(
-        self, tmp_path, monkeypatch
-    ) -> None:
-        monkeypatch.setenv("HOME", str(tmp_path))
-        auth_path = tmp_path / ".direct-cli" / "auth.json"
-        auth_path.parent.mkdir()
-        auth_path.write_text(
-            json.dumps(
-                {
-                    "active_profile": "default",
-                    "profiles": {
-                        "default": {
-                            "token": "token",
-                            "login": "client",
-                            "expires_at": 1.0,
-                        }
-                    },
-                }
-            )
+        assert result["source"] == "manual"
+        assert result["login"] == "client"
+        mock_run.assert_called_once_with(
+            ["auth", "status", "--profile", "legacy", "--format", "json"]
         )
 
-        result = auth_status()
+    def test_auth_status_reports_env_source_from_direct(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(
+                json.dumps(
+                    {
+                        "profile": None,
+                        "source": "env",
+                        "has_token": True,
+                        "login": "dotenv-login",
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["profile"] is None
+        assert result["source"] == "env"
+        assert result["login"] == "dotenv-login"
+
+    def test_auth_status_marks_expired_profile_invalid(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed(
+                json.dumps(
+                    {
+                        "profile": "default",
+                        "source": "oauth",
+                        "has_token": True,
+                        "login": "client",
+                        "expires_at": 1.0,
+                        "expires_in_seconds": 0,
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
         assert result["valid"] is False
         assert result["has_token"] is True
         assert result["expires_in"] == 0
 
-
-class TestAuthSetup:
-    def test_auth_setup_with_direct_token(self, tmp_path, monkeypatch) -> None:
-        # Isolate from the real ~/.direct-cli/auth.json so the saved profile
-        # login does not shadow the passed-in login parameter.
-        monkeypatch.setenv("HOME", str(tmp_path))
+    def test_auth_status_reports_cli_not_found(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed("✓ Profile 'default' is saved and active.\n"),
+            side_effect=CliNotFoundError("direct missing"),
+        ):
+            result = auth_status()
+
+        assert result == {
+            "valid": False,
+            "error": "cli_not_found",
+            "message": "direct missing",
+            "profile": "default",
+        }
+
+
+class TestAuthSetup:
+    def test_auth_setup_with_direct_token(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                _completed("✓ Profile 'default' is saved and active.\n"),
+                _completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": "client",
+                        }
+                    )
+                ),
+            ],
         ) as mock_run:
             result = auth_setup("y0_token", login="client")
 
@@ -134,40 +184,40 @@ class TestAuthSetup:
             "profile": "default",
             "login": "client",
         }
-        mock_run.assert_called_once_with(
-            [
-                "auth",
-                "login",
-                "--profile",
-                "default",
-                "--oauth-token",
-                "y0_token",
-                "--login",
-                "client",
-            ],
-            timeout=None,
-        )
+        assert mock_run.call_args_list == [
+            call(
+                [
+                    "auth",
+                    "login",
+                    "--profile",
+                    "default",
+                    "--oauth-token",
+                    "y0_token",
+                    "--login",
+                    "client",
+                ],
+                timeout=None,
+            ),
+            call(["auth", "status", "--profile", "default", "--format", "json"]),
+        ]
 
-    def test_auth_setup_returns_saved_login_when_param_omitted(
-        self, tmp_path, monkeypatch
-    ) -> None:
-        # Regression: the saved CLI profile login must win over the
-        # (omitted) login parameter, so the response is not "".
-        monkeypatch.setenv("HOME", str(tmp_path))
-        auth_path = tmp_path / ".direct-cli" / "auth.json"
-        auth_path.parent.mkdir()
-        auth_path.write_text(
-            json.dumps(
-                {
-                    "active_profile": "default",
-                    "profiles": {
-                        "default": {"token": "token", "login": "gtoil-ru-direct"}
-                    },
-                }
-            )
-        )
-        with patch("server.tools.auth_tools._run_auth_command") as mock_run:
-            mock_run.return_value = {"success": True, "message": "ok"}
+    def test_auth_setup_returns_status_login_when_param_omitted(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                _completed("ok"),
+                _completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": "gtoil-ru-direct",
+                        }
+                    )
+                ),
+            ],
+        ):
             result = auth_setup("y0_token")
 
         assert result == {
@@ -182,15 +232,35 @@ class TestAuthSetup:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed("ok"),
+            side_effect=[
+                _completed("ok"),
+                _completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": "client",
+                        }
+                    )
+                ),
+            ],
         ) as mock_run:
             auth_setup("y0_token")
 
-        args = mock_run.call_args.args[0]
-        assert "--client-id" not in args
-        assert "cid" not in args
-        assert "--client-secret" not in args
-        assert "secret" not in args
+        setup_args = mock_run.call_args_list[0].args[0]
+        assert "--client-id" not in setup_args
+        assert "cid" not in setup_args
+        assert "--client-secret" not in setup_args
+        assert "secret" not in setup_args
+        assert setup_args == [
+            "auth",
+            "login",
+            "--profile",
+            "default",
+            "--oauth-token",
+            "y0_token",
+        ]
 
     def test_auth_command_args_ignore_plugin_client_options(self, monkeypatch) -> None:
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
@@ -417,16 +487,22 @@ class TestAuthLogin:
             "message": "direct missing",
         }
 
-    @patch("server.tools.auth_tools._read_auth_store")
+    @patch("server.tools.auth_tools.auth_status")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools.DirectCliRunner.run")
-    def test_auth_login_uses_active_profile_when_omitted(
-        self, mock_run, _mock_find, mock_store
+    def test_auth_login_uses_default_profile_when_omitted(
+        self, mock_run, _mock_find, mock_status
     ) -> None:
-        mock_store.return_value = {
-            "active_profile": "agency",
-            "profiles": {"agency": {"token": "", "login": "client"}},
-        }
+        mock_status.side_effect = [
+            {"valid": False},
+            {
+                "valid": True,
+                "profile": "default",
+                "source": "oauth",
+                "has_token": True,
+                "login": "client",
+            },
+        ]
         mock_run.side_effect = [
             _completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
@@ -436,20 +512,19 @@ class TestAuthLogin:
 
         result = asyncio.run(auth_login(self._accepted_ctx()))
 
-        assert result["profile"] == "agency"
-        # Regression: login is read back from the saved CLI profile even when
-        # the caller did not pass a login parameter (was "" before the fix).
+        assert result["profile"] == "default"
         assert result["login"] == "client"
+        assert mock_status.call_args_list == [call(None), call("default")]
         assert mock_run.call_args_list[0].args[0] == [
             "auth",
             "login",
             "--profile",
-            "agency",
+            "default",
             "--format",
             "json",
         ]
 
-    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools.auth_status")
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
     @patch("server.tools.auth_tools.DirectCliRunner.run")
@@ -458,17 +533,23 @@ class TestAuthLogin:
         mock_run,
         _mock_resolve,
         _mock_find,
-        _mock_status,
+        mock_status,
         monkeypatch,
-        tmp_path,
     ) -> None:
+        mock_status.side_effect = [
+            {"valid": False},
+            {
+                "valid": True,
+                "profile": "custom",
+                "source": "oauth",
+                "has_token": True,
+                "login": "client",
+            },
+        ]
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_id", "cid")
         monkeypatch.setenv("CLAUDE_PLUGIN_OPTION_client_secret", "secret")
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
-        # Isolate from the real ~/.direct-cli/auth.json so the saved profile
-        # login does not shadow the passed-in login parameter.
-        monkeypatch.setenv("HOME", str(tmp_path))
         mock_run.side_effect = [
             _completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
@@ -503,8 +584,8 @@ class TestAuthLogin:
             "timeout": 60,
             "input": "ABC123\n",
         }
-        for call in mock_run.call_args_list:
-            args = call.args[0]
+        for recorded_call in mock_run.call_args_list:
+            args = recorded_call.args[0]
             assert "--client-id" not in args
             assert "cid" not in args
             assert "--client-secret" not in args
@@ -559,8 +640,8 @@ class TestAuthLogin:
             "timeout": 60,
             "input": "ABC123\n",
         }
-        for call in mock_run.call_args_list:
-            assert "ABC123" not in call.args[0]
+        for recorded_call in mock_run.call_args_list:
+            assert "ABC123" not in recorded_call.args[0]
         assert result == {
             "success": True,
             "method": "oauth_code",
