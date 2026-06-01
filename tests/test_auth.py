@@ -52,6 +52,19 @@ class TestAuthStatus:
         }
         mock_run.assert_called_once_with(["auth", "status", "--format", "json"])
 
+    def test_auth_status_normalizes_legacy_no_active_profile_text(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=_completed("ℹ Нет активного профиля.\n"),
+        ):
+            result = auth_status()
+
+        assert result == {
+            "valid": False,
+            "reason": "not_authenticated",
+            "profile": "default",
+        }
+
     def test_auth_status_reads_direct_cli_status(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",

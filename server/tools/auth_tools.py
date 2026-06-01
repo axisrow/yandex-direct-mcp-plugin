@@ -58,6 +58,15 @@ def _not_authenticated(profile: str | None = None, message: str | None = None) -
     return result
 
 
+def _is_not_authenticated_message(message: str) -> bool:
+    normalized = message.casefold()
+    return (
+        "нет активного профиля" in normalized
+        or "no active profile" in normalized
+        or "not authenticated" in normalized
+    )
+
+
 def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
     has_token = bool(payload.get("has_token"))
     payload_profile = payload.get("profile")
@@ -117,6 +126,8 @@ def _status_from_cli(profile: str | None = None) -> dict:
     try:
         payload = json.loads(stdout) if stdout else {}
     except json.JSONDecodeError:
+        if _is_not_authenticated_message(stdout or stderr):
+            return _not_authenticated(profile)
         return _error(
             "auth_failed", stdout or "direct auth status did not return JSON."
         )
