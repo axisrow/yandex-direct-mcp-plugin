@@ -67,7 +67,9 @@ def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
 
     expires_at = payload.get("expires_at")
     expires_in = payload.get("expires_in_seconds")
-    if not isinstance(expires_in, int | float) and isinstance(expires_at, int | float):
+    if not isinstance(expires_in, (int, float)) and isinstance(
+        expires_at, (int, float)
+    ):
         expires_in = max(0, int(float(expires_at) - time.time()))
 
     result: dict[str, object] = {
@@ -77,9 +79,9 @@ def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
         "login": payload.get("login") or "",
         "valid": has_token,
     }
-    if isinstance(expires_at, int | float):
+    if isinstance(expires_at, (int, float)):
         result["expires_at"] = float(expires_at)
-    if isinstance(expires_in, int | float):
+    if isinstance(expires_in, (int, float)):
         expires_in_value = max(0, int(expires_in))
         result["valid"] = has_token and expires_in_value > 0
         result["expires_in"] = expires_in_value
