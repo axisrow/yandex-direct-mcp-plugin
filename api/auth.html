@@ -259,10 +259,10 @@ thin wrappers around <code class="docutils literal notranslate"><span class="pre
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
-<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – direct auth profile name (default — active profile).</p></li>
+<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – direct auth profile name (default — “default”).</p></li>
 <li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Re-run OAuth flow even if the profile is already valid. Use
 this to switch the active account or to refresh an existing token
-without manually editing <code class="docutils literal notranslate"><span class="pre">~/.direct-cli/auth.json</span></code>.</p></li>
+without manually changing CLI auth configuration.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
