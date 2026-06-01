@@ -40,21 +40,20 @@ def test_runtime_code_does_not_reintroduce_freeform_json_transport() -> None:
 
 def test_setup_hook_installs_supported_direct_cli_version() -> None:
     setup = (REPO_ROOT / "hooks" / "setup.sh").read_text()
-    assert "direct-cli>=0.4.2" in setup
-    assert "direct-cli>=0.4.1" not in setup
+    assert "direct-cli>=0.4.1" in setup
     assert "direct-cli>=0.3.11" not in setup
     assert "direct-cli>=0.3.4" not in setup
     assert "direct-cli>=0.3.10" not in setup
-    assert "_has_direct_cli_0402" in setup
-    assert "_has_direct_cli_0401" not in setup
+    assert "_has_direct_cli_0401" in setup
+    assert "_has_direct_cli_0402" not in setup
     assert "_has_direct_cli_0311" not in setup
     assert "_has_direct_cli_0310" not in setup
 
 
 def test_claude_notes_use_supported_direct_cli_version() -> None:
     notes = (REPO_ROOT / "CLAUDE.md").read_text()
-    assert "Minimum required: `direct-cli>=0.4.2`" in notes
-    assert "Minimum required: `direct-cli>=0.4.1`" not in notes
+    assert "Minimum required: `direct-cli>=0.4.1`" in notes
+    assert "Minimum required: `direct-cli>=0.4.2`" not in notes
     assert "Minimum required: `direct-cli>=0.4.0`" not in notes
 
 

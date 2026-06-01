@@ -385,20 +385,20 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.2`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.1`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
 ## Breaking Changes (CLI 0.4.1 alignment)
 
-- **`direct-cli>=0.4.2` required for auth status**: the plugin no longer
+- **Auth status delegated to `direct`**: the plugin no longer
   reads `~/.direct-cli/auth.json` directly. `auth_status()` delegates to
   `direct auth status --format json`, so effective env/.env/profile
   precedence stays owned by `direct-cli`.
 
-- **Earlier `direct-cli>=0.4.1` alignment**: the previous minimum CLI bump
+- **`direct-cli>=0.4.1` alignment**: the minimum CLI bump
   exposed additional v4 Live commands and resynced `pyproject.toml`,
-  `README.md`, and `hooks/setup.sh`. The current runtime floor is 0.4.2.
+  `README.md`, and `hooks/setup.sh`. The current runtime floor is 0.4.1.
 
 - **Three new v4 Live MCP tools.** CLI 0.4.1 ships typed subcommands for
   three v4 Live methods that were previously catalogued in
