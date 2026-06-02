@@ -2,7 +2,10 @@
 name = "yandex-direct-mcp-plugin"
 version = "0.3.0"
 requires-python = ">=3.11"
-dependencies = ["mcp", "direct-cli>=0.4.1"]
+# mcp lower bound matches the version whose internal API (_tool_manager,
+# _tools, Tool.fn) tool_help relies on; capped below the next major so a
+# breaking rename can't slip in via an unattended upgrade.
+dependencies = ["mcp>=1.23.3,<2", "direct-cli>=0.4.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff", "mypy", "pre-commit"]
