@@ -285,6 +285,39 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.finalize_json_args">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">finalize_json_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.finalize_json_args" title="Link to this definition">¶</a></dt>
+<dd><p>Append optional dry-run and JSON output flags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.normalize_optional_str">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">normalize_optional_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.normalize_optional_str" title="Link to this definition">¶</a></dt>
+<dd><p>Strip an optional string and collapse blanks to None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.normalize_str_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">normalize_str_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.normalize_str_list" title="Link to this definition">¶</a></dt>
+<dd><p>Strip list items and drop blanks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.parse_ids">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">parse_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.parse_ids" title="Link to this definition">¶</a></dt>
 <dd><p>Parse comma-separated IDs string into a list.</p>
@@ -302,6 +335,17 @@
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.run_set_bids">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">run_set_bids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_group_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bid_fields</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_update_message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.run_set_bids" title="Link to this definition">¶</a></dt>
+<dd><p>Run a target set-bids command with shared scope/update guards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3385,8 +3429,12 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.CliOption"><code class="docutils literal notranslate"><span class="pre">CliOption</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.append_cli_options"><code class="docutils literal notranslate"><span class="pre">append_cli_options()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.check_batch_limit"><code class="docutils literal notranslate"><span class="pre">check_batch_limit()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.finalize_json_args"><code class="docutils literal notranslate"><span class="pre">finalize_json_args()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.normalize_optional_str"><code class="docutils literal notranslate"><span class="pre">normalize_optional_str()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.normalize_str_list"><code class="docutils literal notranslate"><span class="pre">normalize_str_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.parse_ids"><code class="docutils literal notranslate"><span class="pre">parse_ids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.provided_update_value"><code class="docutils literal notranslate"><span class="pre">provided_update_value()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.run_set_bids"><code class="docutils literal notranslate"><span class="pre">run_set_bids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_single_id_batch"><code class="docutils literal notranslate"><span class="pre">run_single_id_batch()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.tool_error_dict"><code class="docutils literal notranslate"><span class="pre">tool_error_dict()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_positive_int"><code class="docutils literal notranslate"><span class="pre">validate_positive_int()</span></code></a></li>
