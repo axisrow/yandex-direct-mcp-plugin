@@ -1,10 +1,12 @@
 """Tests for vCards MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from server.tools.vcards import vcards_list, vcards_add, vcards_delete
+
+from tests.helpers import mock_runner
 
 
 @pytest.fixture
@@ -26,13 +28,6 @@ def mock_vcards():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestVcardsList:
     """Tests for vcards_list tool."""
 
@@ -40,7 +35,7 @@ class TestVcardsList:
         """Test listing vCards successfully."""
         with patch(
             "server.tools.vcards.get_runner",
-            return_value=_mock_runner(mock_vcards),
+            return_value=mock_runner(mock_vcards),
         ):
             result = vcards_list(ids="1,2")
             assert len(result) == 2
@@ -50,7 +45,7 @@ class TestVcardsList:
         """Test listing all vCards with no IDs."""
         with patch(
             "server.tools.vcards.get_runner",
-            return_value=_mock_runner(mock_vcards),
+            return_value=mock_runner(mock_vcards),
         ):
             result = vcards_list()
             assert len(result) == 2
@@ -64,8 +59,7 @@ class TestVcardsList:
 
     def test_list_vcards_trims_ids_before_cli(self, mock_vcards):
         """Test vCard IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_vcards
+        runner = mock_runner(mock_vcards)
         with patch("server.tools.vcards.get_runner", return_value=runner):
             vcards_list(ids=" 1,2 ")
 
@@ -80,8 +74,7 @@ class TestVcardsAdd:
     def test_add_vcard_required_fields(self):
         """Test adding vCard with all required typed flags."""
         mock_result = {"Id": 123}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.vcards.get_runner", return_value=runner):
             result = vcards_add(
@@ -101,8 +94,7 @@ class TestVcardsAdd:
             assert "--phone-number" in argv
 
     def test_add_vcard_optional_fields(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 124}
+        runner = mock_runner({"Id": 124})
         with patch("server.tools.vcards.get_runner", return_value=runner):
             vcards_add(
                 campaign_id=42,
@@ -134,7 +126,7 @@ class TestVcardsDelete:
 
         with patch(
             "server.tools.vcards.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = vcards_delete(ids="1")
             assert result["success"] is True

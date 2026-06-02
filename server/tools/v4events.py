@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import finalize_json_args
 
 
 @mcp.tool(name="v4events_get_events_log")
@@ -46,7 +47,4 @@ def v4events_get_events_log(
         args.extend(["--limit", str(limit)])
     if offset is not None:
         args.extend(["--offset", str(offset)])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))

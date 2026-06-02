@@ -1,7 +1,6 @@
 """Tests for ads MCP tool."""
 
-from unittest.mock import MagicMock, call, patch
-
+from unittest.mock import call, patch
 
 from server.tools.ads import (
     ads_list,
@@ -15,6 +14,7 @@ from server.tools.ads import (
     ads_unarchive,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_ADS = [
     {
@@ -27,24 +27,16 @@ SAMPLE_ADS = [
 ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 def test_ads_list_success():
     """Test 11: List ads in a campaign."""
-    with patch("server.tools.ads.get_runner", return_value=_mock_runner(SAMPLE_ADS)):
+    with patch("server.tools.ads.get_runner", return_value=mock_runner(SAMPLE_ADS)):
         result = ads_list(campaign_ids="12345")
         assert len(result) == 2
 
 
 def test_ads_list_ignores_blank_filters():
     """Test blank filters behave like no filter."""
-    runner = MagicMock()
-    runner.run_json.return_value = SAMPLE_ADS
+    runner = mock_runner(SAMPLE_ADS)
     with patch("server.tools.ads.get_runner", return_value=runner):
         result = ads_list(campaign_ids="   ", ad_group_ids="   ", ids="   ")
         assert len(result) == 2
@@ -64,7 +56,7 @@ def test_ads_batch_limit():
 
 def test_ads_empty():
     """Empty result."""
-    with patch("server.tools.ads.get_runner", return_value=_mock_runner([])):
+    with patch("server.tools.ads.get_runner", return_value=mock_runner([])):
         result = ads_list(campaign_ids="12345")
         assert result == []
 
@@ -75,7 +67,7 @@ class TestAdsCrudOperations:
     def test_ads_add(self):
         """Test adding a new ad."""
         mock_result = {"Id": 999, "Text": "New ad text"}
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_add(
                 ad_group_id=1,
@@ -104,7 +96,7 @@ class TestAdsCrudOperations:
 
     def test_ads_add_mobile_app(self):
         """MOBILE_APP_AD: tracking_url, action, age_label, image_hash pass through."""
-        runner = _mock_runner({"Id": 9999})
+        runner = mock_runner({"Id": 9999})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -141,7 +133,7 @@ class TestAdsCrudOperations:
 
     def test_ads_add_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = _mock_runner({"_dry_run": True})
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(ad_group_id=1, ad_type="TEXT_AD", title="t", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -151,14 +143,14 @@ class TestAdsCrudOperations:
         """Test updating an ad with new required type parameter."""
         mock_result = {"Id": 111}
         with patch(
-            "server.tools.ads.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.ads.get_runner", return_value=mock_runner(mock_result)
         ):
             result = ads_update(id=111, type="TEXT_AD", title="New title")
             assert result["Id"] == 111
 
     def test_ads_update_argv_composition(self):
         """Test that update passes --type and field flags correctly."""
-        runner = _mock_runner({"Id": 111})
+        runner = mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(
                 id=111,
@@ -186,7 +178,7 @@ class TestAdsCrudOperations:
 
     def test_ads_update_mobile_app_argv(self):
         """MOBILE_APP_AD update accepts tracking_url / action / age_label / image_hash."""
-        runner = _mock_runner({"Id": 222})
+        runner = mock_runner({"Id": 222})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(
                 id=222,
@@ -204,7 +196,7 @@ class TestAdsCrudOperations:
 
     def test_ads_update_requires_changes(self):
         """Test that empty updates (type only) are rejected before CLI call."""
-        runner = _mock_runner({"Id": 111})
+        runner = mock_runner({"Id": 111})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_update(id=111, type="TEXT_AD")
             assert result["error"] == "missing_update_fields"
@@ -212,7 +204,7 @@ class TestAdsCrudOperations:
 
     def test_ads_update_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = _mock_runner({"_dry_run": True})
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(id=111, type="TEXT_AD", title="x", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -220,7 +212,7 @@ class TestAdsCrudOperations:
 
     def test_ads_delete_success(self):
         """Test deleting ads successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_delete(ids="111,222")
             assert result["success"] is True
@@ -240,7 +232,7 @@ class TestAdsCrudOperations:
 
     def test_ads_moderate_success(self):
         """Test submitting ads for moderation."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_moderate(ids="111,222")
             assert result["success"] is True
@@ -260,7 +252,7 @@ class TestAdsCrudOperations:
 
     def test_ads_suspend_success(self):
         """Test suspending ads."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_suspend(ids="111,222")
             assert result["success"] is True
@@ -280,7 +272,7 @@ class TestAdsCrudOperations:
 
     def test_ads_resume_success(self):
         """Test resuming suspended ads."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_resume(ids="111,222")
             assert result["success"] is True
@@ -300,7 +292,7 @@ class TestAdsCrudOperations:
 
     def test_ads_archive_success(self):
         """Test archiving ads."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_archive(ids="111,222")
             assert result["success"] is True
@@ -320,7 +312,7 @@ class TestAdsCrudOperations:
 
     def test_ads_unarchive_success(self):
         """Test unarchiving ads."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_unarchive(ids="111,222")
             assert result["success"] is True
@@ -343,7 +335,7 @@ class TestAdsTypedTextAdFields:
     """CLI 0.3.9: typed TextAd fields (title2, sitelinks, ad_extensions, etc)."""
 
     def test_ads_add_passes_title2(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -358,7 +350,7 @@ class TestAdsTypedTextAdFields:
         assert "Second headline" in argv
 
     def test_ads_add_passes_display_url_path(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -373,7 +365,7 @@ class TestAdsTypedTextAdFields:
         assert "catalog/items" in argv
 
     def test_ads_add_passes_mobile_yes(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -388,7 +380,7 @@ class TestAdsTypedTextAdFields:
         assert "YES" in argv
 
     def test_ads_add_rejects_mobile_invalid_value(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_add(
                 ad_group_id=1,
@@ -401,7 +393,7 @@ class TestAdsTypedTextAdFields:
         runner.run_json.assert_not_called()
 
     def test_ads_add_passes_vcard_id(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -416,7 +408,7 @@ class TestAdsTypedTextAdFields:
         assert "42" in argv
 
     def test_ads_add_passes_sitelink_set_id(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -431,7 +423,7 @@ class TestAdsTypedTextAdFields:
         assert "7" in argv
 
     def test_ads_add_passes_turbo_page_id(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -446,7 +438,7 @@ class TestAdsTypedTextAdFields:
         assert "12345" in argv
 
     def test_ads_add_passes_ad_extensions(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_add(
                 ad_group_id=1,
@@ -461,7 +453,7 @@ class TestAdsTypedTextAdFields:
         assert "111,222,333" in argv
 
     def test_ads_update_passes_typed_text_ad_fields(self):
-        runner = _mock_runner({"Id": 555})
+        runner = mock_runner({"Id": 555})
         with patch("server.tools.ads.get_runner", return_value=runner):
             ads_update(
                 id=555,
@@ -488,7 +480,7 @@ class TestAdsTypedTextAdFields:
             assert value in argv, f"{value} missing from argv"
 
     def test_ads_update_rejects_mobile_invalid_value(self):
-        runner = _mock_runner({"Id": 555})
+        runner = mock_runner({"Id": 555})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_update(id=555, type="TEXT_AD", mobile="FOO")
         assert isinstance(result, dict)
@@ -497,7 +489,7 @@ class TestAdsTypedTextAdFields:
 
     def test_ads_update_typed_field_alone_satisfies_change_check(self):
         """title2 alone counts as a meaningful update — not 'missing_update_fields'."""
-        runner = _mock_runner({"Id": 555})
+        runner = mock_runner({"Id": 555})
         with patch("server.tools.ads.get_runner", return_value=runner):
             result = ads_update(id=555, type="TEXT_AD", title2="b")
         assert result["Id"] == 555

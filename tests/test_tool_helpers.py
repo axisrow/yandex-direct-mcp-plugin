@@ -10,15 +10,14 @@ from server.cli.runner import (
     CliTimeoutError,
     DirectCliRunner,
 )
-from server.tools.ads import _check_batch_limit as ads_check_batch_limit
-from server.tools.ads import _parse_ids
 from server.tools.auth_tools import _human_readable_time
 from server.tools.helpers import (
+    check_batch_limit,
+    parse_ids,
     provided_update_value,
     run_single_id_batch,
     tool_error_dict,
 )
-from server.tools.keywords import _check_batch_limit as keywords_check_batch_limit
 
 
 def test_human_readable_time_formats_expected_ranges() -> None:
@@ -189,19 +188,12 @@ def test_get_runner_returns_profile_based_runner() -> None:
 
 
 def test_parse_ids_strips_whitespace_and_empty_values() -> None:
-    assert _parse_ids(" 1, 2 ,,3 , ") == ["1", "2", "3"]
+    assert parse_ids(" 1, 2 ,,3 , ") == ["1", "2", "3"]
 
 
-def test_ads_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:
-    assert ads_check_batch_limit(",".join(str(i) for i in range(10))) is None
-    result = ads_check_batch_limit(",".join(str(i) for i in range(11)))
-    assert result is not None
-    assert result.error == "batch_limit"
-
-
-def test_keywords_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:
-    assert keywords_check_batch_limit(",".join(str(i) for i in range(10))) is None
-    result = keywords_check_batch_limit(",".join(str(i) for i in range(11)))
+def test_batch_limit_allows_ten_ids_and_rejects_eleven() -> None:
+    assert check_batch_limit(",".join(str(i) for i in range(10))) is None
+    result = check_batch_limit(",".join(str(i) for i in range(11)))
     assert result is not None
     assert result.error == "batch_limit"
 

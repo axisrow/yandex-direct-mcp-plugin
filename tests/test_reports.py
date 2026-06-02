@@ -1,10 +1,8 @@
 """Tests for reports MCP tool."""
 
 import json
-import subprocess
 from datetime import date, timedelta
 from unittest.mock import patch, MagicMock
-
 
 from server.tools.reports import (
     CUSTOM_REPORT_TIMEOUT_SECONDS,
@@ -16,6 +14,7 @@ from server.tools.reports import (
     reports_list_types,
 )
 
+from tests.helpers import completed, mock_runner
 
 SAMPLE_REPORTS = [
     {
@@ -28,31 +27,9 @@ SAMPLE_REPORTS = [
 ]
 
 
-def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
-    return subprocess.CompletedProcess(
-        args=["direct"], returncode=returncode, stdout=stdout, stderr=stderr
-    )
-
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result.
-
-    The mock also exposes ``runner.run_checked`` returning an empty stdout
-    CompletedProcess by default — required for paths that go through
-    ``runner.run_checked`` instead of ``runner.run_json`` (file output,
-    non-JSON in-memory). ``run_checked`` already raises on non-zero CLI
-    exit codes; tests that need to assert that behaviour can set
-    ``runner.run_checked.side_effect = CliError(...)``.
-    """
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    runner.run_checked.return_value = _completed()
-    return runner
-
-
 def test_reports_get():
     """Test 16: Statistics for date range."""
-    runner = _mock_runner(SAMPLE_REPORTS)
+    runner = mock_runner(SAMPLE_REPORTS)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
         assert len(result) == 1
@@ -79,7 +56,7 @@ def test_reports_get():
 
 def test_reports_no_dates():
     """Reports without date range."""
-    runner = _mock_runner(SAMPLE_REPORTS)
+    runner = mock_runner(SAMPLE_REPORTS)
     today = date.today()
     expected_from = (today - timedelta(days=8)).isoformat()
     expected_to = today.isoformat()
@@ -108,7 +85,7 @@ def test_reports_no_dates():
 
 def test_reports_only_date_to():
     """Missing start date uses the same default 8-day window."""
-    runner = _mock_runner(SAMPLE_REPORTS)
+    runner = mock_runner(SAMPLE_REPORTS)
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_get(date_to="2026-04-08")
         runner.run_json.assert_called_once_with(
@@ -133,7 +110,7 @@ def test_reports_only_date_to():
 
 def test_reports_only_date_from():
     """Missing end date uses the same default 8-day window."""
-    runner = _mock_runner(SAMPLE_REPORTS)
+    runner = mock_runner(SAMPLE_REPORTS)
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_get(date_from="2026-03-30")
         runner.run_json.assert_called_once_with(
@@ -166,7 +143,7 @@ def test_reports_list_types():
         "REACH_AND_FREQUENCY_CAMPAIGN_REPORT",
         "SEARCH_QUERY_PERFORMANCE_REPORT",
     ]
-    runner = _mock_runner(expected_types)
+    runner = mock_runner(expected_types)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_list_types()
         assert len(result) == 7
@@ -176,7 +153,7 @@ def test_reports_list_types():
 
 def test_reports_get_empty():
     """Test report with empty result."""
-    with patch("server.tools.reports.get_runner", return_value=_mock_runner([])):
+    with patch("server.tools.reports.get_runner", return_value=mock_runner([])):
         result = reports_get(date_from="2026-03-30", date_to="2026-04-06")
         assert result == []
 
@@ -215,7 +192,7 @@ def test_reports_custom_month_with_goals():
     NOT as a `Filter[Goals:IN:...]` entry — Reports API rejects the latter
     with `error_code=8000`.
     """
-    runner = _mock_runner([{"Month": "2024-05", "Goals": "12345", "Conversions": 4}])
+    runner = mock_runner([{"Month": "2024-05", "Goals": "12345", "Conversions": 4}])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Month,CampaignName,Impressions,Clicks,Cost,Goals,Conversions",
@@ -254,7 +231,7 @@ def test_reports_custom_month_with_goals():
 
 def test_reports_custom_goal_ids_only_no_filter_arg():
     """`goal_ids` without other filters must not introduce any --filter."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Goals,Conversions",
@@ -270,7 +247,7 @@ def test_reports_custom_goal_ids_only_no_filter_arg():
 
 def test_reports_custom_goal_ids_with_other_filters_pass_through():
     """`goal_ids` and unrelated filters must coexist: --goals AND --filter both emit."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Device,Goals,Conversions",
@@ -286,7 +263,7 @@ def test_reports_custom_goal_ids_with_other_filters_pass_through():
 
 def test_reports_custom_rejects_goals_filter_with_goal_ids():
     """Raw Goals filters must not combine with native goal_ids routing."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Goals,Conversions",
@@ -303,7 +280,7 @@ def test_reports_custom_rejects_goals_filter_with_goal_ids():
 
 def test_reports_custom_rejects_goals_filter_without_goal_ids():
     """Goal-based slicing must use goal_ids, not Reports API filters."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Goals,Conversions",
@@ -327,7 +304,7 @@ def test_reports_custom_output_path(tmp_path):
         output_arg = args[args.index("--output") + 1]
         assert output_arg == str(out.resolve())
         out.write_text(json.dumps([{"x": 1}, {"x": 2}, {"x": 3}]))
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -354,7 +331,7 @@ def test_reports_custom_output_path(tmp_path):
 
 def test_reports_custom_output_path_rejects_unsafe_location():
     """output_path must stay under plugin data or temp roots."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -377,7 +354,7 @@ def test_reports_custom_output_path_uncountable_file(tmp_path):
         output_arg = args[args.index("--output") + 1]
         assert output_arg == str(out.resolve())
         out.write_text("not json")
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -407,7 +384,7 @@ def test_reports_custom_output_path_counts_large_json_stream(tmp_path):
                     f.write(",")
                 f.write(json.dumps({"i": i, "nested": {"comma": "a,b"}}))
             f.write("]")
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -430,7 +407,7 @@ def test_reports_custom_dry_run():
             "FieldNames": ["Date", "Cost"],
         }
     }
-    runner = _mock_runner({"headers": {}, "body": fake_body})
+    runner = mock_runner({"headers": {}, "body": fake_body})
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -450,7 +427,7 @@ def test_reports_custom_dry_run():
 def test_reports_custom_dry_run_passthrough_when_no_body_key():
     """If runner returns a dict without 'body', it's passed through as request_body."""
     raw = {"unexpected": "shape"}
-    runner = _mock_runner(raw)
+    runner = mock_runner(raw)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -465,7 +442,7 @@ def test_reports_custom_dry_run_ignores_output_path(tmp_path):
     """dry_run=True must not pass --output to direct, otherwise the CLI writes
     the body to the file and stdout is empty, leaving request_body=[]."""
     fake_body = {"params": {"FieldNames": ["Date"]}}
-    runner = _mock_runner({"headers": {}, "body": fake_body})
+    runner = mock_runner({"headers": {}, "body": fake_body})
     out = tmp_path / "ignored.json"
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
@@ -507,7 +484,7 @@ def test_reports_custom_invalid_request_hint():
 
 def test_reports_custom_date_range_type():
     """date_range_type without explicit dates uses --date-range-type."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -562,7 +539,7 @@ def test_reports_custom_rejects_invalid_date_format():
 
 def test_reports_custom_override_report_type():
     """report_type override propagates to --type."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="CampaignName,Criterion,Cost",
@@ -597,7 +574,7 @@ def test_reports_custom_unknown_report_type():
 
 def test_reports_custom_include_vat_false():
     """include_vat=False produces --no-include-vat."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -615,7 +592,7 @@ def test_reports_custom_include_vat_false():
 
 def test_reports_custom_multiple_order_by():
     """Each order_by element becomes a separate --order-by flag."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Month,CampaignName,Cost",
@@ -649,7 +626,7 @@ def test_reports_custom_in_contract():
 
 def test_reports_custom_default_response_format_threads_json():
     """Default response_format=json must reach the CLI as --format json."""
-    runner = _mock_runner([{"x": 1}])
+    runner = mock_runner([{"x": 1}])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -663,9 +640,7 @@ def test_reports_custom_default_response_format_threads_json():
 def test_reports_custom_response_format_tsv_in_memory():
     """response_format=tsv without output_path returns raw stdout payload."""
     runner = MagicMock()
-    runner.run_checked.return_value = _completed(
-        stdout="Date\tCost\n2026-01-01\t12.5\n"
-    )
+    runner.run_checked.return_value = completed(stdout="Date\tCost\n2026-01-01\t12.5\n")
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -685,7 +660,7 @@ def test_reports_custom_response_format_tsv_in_memory():
 
 def test_reports_custom_response_format_csv_in_memory():
     runner = MagicMock()
-    runner.run_checked.return_value = _completed(stdout="Date,Cost\n2026-01-01,12.5\n")
+    runner.run_checked.return_value = completed(stdout="Date,Cost\n2026-01-01,12.5\n")
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -700,7 +675,7 @@ def test_reports_custom_response_format_csv_in_memory():
 
 
 def test_reports_custom_processing_mode_threads_through():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -714,7 +689,7 @@ def test_reports_custom_processing_mode_threads_through():
 
 
 def test_reports_custom_rejects_invalid_processing_mode():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -728,7 +703,7 @@ def test_reports_custom_rejects_invalid_processing_mode():
 
 
 def test_reports_custom_language_threads_through():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -742,7 +717,7 @@ def test_reports_custom_language_threads_through():
 
 
 def test_reports_custom_rejects_invalid_language():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -754,7 +729,7 @@ def test_reports_custom_rejects_invalid_language():
 
 
 def test_reports_custom_attribution_models_threads_through():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -770,7 +745,7 @@ def test_reports_custom_attribution_models_threads_through():
 def test_reports_custom_attribution_models_normalizes_whitespace():
     """Whitespace around tokens is stripped before forwarding to the CLI so
     `\"LSC, FC\"` becomes `\"LSC,FC\"` — matches what validation accepted."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -784,7 +759,7 @@ def test_reports_custom_attribution_models_normalizes_whitespace():
 
 
 def test_reports_custom_rejects_unknown_attribution_model():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -796,7 +771,7 @@ def test_reports_custom_rejects_unknown_attribution_model():
 
 
 def test_reports_custom_skip_flags_threaded():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -816,7 +791,7 @@ def test_reports_custom_skip_flags_threaded():
 
 def test_reports_custom_skip_flags_default_omits_them():
     """When skip_* are not set, the CLI defaults apply (no plugin override)."""
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
             field_names="Date,Cost",
@@ -838,7 +813,7 @@ def test_reports_custom_output_path_with_tsv_format(tmp_path):
 
     def fake_run(args, **kwargs):
         out.write_text("Date\tCost\n2026-01-01\t12.5\n")
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -914,7 +889,7 @@ def test_reports_custom_rows_written_default_skip_state(tmp_path):
     def fake_run(args, **kwargs):
         # 1 header line + 3 data lines = 4 total
         out.write_text("Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -936,7 +911,7 @@ def test_reports_custom_rows_written_with_skip_column_header(tmp_path):
     def fake_run(args, **kwargs):
         # 3 data lines, no header
         out.write_text("2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -961,7 +936,7 @@ def test_reports_custom_rows_written_with_summary_kept(tmp_path):
         out.write_text(
             "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\nTotal rows: 3\n"
         )
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):
@@ -987,7 +962,7 @@ def test_reports_custom_rows_written_with_report_header_kept(tmp_path):
             '"X (2026-01-01 - 2026-01-03)"\n'
             "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n"
         )
-        return _completed()
+        return completed()
 
     runner.run_checked.side_effect = fake_run
     with patch("server.tools.reports.get_runner", return_value=runner):

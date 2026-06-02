@@ -1,6 +1,6 @@
 """Tests for v4 Live MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from server.cli.runner import DirectCliRunner
 from server.contract import (
@@ -24,23 +24,11 @@ from server.tools.v4tags import (
     v4tags_update_campaigns,
 )
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
-def _completed(stdout: str) -> MagicMock:
-    result = MagicMock()
-    result.stdout = stdout
-    result.stderr = ""
-    result.returncode = 0
-    return result
+from tests.helpers import completed, mock_runner
 
 
 def test_balance_get_without_logins():
-    runner = _mock_runner({"Accounts": []})
+    runner = mock_runner({"Accounts": []})
     with patch("server.tools.balance.get_runner", return_value=runner):
         result = balance_get()
 
@@ -49,7 +37,7 @@ def test_balance_get_without_logins():
 
 
 def test_balance_get_with_logins():
-    runner = _mock_runner({"Accounts": []})
+    runner = mock_runner({"Accounts": []})
     with patch("server.tools.balance.get_runner", return_value=runner):
         result = balance_get(logins=" client-a,client-b ")
 
@@ -61,7 +49,7 @@ def test_balance_get_with_logins():
 
 def test_balance_get_passes_email_shaped_logins_to_direct_unchanged():
     """Issue #145: Client-Login normalization belongs to direct-cli auth."""
-    runner = _mock_runner({"Accounts": []})
+    runner = mock_runner({"Accounts": []})
     with patch("server.tools.balance.get_runner", return_value=runner):
         result = balance_get(logins=" client@yandex.ru ")
 
@@ -72,7 +60,7 @@ def test_balance_get_passes_email_shaped_logins_to_direct_unchanged():
 
 
 def test_v4goals_get_stat_goals():
-    runner = _mock_runner({"Goals": []})
+    runner = mock_runner({"Goals": []})
     with patch("server.tools.v4goals.get_runner", return_value=runner):
         result = v4goals_get_stat_goals(campaign_ids=" 123,456 ")
 
@@ -90,7 +78,7 @@ def test_v4goals_get_stat_goals():
 
 
 def test_v4goals_get_retargeting_goals():
-    runner = _mock_runner({"RetargetingGoals": []})
+    runner = mock_runner({"RetargetingGoals": []})
     with patch("server.tools.v4goals.get_runner", return_value=runner):
         result = v4goals_get_retargeting_goals(campaign_ids="123,456")
 
@@ -118,7 +106,7 @@ def test_v4goals_retargeting_requires_campaign_ids():
 
 
 def test_v4tags_get_campaigns():
-    runner = _mock_runner({"Campaigns": []})
+    runner = mock_runner({"Campaigns": []})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_get_campaigns(campaign_ids=" 123,456 ")
 
@@ -141,7 +129,7 @@ def test_v4tags_get_campaigns_requires_campaign_ids():
 
 
 def test_v4tags_get_banners_by_campaign_ids():
-    runner = _mock_runner({"Banners": []})
+    runner = mock_runner({"Banners": []})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_get_banners(campaign_ids=" 123,456 ")
 
@@ -159,7 +147,7 @@ def test_v4tags_get_banners_by_campaign_ids():
 
 
 def test_v4tags_get_banners_by_banner_ids():
-    runner = _mock_runner({"Banners": []})
+    runner = mock_runner({"Banners": []})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_get_banners(banner_ids=" 111,222 ")
 
@@ -201,7 +189,7 @@ def test_v4tags_get_banners_rejects_too_many_banner_ids():
 
 
 def test_v4tags_update_campaigns_with_tags():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_update_campaigns(
             campaign_id=123,
@@ -226,7 +214,7 @@ def test_v4tags_update_campaigns_with_tags():
 
 
 def test_v4tags_update_campaigns_clear_tags_dry_run():
-    runner = _mock_runner({"dry_run": True})
+    runner = mock_runner({"dry_run": True})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_update_campaigns(
             campaign_id=123,
@@ -264,7 +252,7 @@ def test_v4tags_update_campaigns_rejects_tags_and_clear():
 
 
 def test_v4tags_update_banners_with_tag_ids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_update_banners(
             banner_ids=" 111,222 ",
@@ -287,7 +275,7 @@ def test_v4tags_update_banners_with_tag_ids():
 
 
 def test_v4tags_update_banners_clear_tags_dry_run():
-    runner = _mock_runner({"dry_run": True})
+    runner = mock_runner({"dry_run": True})
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_update_banners(
             banner_ids="111,222",
@@ -318,7 +306,7 @@ def test_v4tags_update_banners_returns_wrapped_scalar():
             "server.cli.runner._resolve_direct_cached",
             return_value="/usr/bin/direct",
         ),
-        patch("server.cli.runner.subprocess.run", return_value=_completed("1")),
+        patch("server.cli.runner.subprocess.run", return_value=completed("1")),
     ):
         result = v4tags_update_banners(
             banner_ids="111,222",
@@ -433,7 +421,7 @@ def test_v4_contract_exposes_only_cli_backed_tools():
 
 
 def test_v4keywords_get_suggestion() -> None:
-    runner = _mock_runner(["мебельные ручки", "ручка мебельная"])
+    runner = mock_runner(["мебельные ручки", "ручка мебельная"])
     with patch("server.tools.v4keywords.get_runner", return_value=runner):
         result = v4keywords_get_suggestion(keywords=[" ручки для шкафа ", "стол"])
 
@@ -458,7 +446,7 @@ def test_v4keywords_get_suggestion_requires_keywords() -> None:
 
 
 def test_v4adimage_get_without_filters() -> None:
-    runner = _mock_runner({"AdImageAssociations": [], "TotalObjectsCount": "0"})
+    runner = mock_runner({"AdImageAssociations": [], "TotalObjectsCount": "0"})
     with patch("server.tools.v4adimage.get_runner", return_value=runner):
         result = v4adimage_get()
 
@@ -467,7 +455,7 @@ def test_v4adimage_get_without_filters() -> None:
 
 
 def test_v4adimage_get_with_filters() -> None:
-    runner = _mock_runner({"AdImageAssociations": []})
+    runner = mock_runner({"AdImageAssociations": []})
     with patch("server.tools.v4adimage.get_runner", return_value=runner):
         result = v4adimage_get(
             campaign_ids=" 123,456 ",
@@ -500,7 +488,7 @@ def test_v4adimage_get_with_filters() -> None:
 
 
 def test_v4adimage_set() -> None:
-    runner = _mock_runner({"AdImageAssociations": []})
+    runner = mock_runner({"AdImageAssociations": []})
     with patch("server.tools.v4adimage.get_runner", return_value=runner):
         result = v4adimage_set(
             associations=[" 15552664629=aX63TKm1t_G4hJ93AKlAxg ", "16344915985"],

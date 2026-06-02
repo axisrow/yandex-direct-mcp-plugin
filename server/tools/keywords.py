@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, provided_update_value
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    check_batch_limit,
+    provided_update_value,
+)
 
 MAX_BATCH_SIZE = 10
 
@@ -32,17 +37,6 @@ KEYWORD_AUTOTARGETING_OPTIONS = (
         "--autotargeting-settings-with-competitors-brand",
     ),
 )
-
-
-def _check_batch_limit(ids_str: str) -> ToolError | None:
-    """Validate batch size of comma-separated IDs."""
-    ids = [id.strip() for id in ids_str.split(",") if id.strip()]
-    if len(ids) > MAX_BATCH_SIZE:
-        return ToolError(
-            error="batch_limit",
-            message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}",
-        )
-    return None
 
 
 @mcp.tool(name="keywords_get")
@@ -88,7 +82,7 @@ def keywords_list(
         if not normalized:
             continue
         if batch:
-            batch_error = _check_batch_limit(normalized)
+            batch_error = check_batch_limit(normalized, MAX_BATCH_SIZE)
             if batch_error:
                 return batch_error.__dict__
         args.extend([flag, normalized])

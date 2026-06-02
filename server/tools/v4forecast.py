@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import finalize_json_args
 
 MAX_PHRASES = 100
 
@@ -42,11 +43,8 @@ def v4forecast_create(
             args.extend(["--geo-ids", normalized_geo])
     if currency:
         args.extend(["--currency", currency])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4forecast_list")
@@ -86,8 +84,5 @@ def v4forecast_delete(forecast_id: int, dry_run: bool = False) -> dict | list[di
         dry_run: Show the direct request without sending it.
     """
     args = ["v4forecast", "delete", "--forecast-id", str(forecast_id)]
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))

@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import subprocess
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError
@@ -18,21 +17,14 @@ from server.tools.auth_tools import (
     oauth_login_prompt,
 )
 
-
-def _completed(stdout: str = "", stderr: str = "", returncode: int = 0):
-    return subprocess.CompletedProcess(
-        args=["direct"],
-        returncode=returncode,
-        stdout=stdout,
-        stderr=stderr,
-    )
+from tests.helpers import completed
 
 
 class TestAuthStatus:
     def test_auth_status_returns_invalid_without_credentials(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(
+            return_value=completed(
                 json.dumps(
                     {
                         "profile": None,
@@ -55,7 +47,7 @@ class TestAuthStatus:
     def test_auth_status_normalizes_legacy_no_active_profile_text(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed("ℹ Нет активного профиля.\n"),
+            return_value=completed("ℹ Нет активного профиля.\n"),
         ):
             result = auth_status()
 
@@ -68,7 +60,7 @@ class TestAuthStatus:
     def test_auth_status_reads_direct_cli_status(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(
+            return_value=completed(
                 json.dumps(
                     {
                         "profile": "default",
@@ -94,7 +86,7 @@ class TestAuthStatus:
     def test_auth_status_explicit_profile_delegates_to_direct(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(
+            return_value=completed(
                 json.dumps(
                     {
                         "profile": "legacy",
@@ -117,7 +109,7 @@ class TestAuthStatus:
     def test_auth_status_reports_env_source_from_direct(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(
+            return_value=completed(
                 json.dumps(
                     {
                         "profile": None,
@@ -138,7 +130,7 @@ class TestAuthStatus:
     def test_auth_status_marks_expired_profile_invalid(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(
+            return_value=completed(
                 json.dumps(
                     {
                         "profile": "default",
@@ -176,8 +168,8 @@ class TestAuthSetup:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             side_effect=[
-                _completed("✓ Profile 'default' is saved and active.\n"),
-                _completed(
+                completed("✓ Profile 'default' is saved and active.\n"),
+                completed(
                     json.dumps(
                         {
                             "profile": "default",
@@ -218,8 +210,8 @@ class TestAuthSetup:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             side_effect=[
-                _completed("ok"),
-                _completed(
+                completed("ok"),
+                completed(
                     json.dumps(
                         {
                             "profile": "default",
@@ -246,8 +238,8 @@ class TestAuthSetup:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             side_effect=[
-                _completed("ok"),
-                _completed(
+                completed("ok"),
+                completed(
                     json.dumps(
                         {
                             "profile": "default",
@@ -325,7 +317,7 @@ class TestAuthSetup:
     def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed("✓ Profile 'custom' is saved and active.\n"),
+            return_value=completed("✓ Profile 'custom' is saved and active.\n"),
         ) as mock_run:
             result = auth_setup("abc123", profile="custom")
 
@@ -346,7 +338,7 @@ class TestAuthSetup:
     def test_auth_setup_reports_cli_failure(self) -> None:
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
-            return_value=_completed(stderr="Error: bad code", returncode=1),
+            return_value=completed(stderr="Error: bad code", returncode=1),
         ):
             result = auth_setup("y0_bad")
         assert result["success"] is False
@@ -387,7 +379,7 @@ class TestAuthLogin:
     def test_auth_login_force_reauth_when_already_valid(
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        mock_run.return_value = _completed(
+        mock_run.return_value = completed(
             json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
         )
         mock_ctx = MagicMock()
@@ -418,7 +410,7 @@ class TestAuthLogin:
     def test_auth_login_cancelled(
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        mock_run.return_value = _completed(
+        mock_run.return_value = completed(
             json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
         )
 
@@ -443,7 +435,7 @@ class TestAuthLogin:
     def test_auth_login_start_cli_failure(
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        mock_run.return_value = _completed(stderr="\x1b[31mboom\x1b[0m", returncode=2)
+        mock_run.return_value = completed(stderr="\x1b[31mboom\x1b[0m", returncode=2)
 
         result = asyncio.run(auth_login(MagicMock()))
 
@@ -460,7 +452,7 @@ class TestAuthLogin:
     def test_auth_login_start_invalid_json(
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        mock_run.return_value = _completed("not json")
+        mock_run.return_value = completed("not json")
 
         result = asyncio.run(auth_login(MagicMock()))
 
@@ -475,7 +467,7 @@ class TestAuthLogin:
     def test_auth_login_start_missing_authorize_url(
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
-        mock_run.return_value = _completed(json.dumps({"status": "pending"}))
+        mock_run.return_value = completed(json.dumps({"status": "pending"}))
 
         result = asyncio.run(auth_login(MagicMock()))
 
@@ -517,10 +509,10 @@ class TestAuthLogin:
             },
         ]
         mock_run.side_effect = [
-            _completed(
+            completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
-            _completed("saved"),
+            completed("saved"),
         ]
 
         result = asyncio.run(auth_login(self._accepted_ctx()))
@@ -564,10 +556,10 @@ class TestAuthLogin:
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_ID", raising=False)
         monkeypatch.delenv("YANDEX_DIRECT_CLIENT_SECRET", raising=False)
         mock_run.side_effect = [
-            _completed(
+            completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
-            _completed("saved"),
+            completed("saved"),
         ]
 
         result = asyncio.run(
@@ -621,11 +613,11 @@ class TestAuthLogin:
         # No saved profile and no login parameter → response login is "".
         monkeypatch.setenv("HOME", str(tmp_path))
         mock_run.side_effect = [
-            _completed(
+            completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
-            _completed(stderr="invalid authorization code", returncode=1),
-            _completed("saved"),
+            completed(stderr="invalid authorization code", returncode=1),
+            completed("saved"),
         ]
 
         result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
@@ -670,11 +662,11 @@ class TestAuthLogin:
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
         mock_run.side_effect = [
-            _completed(
+            completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
-            _completed(stderr="\x1b[31mbad code\x1b[0m", returncode=1),
-            _completed(stderr="\x1b[31mbad code\x1b[0m", returncode=1),
+            completed(stderr="\x1b[31mbad code\x1b[0m", returncode=1),
+            completed(stderr="\x1b[31mbad code\x1b[0m", returncode=1),
         ]
 
         result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
@@ -694,7 +686,7 @@ class TestAuthLogin:
         self, mock_run, _mock_resolve, _mock_find, _mock_status
     ) -> None:
         mock_run.side_effect = [
-            _completed(
+            completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
             CliError("direct failed"),

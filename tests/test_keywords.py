@@ -1,7 +1,6 @@
 """Tests for keyword MCP tools."""
 
-from unittest.mock import MagicMock, call, patch
-
+from unittest.mock import call, patch
 
 from server.tools.keywords import (
     keywords_list,
@@ -12,23 +11,17 @@ from server.tools.keywords import (
     keywords_resume,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_KEYWORDS = [
     {"Id": 99999, "Keyword": "keyword_99999", "Bid": 12000000},
 ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 def test_keywords_list():
     """Test 14: List keywords."""
     with patch(
-        "server.tools.keywords.get_runner", return_value=_mock_runner(SAMPLE_KEYWORDS)
+        "server.tools.keywords.get_runner", return_value=mock_runner(SAMPLE_KEYWORDS)
     ):
         result = keywords_list(campaign_ids="12345")
         assert len(result) == 1
@@ -37,7 +30,7 @@ def test_keywords_list():
 
 def test_keywords_list_trims_campaign_ids():
     """Test campaign IDs are normalized before argv construction."""
-    runner = _mock_runner(SAMPLE_KEYWORDS)
+    runner = mock_runner(SAMPLE_KEYWORDS)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         keywords_list(campaign_ids=" 12345 ")
 
@@ -48,7 +41,7 @@ def test_keywords_list_trims_campaign_ids():
 
 def test_keywords_list_blank_selector_rejected():
     """Blank/missing selectors must NOT silently widen to an account-wide query."""
-    runner = _mock_runner(SAMPLE_KEYWORDS)
+    runner = mock_runner(SAMPLE_KEYWORDS)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_list(campaign_ids="   ")
     assert isinstance(result, dict)
@@ -58,7 +51,7 @@ def test_keywords_list_blank_selector_rejected():
 
 def test_keywords_list_fetch_all_allows_no_selector():
     """fetch_all=True is an explicit opt-in for unscoped enumeration."""
-    runner = _mock_runner(SAMPLE_KEYWORDS)
+    runner = mock_runner(SAMPLE_KEYWORDS)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         keywords_list(fetch_all=True)
     argv = runner.run_json.call_args[0][0]
@@ -68,7 +61,7 @@ def test_keywords_list_fetch_all_allows_no_selector():
 
 def test_keywords_update():
     """Test updating keyword text."""
-    with patch("server.tools.keywords.get_runner", return_value=_mock_runner(None)):
+    with patch("server.tools.keywords.get_runner", return_value=mock_runner(None)):
         result = keywords_update(id=99999, keyword="new keyword text")
         assert result["success"] is True
         assert result["keyword"] == "new keyword text"
@@ -76,7 +69,7 @@ def test_keywords_update():
 
 def test_keywords_update_argv_composition():
     """Test that update passes the expanded CLI surface (no --json in 0.3.8)."""
-    runner = _mock_runner(None)
+    runner = mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_update(
             id=99999,
@@ -104,7 +97,7 @@ def test_keywords_update_argv_composition():
 
 def test_keywords_update_dry_run():
     """dry_run=True appends --dry-run to argv."""
-    runner = _mock_runner(None)
+    runner = mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         keywords_update(id=99999, keyword="x", dry_run=True)
         argv = runner.run_json.call_args[0][0]
@@ -113,7 +106,7 @@ def test_keywords_update_dry_run():
 
 def test_keywords_update_accepts_zero_bids():
     """Zero bid values are provided updates and must be stringified for CLI."""
-    runner = _mock_runner(None)
+    runner = mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         keywords_update(id=99999, bid=0, context_bid=0)
 
@@ -133,7 +126,7 @@ def test_keywords_update_accepts_zero_bids():
 
 def test_keywords_update_requires_changes():
     """Test that empty updates are rejected before CLI call."""
-    runner = _mock_runner(None)
+    runner = mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
         result = keywords_update(id=99999)
 
@@ -146,7 +139,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add(self):
         """Test adding a keyword to an ad group (no --json in CLI 0.3.8)."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(
                 ad_group_id=1,
@@ -178,7 +171,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             keywords_add(ad_group_id=1, keyword="x", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -186,7 +179,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_passes_from_file(self):
         """CLI 0.3.9: JSONL batch via --from-file."""
-        runner = _mock_runner({"AddResults": [{"Id": 1}, {"Id": 2}]})
+        runner = mock_runner({"AddResults": [{"Id": 1}, {"Id": 2}]})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             keywords_add(from_file="/tmp/k.jsonl")
             argv = runner.run_json.call_args[0][0]
@@ -197,7 +190,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_passes_keywords_json(self):
         """CLI 0.3.9: inline JSON batch via --keywords-json."""
-        runner = _mock_runner({"AddResults": [{"Id": 1}]})
+        runner = mock_runner({"AddResults": [{"Id": 1}]})
         payload = '[{"AdGroupId":1,"Keyword":"foo"}]'
         with patch("server.tools.keywords.get_runner", return_value=runner):
             keywords_add(keywords_json=payload)
@@ -207,7 +200,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_batch_with_default_adgroup_id(self):
         """ad_group_id is forwarded as default in batch mode."""
-        runner = _mock_runner({"AddResults": []})
+        runner = mock_runner({"AddResults": []})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             keywords_add(
                 ad_group_id=42,
@@ -220,7 +213,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_rejects_no_mode(self):
         """Neither keyword nor batch flag → missing_mode, runner not invoked."""
-        runner = _mock_runner({"AddResults": []})
+        runner = mock_runner({"AddResults": []})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(ad_group_id=1)
         assert isinstance(result, dict)
@@ -229,7 +222,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_rejects_conflicting_modes(self):
         """keyword + from_file → conflicting_modes, runner not invoked."""
-        runner = _mock_runner({"AddResults": []})
+        runner = mock_runner({"AddResults": []})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(keyword="x", from_file="/tmp/k.jsonl")
         assert isinstance(result, dict)
@@ -238,7 +231,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_add_rejects_all_three_modes(self):
         """All three modes set → conflicting_modes."""
-        runner = _mock_runner({"AddResults": []})
+        runner = mock_runner({"AddResults": []})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_add(
                 keyword="x",
@@ -250,7 +243,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_delete_success(self):
         """Test deleting keywords successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_delete(ids="111,222")
             assert result["success"] is True
@@ -270,7 +263,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_suspend_success(self):
         """Test suspending keywords."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_suspend(ids="111,222")
             assert result["success"] is True
@@ -290,7 +283,7 @@ class TestKeywordsCrudOperations:
 
     def test_keywords_resume_success(self):
         """Test resuming suspended keywords."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keywords.get_runner", return_value=runner):
             result = keywords_resume(ids="111,222")
             assert result["success"] is True

@@ -1,18 +1,14 @@
 """Tests for v4events MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from server.tools.v4events import v4events_get_events_log
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 def test_v4events_get_events_log_argv():
-    runner = _mock_runner({"Events": []})
+    runner = mock_runner({"Events": []})
     with patch("server.tools.v4events.get_runner", return_value=runner):
         v4events_get_events_log(
             timestamp_from=" 2026-05-01T00:00:00 ",
@@ -55,7 +51,7 @@ def test_v4events_get_events_log_requires_timestamps():
 
 
 def test_v4events_get_events_log_dry_run():
-    runner = _mock_runner({"method": "GetEventsLog"})
+    runner = mock_runner({"method": "GetEventsLog"})
     with patch("server.tools.v4events.get_runner", return_value=runner):
         v4events_get_events_log(
             timestamp_from="2026-05-01T00:00:00",

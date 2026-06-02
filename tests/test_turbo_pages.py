@@ -1,16 +1,10 @@
 """Tests for turbo pages MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.turbo_pages import turbo_pages_list
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestTurboPagesList:
@@ -21,7 +15,7 @@ class TestTurboPagesList:
         mock_result = {"turboPages": [{"id": 1, "name": "Page 1"}]}
         with patch(
             "server.tools.turbo_pages.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = turbo_pages_list(ids="1")
             assert "turboPages" in result
@@ -31,15 +25,14 @@ class TestTurboPagesList:
         mock_result = {"turboPages": []}
         with patch(
             "server.tools.turbo_pages.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = turbo_pages_list()
             assert "turboPages" in result
 
     def test_turbo_pages_list_trims_ids(self):
         """Test turbo page IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"turboPages": []}
+        runner = mock_runner({"turboPages": []})
         with patch("server.tools.turbo_pages.get_runner", return_value=runner):
             turbo_pages_list(ids=" 1 ")
 
@@ -49,8 +42,7 @@ class TestTurboPagesList:
 
     def test_turbo_pages_list_full_argv(self):
         """Test all optional flags pass through to CLI."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"turboPages": []}
+        runner = mock_runner({"turboPages": []})
         with patch("server.tools.turbo_pages.get_runner", return_value=runner):
             turbo_pages_list(
                 ids="1",
@@ -71,15 +63,14 @@ class TestTurboPagesList:
         """Test empty response returns empty dict."""
         with patch(
             "server.tools.turbo_pages.get_runner",
-            return_value=_mock_runner({"turboPages": []}),
+            return_value=mock_runner({"turboPages": []}),
         ):
             result = turbo_pages_list()
             assert result == {"turboPages": []}
 
     def test_turbo_pages_list_ignores_blank_ids(self):
         """Test blank ids behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"turboPages": []}
+        runner = mock_runner({"turboPages": []})
         with patch("server.tools.turbo_pages.get_runner", return_value=runner):
             turbo_pages_list(ids="   ")
             call_args = runner.run_json.call_args[0][0]

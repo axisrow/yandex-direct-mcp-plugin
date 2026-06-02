@@ -1,7 +1,6 @@
 """Tests for bid modifier MCP tools."""
 
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 
 from server.tools.bidmodifiers import (
     bidmodifiers_add,
@@ -10,17 +9,11 @@ from server.tools.bidmodifiers import (
     bidmodifiers_delete,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_BIDMODIFIERS = [
     {"Id": 1, "CampaignId": 12345, "Type": "DEMOGRAPHICS", "Value": 100},
 ]
-
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
 
 
 class TestBidModifiersList:
@@ -30,7 +23,7 @@ class TestBidModifiersList:
         """Test listing bid modifiers for campaigns."""
         with patch(
             "server.tools.bidmodifiers.get_runner",
-            return_value=_mock_runner(SAMPLE_BIDMODIFIERS),
+            return_value=mock_runner(SAMPLE_BIDMODIFIERS),
         ):
             result = bidmodifiers_list(campaign_ids="12345")
             assert len(result) == 1
@@ -38,8 +31,7 @@ class TestBidModifiersList:
 
     def test_bidmodifiers_list_by_ad_group(self):
         """Test listing bid modifiers by ad group IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.bidmodifiers.get_runner",
             return_value=runner,
@@ -50,8 +42,7 @@ class TestBidModifiersList:
 
     def test_bidmodifiers_list_ignores_blank_ids(self):
         """Test blank filters behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = SAMPLE_BIDMODIFIERS
+        runner = mock_runner(SAMPLE_BIDMODIFIERS)
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             result = bidmodifiers_list(campaign_ids="   ", ad_group_ids="   ")
             assert len(result) == 1
@@ -68,8 +59,7 @@ class TestBidModifiersList:
 
     def test_bidmodifiers_list_with_levels(self):
         """Test listing bid modifiers with levels filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = SAMPLE_BIDMODIFIERS
+        runner = mock_runner(SAMPLE_BIDMODIFIERS)
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             bidmodifiers_list(campaign_ids="12345", levels="CAMPAIGN")
             call_args = runner.run_json.call_args[0][0]
@@ -89,23 +79,21 @@ class TestBidModifiersSet:
         mock_result = {"success": True}
         with patch(
             "server.tools.bidmodifiers.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = bidmodifiers_set(id=12345, value=150)
             assert result["success"] is True
 
     def test_bidmodifiers_set_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             bidmodifiers_set(id=12345, value=150, dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
 
     def test_bidmodifiers_set_argv_composition(self):
         """Test set passes correct argv to CLI."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             bidmodifiers_set(id=67890, value=120)
 
@@ -125,8 +113,7 @@ class TestBidModifiersAdd:
     """Tests for bidmodifiers_add tool."""
 
     def test_bidmodifiers_add_success(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             result = bidmodifiers_add(
                 campaign_id=12345,
@@ -153,8 +140,7 @@ class TestBidModifiersAdd:
 
     def test_bidmodifiers_add_accepts_smart_tv_adjustment(self):
         """direct-cli 0.3.12 exposes SMART_TV_ADJUSTMENT."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
             result = bidmodifiers_add(
                 campaign_id=12345,
@@ -189,7 +175,7 @@ class TestBidModifiersDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.bidmodifiers.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = bidmodifiers_delete(ids="1")
             assert result["success"] is True

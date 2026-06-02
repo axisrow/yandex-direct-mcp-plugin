@@ -1,15 +1,10 @@
 """Tests for keyword research MCP tools (CLI 0.3.8 — --region-ids required)."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.research import keywords_has_volume, keywords_deduplicate
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestKeywordsHasVolume:
@@ -18,14 +13,13 @@ class TestKeywordsHasVolume:
     def test_keywords_has_volume_basic(self):
         mock_result = {"keyword1": True, "keyword2": False}
         with patch(
-            "server.tools.research.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.research.get_runner", return_value=mock_runner(mock_result)
         ):
             result = keywords_has_volume(keywords="keyword1,keyword2", region_ids="0")
             assert result["keyword1"] is True
 
     def test_keywords_has_volume_argv(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"k1": True}
+        runner = mock_runner({"k1": True})
         with patch("server.tools.research.get_runner", return_value=runner):
             keywords_has_volume(keywords="k1,k2", region_ids="213")
         runner.run_json.assert_called_once_with(
@@ -59,14 +53,13 @@ class TestKeywordsDeduplicate:
             "deduplicated": ["keyword1", "keyword2"],
         }
         with patch(
-            "server.tools.research.get_runner", return_value=_mock_runner(mock_result)
+            "server.tools.research.get_runner", return_value=mock_runner(mock_result)
         ):
             result = keywords_deduplicate(keywords="keyword1,keyword2,keyword1")
             assert result["deduplicated"] == ["keyword1", "keyword2"]
 
     def test_keywords_deduplicate_argv(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"original": [], "deduplicated": []}
+        runner = mock_runner({"original": [], "deduplicated": []})
         with patch("server.tools.research.get_runner", return_value=runner):
             keywords_deduplicate(keywords="k1,k2")
         runner.run_json.assert_called_once_with(

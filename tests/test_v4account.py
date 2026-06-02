@@ -1,6 +1,6 @@
 """Tests for v4account MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from server.tools.v4account import (
     v4account_deposit,
@@ -11,13 +11,9 @@ from server.tools.v4account import (
     v4account_update_account,
 )
 
+from tests.helpers import mock_runner
+
 _FINANCE_TOKEN_FLAGS = ("--finance-token", "--master-token", "--finance-login")
-
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
 
 
 def _assert_no_finance_token_flags(argv: list[str]) -> None:
@@ -32,7 +28,7 @@ def _assert_no_finance_token_flags(argv: list[str]) -> None:
 
 
 def test_v4account_enable_shared_account_dry_run_argv():
-    runner = _mock_runner({"method": "EnableSharedAccount"})
+    runner = mock_runner({"method": "EnableSharedAccount"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_enable_shared_account(
             client_login=" client-login ",
@@ -52,7 +48,7 @@ def test_v4account_enable_shared_account_dry_run_argv():
 
 
 def test_v4account_enable_shared_account_sandbox_argv():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_enable_shared_account(
             client_login="client-login",
@@ -87,7 +83,7 @@ def test_v4account_enable_shared_account_requires_login():
 
 
 def test_v4account_get_accounts_by_logins_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(logins=" client-a,client-b ", dry_run=True)
     runner.run_json.assert_called_once_with(
@@ -107,7 +103,7 @@ def test_v4account_get_accounts_by_logins_argv():
 
 def test_v4account_get_accounts_passes_email_shaped_logins_to_direct_unchanged():
     """Issue #145: do not guess Client-Login from Passport email in MCP."""
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(logins=" client@yandex.ru ", dry_run=True)
     runner.run_json.assert_called_once_with(
@@ -126,7 +122,7 @@ def test_v4account_get_accounts_passes_email_shaped_logins_to_direct_unchanged()
 
 
 def test_v4account_get_accounts_by_account_ids_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(account_ids="111,222", sandbox=True)
     runner.run_json.assert_called_once_with(
@@ -152,7 +148,7 @@ def test_v4account_get_accounts_without_selectors_lists_all():
     as ``{"Action": "Get"}``. The MCP wrapper must not impose a stricter
     barrier than the CLI itself.
     """
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(dry_run=True)
     runner.run_json.assert_called_once_with(
@@ -173,7 +169,7 @@ def test_v4account_get_accounts_accepts_both_selectors():
     ``--logins`` and ``--account-ids`` into one ``SelectionCriteria``,
     so the MCP wrapper must not reject the combination.
     """
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(logins="a,b", account_ids="1,2", dry_run=True)
     runner.run_json.assert_called_once_with(
@@ -212,7 +208,7 @@ def test_v4account_get_accounts_rejects_explicitly_empty_account_ids():
 
 
 def test_v4account_get_accounts_does_not_require_dry_run_or_sandbox():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_get_accounts(logins="client-a")
     runner.run_json.assert_called_once()
@@ -227,7 +223,7 @@ def test_v4account_get_accounts_does_not_require_dry_run_or_sandbox():
 
 
 def test_v4account_update_account_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_update_account(
             account_id=1327944,
@@ -279,7 +275,7 @@ def test_v4account_update_account_argv():
 
 
 def test_v4account_update_account_sandbox_argv():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_update_account(
             account_id=1327944,
@@ -302,7 +298,7 @@ def test_v4account_update_account_requires_dry_run_or_sandbox():
 
 
 def test_v4account_deposit_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_deposit(
             payment=["111=50000", "222=30000"],
@@ -338,7 +334,7 @@ def test_v4account_deposit_argv():
 
 
 def test_v4account_deposit_sandbox_argv():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_deposit(
             payment=["1=100"],
@@ -420,7 +416,7 @@ def test_v4account_transfer_money_rejects_empty_amount():
 
 def test_v4account_deposit_does_not_pass_finance_token():
     """Even with full optional surface, no finance/master/login flag leaks."""
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_deposit(
             payment=["1=100"],
@@ -439,7 +435,7 @@ def test_v4account_deposit_does_not_pass_finance_token():
 
 
 def test_v4account_invoice_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_invoice(
             payment=["555=10000"],
@@ -467,7 +463,7 @@ def test_v4account_invoice_argv():
 
 
 def test_v4account_invoice_sandbox_argv():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_invoice(payment=["1=100"], currency="usd", sandbox=True)
     argv = runner.run_json.call_args.args[0]
@@ -486,7 +482,7 @@ def test_v4account_invoice_requires_payment():
 
 
 def test_v4account_invoice_does_not_pass_finance_token():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_invoice(payment=["1=100"], currency="rub", dry_run=True)
     _assert_no_finance_token_flags(runner.run_json.call_args.args[0])
@@ -498,7 +494,7 @@ def test_v4account_invoice_does_not_pass_finance_token():
 
 
 def test_v4account_transfer_money_argv():
-    runner = _mock_runner({"method": "AccountManagement"})
+    runner = mock_runner({"method": "AccountManagement"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_transfer_money(
             from_account_id=10,
@@ -532,7 +528,7 @@ def test_v4account_transfer_money_argv():
 
 
 def test_v4account_transfer_money_sandbox_argv():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_transfer_money(
             from_account_id=1,
@@ -557,7 +553,7 @@ def test_v4account_transfer_money_requires_dry_run_or_sandbox():
 
 
 def test_v4account_transfer_money_does_not_pass_finance_token():
-    runner = _mock_runner({"result": "ok"})
+    runner = mock_runner({"result": "ok"})
     with patch("server.tools.v4account.get_runner", return_value=runner):
         v4account_transfer_money(
             from_account_id=1,

@@ -1,16 +1,10 @@
 """Tests for feeds MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.feeds import feeds_list, feeds_add, feeds_update, feeds_delete
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestFeedsList:
@@ -21,15 +15,14 @@ class TestFeedsList:
         mock_result = {"feeds": [{"id": 1, "name": "Feed 1"}]}
         with patch(
             "server.tools.feeds.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = feeds_list(ids="1")
             assert "feeds" in result
 
     def test_feeds_list_trims_ids_before_cli(self):
         """Test feed IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"feeds": []}
+        runner = mock_runner({"feeds": []})
 
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_list(ids=" 1 ")
@@ -40,8 +33,7 @@ class TestFeedsList:
 
     def test_feeds_list_no_ids(self):
         """Test listing all feeds without IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"feeds": []}
+        runner = mock_runner({"feeds": []})
 
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_list()
@@ -59,7 +51,7 @@ class TestFeedsAdd:
             "name": "New Feed",
             "url": "https://example.com/feed.xml",
         }
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.feeds.get_runner", return_value=runner):
             result = feeds_add(
                 name="New Feed",
@@ -89,8 +81,7 @@ class TestFeedsAdd:
 
     def test_feeds_add_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_add(
                 name="Test",
@@ -110,7 +101,7 @@ class TestFeedsUpdate:
         mock_result = {"id": 1, "name": "Updated Feed"}
         with patch(
             "server.tools.feeds.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = feeds_update(id=1, name="Updated Feed")
             assert result["name"] == "Updated Feed"
@@ -120,15 +111,14 @@ class TestFeedsUpdate:
         mock_result = {"id": 1, "url": "https://example.com/new.xml"}
         with patch(
             "server.tools.feeds.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = feeds_update(id=1, url="https://example.com/new.xml")
             assert result["url"] == "https://example.com/new.xml"
 
     def test_feeds_update_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"id": 1}
+        runner = mock_runner({"id": 1})
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_update(id=1, name="x", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -142,7 +132,7 @@ class TestFeedsUpdate:
 
     def test_feeds_update_accepts_empty_string_field(self):
         """Empty strings are provided values; CLI owns semantic validation."""
-        runner = _mock_runner({"id": 1})
+        runner = mock_runner({"id": 1})
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_update(id=1, name="")
 
@@ -159,7 +149,7 @@ class TestFeedsDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.feeds.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = feeds_delete(ids="1")
             assert result["success"] is True

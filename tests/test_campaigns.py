@@ -16,6 +16,8 @@ from server.tools.campaigns import (
 )
 from server.cli.runner import CliAuthError, CliError
 
+from tests.helpers import mock_runner
+
 
 @pytest.fixture
 def mock_campaigns():
@@ -27,13 +29,6 @@ def mock_campaigns():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestCampaignsList:
     """Test scenarios 7-8."""
 
@@ -41,7 +36,7 @@ class TestCampaignsList:
         """Test 7: List all campaigns."""
         with patch(
             "server.tools.campaigns.get_runner",
-            return_value=_mock_runner(mock_campaigns),
+            return_value=mock_runner(mock_campaigns),
         ):
             result = campaigns_list()
             assert len(result) == 3
@@ -50,7 +45,7 @@ class TestCampaignsList:
         """Test 8: Filter by state=ON."""
         with patch(
             "server.tools.campaigns.get_runner",
-            return_value=_mock_runner(mock_campaigns),
+            return_value=mock_runner(mock_campaigns),
         ):
             result = campaigns_list(state="ON")
             assert len(result) == 2
@@ -58,7 +53,7 @@ class TestCampaignsList:
 
     def test_list_empty_result(self):
         """Empty response returns empty list."""
-        with patch("server.tools.campaigns.get_runner", return_value=_mock_runner([])):
+        with patch("server.tools.campaigns.get_runner", return_value=mock_runner([])):
             result = campaigns_list()
             assert result == []
 
@@ -70,8 +65,7 @@ class TestCampaignsList:
 
     def test_list_campaigns_trims_ids_before_cli(self, mock_campaigns):
         """Test campaign IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_campaigns
+        runner = mock_runner(mock_campaigns)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_list(ids=" 12345,67890 ")
 
@@ -81,8 +75,7 @@ class TestCampaignsList:
 
     def test_list_campaigns_text_campaign_fields_argv(self, mock_campaigns):
         """Test campaign type-specific fields are forwarded to the CLI."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_campaigns
+        runner = mock_runner(mock_campaigns)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_list(
                 ids="103258204",
@@ -109,8 +102,7 @@ class TestCampaignsList:
         self, mock_campaigns
     ):
         """Test filters and campaign-specific selectors compose in CLI argv."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_campaigns
+        runner = mock_runner(mock_campaigns)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_list(
                 ids="12345,67890",
@@ -172,8 +164,7 @@ class TestCampaignsList:
 
     def test_list_campaigns_legacy_argv_unchanged(self, mock_campaigns):
         """Test old campaigns_get() calls do not add selector flags."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_campaigns
+        runner = mock_runner(mock_campaigns)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_list()
 
@@ -189,7 +180,7 @@ class TestCampaignsUpdate:
         """Test 9: Enable a campaign."""
         with patch(
             "server.tools.campaigns.get_runner",
-            return_value=_mock_runner({"Id": 67890, "State": "ON"}),
+            return_value=mock_runner({"Id": 67890, "State": "ON"}),
         ):
             result = campaigns_update(id=67890, status="ON")
             assert result["success"] is True
@@ -199,7 +190,7 @@ class TestCampaignsUpdate:
         """Test 9: Disable a campaign."""
         with patch(
             "server.tools.campaigns.get_runner",
-            return_value=_mock_runner({"Id": 12345, "State": "OFF"}),
+            return_value=mock_runner({"Id": 12345, "State": "OFF"}),
         ):
             result = campaigns_update(id=12345, status="OFF")
             assert result["success"] is True
@@ -225,7 +216,7 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_argv_composition(self):
         """Test that update passes the typed CLI surface (no --json in 0.3.8)."""
-        runner = _mock_runner({"Id": 12345})
+        runner = mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(
                 id=12345,
@@ -260,7 +251,7 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = _mock_runner({"Id": 12345})
+        runner = mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_update(id=12345, name="x", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -268,7 +259,7 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_requires_changes(self):
         """Test that empty updates are rejected before CLI call."""
-        runner = _mock_runner({"Id": 12345})
+        runner = mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(id=12345)
 
@@ -277,7 +268,7 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_accepts_zero_values(self):
         """Zero-valued typed fields are valid updates and must reach the CLI."""
-        runner = _mock_runner({"Id": 12345})
+        runner = mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_update(id=12345, holidays_start_hour=0)
 
@@ -295,7 +286,7 @@ class TestCampaignsUpdate:
 
     def test_campaigns_update_passes_notification_and_time_targeting_json(self):
         """Update supports JSON aliases just like add."""
-        runner = _mock_runner({"Id": 12345})
+        runner = mock_runner({"Id": 12345})
         notification = '{"EmailSettings":{"Email":"ops@example.com"}}'
         time_targeting = '{"ConsiderWorkingWeekends":"YES"}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
@@ -316,7 +307,7 @@ class TestCampaignsCrudOperations:
     def test_campaigns_add(self):
         """Test adding a new campaign with typed strategy/settings flags."""
         mock_result = {"Id": 99999, "Name": "New Campaign"}
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_add(
                 name="New Campaign",
@@ -359,7 +350,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_add_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
-        runner = _mock_runner({"Id": 99999})
+        runner = mock_runner({"Id": 99999})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(name="x", start_date="2026-01-01", dry_run=True)
             argv = runner.run_json.call_args[0][0]
@@ -367,7 +358,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_add_passes_counter_ids(self):
         """CLI 0.3.9: --counter-ids for TextCampaign/DynamicText."""
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -380,7 +371,7 @@ class TestCampaignsCrudOperations:
         assert "111,222" in argv
 
     def test_campaigns_add_passes_goal_id(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -393,7 +384,7 @@ class TestCampaignsCrudOperations:
         assert "12345" in argv
 
     def test_campaigns_add_passes_priority_goals(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -406,7 +397,7 @@ class TestCampaignsCrudOperations:
         assert "123:50,456:30" in argv
 
     def test_campaigns_add_passes_average_cpa(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -419,7 +410,7 @@ class TestCampaignsCrudOperations:
         assert "500000000" in argv
 
     def test_campaigns_add_passes_crr(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -432,7 +423,7 @@ class TestCampaignsCrudOperations:
         assert "15" in argv
 
     def test_campaigns_add_passes_bid_ceiling(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
@@ -445,7 +436,7 @@ class TestCampaignsCrudOperations:
         assert "200000000" in argv
 
     def test_campaigns_add_passes_notification_json(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         payload = '{"SmsSettings":{"Events":["FINISHED"]}}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
@@ -459,7 +450,7 @@ class TestCampaignsCrudOperations:
         assert payload in argv
 
     def test_campaigns_add_passes_time_targeting_json(self):
-        runner = _mock_runner({"Id": 1})
+        runner = mock_runner({"Id": 1})
         payload = '{"ConsiderWorkingWeekends":"YES"}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
@@ -474,7 +465,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_delete(ids="12345,67890")
             assert result["success"] is True
@@ -488,7 +479,7 @@ class TestCampaignsCrudOperations:
     def test_campaigns_delete_batch_limit(self):
         """Test batch limit validation for delete."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_delete(ids=ids)
         assert "error" in result
@@ -497,7 +488,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_archive_success(self):
         """Test archiving campaigns successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_archive(ids="12345,67890")
             assert result["success"] is True
@@ -517,7 +508,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_unarchive_success(self):
         """Test unarchiving campaigns successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_unarchive(ids="12345,67890")
             assert result["success"] is True
@@ -537,7 +528,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_suspend_success(self):
         """Test suspending campaigns successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_suspend(ids="12345")
             assert result["success"] is True
@@ -554,7 +545,7 @@ class TestCampaignsCrudOperations:
 
     def test_campaigns_resume_success(self):
         """Test resuming campaigns successfully."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             result = campaigns_resume(ids="12345")
             assert result["success"] is True

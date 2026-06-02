@@ -2,20 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
-
-
-def _normalize_optional(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _normalize_tags(tags: list[str] | None) -> list[str]:
-    if not tags:
-        return []
-    return [tag.strip() for tag in tags if tag.strip()]
+from server.tools.helpers import (
+    check_batch_limit,
+    finalize_json_args,
+    normalize_optional_str,
+    normalize_str_list,
+)
 
 
 @mcp.tool(name="v4tags_get_campaigns")
@@ -56,8 +48,8 @@ def v4tags_get_banners(
         campaign_ids: Comma-separated campaign IDs, up to 10.
         banner_ids: Comma-separated banner IDs, up to 2000.
     """
-    normalized_campaign_ids = _normalize_optional(campaign_ids)
-    normalized_banner_ids = _normalize_optional(banner_ids)
+    normalized_campaign_ids = normalize_optional_str(campaign_ids)
+    normalized_banner_ids = normalize_optional_str(banner_ids)
     if normalized_campaign_ids and normalized_banner_ids:
         return ToolError(
             error="conflicting_selectors",
@@ -104,7 +96,7 @@ def v4tags_update_campaigns(
         clear_tags: Remove all campaign tags.
         dry_run: Show the direct request without sending it.
     """
-    normalized_tags = _normalize_tags(tags)
+    normalized_tags = normalize_str_list(tags)
     if normalized_tags and clear_tags:
         return ToolError(
             error="conflicting_tag_actions",
@@ -121,11 +113,8 @@ def v4tags_update_campaigns(
         args.extend(["--tag", tag])
     if clear_tags:
         args.append("--clear-tags")
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4tags_update_banners")
@@ -151,7 +140,7 @@ def v4tags_update_banners(
             message="Provide at least one banner ID.",
         ).__dict__
 
-    normalized_tag_ids = _normalize_optional(tag_ids)
+    normalized_tag_ids = normalize_optional_str(tag_ids)
     if normalized_tag_ids and clear_tags:
         return ToolError(
             error="conflicting_tag_actions",
@@ -172,8 +161,5 @@ def v4tags_update_banners(
         args.extend(["--tag-ids", normalized_tag_ids])
     if clear_tags:
         args.append("--clear-tags")
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))

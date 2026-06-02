@@ -2,9 +2,10 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import run_single_id_batch
+from server.tools.helpers import CliOption, append_cli_options, run_single_id_batch
 
 _LIST_TYPES = ("RETARGETING", "AUDIENCE")
+RETARGETING_RULE_OPTIONS = (CliOption("rules", "--rule", repeat=True),)
 
 
 @mcp.tool(name="retargeting_get")
@@ -85,9 +86,7 @@ def retargeting_add(
         args.extend(["--rule", rule])
     if description is not None:
         args.extend(["--description", description])
-    if rules:
-        for spec in rules:
-            args.extend(["--rule", spec])
+    append_cli_options(args, locals(), RETARGETING_RULE_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)
@@ -154,9 +153,7 @@ def retargeting_update(
         args.extend(["--type", list_type])
     if rule is not None:
         args.extend(["--rule", rule])
-    if rules:
-        for spec in rules:
-            args.extend(["--rule", spec])
+    append_cli_options(args, locals(), RETARGETING_RULE_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     return get_runner().run_json(args)

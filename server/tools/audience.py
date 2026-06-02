@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_single_id_batch
+from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
 
 
 @mcp.tool(name="audiencetargets_get")
@@ -180,30 +180,13 @@ def audience_targets_set_bids(
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         priority: Strategy priority.
     """
-    if id is None and ad_group_id is None and campaign_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: id, ad_group_id, campaign_id",
-        ).__dict__
-    if context_bid is None and priority is None:
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one of: context_bid, priority",
-        ).__dict__
-
-    args = ["audiencetargets", "set-bids"]
-    if id is not None:
-        args.extend(["--id", str(id)])
-    if ad_group_id is not None:
-        args.extend(["--adgroup-id", str(ad_group_id)])
-    if campaign_id is not None:
-        args.extend(["--campaign-id", str(campaign_id)])
-    if context_bid is not None:
-        args.extend(["--context-bid", str(context_bid)])
-    if priority is not None:
-        args.extend(["--priority", priority])
-    if dry_run:
-        args.append("--dry-run")
-
-    runner = get_runner()
-    return runner.run_json(args)
+    return run_set_bids(
+        get_runner(),
+        "audiencetargets",
+        id=id,
+        ad_group_id=ad_group_id,
+        campaign_id=campaign_id,
+        bid_fields=(("--context-bid", context_bid), ("--priority", priority)),
+        missing_update_message="Provide at least one of: context_bid, priority",
+        dry_run=dry_run,
+    )

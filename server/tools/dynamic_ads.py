@@ -1,8 +1,8 @@
 """MCP tools for dynamic ad (webpage) management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import run_single_id_batch
+from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import run_set_bids, run_single_id_batch
 
 
 @mcp.tool(name="dynamicads_get")
@@ -153,32 +153,17 @@ def dynamic_ads_set_bids(
         context_bid: Optional context bid in micro-units (same rules as `bid`).
         priority: Strategy priority.
     """
-    if id is None and ad_group_id is None and campaign_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: id, ad_group_id, campaign_id",
-        ).__dict__
-    if bid is None and context_bid is None and priority is None:
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one of: bid, context_bid, priority",
-        ).__dict__
-
-    args = ["dynamicads", "set-bids"]
-    if id is not None:
-        args.extend(["--id", str(id)])
-    if ad_group_id is not None:
-        args.extend(["--adgroup-id", str(ad_group_id)])
-    if campaign_id is not None:
-        args.extend(["--campaign-id", str(campaign_id)])
-    if bid is not None:
-        args.extend(["--bid", str(bid)])
-    if context_bid is not None:
-        args.extend(["--context-bid", str(context_bid)])
-    if priority is not None:
-        args.extend(["--priority", priority])
-    if dry_run:
-        args.append("--dry-run")
-
-    runner = get_runner()
-    return runner.run_json(args)
+    return run_set_bids(
+        get_runner(),
+        "dynamicads",
+        id=id,
+        ad_group_id=ad_group_id,
+        campaign_id=campaign_id,
+        bid_fields=(
+            ("--bid", bid),
+            ("--context-bid", context_bid),
+            ("--priority", priority),
+        ),
+        missing_update_message="Provide at least one of: bid, context_bid, priority",
+        dry_run=dry_run,
+    )

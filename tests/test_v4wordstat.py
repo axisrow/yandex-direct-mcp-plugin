@@ -1,6 +1,6 @@
 """Tests for v4wordstat MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from server.cli.runner import DirectCliRunner
 from server.tools.v4wordstat import (
@@ -10,23 +10,11 @@ from server.tools.v4wordstat import (
     v4wordstat_list_reports,
 )
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
-def _completed(stdout: str) -> MagicMock:
-    result = MagicMock()
-    result.stdout = stdout
-    result.stderr = ""
-    result.returncode = 0
-    return result
+from tests.helpers import completed, mock_runner
 
 
 def test_v4wordstat_create_report_argv():
-    runner = _mock_runner({"ReportID": 1})
+    runner = mock_runner({"ReportID": 1})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_create_report(
             phrases=" phrase one, phrase two ",
@@ -63,7 +51,7 @@ def test_v4wordstat_create_report_phrase_limit():
 
 
 def test_v4wordstat_create_report_dry_run():
-    runner = _mock_runner({"method": "CreateNewWordstatReport"})
+    runner = mock_runner({"method": "CreateNewWordstatReport"})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_create_report(phrases="phrase", dry_run=True)
     argv = runner.run_json.call_args.args[0]
@@ -80,7 +68,7 @@ def test_v4wordstat_create_report_returns_wrapped_scalar():
         ),
         patch(
             "server.cli.runner.subprocess.run",
-            return_value=_completed("1233756017"),
+            return_value=completed("1233756017"),
         ),
     ):
         result = v4wordstat_create_report(phrases="phrase")
@@ -88,7 +76,7 @@ def test_v4wordstat_create_report_returns_wrapped_scalar():
 
 
 def test_v4wordstat_list_reports_argv():
-    runner = _mock_runner([])
+    runner = mock_runner([])
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_list_reports()
     runner.run_json.assert_called_once_with(
@@ -97,14 +85,14 @@ def test_v4wordstat_list_reports_argv():
 
 
 def test_v4wordstat_list_reports_dry_run():
-    runner = _mock_runner({"method": "GetWordstatReportList"})
+    runner = mock_runner({"method": "GetWordstatReportList"})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_list_reports(dry_run=True)
     assert "--dry-run" in runner.run_json.call_args.args[0]
 
 
 def test_v4wordstat_get_report_argv():
-    runner = _mock_runner({"ReportID": 42})
+    runner = mock_runner({"ReportID": 42})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_get_report(report_id=42)
     runner.run_json.assert_called_once_with(
@@ -120,14 +108,14 @@ def test_v4wordstat_get_report_argv():
 
 
 def test_v4wordstat_get_report_dry_run():
-    runner = _mock_runner({"method": "GetWordstatReport"})
+    runner = mock_runner({"method": "GetWordstatReport"})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_get_report(report_id=42, dry_run=True)
     assert "--dry-run" in runner.run_json.call_args.args[0]
 
 
 def test_v4wordstat_delete_report_argv():
-    runner = _mock_runner({"ok": True})
+    runner = mock_runner({"ok": True})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_delete_report(report_id=42)
     runner.run_json.assert_called_once_with(
@@ -143,7 +131,7 @@ def test_v4wordstat_delete_report_argv():
 
 
 def test_v4wordstat_delete_report_dry_run():
-    runner = _mock_runner({"method": "DeleteWordstatReport"})
+    runner = mock_runner({"method": "DeleteWordstatReport"})
     with patch("server.tools.v4wordstat.get_runner", return_value=runner):
         v4wordstat_delete_report(report_id=42, dry_run=True)
     assert "--dry-run" in runner.run_json.call_args.args[0]
@@ -157,7 +145,7 @@ def test_v4wordstat_delete_report_returns_wrapped_scalar():
             "server.cli.runner._resolve_direct_cached",
             return_value="/usr/bin/direct",
         ),
-        patch("server.cli.runner.subprocess.run", return_value=_completed("1")),
+        patch("server.cli.runner.subprocess.run", return_value=completed("1")),
     ):
         result = v4wordstat_delete_report(report_id=42)
     assert result == {"result": 1}

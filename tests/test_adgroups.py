@@ -1,7 +1,6 @@
 """Tests for ad group MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.adgroups import (
     adgroups_list,
@@ -10,18 +9,12 @@ from server.tools.adgroups import (
     adgroups_delete,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_ADGROUPS = [
     {"Id": 1, "Name": "Ad Group 1", "CampaignId": 12345},
     {"Id": 2, "Name": "Ad Group 2", "CampaignId": 12345},
 ]
-
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
 
 
 class TestAdgroupsList:
@@ -31,7 +24,7 @@ class TestAdgroupsList:
         """Test listing ad groups by campaign."""
         with patch(
             "server.tools.adgroups.get_runner",
-            return_value=_mock_runner(SAMPLE_ADGROUPS),
+            return_value=mock_runner(SAMPLE_ADGROUPS),
         ):
             result = adgroups_list(campaign_ids="12345")
             assert len(result) == 2
@@ -39,8 +32,7 @@ class TestAdgroupsList:
 
     def test_adgroups_list_ignores_blank_campaign_ids(self):
         """Test blank campaign IDs behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = SAMPLE_ADGROUPS
+        runner = mock_runner(SAMPLE_ADGROUPS)
         with patch("server.tools.adgroups.get_runner", return_value=runner):
             result = adgroups_list(campaign_ids="   ")
             assert len(result) == 2
@@ -51,7 +43,7 @@ class TestAdgroupsList:
         """Test empty ad groups list."""
         with patch(
             "server.tools.adgroups.get_runner",
-            return_value=_mock_runner([]),
+            return_value=mock_runner([]),
         ):
             result = adgroups_list(campaign_ids="12345")
             assert result == []
@@ -72,15 +64,14 @@ class TestAdgroupsAdd:
         mock_result = {"Id": 123, "Name": "New Ad Group"}
         with patch(
             "server.tools.adgroups.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = adgroups_add(campaign_id=12345, name="New Ad Group")
             assert result["Id"] == 123
 
     def test_adgroups_add_with_type(self):
         """Test adding ad group with type parameter."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 124}
+        runner = mock_runner({"Id": 124})
         with patch(
             "server.tools.adgroups.get_runner",
             return_value=runner,
@@ -103,7 +94,7 @@ class TestAdgroupsUpdate:
         mock_result = {"Id": 123, "Name": "Updated Name"}
         with patch(
             "server.tools.adgroups.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = adgroups_update(id=123, name="Updated Name")
             assert result["Id"] == 123
@@ -116,7 +107,7 @@ class TestAdgroupsUpdate:
 
     def test_adgroups_update_accepts_empty_string_field(self):
         """Empty strings are provided values; CLI owns semantic validation."""
-        runner = _mock_runner({"Id": 123})
+        runner = mock_runner({"Id": 123})
         with patch("server.tools.adgroups.get_runner", return_value=runner):
             adgroups_update(id=123, name="")
 
@@ -126,8 +117,7 @@ class TestAdgroupsUpdate:
 
     def test_adgroups_update_with_status(self):
         """Test updating with status."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 123}
+        runner = mock_runner({"Id": 123})
         with patch(
             "server.tools.adgroups.get_runner",
             return_value=runner,
@@ -146,7 +136,7 @@ class TestAdgroupsDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.adgroups.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = adgroups_delete(ids="1")
             assert result["success"] is True

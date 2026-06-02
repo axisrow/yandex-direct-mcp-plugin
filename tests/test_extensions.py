@@ -1,6 +1,6 @@
 """Tests for ad extensions MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -9,6 +9,8 @@ from server.tools.adextensions import (
     adextensions_add,
     adextensions_delete,
 )
+
+from tests.helpers import mock_runner
 
 
 @pytest.fixture
@@ -28,13 +30,6 @@ def mock_extensions():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestAdextensionsList:
     """Tests for adextensions_list tool."""
 
@@ -42,7 +37,7 @@ class TestAdextensionsList:
         """Test listing extensions successfully."""
         with patch(
             "server.tools.adextensions.get_runner",
-            return_value=_mock_runner(mock_extensions),
+            return_value=mock_runner(mock_extensions),
         ):
             result = adextensions_list(ids="1,2")
             assert len(result) == 2
@@ -52,15 +47,14 @@ class TestAdextensionsList:
         """Test listing all extensions with no ids."""
         with patch(
             "server.tools.adextensions.get_runner",
-            return_value=_mock_runner(mock_extensions),
+            return_value=mock_runner(mock_extensions),
         ):
             result = adextensions_list()
             assert len(result) == 2
 
     def test_list_extensions_empty_ids_treated_as_missing_filter(self, mock_extensions):
         """Test empty ids behaves like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_extensions
+        runner = mock_runner(mock_extensions)
         with patch(
             "server.tools.adextensions.get_runner",
             return_value=runner,
@@ -72,8 +66,7 @@ class TestAdextensionsList:
 
     def test_list_extensions_with_types(self):
         """Test listing extensions filtered by types."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.adextensions.get_runner",
             return_value=runner,
@@ -85,8 +78,7 @@ class TestAdextensionsList:
 
     def test_list_extensions_trims_ids_and_types(self):
         """Test list filters are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch("server.tools.adextensions.get_runner", return_value=runner):
             adextensions_list(ids=" 1,2 ", types=" CALLOUT,SITELINK ")
 
@@ -105,8 +97,7 @@ class TestAdextensionsList:
 
     def test_list_extensions_with_callout_field_names(self):
         """Test CalloutFieldNames are passed through 1:1 via the CLI flag."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch("server.tools.adextensions.get_runner", return_value=runner):
             adextensions_list(
                 types="CALLOUT",
@@ -133,7 +124,7 @@ class TestAdextensionsList:
         """Test empty response returns empty list."""
         with patch(
             "server.tools.adextensions.get_runner",
-            return_value=_mock_runner([]),
+            return_value=mock_runner([]),
         ):
             result = adextensions_list(ids="999")
             assert result == []
@@ -152,8 +143,7 @@ class TestAdextensionsAdd:
     def test_add_callout_extension_success(self):
         """Test adding a callout extension successfully."""
         mock_result = {"Id": 123}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.adextensions.get_runner", return_value=runner):
             result = adextensions_add(callout_text="Free shipping")
@@ -163,8 +153,7 @@ class TestAdextensionsAdd:
             )
 
     def test_add_callout_extension_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.adextensions.get_runner", return_value=runner):
             adextensions_add(callout_text="X", dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
@@ -179,7 +168,7 @@ class TestAdextensionsDelete:
 
         with patch(
             "server.tools.adextensions.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = adextensions_delete(ids="1")
             assert result["success"] is True
@@ -188,7 +177,7 @@ class TestAdextensionsDelete:
         """Test deleting extensions rejects empty ids."""
         with patch(
             "server.tools.adextensions.get_runner",
-            return_value=_mock_runner({"success": True}),
+            return_value=mock_runner({"success": True}),
         ):
             result = adextensions_delete(ids="   ")
             assert result["error"] == "missing_ids"

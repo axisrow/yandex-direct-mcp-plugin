@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import finalize_json_args
 
 
 def _base_args(*, sandbox: bool) -> list[str]:
@@ -110,10 +111,7 @@ def v4account_enable_shared_account(
 
     args = _base_args(sandbox=sandbox)
     args.extend(["enable-shared-account", "--client-login", normalized_login])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4account_get_accounts")
@@ -175,10 +173,7 @@ def v4account_get_accounts(
         args.extend(["--logins", normalized_logins])
     if normalized_account_ids:
         args.extend(["--account-ids", normalized_account_ids])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4account_update_account")
@@ -241,10 +236,7 @@ def v4account_update_account(
     _append_optional(args, "--money-warning-value", money_warning_value)
     _append_optional_text(args, "--paused-by-day-budget", paused_by_day_budget)
 
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4account_deposit")
@@ -298,10 +290,7 @@ def v4account_deposit(
     _append_optional_text(args, "--contract", contract)
     _append_optional(args, "--operation-num", operation_num)
 
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4account_invoice")
@@ -345,10 +334,7 @@ def v4account_invoice(
     args.extend(["--currency", normalized_currency])
     _append_optional(args, "--operation-num", operation_num)
 
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4account_transfer_money")
@@ -409,7 +395,4 @@ def v4account_transfer_money(
     )
     _append_optional(args, "--operation-num", operation_num)
 
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
