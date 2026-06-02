@@ -62,7 +62,10 @@ ADS_UPDATE_EXTRA_OPTIONS = (
 )
 
 
-@mcp.tool(name="ads_get")
+@mcp.tool(
+    name="ads_get",
+    description="List ads filtered by campaign, ad group, or ad IDs, plus optional status/type filters. Read-only; use ads_add to create or ads_update to modify. Call tool_help('ads_get') for parameters.",
+)
 @handle_cli_errors
 def ads_list(
     campaign_ids: str | None = None,
@@ -171,7 +174,9 @@ def ads_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Create a new ad in an ad group (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, etc.). Use ads_update to change an existing ad instead. Call tool_help('ads_add') for parameters.",
+)
 @handle_cli_errors
 def ads_add(
     ad_group_id: int,
@@ -288,7 +293,9 @@ def ads_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update fields of an existing ad identified by id (title, text, href, extensions, status, etc.). Use ads_add to create a new ad instead. Call tool_help('ads_update') for parameters.",
+)
 @handle_cli_errors
 def ads_update(
     id: int,
@@ -483,7 +490,9 @@ def ads_update(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Permanently delete ads by ID (max 10). Call tool_help('ads_delete') for parameters.",
+)
 @handle_cli_errors
 def ads_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ads.
@@ -496,7 +505,9 @@ def ads_delete(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "ads", "delete", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Submit ads for moderation by ID (max 10). Call tool_help('ads_moderate') for parameters.",
+)
 @handle_cli_errors
 def ads_moderate(ids: str, dry_run: bool = False) -> dict:
     """Submit ads for moderation.
@@ -509,7 +520,9 @@ def ads_moderate(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "ads", "moderate", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Suspend (pause) serving ads by ID (max 10); reverse with ads_resume. Call tool_help('ads_suspend') for parameters.",
+)
 @handle_cli_errors
 def ads_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend ads.
@@ -522,7 +535,9 @@ def ads_suspend(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "ads", "suspend", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Resume previously suspended ads by ID (max 10). Call tool_help('ads_resume') for parameters.",
+)
 @handle_cli_errors
 def ads_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended ads.
@@ -535,7 +550,9 @@ def ads_resume(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "ads", "resume", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Archive ads by ID (max 10); reverse with ads_unarchive. Call tool_help('ads_archive') for parameters.",
+)
 @handle_cli_errors
 def ads_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive ads.
@@ -548,7 +565,9 @@ def ads_archive(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "ads", "archive", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Unarchive previously archived ads by ID (max 10). Call tool_help('ads_unarchive') for parameters.",
+)
 @handle_cli_errors
 def ads_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive ads.

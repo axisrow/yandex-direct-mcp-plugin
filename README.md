@@ -134,7 +134,7 @@ direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-
 Это удобство уровня CLI: плагин использует значение по умолчанию и не
 пробрасывает флаг, поэтому на работу MCP-инструментов он не влияет.
 
-## MCP contract (145 tools)
+## MCP contract (146 tools)
 
 The public contract is now defined as:
 
@@ -171,7 +171,7 @@ The machine-readable parity source lives in
 |---|---|---|
 | Direct API tools | `campaigns_get`, `advideos_add`, `dictionaries_get_geo_regions`, `dynamicads_set_bids`, `balance_get`, `v4goals_get_stat_goals`, `v4tags_get_campaigns` | Canonical CLI-mediated Direct contract |
 | CLI helper tools | `agencyclients_delete`, `dictionaries_list_names`, `reports_list_types` | Public, but explicitly not 1:1 Direct API methods |
-| Plugin tools | `auth_status`, `auth_setup`, `auth_login` | Plugin-only auth flows, not Direct operations |
+| Plugin tools | `auth_status`, `auth_setup`, `auth_login`, `tool_help` | Plugin-only utilities, not Direct operations. `tool_help('<name>')` returns a tool's full docs on demand — tools expose only a one-line description to keep startup context small |
 
 ### Breaking-change migration highlights
 

@@ -5,7 +5,10 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import run_set_bids, run_single_id_batch
 
 
-@mcp.tool(name="dynamicads_get")
+@mcp.tool(
+    name="dynamicads_get",
+    description="List dynamic ad targets (website-based webpage filters for dynamic text ads). Call tool_help('dynamicads_get') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_list(
     ids: str | None = None,
@@ -51,7 +54,10 @@ def dynamic_ads_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="dynamicads_add")
+@mcp.tool(
+    name="dynamicads_add",
+    description="Create a dynamic ad target (webpage filter) for dynamic text ads. Call tool_help('dynamicads_add') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_add(
     ad_group_id: int,
@@ -98,7 +104,10 @@ def dynamic_ads_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="dynamicads_delete")
+@mcp.tool(
+    name="dynamicads_delete",
+    description="Delete a dynamic ad target (webpage filter) by ID. Call tool_help('dynamicads_delete') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_delete(id: int, dry_run: bool = False) -> dict:
     """Delete a dynamic ad target (webpage).
@@ -113,7 +122,10 @@ def dynamic_ads_delete(id: int, dry_run: bool = False) -> dict:
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="dynamicads_suspend")
+@mcp.tool(
+    name="dynamicads_suspend",
+    description="Pause dynamic ad targets by ID. Call tool_help('dynamicads_suspend') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend dynamic ad targets."""
@@ -122,7 +134,10 @@ def dynamic_ads_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="dynamicads_resume")
+@mcp.tool(
+    name="dynamicads_resume",
+    description="Resume suspended dynamic ad targets by ID. Call tool_help('dynamicads_resume') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume dynamic ad targets."""
@@ -131,7 +146,10 @@ def dynamic_ads_resume(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="dynamicads_set_bids")
+@mcp.tool(
+    name="dynamicads_set_bids",
+    description="Set search/context bids or priority for dynamic ad targets. Call tool_help('dynamicads_set_bids') for parameters.",
+)
 @handle_cli_errors
 def dynamic_ads_set_bids(
     id: int | None = None,

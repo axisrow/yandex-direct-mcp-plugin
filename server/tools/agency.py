@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="agencyclients_get")
+@mcp.tool(
+    name="agencyclients_get",
+    description="List agency clients, optionally filtered by logins or archived state. Call tool_help('agencyclients_get') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_list(
     logins: str | None = None,
@@ -48,7 +51,10 @@ def agency_clients_list(
     return runner.run_json(cmd)
 
 
-@mcp.tool(name="agencyclients_add")
+@mcp.tool(
+    name="agencyclients_add",
+    description="Add a new client to the agency (mirrors WSDL ClientAddItem); use agencyclients_add_passport_organization for a Passport-backed client. Call tool_help('agencyclients_add') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_add(
     login: str,
@@ -103,7 +109,10 @@ def agency_clients_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="agencyclients_delete")
+@mcp.tool(
+    name="agencyclients_delete",
+    description="Remove a client from the agency (no real Direct API backing; kept for completeness). Call tool_help('agencyclients_delete') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_delete(id: int) -> dict:
     """Remove a client from an agency.
@@ -119,7 +128,10 @@ def agency_clients_delete(id: int) -> dict:
     return result
 
 
-@mcp.tool(name="agencyclients_update")
+@mcp.tool(
+    name="agencyclients_update",
+    description="Update an agency client's settings, contacts and grants (mirrors WSDL ClientUpdateItem). Call tool_help('agencyclients_update') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_update(
     client_id: int,
@@ -213,7 +225,10 @@ def agency_clients_update(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="agencyclients_add_passport_organization")
+@mcp.tool(
+    name="agencyclients_add_passport_organization",
+    description="Add a new agency client backed by a Passport organization; use agencyclients_add for a regular client. Call tool_help('agencyclients_add_passport_organization') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_add_passport_organization(
     name: str,
@@ -260,7 +275,10 @@ def agency_clients_add_passport_organization(
     return runner.run_json(args)
 
 
-@mcp.tool(name="agencyclients_add_passport_organization_member")
+@mcp.tool(
+    name="agencyclients_add_passport_organization_member",
+    description="Invite a user to a Passport organization client account. Call tool_help('agencyclients_add_passport_organization_member') for parameters.",
+)
 @handle_cli_errors
 def agency_clients_add_passport_organization_member(
     passport_organization_login: str,

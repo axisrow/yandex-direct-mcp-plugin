@@ -5,7 +5,10 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_single_id_batch
 
 
-@mcp.tool(name="adextensions_get")
+@mcp.tool(
+    name="adextensions_get",
+    description="List ad extensions (callouts/clarifications shown with ads), optionally filtered by IDs/types/states. Use adextensions_add to create, adextensions_delete to remove. Call tool_help('adextensions_get') for parameters.",
+)
 @handle_cli_errors
 def adextensions_list(
     ids: str | None = None,
@@ -58,7 +61,9 @@ def adextensions_list(
     return get_runner().run_json(cmd)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add an ad extension (callout type only; for sitelinks use sitelinks_add). Use adextensions_get to list existing extensions. Call tool_help('adextensions_add') for parameters.",
+)
 @handle_cli_errors
 def adextensions_add(callout_text: str, dry_run: bool = False) -> dict:
     """Add an ad extension (callout).
@@ -76,7 +81,9 @@ def adextensions_add(callout_text: str, dry_run: bool = False) -> dict:
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete ad extensions by ID (max 10 per call). Use adextensions_get to find IDs. Call tool_help('adextensions_delete') for parameters.",
+)
 @handle_cli_errors
 def adextensions_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ad extensions.

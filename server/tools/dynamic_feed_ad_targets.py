@@ -5,7 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
 
 
-@mcp.tool(name="dynamicfeedadtargets_get")
+@mcp.tool(
+    name="dynamicfeedadtargets_get",
+    description="List dynamic feed ad targets (filters over product-feed items for dynamic ads). Call tool_help('dynamicfeedadtargets_get') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_list(
     ids: str | None = None,
@@ -58,7 +61,10 @@ def dynamic_feed_ad_targets_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="dynamicfeedadtargets_add")
+@mcp.tool(
+    name="dynamicfeedadtargets_add",
+    description="Create a dynamic feed ad target (filter over product-feed items). Call tool_help('dynamicfeedadtargets_add') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_add(
     ad_group_id: int,
@@ -118,7 +124,10 @@ def dynamic_feed_ad_targets_add(
     return runner.run_json(args)
 
 
-@mcp.tool(name="dynamicfeedadtargets_delete")
+@mcp.tool(
+    name="dynamicfeedadtargets_delete",
+    description="Delete a dynamic feed ad target by ID. Call tool_help('dynamicfeedadtargets_delete') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
     """Delete a dynamic feed ad target.
@@ -133,7 +142,10 @@ def dynamic_feed_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="dynamicfeedadtargets_suspend")
+@mcp.tool(
+    name="dynamicfeedadtargets_suspend",
+    description="Pause dynamic feed ad targets by ID. Call tool_help('dynamicfeedadtargets_suspend') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend dynamic feed ad targets.
@@ -146,7 +158,10 @@ def dynamic_feed_ad_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="dynamicfeedadtargets_resume")
+@mcp.tool(
+    name="dynamicfeedadtargets_resume",
+    description="Resume suspended dynamic feed ad targets by ID. Call tool_help('dynamicfeedadtargets_resume') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume dynamic feed ad targets.
@@ -159,7 +174,10 @@ def dynamic_feed_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="dynamicfeedadtargets_set_bids")
+@mcp.tool(
+    name="dynamicfeedadtargets_set_bids",
+    description="Set search/context bids for dynamic feed ad targets. Call tool_help('dynamicfeedadtargets_set_bids') for parameters.",
+)
 @handle_cli_errors
 def dynamic_feed_ad_targets_set_bids(
     id: int | None = None,

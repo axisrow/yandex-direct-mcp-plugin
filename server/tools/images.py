@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="adimages_get")
+@mcp.tool(
+    name="adimages_get",
+    description="List ad images (image assets used in ads), optionally filtered by IDs/hashes/association. Use adimages_add to upload, adimages_delete to remove. Call tool_help('adimages_get') for parameters.",
+)
 @handle_cli_errors
 def adimages_list(
     ids: str | None = None,
@@ -47,7 +50,9 @@ def adimages_list(
     return get_runner().run_json(cmd)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add an ad image from base64 data or a local file path. Use adimages_get to list existing images. Call tool_help('adimages_add') for parameters.",
+)
 @handle_cli_errors
 def adimages_add(
     name: str,
@@ -91,7 +96,9 @@ def adimages_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete an ad image by its hash. Use adimages_get to find the hash. Call tool_help('adimages_delete') for parameters.",
+)
 @handle_cli_errors
 def adimages_delete(hash_value: str, dry_run: bool = False) -> dict:
     """Delete an ad image by its hash.

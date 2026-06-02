@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool(name="turbopages_get")
+@mcp.tool(
+    name="turbopages_get",
+    description="List turbo pages (fast mobile landing pages built in Yandex.Direct), optionally filtered by IDs or bound hrefs. Read-only. Call tool_help('turbopages_get') for parameters.",
+)
 @handle_cli_errors
 def turbo_pages_list(
     ids: str | None = None,

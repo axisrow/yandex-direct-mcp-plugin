@@ -9,7 +9,10 @@ from server.tools.helpers import (
 )
 
 
-@mcp.tool(name="v4adimage_get")
+@mcp.tool(
+    name="v4adimage_get",
+    description="Read ad-image associations via v4 Live AdImageAssociation (Get); empty filter returns up to 10000. Call tool_help('v4adimage_get') for parameters.",
+)
 @handle_cli_errors
 def v4adimage_get(
     logins: str | None = None,
@@ -65,7 +68,10 @@ def v4adimage_get(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4adimage_set")
+@mcp.tool(
+    name="v4adimage_set",
+    description="Link or unlink ad images via v4 Live AdImageAssociation (Set); up to 10000 per call. Call tool_help('v4adimage_set') for parameters.",
+)
 @handle_cli_errors
 def v4adimage_set(
     associations: list[str],

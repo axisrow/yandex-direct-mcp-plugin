@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="keywordsresearch_has_search_volume")
+@mcp.tool(
+    name="keywordsresearch_has_search_volume",
+    description="Check whether keywords have search volume in given regions. Call tool_help('keywordsresearch_has_search_volume') for parameters.",
+)
 @handle_cli_errors
 def keywords_has_volume(
     keywords: str,
@@ -46,7 +49,10 @@ def keywords_has_volume(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="keywordsresearch_deduplicate")
+@mcp.tool(
+    name="keywordsresearch_deduplicate",
+    description="Deduplicate a list of keywords. Call tool_help('keywordsresearch_deduplicate') for parameters.",
+)
 @handle_cli_errors
 def keywords_deduplicate(keywords: str) -> dict:
     """Deduplicate keywords.

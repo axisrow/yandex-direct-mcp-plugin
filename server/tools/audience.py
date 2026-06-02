@@ -5,7 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
 
 
-@mcp.tool(name="audiencetargets_get")
+@mcp.tool(
+    name="audiencetargets_get",
+    description="List audience targets (retargeting lists / interests linked to ad groups). Call tool_help('audiencetargets_get') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_list(
     campaign_ids: str | None = None,
@@ -67,7 +70,10 @@ def audience_targets_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="audiencetargets_add")
+@mcp.tool(
+    name="audiencetargets_add",
+    description="Attach an audience target (retargeting list or interest) to an ad group. Call tool_help('audiencetargets_add') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_add(
     ad_group_id: int,
@@ -121,7 +127,10 @@ def audience_targets_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="audiencetargets_delete")
+@mcp.tool(
+    name="audiencetargets_delete",
+    description="Delete audience targets by ID. Call tool_help('audiencetargets_delete') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete audience targets.
@@ -134,7 +143,10 @@ def audience_targets_delete(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="audiencetargets_suspend")
+@mcp.tool(
+    name="audiencetargets_suspend",
+    description="Pause audience targets by ID. Call tool_help('audiencetargets_suspend') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend audience targets.
@@ -147,7 +159,10 @@ def audience_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="audiencetargets_resume")
+@mcp.tool(
+    name="audiencetargets_resume",
+    description="Resume previously suspended audience targets by ID. Call tool_help('audiencetargets_resume') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended audience targets.
@@ -160,7 +175,10 @@ def audience_targets_resume(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="audiencetargets_set_bids")
+@mcp.tool(
+    name="audiencetargets_set_bids",
+    description="Set context bids / priority for audience targets. Call tool_help('audiencetargets_set_bids') for parameters.",
+)
 @handle_cli_errors
 def audience_targets_set_bids(
     id: int | None = None,

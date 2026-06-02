@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="advideos_get")
+@mcp.tool(
+    name="advideos_get",
+    description="Get ad videos (video assets used in video/multimedia ads) by required IDs. Use advideos_add to upload a new video. Call tool_help('advideos_get') for parameters.",
+)
 @handle_cli_errors
 def advideos_get(
     ids: str,
@@ -39,7 +42,10 @@ def advideos_get(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="advideos_add")
+@mcp.tool(
+    name="advideos_add",
+    description="Add an ad video from a URL, base64 data, or local file (exactly one source). Use advideos_get to list existing videos. Call tool_help('advideos_add') for parameters.",
+)
 @handle_cli_errors
 def advideos_add(
     url: str | None = None,

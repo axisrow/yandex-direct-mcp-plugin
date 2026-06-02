@@ -23,7 +23,10 @@ _BIDMOD_TYPES = (
 )
 
 
-@mcp.tool(name="bidmodifiers_get")
+@mcp.tool(
+    name="bidmodifiers_get",
+    description="List bid modifiers (percentage adjustments by device, demographics, region, etc.). Call tool_help('bidmodifiers_get') for parameters.",
+)
 @handle_cli_errors
 def bidmodifiers_list(
     ids: str | None = None,
@@ -85,7 +88,10 @@ def bidmodifiers_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="bidmodifiers_set")
+@mcp.tool(
+    name="bidmodifiers_set",
+    description="Update the percentage of an existing bid modifier by ID; use bidmodifiers_add to create one, and bids_set/keywordbids_set for actual bid amounts. Call tool_help('bidmodifiers_set') for parameters.",
+)
 @handle_cli_errors
 def bidmodifiers_set(
     id: int,
@@ -116,7 +122,10 @@ def bidmodifiers_set(
     return runner.run_json(args)
 
 
-@mcp.tool(name="bidmodifiers_delete")
+@mcp.tool(
+    name="bidmodifiers_delete",
+    description="Delete bid modifiers by ID. Call tool_help('bidmodifiers_delete') for parameters.",
+)
 @handle_cli_errors
 def bidmodifiers_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete bid modifiers.
@@ -131,7 +140,10 @@ def bidmodifiers_delete(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="bidmodifiers_add")
+@mcp.tool(
+    name="bidmodifiers_add",
+    description="Create a new bid modifier (percentage adjustment) on a campaign or ad group; use bidmodifiers_set to change an existing one. Call tool_help('bidmodifiers_add') for parameters.",
+)
 @handle_cli_errors
 def bidmodifiers_add(
     modifier_type: str,

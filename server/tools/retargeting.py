@@ -8,7 +8,10 @@ _LIST_TYPES = ("RETARGETING", "AUDIENCE")
 RETARGETING_RULE_OPTIONS = (CliOption("rules", "--rule", repeat=True),)
 
 
-@mcp.tool(name="retargeting_get")
+@mcp.tool(
+    name="retargeting_get",
+    description="List retargeting lists (audience/goal-based segments) for the account. Call tool_help('retargeting_get') for parameters.",
+)
 @handle_cli_errors
 def retargeting_list(
     ids: str | None = None,
@@ -42,7 +45,10 @@ def retargeting_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="retargeting_add")
+@mcp.tool(
+    name="retargeting_add",
+    description="Create a retargeting list from Metrica goal / Audience segment rules. Call tool_help('retargeting_add') for parameters.",
+)
 @handle_cli_errors
 def retargeting_add(
     name: str,
@@ -92,7 +98,10 @@ def retargeting_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="retargeting_delete")
+@mcp.tool(
+    name="retargeting_delete",
+    description="Delete retargeting lists by ID. Call tool_help('retargeting_delete') for parameters.",
+)
 @handle_cli_errors
 def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete retargeting lists.
@@ -105,7 +114,10 @@ def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="retargeting_update")
+@mcp.tool(
+    name="retargeting_update",
+    description="Update an existing retargeting list's name, description, type, or rules. Call tool_help('retargeting_update') for parameters.",
+)
 @handle_cli_errors
 def retargeting_update(
     id: int,

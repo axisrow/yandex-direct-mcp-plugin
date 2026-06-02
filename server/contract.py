@@ -3,8 +3,8 @@
 Tool count (derived from the structures below):
 - Direct API tools: 139
 - CLI helper tools:   3
-- Plugin tools:       3
-Total:              145
+- Plugin tools:       4
+Total:              146
 """
 
 from __future__ import annotations
@@ -530,7 +530,10 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
     ),
 )
 
-PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login")
+# ``tool_help`` is a meta-tool: it serves the full docstring of any tool on
+# demand so the other tools can expose only a short one-line description and
+# keep the startup context small (progressive disclosure).
+PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login", "tool_help")
 
 # Operations that exist in the WSDL/tapi surface but cannot be exposed
 # in MCP because `direct` has no matching transport subcommand.

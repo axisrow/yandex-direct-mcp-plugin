@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="leads_get")
+@mcp.tool(
+    name="leads_get",
+    description="List leads (form submissions) for the given Turbo pages; leads are scoped to Turbo pages, not campaigns. Call tool_help('leads_get') for parameters.",
+)
 @handle_cli_errors
 def leads_list(
     turbo_page_ids: str,

@@ -17,7 +17,9 @@ ALLOWED_DICTIONARY_NAMES = (
 )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Get reference dictionary data by names (Currencies, GeoRegions, TimeZones, etc.); use dictionaries_list_names to see options. Call tool_help('dictionaries_get') for parameters.",
+)
 @handle_cli_errors
 def dictionaries_get(names: str) -> dict:
     """Get dictionary data.
@@ -35,14 +37,19 @@ def dictionaries_get(names: str) -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    description="List the dictionary names accepted by dictionaries_get. Call tool_help('dictionaries_list_names') for parameters.",
+)
 @handle_cli_errors
 def dictionaries_list_names() -> list[str]:
     """List available dictionary names."""
     return list(ALLOWED_DICTIONARY_NAMES)
 
 
-@mcp.tool(name="dictionaries_get_geo_regions")
+@mcp.tool(
+    name="dictionaries_get_geo_regions",
+    description="Get GeoRegions dictionary entries, optionally filtered by name or region IDs. Call tool_help('dictionaries_get_geo_regions') for parameters.",
+)
 @handle_cli_errors
 def dictionaries_get_geo_regions(
     fields: str,

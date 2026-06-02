@@ -48,7 +48,9 @@ def _validate_field_names(field_names: str) -> ToolError | None:
     return None
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Check what changed since a timestamp within specific objects, filtered by exactly one of campaign_ids / ad_group_ids / ad_ids. Use this for targeted checks; use changes_check_campaigns for an account-wide campaign-level scan. Call tool_help('changes_check') for parameters.",
+)
 @handle_cli_errors
 def changes_check(
     timestamp: str,
@@ -138,7 +140,10 @@ def changes_check(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="changes_check_campaigns")
+@mcp.tool(
+    name="changes_check_campaigns",
+    description="Check account-wide campaign-level changes since a timestamp (which campaigns changed). Use this for a broad scan; use changes_check to drill into specific campaign/ad-group/ad IDs. Call tool_help('changes_check_campaigns') for parameters.",
+)
 @handle_cli_errors
 def changes_checkcamp(timestamp: str) -> dict:
     """Check account-wide campaign changes since ``timestamp``.
@@ -162,7 +167,10 @@ def changes_checkcamp(timestamp: str) -> dict:
     )
 
 
-@mcp.tool(name="changes_check_dictionaries")
+@mcp.tool(
+    name="changes_check_dictionaries",
+    description="Check whether Yandex.Direct reference dictionaries (e.g. regions) have changed; takes no parameters. Call tool_help('changes_check_dictionaries') for parameters.",
+)
 @handle_cli_errors
 def changes_checkdict() -> dict:
     """Check dictionary changes.

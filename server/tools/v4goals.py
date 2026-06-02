@@ -16,7 +16,10 @@ def _run_goals_command(method: str, campaign_ids: str) -> dict | list[dict]:
     )
 
 
-@mcp.tool(name="v4goals_get_stat_goals")
+@mcp.tool(
+    name="v4goals_get_stat_goals",
+    description="Get Yandex Metrica stat goals available for campaigns (v4 Live); use v4goals_get_retargeting_goals for retargeting goals. Call tool_help('v4goals_get_stat_goals') for parameters.",
+)
 @handle_cli_errors
 def v4goals_get_stat_goals(campaign_ids: str) -> dict | list[dict]:
     """Get Yandex Metrica goals available for campaigns.
@@ -27,7 +30,10 @@ def v4goals_get_stat_goals(campaign_ids: str) -> dict | list[dict]:
     return _run_goals_command("get-stat-goals", campaign_ids)
 
 
-@mcp.tool(name="v4goals_get_retargeting_goals")
+@mcp.tool(
+    name="v4goals_get_retargeting_goals",
+    description="Get retargeting goals for campaigns (v4 Live); use v4goals_get_stat_goals for Metrica stat goals. Call tool_help('v4goals_get_retargeting_goals') for parameters.",
+)
 @handle_cli_errors
 def v4goals_get_retargeting_goals(campaign_ids: str) -> dict | list[dict]:
     """Get retargeting goals for campaigns.

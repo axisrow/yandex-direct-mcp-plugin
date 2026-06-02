@@ -119,7 +119,10 @@ def _resolve_report_dates(
     return (today - timedelta(days=DEFAULT_WINDOW_DAYS)).isoformat(), today.isoformat()
 
 
-@mcp.tool(name="reports_get")
+@mcp.tool(
+    name="reports_get",
+    description="Quick per-campaign performance snapshot over a short recent window (~last 8 days, default fields). Use reports_get for a fast overview; use reports_custom for arbitrary fields, filters, or date/goal breakdowns. Call tool_help('reports_get') for parameters.",
+)
 @handle_cli_errors
 def reports_get(
     date_from: str | None = None, date_to: str | None = None
@@ -168,7 +171,9 @@ def reports_get(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="List supported Yandex.Direct report types with guidance on when to pick each (use before reports_custom if unsure which report_type fits). Call tool_help('reports_list_types') for parameters.",
+)
 @handle_cli_errors
 def reports_list_types() -> list[str] | dict:
     """List supported Yandex.Direct report types with guidance per type.
@@ -340,7 +345,10 @@ def _count_rows_written(
         return None
 
 
-@mcp.tool(name="reports_custom")
+@mcp.tool(
+    name="reports_custom",
+    description="Build an arbitrary Yandex.Direct statistics report: any FieldNames, filters, ordering, date/week/month/goal breakdowns, pagination, and file output. Use reports_custom for arbitrary fields & breakdowns; use reports_get for a quick recent snapshot. Call tool_help('reports_custom') for parameters.",
+)
 @handle_cli_errors
 def reports_custom(
     field_names: str,

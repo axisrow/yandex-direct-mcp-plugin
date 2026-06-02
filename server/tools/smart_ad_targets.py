@@ -13,7 +13,10 @@ _YES_NO = ("YES", "NO")
 SMART_TARGET_CONDITION_OPTIONS = (CliOption("conditions", "--condition", repeat=True),)
 
 
-@mcp.tool(name="smartadtargets_get")
+@mcp.tool(
+    name="smartadtargets_get",
+    description="List smart ad targets (audience filters for smart banner / dynamic feed campaigns). Call tool_help('smartadtargets_get') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_list(
     ids: str | None = None,
@@ -59,7 +62,10 @@ def smart_ad_targets_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="smartadtargets_add")
+@mcp.tool(
+    name="smartadtargets_add",
+    description="Create a smart ad target (filter/audience condition for smart banners). Call tool_help('smartadtargets_add') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_add(
     ad_group_id: int,
@@ -126,7 +132,10 @@ def smart_ad_targets_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="smartadtargets_update")
+@mcp.tool(
+    name="smartadtargets_update",
+    description="Update an existing smart ad target's name, audience, conditions, or bids. Call tool_help('smartadtargets_update') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_update(
     id: int,
@@ -206,7 +215,10 @@ def smart_ad_targets_update(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="smartadtargets_delete")
+@mcp.tool(
+    name="smartadtargets_delete",
+    description="Delete a smart ad target by ID. Call tool_help('smartadtargets_delete') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
     """Delete a smart ad target.
@@ -221,7 +233,10 @@ def smart_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="smartadtargets_suspend")
+@mcp.tool(
+    name="smartadtargets_suspend",
+    description="Pause smart ad targets by ID. Call tool_help('smartadtargets_suspend') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend smart ad targets."""
@@ -230,7 +245,10 @@ def smart_ad_targets_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="smartadtargets_resume")
+@mcp.tool(
+    name="smartadtargets_resume",
+    description="Resume suspended smart ad targets by ID. Call tool_help('smartadtargets_resume') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume smart ad targets."""
@@ -239,7 +257,10 @@ def smart_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool(name="smartadtargets_set_bids")
+@mcp.tool(
+    name="smartadtargets_set_bids",
+    description="Set average CPC/CPA or priority for smart ad targets. Call tool_help('smartadtargets_set_bids') for parameters.",
+)
 @handle_cli_errors
 def smart_ad_targets_set_bids(
     id: int | None = None,

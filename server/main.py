@@ -43,6 +43,7 @@ import server.tools.retargeting  # noqa: E402, F401
 import server.tools.sitelinks  # noqa: E402, F401
 import server.tools.smart_ad_targets  # noqa: E402, F401
 import server.tools.strategies  # noqa: E402, F401
+import server.tools.tool_help  # noqa: E402, F401
 import server.tools.turbo_pages  # noqa: E402, F401
 import server.tools.v4account  # noqa: E402, F401
 import server.tools.v4adimage  # noqa: E402, F401
