@@ -1,7 +1,6 @@
 """Tests for negative_keyword_shared_sets MCP tools."""
 
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 
 from server.tools.negative_keyword_shared_sets import (
     negative_keyword_shared_sets_list,
@@ -10,22 +9,17 @@ from server.tools.negative_keyword_shared_sets import (
     negative_keyword_shared_sets_delete,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_SETS = [
     {"Id": 100, "Name": "Block list", "NegativeKeywords": ["free", "cheap"]},
 ]
 
 
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 def test_nkss_list():
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner(SAMPLE_SETS),
+        return_value=mock_runner(SAMPLE_SETS),
     ):
         result = negative_keyword_shared_sets_list()
         assert len(result) == 1
@@ -34,14 +28,14 @@ def test_nkss_list():
 def test_nkss_list_with_ids():
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner(SAMPLE_SETS),
+        return_value=mock_runner(SAMPLE_SETS),
     ):
         result = negative_keyword_shared_sets_list(ids="100")
         assert len(result) == 1
 
 
 def test_nkss_list_trims_ids():
-    runner = _mock_runner(SAMPLE_SETS)
+    runner = mock_runner(SAMPLE_SETS)
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
         return_value=runner,
@@ -63,7 +57,7 @@ def test_nkss_list_trims_ids():
 def test_nkss_list_empty():
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner([]),
+        return_value=mock_runner([]),
     ):
         result = negative_keyword_shared_sets_list()
         assert result == []
@@ -73,7 +67,7 @@ def test_nkss_add():
     mock_result = {"Id": 200}
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner(mock_result),
+        return_value=mock_runner(mock_result),
     ) as mock:
         result = negative_keyword_shared_sets_add(name="New list", keywords="bad,word")
         assert result["Id"] == 200
@@ -91,7 +85,7 @@ def test_nkss_add():
 
 def test_nkss_update():
     mock_result = {"success": True}
-    runner = _mock_runner(mock_result)
+    runner = mock_runner(mock_result)
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
         return_value=runner,
@@ -115,7 +109,7 @@ def test_nkss_update():
 
 
 def test_nkss_update_requires_changes():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner", return_value=runner
     ):
@@ -128,7 +122,7 @@ def test_nkss_delete():
     mock_result = {"success": True}
     with patch(
         "server.tools.negative_keyword_shared_sets.get_runner",
-        return_value=_mock_runner(mock_result),
+        return_value=mock_runner(mock_result),
     ) as mock:
         result = negative_keyword_shared_sets_delete(id=100)
         assert result["success"] is True

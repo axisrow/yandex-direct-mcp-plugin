@@ -1,6 +1,6 @@
 """Tests for audience MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -12,6 +12,8 @@ from server.tools.audience import (
     audience_targets_set_bids,
     audience_targets_suspend,
 )
+
+from tests.helpers import mock_runner
 
 
 @pytest.fixture
@@ -33,13 +35,6 @@ def mock_audience_targets():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestAudienceTargetsList:
     """Tests for audience_targets_list."""
 
@@ -47,15 +42,14 @@ class TestAudienceTargetsList:
         """Test listing audience targets by campaign IDs."""
         with patch(
             "server.tools.audience.get_runner",
-            return_value=_mock_runner(mock_audience_targets),
+            return_value=mock_runner(mock_audience_targets),
         ):
             result = audience_targets_list(campaign_ids="12345")
             assert len(result) == 2
 
     def test_list_audience_targets_by_ad_group(self):
         """Test listing audience targets by ad group IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.audience.get_runner",
             return_value=runner,
@@ -66,8 +60,7 @@ class TestAudienceTargetsList:
 
     def test_list_audience_targets_by_ids(self):
         """Test listing audience targets by IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.audience.get_runner",
             return_value=runner,
@@ -78,8 +71,7 @@ class TestAudienceTargetsList:
 
     def test_list_audience_targets_ignores_blank_ids(self, mock_audience_targets):
         """Test blank filters behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_audience_targets
+        runner = mock_runner(mock_audience_targets)
         with patch("server.tools.audience.get_runner", return_value=runner):
             result = audience_targets_list(
                 campaign_ids="   ", ad_group_ids="   ", ids="   "
@@ -109,8 +101,7 @@ class TestAudienceTargetsAdd:
             "RetargetingListId": 557,
             "State": "ON",
         }
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch(
             "server.tools.audience.get_runner",
             return_value=runner,
@@ -126,8 +117,7 @@ class TestAudienceTargetsAdd:
 
     def test_add_audience_target_with_bid(self):
         """Test adding with bid parameter."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 104}
+        runner = mock_runner({"Id": 104})
         with patch(
             "server.tools.audience.get_runner",
             return_value=runner,
@@ -150,7 +140,7 @@ class TestAudienceTargetsDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.audience.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = audience_targets_delete(ids="101")
             assert result["success"] is True
@@ -171,7 +161,7 @@ class TestAudienceTargetsSuspend:
         mock_result = {"success": True}
         with patch(
             "server.tools.audience.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = audience_targets_suspend(ids="101")
             assert result["success"] is True
@@ -192,7 +182,7 @@ class TestAudienceTargetsResume:
         mock_result = {"success": True}
         with patch(
             "server.tools.audience.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = audience_targets_resume(ids="101")
             assert result["success"] is True
@@ -209,8 +199,7 @@ class TestAudienceTargetsSetBids:
     """Tests for audience_targets_set_bids."""
 
     def test_set_bids_success(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.audience.get_runner", return_value=runner):
             result = audience_targets_set_bids(
                 id=101,

@@ -3,7 +3,12 @@
 from server.cli.runner import CliAuthError, CliNotFoundError
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, check_batch_limit
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    check_batch_limit,
+    provided_update_value,
+)
 
 CAMPAIGN_GET_SELECTOR_FLAGS = (
     ("text_campaign_fields", "--text-campaign-fields"),
@@ -400,17 +405,6 @@ CAMPAIGN_UPDATE_ONLY_OPTIONS = (
 )
 
 
-def _provided_update_value(value: object) -> bool:
-    """Return whether an optional update value should satisfy the update guard."""
-    if value is None:
-        return False
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (list, tuple, set, dict)):
-        return bool(value)
-    return True
-
-
 @mcp.tool(name="campaigns_get")
 @handle_cli_errors
 def campaigns_list(
@@ -788,7 +782,7 @@ def campaigns_update(
         for key, value in values.items()
         if key not in {"id", "dry_run", "notification_json", "time_targeting_json"}
     ]
-    if not any(_provided_update_value(value) for value in optional_values):
+    if not any(provided_update_value(value) for value in optional_values):
         return ToolError(
             error="missing_update_fields",
             message="Provide at least one typed campaign field to update.",

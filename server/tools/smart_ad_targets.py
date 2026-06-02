@@ -2,9 +2,15 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import run_single_id_batch
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    run_set_bids,
+    run_single_id_batch,
+)
 
 _YES_NO = ("YES", "NO")
+SMART_TARGET_CONDITION_OPTIONS = (CliOption("conditions", "--condition", repeat=True),)
 
 
 @mcp.tool(name="smartadtargets_get")
@@ -98,9 +104,7 @@ def smart_ad_targets_add(
     ]
     if condition is not None:
         args.extend(["--condition", condition])
-    if conditions:
-        for spec in conditions:
-            args.extend(["--condition", spec])
+    append_cli_options(args, locals(), SMART_TARGET_CONDITION_OPTIONS)
     if average_cpc is not None:
         args.extend(["--average-cpc", str(average_cpc)])
     if average_cpa is not None:
@@ -180,9 +184,7 @@ def smart_ad_targets_update(
         args.extend(["--audience", audience])
     if condition is not None:
         args.extend(["--condition", condition])
-    if conditions:
-        for spec in conditions:
-            args.extend(["--condition", spec])
+    append_cli_options(args, locals(), SMART_TARGET_CONDITION_OPTIONS)
     if average_cpc is not None:
         args.extend(["--average-cpc", str(average_cpc)])
     if average_cpa is not None:
@@ -259,32 +261,19 @@ def smart_ad_targets_set_bids(
         average_cpa: Optional average CPA in micro-units (same rules as `average_cpc`).
         priority: Strategy priority.
     """
-    if id is None and ad_group_id is None and campaign_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: id, ad_group_id, campaign_id",
-        ).__dict__
-    if average_cpc is None and average_cpa is None and priority is None:
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one of: average_cpc, average_cpa, priority",
-        ).__dict__
-
-    args = ["smartadtargets", "set-bids"]
-    if id is not None:
-        args.extend(["--id", str(id)])
-    if ad_group_id is not None:
-        args.extend(["--adgroup-id", str(ad_group_id)])
-    if campaign_id is not None:
-        args.extend(["--campaign-id", str(campaign_id)])
-    if average_cpc is not None:
-        args.extend(["--average-cpc", str(average_cpc)])
-    if average_cpa is not None:
-        args.extend(["--average-cpa", str(average_cpa)])
-    if priority is not None:
-        args.extend(["--priority", priority])
-    if dry_run:
-        args.append("--dry-run")
-
-    runner = get_runner()
-    return runner.run_json(args)
+    return run_set_bids(
+        get_runner(),
+        "smartadtargets",
+        id=id,
+        ad_group_id=ad_group_id,
+        campaign_id=campaign_id,
+        bid_fields=(
+            ("--average-cpc", average_cpc),
+            ("--average-cpa", average_cpa),
+            ("--priority", priority),
+        ),
+        missing_update_message=(
+            "Provide at least one of: average_cpc, average_cpa, priority"
+        ),
+        dry_run=dry_run,
+    )

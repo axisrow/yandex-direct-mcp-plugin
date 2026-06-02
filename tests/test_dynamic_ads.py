@@ -2,7 +2,6 @@
 
 from unittest.mock import patch, MagicMock
 
-
 from server.tools.dynamic_ads import (
     dynamic_ads_list,
     dynamic_ads_add,
@@ -12,6 +11,7 @@ from server.tools.dynamic_ads import (
     dynamic_ads_suspend,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_TARGETS = [
     {
@@ -24,22 +24,16 @@ SAMPLE_TARGETS = [
 ]
 
 
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 def test_dynamic_ads_list():
     with patch(
-        "server.tools.dynamic_ads.get_runner", return_value=_mock_runner(SAMPLE_TARGETS)
+        "server.tools.dynamic_ads.get_runner", return_value=mock_runner(SAMPLE_TARGETS)
     ):
         result = dynamic_ads_list(ad_group_ids="200")
         assert len(result) == 1
 
 
 def test_dynamic_ads_list_trims_ids():
-    runner = _mock_runner(SAMPLE_TARGETS)
+    runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         dynamic_ads_list(ad_group_ids=" 200 ")
 
@@ -50,7 +44,7 @@ def test_dynamic_ads_list_trims_ids():
 
 def test_dynamic_ads_list_no_filters():
     """Blank ad_group_ids behaves like no filter (CLI returns everything)."""
-    runner = _mock_runner(SAMPLE_TARGETS)
+    runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         dynamic_ads_list(ad_group_ids="   ")
     argv = runner.run_json.call_args[0][0]
@@ -58,14 +52,14 @@ def test_dynamic_ads_list_no_filters():
 
 
 def test_dynamic_ads_list_empty():
-    with patch("server.tools.dynamic_ads.get_runner", return_value=_mock_runner([])):
+    with patch("server.tools.dynamic_ads.get_runner", return_value=mock_runner([])):
         result = dynamic_ads_list(ad_group_ids="200")
         assert result == []
 
 
 def test_dynamic_ads_add():
     mock_result = {"Id": 300}
-    runner = _mock_runner(mock_result)
+    runner = mock_runner(mock_result)
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_add(
             ad_group_id=200,
@@ -97,14 +91,14 @@ def test_dynamic_ads_add():
 
 
 def test_dynamic_ads_add_dry_run():
-    runner = _mock_runner({"_dry_run": True})
+    runner = mock_runner({"_dry_run": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         dynamic_ads_add(ad_group_id=200, name="x", dry_run=True)
         assert "--dry-run" in runner.run_json.call_args[0][0]
 
 
 def test_dynamic_ads_delete():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_delete(id=100)
         assert result["success"] is True
@@ -112,7 +106,7 @@ def test_dynamic_ads_delete():
 
 
 def test_dynamic_ads_suspend_batches_ids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_suspend(ids="100,101")
 
@@ -121,7 +115,7 @@ def test_dynamic_ads_suspend_batches_ids():
 
 
 def test_dynamic_ads_resume_batches_ids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_resume(ids="100,101")
 
@@ -130,7 +124,7 @@ def test_dynamic_ads_resume_batches_ids():
 
 
 def test_dynamic_ads_set_bids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
         result = dynamic_ads_set_bids(
             id=100,

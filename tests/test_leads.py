@@ -1,15 +1,10 @@
 """Tests for leads MCP tools (CLI 0.3.8 — --turbo-page-ids required)."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.leads import leads_list
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestLeadsList:
@@ -17,7 +12,7 @@ class TestLeadsList:
 
     def test_leads_list_basic(self):
         mock_result = {"leads": [{"id": 1}]}
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.leads.get_runner", return_value=runner):
             result = leads_list(turbo_page_ids="42")
             assert "leads" in result
@@ -26,8 +21,7 @@ class TestLeadsList:
             )
 
     def test_leads_list_trims_ids(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"leads": []}
+        runner = mock_runner({"leads": []})
         with patch("server.tools.leads.get_runner", return_value=runner):
             leads_list(turbo_page_ids=" 1,2 ")
         runner.run_json.assert_called_once_with(
@@ -39,8 +33,7 @@ class TestLeadsList:
         assert result["error"] == "missing_turbo_page_ids"
 
     def test_leads_list_full_argv(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"leads": []}
+        runner = mock_runner({"leads": []})
         with patch("server.tools.leads.get_runner", return_value=runner):
             leads_list(
                 turbo_page_ids="42",

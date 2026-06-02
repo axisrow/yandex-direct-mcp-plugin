@@ -1,21 +1,14 @@
 """Tests for bid MCP tools."""
 
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 
 from server.tools.bids import bids_list, bids_set, bids_set_auto
 
+from tests.helpers import mock_runner
 
 SAMPLE_BIDS = [
     {"CampaignId": 12345, "Bid": 15000000},
 ]
-
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
 
 
 class TestBidsList:
@@ -25,7 +18,7 @@ class TestBidsList:
         """Test listing bids for campaigns."""
         with patch(
             "server.tools.bids.get_runner",
-            return_value=_mock_runner(SAMPLE_BIDS),
+            return_value=mock_runner(SAMPLE_BIDS),
         ):
             result = bids_list(campaign_ids="12345")
             assert len(result) == 1
@@ -33,8 +26,7 @@ class TestBidsList:
 
     def test_bids_list_by_ad_group(self):
         """Test listing bids by ad group IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.bids.get_runner",
             return_value=runner,
@@ -45,8 +37,7 @@ class TestBidsList:
 
     def test_bids_list_by_keyword(self):
         """Test listing bids by keyword IDs."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.bids.get_runner",
             return_value=runner,
@@ -57,8 +48,7 @@ class TestBidsList:
 
     def test_bids_list_ignores_blank_filters(self):
         """Test blank filters behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = SAMPLE_BIDS
+        runner = mock_runner(SAMPLE_BIDS)
         with patch("server.tools.bids.get_runner", return_value=runner):
             result = bids_list(
                 campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
@@ -83,8 +73,7 @@ class TestBidsSet:
     def test_bids_set_success(self):
         """Test setting bid for a keyword successfully."""
         mock_result = {"success": True}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch("server.tools.bids.get_runner", return_value=runner):
             result = bids_set(keyword_id=99999, bid=15000000)
             assert result["success"] is True
@@ -93,8 +82,7 @@ class TestBidsSet:
             )
 
     def test_bids_set_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.bids.get_runner", return_value=runner):
             bids_set(keyword_id=99999, bid=15000000, dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
@@ -118,8 +106,7 @@ class TestBidsSetAuto:
     """Tests for bids_set_auto tool."""
 
     def test_bids_set_auto_success(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.bids.get_runner", return_value=runner):
             result = bids_set_auto(
                 campaign_id=12345,

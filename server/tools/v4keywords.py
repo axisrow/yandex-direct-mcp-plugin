@@ -2,12 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-
-
-def _normalize_keywords(keywords: list[str] | None) -> list[str]:
-    if not keywords:
-        return []
-    return [keyword.strip() for keyword in keywords if keyword.strip()]
+from server.tools.helpers import normalize_str_list
 
 
 @mcp.tool(name="v4keywords_get_suggestion")
@@ -21,7 +16,7 @@ def v4keywords_get_suggestion(keywords: list[str]) -> dict | list[dict]:
     Args:
         keywords: Source phrases to expand. At least one is required.
     """
-    normalized = _normalize_keywords(keywords)
+    normalized = normalize_str_list(keywords)
     if not normalized:
         return ToolError(
             error="missing_keywords",

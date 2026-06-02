@@ -1,7 +1,6 @@
 """Tests for dictionaries MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.dictionaries import (
     dictionaries_get,
@@ -9,12 +8,7 @@ from server.tools.dictionaries import (
     dictionaries_list_names,
 )
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestDictionariesGet:
@@ -25,7 +19,7 @@ class TestDictionariesGet:
         mock_result = {"Regions": [{"Id": 1, "Name": "Moscow"}]}
         with patch(
             "server.tools.dictionaries.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = dictionaries_get(names="GeoRegions")
             assert result == mock_result
@@ -35,7 +29,7 @@ class TestDictionariesGet:
         mock_result = {"TimeZones": [{"Id": "Europe/Moscow", "Name": "Moscow"}]}
         with patch(
             "server.tools.dictionaries.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = dictionaries_get(names="TimeZones")
             assert result == mock_result
@@ -45,7 +39,7 @@ class TestDictionariesGet:
         mock_result = {"Currencies": [{"Currency": "RUB", "Name": "Russian Ruble"}]}
         with patch(
             "server.tools.dictionaries.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = dictionaries_get(names="Currencies")
             assert result == mock_result
@@ -55,7 +49,7 @@ class TestDictionariesGet:
         mock_result = {"Constants": {"MaxAds": 50}}
         with patch(
             "server.tools.dictionaries.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = dictionaries_get(names="Constants")
             assert result == mock_result
@@ -63,8 +57,7 @@ class TestDictionariesGet:
     def test_get_multiple_dictionaries(self):
         """Test getting multiple dictionaries at once."""
         mock_result = {"Currencies": [], "GeoRegions": []}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.dictionaries.get_runner", return_value=runner):
             result = dictionaries_get(names="Currencies,GeoRegions")
@@ -75,8 +68,7 @@ class TestDictionariesGet:
 
     def test_passes_names_flag(self):
         """Verify the CLI flag --names is used."""
-        runner = MagicMock()
-        runner.run_json.return_value = {}
+        runner = mock_runner({})
 
         with patch("server.tools.dictionaries.get_runner", return_value=runner):
             dictionaries_get(names="Currencies")
@@ -100,8 +92,7 @@ class TestDictionariesGetGeoRegions:
     """Test scenarios for dictionaries_get_geo_regions."""
 
     def test_passes_geo_region_args(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"GeoRegions": []}
+        runner = mock_runner({"GeoRegions": []})
         with patch("server.tools.dictionaries.get_runner", return_value=runner):
             result = dictionaries_get_geo_regions(
                 fields="Id,Name",

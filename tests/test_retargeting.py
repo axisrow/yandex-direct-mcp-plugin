@@ -12,6 +12,8 @@ from server.tools.retargeting import (
 )
 from server.cli.runner import CliAuthError
 
+from tests.helpers import mock_runner
+
 
 @pytest.fixture
 def mock_retargeting_lists():
@@ -32,13 +34,6 @@ def mock_retargeting_lists():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestRetargetingList:
     """Tests for retargeting_list."""
 
@@ -46,7 +41,7 @@ class TestRetargetingList:
         """Test listing retargeting lists successfully."""
         with patch(
             "server.tools.retargeting.get_runner",
-            return_value=_mock_runner(mock_retargeting_lists),
+            return_value=mock_runner(mock_retargeting_lists),
         ):
             result = retargeting_list(ids="201,202")
             assert len(result) == 2
@@ -55,15 +50,14 @@ class TestRetargetingList:
         """Test listing all retargeting lists."""
         with patch(
             "server.tools.retargeting.get_runner",
-            return_value=_mock_runner(mock_retargeting_lists),
+            return_value=mock_runner(mock_retargeting_lists),
         ):
             result = retargeting_list()
             assert len(result) == 2
 
     def test_list_retargeting_with_types(self):
         """Test listing retargeting lists filtered by types."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch(
             "server.tools.retargeting.get_runner",
             return_value=runner,
@@ -74,8 +68,7 @@ class TestRetargetingList:
 
     def test_list_retargeting_trims_filters(self):
         """Test retargeting filters are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             retargeting_list(ids=" 201,202 ", types=" REMARKETING ")
 
@@ -112,8 +105,7 @@ class TestRetargetingAdd:
             "Type": "AUDIENCE",
             "State": "ON",
         }
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch(
             "server.tools.retargeting.get_runner",
             return_value=runner,
@@ -129,8 +121,7 @@ class TestRetargetingAdd:
 
     def test_add_retargeting_with_rule(self):
         """Test adding with targeting rule in CLI DSL form."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 204}
+        runner = mock_runner({"Id": 204})
         with patch(
             "server.tools.retargeting.get_runner",
             return_value=runner,
@@ -145,8 +136,7 @@ class TestRetargetingAdd:
             assert "ALL:123:30|456:14" in call_args
 
     def test_add_retargeting_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             retargeting_add(name="x", list_type="RETARGETING", dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
@@ -168,7 +158,7 @@ class TestRetargetingDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.retargeting.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = retargeting_delete(ids="201")
             assert result["success"] is True
@@ -185,8 +175,7 @@ class TestRetargetingUpdate:
     """Tests for retargeting_update."""
 
     def test_update_retargeting_success(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             result = retargeting_update(
                 id=201,
@@ -214,8 +203,7 @@ class TestRetargetingUpdate:
 
     def test_update_retargeting_rule(self):
         """retargeting_update passes --rule as a CLI-DSL string."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             retargeting_update(id=201, rule="ANY:123:30")
             call_args = runner.run_json.call_args[0][0]
@@ -223,8 +211,7 @@ class TestRetargetingUpdate:
             assert "ANY:123:30" in call_args
 
     def test_update_retargeting_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.retargeting.get_runner", return_value=runner):
             retargeting_update(id=201, name="x", dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]

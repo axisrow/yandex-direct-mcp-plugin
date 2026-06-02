@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options
+from server.tools.helpers import CliOption, append_cli_options, check_batch_limit
 
 MAX_BATCH_SIZE = 10
 MOBILE_VALUES = ("YES", "NO")
@@ -62,22 +62,6 @@ ADS_UPDATE_EXTRA_OPTIONS = (
 )
 
 
-def _parse_ids(ids_str: str) -> list[str]:
-    """Parse and clean comma-separated IDs."""
-    return [id.strip() for id in ids_str.split(",") if id.strip()]
-
-
-def _check_batch_limit(ids_str: str) -> ToolError | None:
-    """Validate batch size of comma-separated IDs."""
-    ids = _parse_ids(ids_str)
-    if len(ids) > MAX_BATCH_SIZE:
-        return ToolError(
-            error="batch_limit",
-            message=f"Maximum {MAX_BATCH_SIZE} IDs per request. Got: {len(ids)}",
-        )
-    return None
-
-
 @mcp.tool(name="ads_get")
 @handle_cli_errors
 def ads_list(
@@ -126,7 +110,7 @@ def ads_list(
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = _check_batch_limit(normalized_campaign_ids)
+        batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
         if batch_error:
             return batch_error.__dict__
 
@@ -135,13 +119,13 @@ def ads_list(
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = _check_batch_limit(normalized_ids)
+        batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--ids", normalized_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = _check_batch_limit(normalized_ad_group_ids)
+        batch_error = check_batch_limit(normalized_ad_group_ids, MAX_BATCH_SIZE)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])

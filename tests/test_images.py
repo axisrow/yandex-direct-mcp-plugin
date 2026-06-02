@@ -1,10 +1,12 @@
 """Tests for ad images MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from server.tools.images import adimages_list, adimages_add, adimages_delete
+
+from tests.helpers import mock_runner
 
 
 @pytest.fixture
@@ -28,13 +30,6 @@ def mock_images():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestAdimagesList:
     """Tests for adimages_list tool."""
 
@@ -42,7 +37,7 @@ class TestAdimagesList:
         """Test listing images successfully."""
         with patch(
             "server.tools.images.get_runner",
-            return_value=_mock_runner(mock_images),
+            return_value=mock_runner(mock_images),
         ):
             result = adimages_list(ids="1,2")
             assert len(result) == 2
@@ -52,15 +47,14 @@ class TestAdimagesList:
         """Test listing all images with no ids."""
         with patch(
             "server.tools.images.get_runner",
-            return_value=_mock_runner(mock_images),
+            return_value=mock_runner(mock_images),
         ):
             result = adimages_list()
             assert len(result) == 2
 
     def test_list_images_empty_ids_treated_as_missing_filter(self, mock_images):
         """Test empty ids behaves like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_images
+        runner = mock_runner(mock_images)
         with patch("server.tools.images.get_runner", return_value=runner):
             result = adimages_list(ids="   ")
             assert len(result) == 2
@@ -69,14 +63,13 @@ class TestAdimagesList:
 
     def test_list_images_empty_result(self):
         """Test empty response returns empty list."""
-        with patch("server.tools.images.get_runner", return_value=_mock_runner([])):
+        with patch("server.tools.images.get_runner", return_value=mock_runner([])):
             result = adimages_list(ids="999")
             assert result == []
 
     def test_list_images_trims_ids_before_cli(self, mock_images):
         """Test image IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_images
+        runner = mock_runner(mock_images)
         with patch("server.tools.images.get_runner", return_value=runner):
             adimages_list(ids=" 1,2 ")
 
@@ -91,8 +84,7 @@ class TestAdimagesAdd:
     def test_add_image_with_data(self):
         """Test adding image with base64 image_data."""
         mock_result = {"Id": 123, "Name": "new_image.jpg"}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.images.get_runner", return_value=runner):
             result = adimages_add(name="new_image.jpg", image_data="base64data")
@@ -110,8 +102,7 @@ class TestAdimagesAdd:
 
     def test_add_image_with_file(self):
         """Test adding image with file path."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 124}
+        runner = mock_runner({"Id": 124})
         with patch("server.tools.images.get_runner", return_value=runner):
             adimages_add(name="img", image_file="/tmp/img.jpg", type="REGULAR")
         argv = runner.run_json.call_args[0][0]
@@ -134,8 +125,7 @@ class TestAdimagesDelete:
     def test_delete_image_by_hash(self):
         """Test deleting an image by hash."""
         mock_result = {"success": True}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.images.get_runner", return_value=runner):
             result = adimages_delete(hash_value="abc123")

@@ -1,7 +1,6 @@
 """Tests for keyword_bids MCP tools."""
 
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 
 from server.tools.keyword_bids import (
     keyword_bids_list,
@@ -9,6 +8,7 @@ from server.tools.keyword_bids import (
     keyword_bids_set_auto,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_BIDS = [
     {
@@ -21,13 +21,6 @@ SAMPLE_BIDS = [
 ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestKeywordBidsList:
     """Tests for keyword_bids_list tool."""
 
@@ -35,7 +28,7 @@ class TestKeywordBidsList:
         """Test listing keyword bids by campaign."""
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(SAMPLE_BIDS),
+            return_value=mock_runner(SAMPLE_BIDS),
         ):
             result = keyword_bids_list(campaign_ids="333")
             assert len(result) == 1
@@ -45,7 +38,7 @@ class TestKeywordBidsList:
         """Test listing keyword bids with empty result."""
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner([]),
+            return_value=mock_runner([]),
         ):
             result = keyword_bids_list()
             assert result == []
@@ -54,7 +47,7 @@ class TestKeywordBidsList:
         """Test listing keyword bids by keyword IDs."""
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(SAMPLE_BIDS),
+            return_value=mock_runner(SAMPLE_BIDS),
         ) as mock:
             result = keyword_bids_list(keyword_ids="111")
             assert len(result) == 1
@@ -66,7 +59,7 @@ class TestKeywordBidsList:
         """Test listing keyword bids by ad group IDs."""
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(SAMPLE_BIDS),
+            return_value=mock_runner(SAMPLE_BIDS),
         ) as mock:
             result = keyword_bids_list(ad_group_ids="222")
             assert len(result) == 1
@@ -76,8 +69,7 @@ class TestKeywordBidsList:
 
     def test_keyword_bids_list_trims_filters(self):
         """Test keyword bid filters are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = []
+        runner = mock_runner([])
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             keyword_bids_list(
                 campaign_ids=" 333 ",
@@ -102,8 +94,7 @@ class TestKeywordBidsList:
 
     def test_keyword_bids_list_ignores_blank_filters(self):
         """Test blank filters behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = SAMPLE_BIDS
+        runner = mock_runner(SAMPLE_BIDS)
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             result = keyword_bids_list(
                 campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
@@ -123,7 +114,7 @@ class TestKeywordBidsSet:
         mock_result = {"success": True}
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = keyword_bids_set(keyword_id=111, search_bid=10000000)
             assert result["success"] is True
@@ -133,7 +124,7 @@ class TestKeywordBidsSet:
         mock_result = {"success": True}
         with patch(
             "server.tools.keyword_bids.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ) as mock:
             result = keyword_bids_set(
                 keyword_id=111, search_bid=10000000, network_bid=5000000
@@ -148,7 +139,7 @@ class TestKeywordBidsSet:
 
     def test_keyword_bids_set_requires_changes(self):
         """Reject no-op updates before calling CLI."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             result = keyword_bids_set(keyword_id=111)
             assert result["error"] == "missing_update_fields"
@@ -156,7 +147,7 @@ class TestKeywordBidsSet:
 
     def test_keyword_bids_set_argv_with_search_bid(self):
         """Test argv composition for search bid."""
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             keyword_bids_set(keyword_id=111, search_bid=10000000)
 
@@ -169,7 +160,7 @@ class TestKeywordBidsSetAuto:
     """Tests for keyword_bids_set_auto tool."""
 
     def test_keyword_bids_set_auto(self):
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             result = keyword_bids_set_auto(
                 keyword_id=111,

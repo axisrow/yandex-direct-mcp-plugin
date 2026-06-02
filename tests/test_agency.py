@@ -1,7 +1,6 @@
 """Tests for agency MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.agency import (
     agency_clients_list,
@@ -12,12 +11,7 @@ from server.tools.agency import (
     agency_clients_update,
 )
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestAgencyClientsList:
@@ -33,7 +27,7 @@ class TestAgencyClientsList:
         }
         with patch(
             "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = agency_clients_list()
             assert result == mock_result
@@ -41,8 +35,7 @@ class TestAgencyClientsList:
     def test_list_agency_clients_with_ids(self):
         """Test listing agency clients filtered by IDs."""
         mock_result = {"Clients": [{"Login": "client1", "FirstName": "John"}]}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_list(logins="login1,login2")
@@ -57,15 +50,14 @@ class TestAgencyClientsList:
         mock_result = {"Clients": []}
         with patch(
             "server.tools.agency.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = agency_clients_list()
             assert result == mock_result
 
     def test_list_agency_clients_trims_ids_before_cli(self):
         """Test client IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Clients": []}
+        runner = mock_runner({"Clients": []})
         with patch("server.tools.agency.get_runner", return_value=runner):
             agency_clients_list(logins=" login1,login2 ")
 
@@ -80,7 +72,7 @@ class TestAgencyClientsAdd:
     def test_add_client_typed(self):
         """Test adding a client with typed flags."""
         mock_result = {"Login": "new_client"}
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_add(
                 login="new_client",
@@ -112,7 +104,7 @@ class TestAgencyClientsAdd:
             )
 
     def test_add_client_dry_run(self):
-        runner = _mock_runner({"_dry_run": True})
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             agency_clients_add(
                 login="c", first_name="F", last_name="L", currency="RUB", dry_run=True
@@ -126,8 +118,7 @@ class TestAgencyClientsDelete:
     def test_delete_client_from_agency(self):
         """Test removing a client from an agency."""
         mock_result = {"Success": True}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_delete(id=123)
             assert result == mock_result
@@ -140,7 +131,7 @@ class TestAgencyClientsUpdate:
     """Test scenarios for agency_clients_update (CLI 0.3.8)."""
 
     def test_update_client(self):
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_update(
                 client_id=123,
@@ -162,7 +153,7 @@ class TestAgencyClientsUpdate:
         )
 
     def test_update_client_grants_list(self):
-        runner = _mock_runner({"success": True})
+        runner = mock_runner({"success": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             agency_clients_update(
                 client_id=123,
@@ -189,8 +180,7 @@ class TestAgencyClientsPassportOrganization:
     """Test passport organization helper wrappers."""
 
     def test_add_passport_organization(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_add_passport_organization(
                 name="Org",
@@ -214,8 +204,7 @@ class TestAgencyClientsPassportOrganization:
         )
 
     def test_add_passport_organization_member(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch("server.tools.agency.get_runner", return_value=runner):
             result = agency_clients_add_passport_organization_member(
                 passport_organization_login="org-login",

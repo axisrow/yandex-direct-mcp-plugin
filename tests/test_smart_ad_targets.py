@@ -1,7 +1,6 @@
 """Tests for smart_ad_targets MCP tools."""
 
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 
 from server.tools.smart_ad_targets import (
     smart_ad_targets_list,
@@ -13,6 +12,7 @@ from server.tools.smart_ad_targets import (
     smart_ad_targets_suspend,
 )
 
+from tests.helpers import mock_runner
 
 SAMPLE_TARGETS = [
     {
@@ -25,23 +25,17 @@ SAMPLE_TARGETS = [
 ]
 
 
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 def test_smart_ad_targets_list():
     with patch(
         "server.tools.smart_ad_targets.get_runner",
-        return_value=_mock_runner(SAMPLE_TARGETS),
+        return_value=mock_runner(SAMPLE_TARGETS),
     ):
         result = smart_ad_targets_list(ad_group_ids="200")
         assert len(result) == 1
 
 
 def test_smart_ad_targets_list_trims_ids():
-    runner = _mock_runner(SAMPLE_TARGETS)
+    runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         smart_ad_targets_list(ad_group_ids=" 200 ")
 
@@ -52,7 +46,7 @@ def test_smart_ad_targets_list_trims_ids():
 
 def test_smart_ad_targets_list_no_filters():
     """Blank ad_group_ids behaves like no filter."""
-    runner = _mock_runner(SAMPLE_TARGETS)
+    runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         smart_ad_targets_list(ad_group_ids="   ")
     argv = runner.run_json.call_args[0][0]
@@ -61,7 +55,7 @@ def test_smart_ad_targets_list_no_filters():
 
 def test_smart_ad_targets_list_empty():
     with patch(
-        "server.tools.smart_ad_targets.get_runner", return_value=_mock_runner([])
+        "server.tools.smart_ad_targets.get_runner", return_value=mock_runner([])
     ):
         result = smart_ad_targets_list(ad_group_ids="200")
         assert result == []
@@ -69,7 +63,7 @@ def test_smart_ad_targets_list_empty():
 
 def test_smart_ad_targets_add():
     mock_result = {"Id": 400}
-    runner = _mock_runner(mock_result)
+    runner = mock_runner(mock_result)
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_add(
             ad_group_id=200,
@@ -105,7 +99,7 @@ def test_smart_ad_targets_add():
 
 def test_smart_ad_targets_update():
     mock_result = {"success": True}
-    runner = _mock_runner(mock_result)
+    runner = mock_runner(mock_result)
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_update(
             id=100,
@@ -128,7 +122,7 @@ def test_smart_ad_targets_update():
 
 
 def test_smart_ad_targets_update_requires_changes():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_update(id=100)
         assert result["error"] == "missing_update_fields"
@@ -139,7 +133,7 @@ def test_smart_ad_targets_delete():
     mock_result = {"success": True}
     with patch(
         "server.tools.smart_ad_targets.get_runner",
-        return_value=_mock_runner(mock_result),
+        return_value=mock_runner(mock_result),
     ) as mock:
         result = smart_ad_targets_delete(id=100)
         assert result["success"] is True
@@ -149,7 +143,7 @@ def test_smart_ad_targets_delete():
 
 
 def test_smart_ad_targets_suspend_batches_ids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_suspend(ids="100,101")
 
@@ -158,7 +152,7 @@ def test_smart_ad_targets_suspend_batches_ids():
 
 
 def test_smart_ad_targets_resume_batches_ids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_resume(ids="100,101")
 
@@ -167,7 +161,7 @@ def test_smart_ad_targets_resume_batches_ids():
 
 
 def test_smart_ad_targets_set_bids():
-    runner = _mock_runner({"success": True})
+    runner = mock_runner({"success": True})
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
         result = smart_ad_targets_set_bids(
             id=100,

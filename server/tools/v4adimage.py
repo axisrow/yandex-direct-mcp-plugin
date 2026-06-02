@@ -2,19 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-
-
-def _normalize_optional(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _normalize_associations(associations: list[str] | None) -> list[str]:
-    if not associations:
-        return []
-    return [item.strip() for item in associations if item.strip()]
+from server.tools.helpers import (
+    finalize_json_args,
+    normalize_optional_str,
+    normalize_str_list,
+)
 
 
 @mcp.tool(name="v4adimage_get")
@@ -46,24 +38,22 @@ def v4adimage_get(
     """
     args = ["v4adimage", "get"]
 
-    normalized_logins = _normalize_optional(logins)
+    normalized_logins = normalize_optional_str(logins)
     if normalized_logins:
         args.extend(["--logins", normalized_logins])
 
-    normalized_hashes = _normalize_optional(ad_image_hashes)
+    normalized_hashes = normalize_optional_str(ad_image_hashes)
     if normalized_hashes:
         args.extend(["--ad-image-hashes", normalized_hashes])
 
-    for status in status_moderate or []:
-        normalized_status = status.strip()
-        if normalized_status:
-            args.extend(["--status-moderate", normalized_status])
+    for status in normalize_str_list(status_moderate):
+        args.extend(["--status-moderate", status])
 
-    normalized_ad_ids = _normalize_optional(ad_ids)
+    normalized_ad_ids = normalize_optional_str(ad_ids)
     if normalized_ad_ids:
         args.extend(["--ad-ids", normalized_ad_ids])
 
-    normalized_campaign_ids = _normalize_optional(campaign_ids)
+    normalized_campaign_ids = normalize_optional_str(campaign_ids)
     if normalized_campaign_ids:
         args.extend(["--campaign-ids", normalized_campaign_ids])
 
@@ -71,11 +61,8 @@ def v4adimage_get(
         args.extend(["--limit", str(limit)])
     if offset is not None:
         args.extend(["--offset", str(offset)])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4adimage_set")
@@ -93,7 +80,7 @@ def v4adimage_set(
             ``AD_ID=HASH`` to link an image. At least one is required.
         dry_run: Show the direct request without sending it.
     """
-    normalized = _normalize_associations(associations)
+    normalized = normalize_str_list(associations)
     if not normalized:
         return ToolError(
             error="missing_associations",
@@ -103,8 +90,5 @@ def v4adimage_set(
     args = ["v4adimage", "set"]
     for item in normalized:
         args.extend(["--association", item])
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
 
-    return get_runner().run_json(args)
+    return get_runner().run_json(finalize_json_args(args, dry_run))

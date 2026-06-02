@@ -1,11 +1,13 @@
 """Tests for sitelinks MCP tools."""
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from server.tools.sitelinks import sitelinks_list, sitelinks_add, sitelinks_delete
+
+from tests.helpers import mock_runner
 
 
 @pytest.fixture
@@ -22,13 +24,6 @@ def mock_sitelinks():
     ]
 
 
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
-
-
 class TestSitelinksList:
     """Tests for sitelinks_list tool."""
 
@@ -36,7 +31,7 @@ class TestSitelinksList:
         """Test listing sitelinks successfully."""
         with patch(
             "server.tools.sitelinks.get_runner",
-            return_value=_mock_runner(mock_sitelinks),
+            return_value=mock_runner(mock_sitelinks),
         ):
             result = sitelinks_list(ids="1")
             assert len(result) == 1
@@ -46,7 +41,7 @@ class TestSitelinksList:
         """Test listing sitelinks with no IDs returns all."""
         with patch(
             "server.tools.sitelinks.get_runner",
-            return_value=_mock_runner(mock_sitelinks),
+            return_value=mock_runner(mock_sitelinks),
         ):
             result = sitelinks_list()
             assert len(result) == 1
@@ -60,8 +55,7 @@ class TestSitelinksList:
 
     def test_list_sitelinks_trims_ids_before_cli(self, mock_sitelinks):
         """Test sitelink IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = mock_sitelinks
+        runner = mock_runner(mock_sitelinks)
         with patch("server.tools.sitelinks.get_runner", return_value=runner):
             sitelinks_list(ids=" 1 ")
 
@@ -76,8 +70,7 @@ class TestSitelinksAdd:
     def test_add_sitelinks_success(self):
         """Each sitelink spec becomes a separate --sitelink argument."""
         mock_result = {"Id": 123}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.sitelinks.get_runner", return_value=runner):
             result = sitelinks_add(
@@ -99,8 +92,7 @@ class TestSitelinksAdd:
             )
 
     def test_add_sitelinks_items_serialized_to_camelcase_json(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 456}
+        runner = mock_runner({"Id": 456})
         with patch("server.tools.sitelinks.get_runner", return_value=runner):
             sitelinks_add(
                 items=[
@@ -133,8 +125,7 @@ class TestSitelinksAdd:
         assert "url" in result["message"]
 
     def test_add_sitelinks_from_file(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"Id": 789}
+        runner = mock_runner({"Id": 789})
         with patch("server.tools.sitelinks.get_runner", return_value=runner):
             sitelinks_add(from_file="/tmp/sitelinks.jsonl")
 
@@ -159,8 +150,7 @@ class TestSitelinksAdd:
         assert result["error"] == "conflicting_modes"
 
     def test_add_sitelinks_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.sitelinks.get_runner", return_value=runner):
             sitelinks_add(sitelinks=["A|https://a"], dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
@@ -205,7 +195,7 @@ class TestSitelinksDelete:
 
         with patch(
             "server.tools.sitelinks.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = sitelinks_delete(ids="1")
             assert result["success"] is True

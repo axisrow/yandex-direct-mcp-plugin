@@ -8,7 +8,7 @@ import re
 import tomllib
 from collections.abc import Callable
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import direct_cli  # type: ignore[import-not-found, import-untyped]
@@ -31,6 +31,7 @@ from server.tools.smart_ad_targets import smart_ad_targets_add, smart_ad_targets
 from server.tools.strategies import strategies_add, strategies_update
 from server.tools.vcards import vcards_add
 
+from tests.helpers import mock_runner
 
 TARGET_COMMANDS: tuple[tuple[str, str, str, str], ...] = (
     ("campaigns", "add", "server.tools.campaigns", "campaigns_add"),
@@ -166,12 +167,6 @@ def test_bidmodifier_type_choices_match_direct_cli() -> None:
     assert set(_BIDMOD_TYPES) == set(modifier_type.type.choices)
 
 
-def _mock_runner() -> MagicMock:
-    runner = MagicMock()
-    runner.run_json.return_value = {"ok": True}
-    return runner
-
-
 def _assert_contains(argv: list[str], expected: list[str]) -> None:
     for item in expected:
         assert item in argv
@@ -183,7 +178,7 @@ def _run_with_runner(
     expected: list[str],
     **kwargs: object,
 ) -> None:
-    runner = _mock_runner()
+    runner = mock_runner({"ok": True})
     with patch(patch_target, return_value=runner):
         fn(**kwargs)
     _assert_contains(runner.run_json.call_args[0][0], expected)

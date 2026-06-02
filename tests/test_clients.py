@@ -1,16 +1,10 @@
 """Tests for clients MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.clients import clients_get, clients_update
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestClientsGet:
@@ -26,7 +20,7 @@ class TestClientsGet:
         }
         with patch(
             "server.tools.clients.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = clients_get()
             assert result == mock_result
@@ -34,8 +28,7 @@ class TestClientsGet:
     def test_get_client_by_ids(self):
         """Test getting specific client by IDs."""
         mock_result = {"Clients": [{"Login": "client1", "FirstName": "John"}]}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
 
         with patch("server.tools.clients.get_runner", return_value=runner):
             result = clients_get(ids="123")
@@ -47,8 +40,7 @@ class TestClientsGet:
 
     def test_get_client_trims_ids(self):
         """Test client IDs are normalized before argv construction."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Clients": []}
+        runner = mock_runner({"Clients": []})
 
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_get(ids=" 123 ")
@@ -62,7 +54,7 @@ class TestClientsGet:
         mock_result = {"Clients": []}
         with patch(
             "server.tools.clients.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = clients_get()
             assert result == mock_result
@@ -74,8 +66,7 @@ class TestClientsUpdate:
     def test_update_client(self):
         """Test updating client information."""
         mock_result = {"Login": "client1"}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch("server.tools.clients.get_runner", return_value=runner):
             result = clients_update(
                 client_info="John Smith",
@@ -98,8 +89,7 @@ class TestClientsUpdate:
 
     def test_update_client_settings_repeated(self):
         """List parameters produce repeated CLI flags."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Login": "client1"}
+        runner = mock_runner({"Login": "client1"})
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_update(
                 settings=["AccountNews=YES", "Warnings=NO"],
@@ -115,8 +105,7 @@ class TestClientsUpdate:
 
     def test_update_client_accepts_empty_string_field(self):
         """Empty strings are provided values; CLI owns semantic validation."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Login": "client1"}
+        runner = mock_runner({"Login": "client1"})
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_update(client_info="")
 
@@ -125,16 +114,14 @@ class TestClientsUpdate:
         )
 
     def test_update_client_dry_run(self):
-        runner = MagicMock()
-        runner.run_json.return_value = {"_dry_run": True}
+        runner = mock_runner({"_dry_run": True})
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_update(phone="+1", dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
 
     def test_get_client_ignores_blank_ids(self):
         """Test blank ids behave like no filter."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"Clients": []}
+        runner = mock_runner({"Clients": []})
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_get(ids="   ")
             call_args = runner.run_json.call_args[0][0]

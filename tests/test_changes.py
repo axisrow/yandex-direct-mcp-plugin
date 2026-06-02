@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-
 from server.tools.changes import (
     changes_check,
     changes_checkcamp,
@@ -10,11 +9,7 @@ from server.tools.changes import (
 )
 from server.contract import EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS
 
-
-def _mock_runner(return_value):
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 def _argv_for(runner: MagicMock) -> list[str]:
@@ -26,7 +21,7 @@ class TestChangesCheck:
 
     def test_check_with_campaign_ids(self):
         mock_result = {"Campaigns": [{"Id": 12345}]}
-        runner = _mock_runner(mock_result)
+        runner = mock_runner(mock_result)
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_check(
                 field_names="CampaignIds,AdGroupIds",
@@ -50,7 +45,7 @@ class TestChangesCheck:
         )
 
     def test_check_with_ad_group_ids(self):
-        runner = _mock_runner({"AdGroupIds": [11]})
+        runner = mock_runner({"AdGroupIds": [11]})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_check(
                 field_names="AdGroupIds",
@@ -61,7 +56,7 @@ class TestChangesCheck:
         assert argv[2:4] == ["--ad-group-ids", "111,222"]
 
     def test_check_with_ad_ids(self):
-        runner = _mock_runner({"AdIds": [55]})
+        runner = mock_runner({"AdIds": [55]})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_check(
                 field_names="AdIds",
@@ -112,7 +107,7 @@ class TestChangesCheck:
         assert result["error"] == "invalid_field_names"
 
     def test_campaign_ids_limit_3000(self):
-        runner = _mock_runner({"Campaigns": []})
+        runner = mock_runner({"Campaigns": []})
         ids_3000 = ",".join(str(i) for i in range(3000))
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_check(
@@ -165,7 +160,7 @@ class TestChangesCheck:
 
     def test_comma_only_id_filter_does_not_mask_real_filter(self):
         """Comma-only campaign_ids must not block a real ad_ids filter."""
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_check(
                 field_names="AdIds",
@@ -178,7 +173,7 @@ class TestChangesCheck:
         assert argv[2:4] == ["--ad-ids", "42"]
 
     def test_rejects_timestamp_without_timezone(self):
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_check(
                 field_names="CampaignIds",
@@ -190,7 +185,7 @@ class TestChangesCheck:
         runner.run_json.assert_not_called()
 
     def test_keeps_existing_z(self):
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_check(
                 field_names="CampaignIds",
@@ -202,7 +197,7 @@ class TestChangesCheck:
         assert argv[ts_idx + 1] == "2026-01-01T00:00:00Z"
 
     def test_keeps_explicit_offset(self):
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_check(
                 field_names="CampaignIds",
@@ -214,7 +209,7 @@ class TestChangesCheck:
         assert argv[ts_idx + 1] == "2026-01-01T00:00:00+03:00"
 
     def test_rejects_trailing_space_without_timezone(self):
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_check(
                 field_names="CampaignIds",
@@ -228,7 +223,7 @@ class TestChangesCheck:
         """Trailing '\\n' must be stripped — Python's ``$`` would otherwise
         match before the newline, mask the missing zone and forward a value
         with a literal newline to the CLI."""
-        runner = _mock_runner({})
+        runner = mock_runner({})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_check(
                 field_names="CampaignIds",
@@ -244,7 +239,7 @@ class TestChangesCheckCamp:
     """Tests for changes_checkcamp (only --timestamp)."""
 
     def test_check_campaign_changes(self):
-        runner = _mock_runner({"Campaigns": []})
+        runner = mock_runner({"Campaigns": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_checkcamp(timestamp="2026-01-01T00:00:00Z")
         runner.run_json.assert_called_once_with(
@@ -259,7 +254,7 @@ class TestChangesCheckCamp:
         )
 
     def test_check_campaign_changes_rejects_timestamp_without_timezone(self):
-        runner = _mock_runner({"Campaigns": []})
+        runner = mock_runner({"Campaigns": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
             result = changes_checkcamp(timestamp="2026-01-01T00:00:00")
         assert result["error"] == "invalid_timestamp"
@@ -267,7 +262,7 @@ class TestChangesCheckCamp:
         runner.run_json.assert_not_called()
 
     def test_check_campaign_changes_keeps_explicit_offset(self):
-        runner = _mock_runner({"Campaigns": []})
+        runner = mock_runner({"Campaigns": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_checkcamp(timestamp="2026-01-01T00:00:00+03:00")
         argv = _argv_for(runner)
@@ -279,7 +274,7 @@ class TestChangesCheckDict:
     """Tests for changes_checkdict (no arguments)."""
 
     def test_check_dictionary_changes(self):
-        runner = _mock_runner({"Dictionaries": []})
+        runner = mock_runner({"Dictionaries": []})
         with patch("server.tools.changes.get_runner", return_value=runner):
             changes_checkdict()
         runner.run_json.assert_called_once_with(

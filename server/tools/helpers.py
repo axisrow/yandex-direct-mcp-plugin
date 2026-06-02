@@ -85,6 +85,29 @@ def provided_update_value(value: object) -> bool:
     return True
 
 
+def normalize_optional_str(value: str | None) -> str | None:
+    """Strip an optional string and collapse blanks to None."""
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def normalize_str_list(values: list[str] | None) -> list[str]:
+    """Strip list items and drop blanks."""
+    if not values:
+        return []
+    return [value.strip() for value in values if value.strip()]
+
+
+def finalize_json_args(args: list[str], dry_run: bool) -> list[str]:
+    """Append optional dry-run and JSON output flags."""
+    if dry_run:
+        args.append("--dry-run")
+    args.extend(["--format", "json"])
+    return args
+
+
 def validate_state(state: str, allowed: tuple[str, ...]) -> ToolError | None:
     """Validate state value against allowed options."""
     if state not in allowed:
@@ -159,3 +182,45 @@ def run_single_id_batch(
         "failed": failed,
         "results": results,
     }
+
+
+def run_set_bids(
+    runner,
+    resource: str,
+    *,
+    id: int | None = None,
+    ad_group_id: int | None = None,
+    campaign_id: int | None = None,
+    bid_fields: Sequence[tuple[str, object | None]],
+    missing_update_message: str,
+    dry_run: bool = False,
+) -> dict:
+    """Run a target set-bids command with shared scope/update guards."""
+    if id is None and ad_group_id is None and campaign_id is None:
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: id, ad_group_id, campaign_id",
+            )
+        )
+    if not any(value is not None for _, value in bid_fields):
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=missing_update_message,
+            )
+        )
+
+    args = [resource, "set-bids"]
+    if id is not None:
+        args.extend(["--id", str(id)])
+    if ad_group_id is not None:
+        args.extend(["--adgroup-id", str(ad_group_id)])
+    if campaign_id is not None:
+        args.extend(["--campaign-id", str(campaign_id)])
+    for flag, value in bid_fields:
+        if value is not None:
+            args.extend([flag, str(value)])
+    if dry_run:
+        args.append("--dry-run")
+    return runner.run_json(args)

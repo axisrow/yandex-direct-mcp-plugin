@@ -1,7 +1,6 @@
 """Tests for dynamic feed ad target MCP tools."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import patch
 
 from server.tools.dynamic_feed_ad_targets import (
     dynamic_feed_ad_targets_add,
@@ -12,12 +11,7 @@ from server.tools.dynamic_feed_ad_targets import (
     dynamic_feed_ad_targets_suspend,
 )
 
-
-def _mock_runner(return_value):
-    """Create a mock get_runner that returns a runner with the given run_json result."""
-    runner = MagicMock()
-    runner.run_json.return_value = return_value
-    return runner
+from tests.helpers import mock_runner
 
 
 class TestDynamicFeedAdTargetsList:
@@ -29,8 +23,7 @@ class TestDynamicFeedAdTargetsList:
             {"Id": 10, "AdGroupId": 200, "Name": "Target A"},
             {"Id": 11, "AdGroupId": 200, "Name": "Target B"},
         ]
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
             return_value=runner,
@@ -62,8 +55,7 @@ class TestDynamicFeedAdTargetsAdd:
     def test_dynamic_feed_ad_targets_add(self):
         """Test adding a dynamic feed ad target."""
         mock_result = {"Id": 20, "AdGroupId": 200, "Name": "Test"}
-        runner = MagicMock()
-        runner.run_json.return_value = mock_result
+        runner = mock_runner(mock_result)
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
             return_value=runner,
@@ -96,7 +88,7 @@ class TestDynamicFeedAdTargetsDelete:
         mock_result = {"success": True}
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
-            return_value=_mock_runner(mock_result),
+            return_value=mock_runner(mock_result),
         ):
             result = dynamic_feed_ad_targets_delete(id=100)
             assert result["success"] is True
@@ -107,8 +99,7 @@ class TestDynamicFeedAdTargetsSuspend:
 
     def test_dynamic_feed_ad_targets_suspend(self):
         """Test batch suspending dynamic feed ad targets."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
             return_value=runner,
@@ -126,8 +117,7 @@ class TestDynamicFeedAdTargetsResume:
 
     def test_dynamic_feed_ad_targets_resume(self):
         """Test batch resuming dynamic feed ad targets."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
             return_value=runner,
@@ -145,8 +135,7 @@ class TestDynamicFeedAdTargetsSetBids:
 
     def test_dynamic_feed_ad_targets_set_bids(self):
         """Test setting bids for a dynamic feed ad target."""
-        runner = MagicMock()
-        runner.run_json.return_value = {"success": True}
+        runner = mock_runner({"success": True})
         with patch(
             "server.tools.dynamic_feed_ad_targets.get_runner",
             return_value=runner,

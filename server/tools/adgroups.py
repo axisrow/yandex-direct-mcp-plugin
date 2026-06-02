@@ -45,11 +45,6 @@ ADGROUP_EXTRA_OPTIONS = (
 )
 
 
-def _check_batch_limit(ids_str: str) -> ToolError | None:
-    """Validate batch size of comma-separated IDs."""
-    return check_batch_limit(ids_str, MAX_BATCH_SIZE)
-
-
 @mcp.tool(name="adgroups_get")
 @handle_cli_errors
 def adgroups_list(
@@ -87,13 +82,13 @@ def adgroups_list(
     args = ["adgroups", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = _check_batch_limit(normalized_campaign_ids)
+        batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = _check_batch_limit(normalized_ids)
+        batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--ids", normalized_ids])

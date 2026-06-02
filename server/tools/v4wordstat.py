@@ -2,15 +2,9 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import finalize_json_args
 
 MAX_WORDSTAT_PHRASES = 10
-
-
-def _append_dry_run_and_format(args: list[str], dry_run: bool) -> list[str]:
-    if dry_run:
-        args.append("--dry-run")
-    args.extend(["--format", "json"])
-    return args
 
 
 @mcp.tool(name="v4wordstat_create_report")
@@ -52,7 +46,7 @@ def v4wordstat_create_report(
         normalized_geo = geo_ids.strip()
         if normalized_geo:
             args.extend(["--geo-ids", normalized_geo])
-    return get_runner().run_json(_append_dry_run_and_format(args, dry_run))
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4wordstat_list_reports")
@@ -60,7 +54,7 @@ def v4wordstat_create_report(
 def v4wordstat_list_reports(dry_run: bool = False) -> dict | list[dict]:
     """List v4 Live Wordstat reports via GetWordstatReportList."""
     args = ["v4wordstat", "list-reports"]
-    return get_runner().run_json(_append_dry_run_and_format(args, dry_run))
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4wordstat_get_report")
@@ -73,7 +67,7 @@ def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[
         dry_run: Show the direct request without sending it.
     """
     args = ["v4wordstat", "get-report", "--report-id", str(report_id)]
-    return get_runner().run_json(_append_dry_run_and_format(args, dry_run))
+    return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
 @mcp.tool(name="v4wordstat_delete_report")
@@ -88,4 +82,4 @@ def v4wordstat_delete_report(
         dry_run: Show the direct request without sending it.
     """
     args = ["v4wordstat", "delete-report", "--report-id", str(report_id)]
-    return get_runner().run_json(_append_dry_run_and_format(args, dry_run))
+    return get_runner().run_json(finalize_json_args(args, dry_run))
