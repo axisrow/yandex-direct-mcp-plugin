@@ -25,7 +25,9 @@ import sys
 def _make_counter():
     """Вернуть (функция_подсчёта, метка_способа)."""
     try:
-        import tiktoken
+        # tiktoken is optional and intentionally not a project dependency;
+        # the except-branch below falls back to a dependency-free estimate.
+        import tiktoken  # type: ignore[import-not-found]
 
         enc = tiktoken.get_encoding("cl100k_base")
         return (lambda s: len(enc.encode(s or "")), "tiktoken/cl100k_base")
