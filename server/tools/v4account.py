@@ -84,7 +84,10 @@ def _require_non_empty(value: str, *, field: str, error: str) -> ToolError | str
     return normalized
 
 
-@mcp.tool(name="v4account_enable_shared_account")
+@mcp.tool(
+    name="v4account_enable_shared_account",
+    description="Enable a shared account for a client (v4 Live EnableSharedAccount); requires dry_run or sandbox. Call tool_help('v4account_enable_shared_account') for parameters.",
+)
 @handle_cli_errors
 def v4account_enable_shared_account(
     client_login: str,
@@ -114,7 +117,10 @@ def v4account_enable_shared_account(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4account_get_accounts")
+@mcp.tool(
+    name="v4account_get_accounts",
+    description="Read shared-account info via v4 Live AccountManagement (Get); pass logins and/or account_ids, or omit both to list all. Read-only. Call tool_help('v4account_get_accounts') for parameters.",
+)
 @handle_cli_errors
 def v4account_get_accounts(
     logins: str | None = None,
@@ -176,7 +182,10 @@ def v4account_get_accounts(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4account_update_account")
+@mcp.tool(
+    name="v4account_update_account",
+    description="Update shared-account settings (budget, SMS/email notifications) via v4 Live AccountManagement (Update); requires dry_run or sandbox. Call tool_help('v4account_update_account') for parameters.",
+)
 @handle_cli_errors
 def v4account_update_account(
     account_id: int,
@@ -239,7 +248,10 @@ def v4account_update_account(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4account_deposit")
+@mcp.tool(
+    name="v4account_deposit",
+    description="Money operation: deposit funds into shared accounts via v4 Live AccountManagement (Deposit); finance tokens are env-only, requires dry_run or sandbox. Call tool_help('v4account_deposit') for parameters.",
+)
 @handle_cli_errors
 def v4account_deposit(
     payment: list[str],
@@ -293,7 +305,10 @@ def v4account_deposit(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4account_invoice")
+@mcp.tool(
+    name="v4account_invoice",
+    description="Money operation: issue invoice payments via v4 Live AccountManagement (Invoice); finance tokens are env-only, requires dry_run or sandbox. Call tool_help('v4account_invoice') for parameters.",
+)
 @handle_cli_errors
 def v4account_invoice(
     payment: list[str],
@@ -337,7 +352,10 @@ def v4account_invoice(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4account_transfer_money")
+@mcp.tool(
+    name="v4account_transfer_money",
+    description="Money operation: transfer funds between shared accounts via v4 Live AccountManagement (TransferMoney); finance tokens are env-only, requires dry_run or sandbox. Call tool_help('v4account_transfer_money') for parameters.",
+)
 @handle_cli_errors
 def v4account_transfer_money(
     from_account_id: int,

@@ -7,7 +7,10 @@ from server.tools.helpers import finalize_json_args
 MAX_PHRASES = 100
 
 
-@mcp.tool(name="v4forecast_create")
+@mcp.tool(
+    name="v4forecast_create",
+    description="Create a v4 Live budget forecast via CreateNewForecast (up to 100 phrases). Call tool_help('v4forecast_create') for parameters.",
+)
 @handle_cli_errors
 def v4forecast_create(
     phrases: str,
@@ -47,14 +50,20 @@ def v4forecast_create(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4forecast_list")
+@mcp.tool(
+    name="v4forecast_list",
+    description="List v4 Live budget forecasts via GetForecastList. Call tool_help('v4forecast_list') for parameters.",
+)
 @handle_cli_errors
 def v4forecast_list() -> dict | list[dict]:
     """List v4 Live budget forecasts via GetForecastList."""
     return get_runner().run_json(["v4forecast", "list", "--format", "json"])
 
 
-@mcp.tool(name="v4forecast_get")
+@mcp.tool(
+    name="v4forecast_get",
+    description="Get a ready v4 Live budget forecast by ID via GetForecast. Call tool_help('v4forecast_get') for parameters.",
+)
 @handle_cli_errors
 def v4forecast_get(forecast_id: int) -> dict | list[dict]:
     """Get a ready v4 Live budget forecast via GetForecast.
@@ -74,7 +83,10 @@ def v4forecast_get(forecast_id: int) -> dict | list[dict]:
     )
 
 
-@mcp.tool(name="v4forecast_delete")
+@mcp.tool(
+    name="v4forecast_delete",
+    description="Delete a v4 Live budget forecast by ID via DeleteForecastReport. Call tool_help('v4forecast_delete') for parameters.",
+)
 @handle_cli_errors
 def v4forecast_delete(forecast_id: int, dry_run: bool = False) -> dict | list[dict]:
     """Delete a v4 Live budget forecast via DeleteForecastReport.

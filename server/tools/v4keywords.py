@@ -5,7 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import normalize_str_list
 
 
-@mcp.tool(name="v4keywords_get_suggestion")
+@mcp.tool(
+    name="v4keywords_get_suggestion",
+    description="Get related keyword suggestions via v4 Live GetKeywordsSuggestion (up to 20 phrases; spends API points). Call tool_help('v4keywords_get_suggestion') for parameters.",
+)
 @handle_cli_errors
 def v4keywords_get_suggestion(keywords: list[str]) -> dict | list[dict]:
     """Get related keyword suggestions via v4 Live GetKeywordsSuggestion.

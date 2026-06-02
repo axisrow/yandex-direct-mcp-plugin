@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="keywordbids_get")
+@mcp.tool(
+    name="keywordbids_get",
+    description="List bids for individual keywords. Call tool_help('keywordbids_get') for parameters.",
+)
 @handle_cli_errors
 def keyword_bids_list(
     campaign_ids: str | None = None,
@@ -44,7 +47,10 @@ def keyword_bids_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="keywordbids_set")
+@mcp.tool(
+    name="keywordbids_set",
+    description="Set fixed bids for keywords; use bids_set for campaign/group-level bids and bidmodifiers_set for adjustments. Call tool_help('keywordbids_set') for parameters.",
+)
 @handle_cli_errors
 def keyword_bids_set(
     keyword_id: int | None = None,
@@ -114,7 +120,10 @@ def keyword_bids_set(
     return runner.run_json(args)
 
 
-@mcp.tool(name="keywordbids_set_auto")
+@mcp.tool(
+    name="keywordbids_set_auto",
+    description="Switch keyword bids to an automatic bidding strategy. Call tool_help('keywordbids_set_auto') for parameters.",
+)
 @handle_cli_errors
 def keyword_bids_set_auto(
     campaign_id: int | None = None,

@@ -21,7 +21,10 @@ VCARD_0312_OPTIONS = (
 )
 
 
-@mcp.tool(name="vcards_get")
+@mcp.tool(
+    name="vcards_get",
+    description="List vCards (business contact cards with address/phone shown with ads), optionally filtered by IDs (max 10). Use vcards_add to create, vcards_delete to remove. Call tool_help('vcards_get') for parameters.",
+)
 @handle_cli_errors
 def vcards_list(
     ids: str | None = None,
@@ -53,7 +56,9 @@ def vcards_list(
     return get_runner().run_json(cmd)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add a vCard (business contact card with company name, address, and phone) to a campaign. Use vcards_get to list existing vCards. Call tool_help('vcards_add') for parameters.",
+)
 @handle_cli_errors
 def vcards_add(
     campaign_id: int,
@@ -160,7 +165,9 @@ def vcards_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete vCards by ID (max 10 per call). Use vcards_get to find IDs. Call tool_help('vcards_delete') for parameters.",
+)
 @handle_cli_errors
 def vcards_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete vCards.

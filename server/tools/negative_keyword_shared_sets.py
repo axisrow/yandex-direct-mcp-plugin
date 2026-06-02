@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 
 
-@mcp.tool(name="negativekeywordsharedsets_get")
+@mcp.tool(
+    name="negativekeywordsharedsets_get",
+    description="List shared sets of negative keywords reusable across campaigns. Call tool_help('negativekeywordsharedsets_get') for parameters.",
+)
 @handle_cli_errors
 def negative_keyword_shared_sets_list(
     ids: str | None = None,
@@ -33,7 +36,10 @@ def negative_keyword_shared_sets_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="negativekeywordsharedsets_add")
+@mcp.tool(
+    name="negativekeywordsharedsets_add",
+    description="Create a shared negative keyword set. Call tool_help('negativekeywordsharedsets_add') for parameters.",
+)
 @handle_cli_errors
 def negative_keyword_shared_sets_add(
     name: str, keywords: str, dry_run: bool = False
@@ -58,7 +64,10 @@ def negative_keyword_shared_sets_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="negativekeywordsharedsets_update")
+@mcp.tool(
+    name="negativekeywordsharedsets_update",
+    description="Update a shared negative keyword set's name or keyword list. Call tool_help('negativekeywordsharedsets_update') for parameters.",
+)
 @handle_cli_errors
 def negative_keyword_shared_sets_update(
     id: int,
@@ -92,7 +101,10 @@ def negative_keyword_shared_sets_update(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="negativekeywordsharedsets_delete")
+@mcp.tool(
+    name="negativekeywordsharedsets_delete",
+    description="Delete a shared negative keyword set by ID. Call tool_help('negativekeywordsharedsets_delete') for parameters.",
+)
 @handle_cli_errors
 def negative_keyword_shared_sets_delete(id: int, dry_run: bool = False) -> dict:
     """Delete a negative keyword shared set.

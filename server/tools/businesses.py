@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool(name="businesses_get")
+@mcp.tool(
+    name="businesses_get",
+    description="List Yandex.Business profiles (organizations) for the account. Call tool_help('businesses_get') for parameters.",
+)
 @handle_cli_errors
 def businesses_list(
     ids: str | None = None,

@@ -405,7 +405,10 @@ CAMPAIGN_UPDATE_ONLY_OPTIONS = (
 )
 
 
-@mcp.tool(name="campaigns_get")
+@mcp.tool(
+    name="campaigns_get",
+    description="List advertising campaigns, with optional state/status/type/ID filters. Read-only; use campaigns_add to create or campaigns_update to modify. Call tool_help('campaigns_get') for parameters.",
+)
 @handle_cli_errors
 def campaigns_list(
     state: str | None = None,
@@ -497,7 +500,9 @@ def campaigns_list(
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update fields of an existing campaign identified by id (name, budget, status, bidding strategy, etc.). Use campaigns_add to create a new campaign instead. Call tool_help('campaigns_update') for parameters.",
+)
 @handle_cli_errors
 def campaigns_update(
     id: int,
@@ -837,7 +842,9 @@ def campaigns_update(
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Create a new advertising campaign of any type (Text/Dynamic/Smart/Unified/MobileApp/Cpm). Use campaigns_update to change an existing campaign instead. Call tool_help('campaigns_add') for parameters.",
+)
 @handle_cli_errors
 def campaigns_add(
     name: str,
@@ -1198,7 +1205,9 @@ def campaigns_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Permanently delete campaigns by ID (max 10). Call tool_help('campaigns_delete') for parameters.",
+)
 @handle_cli_errors
 def campaigns_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete campaigns.
@@ -1213,7 +1222,9 @@ def campaigns_delete(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Archive campaigns by ID (max 10); reverse with campaigns_unarchive. Call tool_help('campaigns_archive') for parameters.",
+)
 @handle_cli_errors
 def campaigns_archive(ids: str, dry_run: bool = False) -> dict:
     """Archive campaigns.
@@ -1228,7 +1239,9 @@ def campaigns_archive(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Unarchive previously archived campaigns by ID (max 10). Call tool_help('campaigns_unarchive') for parameters.",
+)
 @handle_cli_errors
 def campaigns_unarchive(ids: str, dry_run: bool = False) -> dict:
     """Unarchive campaigns.
@@ -1243,7 +1256,9 @@ def campaigns_unarchive(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Suspend (pause) running campaigns by ID (max 10); reverse with campaigns_resume. Call tool_help('campaigns_suspend') for parameters.",
+)
 @handle_cli_errors
 def campaigns_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend campaigns.
@@ -1258,7 +1273,9 @@ def campaigns_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Resume previously suspended campaigns by ID (max 10). Call tool_help('campaigns_resume') for parameters.",
+)
 @handle_cli_errors
 def campaigns_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended campaigns.

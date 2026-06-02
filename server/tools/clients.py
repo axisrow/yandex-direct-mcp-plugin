@@ -33,7 +33,9 @@ ERIR_OPTIONS = (
 )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Get information about clients by IDs (the authenticated account or its sub-clients). Call tool_help('clients_get') for parameters.",
+)
 @handle_cli_errors
 def clients_get(
     ids: str | None = None,
@@ -62,7 +64,9 @@ def clients_get(
     return get_runner().run_json(cmd)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update the authenticated client's settings and ERIR organization/contract/contragent fields. Call tool_help('clients_update') for parameters.",
+)
 @handle_cli_errors
 def clients_update(
     client_info: str | None = None,

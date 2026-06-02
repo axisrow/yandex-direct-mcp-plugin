@@ -39,7 +39,10 @@ KEYWORD_AUTOTARGETING_OPTIONS = (
 )
 
 
-@mcp.tool(name="keywords_get")
+@mcp.tool(
+    name="keywords_get",
+    description="List keywords filtered by campaign, ad group, or keyword IDs. Call tool_help('keywords_get') for parameters.",
+)
 @handle_cli_errors
 def keywords_list(
     campaign_ids: str | None = None,
@@ -116,7 +119,9 @@ def keywords_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update keyword text or user params; use keywordbids_set for bids. Call tool_help('keywords_update') for parameters.",
+)
 @handle_cli_errors
 def keywords_update(
     id: int,
@@ -204,7 +209,9 @@ def keywords_update(
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add one or many keywords to an ad group (single, JSONL file, or inline JSON). Call tool_help('keywords_add') for parameters.",
+)
 @handle_cli_errors
 def keywords_add(
     ad_group_id: int | None = None,
@@ -317,7 +324,9 @@ def keywords_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete keywords by ID. Call tool_help('keywords_delete') for parameters.",
+)
 @handle_cli_errors
 def keywords_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete keywords.
@@ -330,7 +339,9 @@ def keywords_delete(ids: str, dry_run: bool = False) -> dict:
     return run_single_id_batch(get_runner(), "keywords", "delete", ids, dry_run=dry_run)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Suspend keywords by ID. Call tool_help('keywords_suspend') for parameters.",
+)
 @handle_cli_errors
 def keywords_suspend(ids: str, dry_run: bool = False) -> dict:
     """Suspend keywords.
@@ -345,7 +356,9 @@ def keywords_suspend(ids: str, dry_run: bool = False) -> dict:
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Resume suspended keywords by ID. Call tool_help('keywords_resume') for parameters.",
+)
 @handle_cli_errors
 def keywords_resume(ids: str, dry_run: bool = False) -> dict:
     """Resume suspended keywords.

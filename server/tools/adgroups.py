@@ -45,7 +45,10 @@ ADGROUP_EXTRA_OPTIONS = (
 )
 
 
-@mcp.tool(name="adgroups_get")
+@mcp.tool(
+    name="adgroups_get",
+    description="List ad groups filtered by campaign or ad group IDs, plus optional status/type filters. Read-only; use adgroups_add to create or adgroups_update to modify. Call tool_help('adgroups_get') for parameters.",
+)
 @handle_cli_errors
 def adgroups_list(
     campaign_ids: str | None = None,
@@ -121,7 +124,9 @@ def adgroups_list(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Create a new ad group within a campaign (sets type, regions, targeting). Use adgroups_update to change an existing group instead. Call tool_help('adgroups_add') for parameters.",
+)
 @handle_cli_errors
 def adgroups_add(
     campaign_id: int,
@@ -206,7 +211,9 @@ def adgroups_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update fields of an existing ad group identified by id (name, status, regions, targeting). Use adgroups_add to create a new group instead. Call tool_help('adgroups_update') for parameters.",
+)
 @handle_cli_errors
 def adgroups_update(
     id: int,
@@ -284,7 +291,9 @@ def adgroups_update(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Permanently delete ad groups by ID (max 10). Call tool_help('adgroups_delete') for parameters.",
+)
 @handle_cli_errors
 def adgroups_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete ad groups.

@@ -14,7 +14,10 @@ _SITELINK_FIELD_MAP = {
 }
 
 
-@mcp.tool(name="sitelinks_get")
+@mcp.tool(
+    name="sitelinks_get",
+    description="List sitelinks sets (quick links shown under an ad), optionally filtered by IDs (max 10). Use sitelinks_add to create, sitelinks_delete to remove. Call tool_help('sitelinks_get') for parameters.",
+)
 @handle_cli_errors
 def sitelinks_list(
     ids: str | None = None,
@@ -66,7 +69,9 @@ def _to_wsdl_sitelink(item: dict) -> dict | ToolError:
     return result
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add a sitelinks set via one of three input modes (pipe specs, structured items, or a JSONL file). Use sitelinks_get to list existing sets. Call tool_help('sitelinks_add') for parameters.",
+)
 @handle_cli_errors
 def sitelinks_add(
     sitelinks: list[str] | None = None,
@@ -156,7 +161,9 @@ def sitelinks_add(
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete sitelinks sets by ID (max 10 per call). Use sitelinks_get to find IDs. Call tool_help('sitelinks_delete') for parameters.",
+)
 @handle_cli_errors
 def sitelinks_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete sitelinks sets.

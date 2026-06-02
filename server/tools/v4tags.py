@@ -10,7 +10,10 @@ from server.tools.helpers import (
 )
 
 
-@mcp.tool(name="v4tags_get_campaigns")
+@mcp.tool(
+    name="v4tags_get_campaigns",
+    description="Get campaign tags via v4 Live GetCampaignsTags; use v4tags_get_banners for banner tags. Call tool_help('v4tags_get_campaigns') for parameters.",
+)
 @handle_cli_errors
 def v4tags_get_campaigns(campaign_ids: str) -> dict | list[dict]:
     """Get campaign tags via v4 Live GetCampaignsTags.
@@ -37,7 +40,10 @@ def v4tags_get_campaigns(campaign_ids: str) -> dict | list[dict]:
     )
 
 
-@mcp.tool(name="v4tags_get_banners")
+@mcp.tool(
+    name="v4tags_get_banners",
+    description="Get banner tag IDs via v4 Live GetBannersTags (filter by campaign_ids or banner_ids); use v4tags_get_campaigns for campaign tags. Call tool_help('v4tags_get_banners') for parameters.",
+)
 @handle_cli_errors
 def v4tags_get_banners(
     campaign_ids: str | None = None, banner_ids: str | None = None
@@ -80,7 +86,10 @@ def v4tags_get_banners(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="v4tags_update_campaigns")
+@mcp.tool(
+    name="v4tags_update_campaigns",
+    description="Replace campaign tags via v4 Live UpdateCampaignsTags; use v4tags_update_banners for banner tags. Call tool_help('v4tags_update_campaigns') for parameters.",
+)
 @handle_cli_errors
 def v4tags_update_campaigns(
     campaign_id: int,
@@ -117,7 +126,10 @@ def v4tags_update_campaigns(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4tags_update_banners")
+@mcp.tool(
+    name="v4tags_update_banners",
+    description="Replace banner tag assignments via v4 Live UpdateBannersTags; use v4tags_update_campaigns for campaign tags. Call tool_help('v4tags_update_banners') for parameters.",
+)
 @handle_cli_errors
 def v4tags_update_banners(
     banner_ids: str,

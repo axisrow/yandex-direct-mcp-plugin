@@ -15,7 +15,10 @@ FEED_SOURCE_OPTIONS = (
 )
 
 
-@mcp.tool(name="feeds_get")
+@mcp.tool(
+    name="feeds_get",
+    description="List feeds (product data feeds powering smart/dynamic ads), optionally filtered by IDs. Use feeds_add to create, feeds_update to edit, feeds_delete to remove. Call tool_help('feeds_get') for parameters.",
+)
 @handle_cli_errors
 def feeds_list(
     ids: str | None = None,
@@ -44,7 +47,9 @@ def feeds_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Add a product feed from a URL (UrlFeed) or a local file upload (FileFeed). Use feeds_update to change an existing feed. Call tool_help('feeds_add') for parameters.",
+)
 @handle_cli_errors
 def feeds_add(
     name: str,
@@ -100,7 +105,9 @@ def feeds_add(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update an existing feed's fields by ID (name, URL, source settings). Use feeds_add to create a new feed. Call tool_help('feeds_update') for parameters.",
+)
 @handle_cli_errors
 def feeds_update(
     id: int,
@@ -152,7 +159,9 @@ def feeds_update(
     return runner.run_json(args)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Delete feeds by ID (max 10 per call). Use feeds_get to find IDs. Call tool_help('feeds_delete') for parameters.",
+)
 @handle_cli_errors
 def feeds_delete(ids: str, dry_run: bool = False) -> dict:
     """Delete feeds.

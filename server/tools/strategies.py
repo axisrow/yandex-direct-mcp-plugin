@@ -26,7 +26,10 @@ STRATEGY_TYPES = (
 ATTRIBUTION_MODELS = ("LYDC", "FC", "LC", "LSC", "LYDC_WEIGHT", "CROSSTDEVICE")
 
 
-@mcp.tool(name="strategies_get")
+@mcp.tool(
+    name="strategies_get",
+    description="List bidding strategies, optionally filtered by ID, type, or archived status. Call tool_help('strategies_get') for parameters.",
+)
 @handle_cli_errors
 def strategies_list(
     ids: str | None = None,
@@ -74,7 +77,10 @@ def strategies_list(
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="strategies_add")
+@mcp.tool(
+    name="strategies_add",
+    description="Create a new bidding strategy of a given type with its money fields. Call tool_help('strategies_add') for parameters.",
+)
 @handle_cli_errors
 def strategies_add(
     name: str,
@@ -181,7 +187,10 @@ def strategies_add(
     return runner.run_json(args)
 
 
-@mcp.tool(name="strategies_update")
+@mcp.tool(
+    name="strategies_update",
+    description="Update an existing bidding strategy's fields by ID. Call tool_help('strategies_update') for parameters.",
+)
 @handle_cli_errors
 def strategies_update(
     id: int,
@@ -314,7 +323,10 @@ def strategies_update(
     return runner.run_json(args)
 
 
-@mcp.tool(name="strategies_archive")
+@mcp.tool(
+    name="strategies_archive",
+    description="Archive a bidding strategy by ID. Call tool_help('strategies_archive') for parameters.",
+)
 @handle_cli_errors
 def strategies_archive(id: int, dry_run: bool = False) -> dict:
     """Archive a bidding strategy.
@@ -329,7 +341,10 @@ def strategies_archive(id: int, dry_run: bool = False) -> dict:
     return get_runner().run_json(args)
 
 
-@mcp.tool(name="strategies_unarchive")
+@mcp.tool(
+    name="strategies_unarchive",
+    description="Unarchive a bidding strategy by ID. Call tool_help('strategies_unarchive') for parameters.",
+)
 @handle_cli_errors
 def strategies_unarchive(id: int, dry_run: bool = False) -> dict:
     """Unarchive a bidding strategy.

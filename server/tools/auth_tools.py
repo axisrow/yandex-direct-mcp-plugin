@@ -240,13 +240,17 @@ def _complete_login_with_code(profile: str, code: str) -> dict:
 # --- MCP Tools ---
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Check the current direct auth profile status (token presence, login, expiry). Call tool_help('auth_status') for parameters.",
+)
 def auth_status(profile: str | None = None) -> dict:
     """Check the current direct auth profile status."""
     return _status_from_cli(profile)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Save a ready-made direct OAuth token (y0_...) into a direct auth profile; use auth_login for the interactive browser flow. Call tool_help('auth_setup') for parameters.",
+)
 def auth_setup(code: str, login: str | None = None, profile: str = "default") -> dict:
     """Save a direct OAuth token into a direct auth profile.
 
@@ -295,7 +299,9 @@ class AuthCredential(BaseModel):
     value: str = Field(description="Код авторизации с сайта Яндекса")
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Start interactive OAuth login through direct (elicits the authorization code); use auth_setup if you already have a y0_ token. Call tool_help('auth_login') for parameters.",
+)
 async def auth_login(
     ctx: Context,
     login: str | None = None,

@@ -4,7 +4,10 @@ from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
 
-@mcp.tool(name="creatives_get")
+@mcp.tool(
+    name="creatives_get",
+    description="List creatives (rich media/video creatives built in Constructor), optionally filtered by IDs/types. Use creatives_add to create one. Call tool_help('creatives_get') for parameters.",
+)
 @handle_cli_errors
 def creatives_list(
     ids: str | None = None,
@@ -41,7 +44,10 @@ def creatives_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="creatives_add")
+@mcp.tool(
+    name="creatives_add",
+    description="Add a video-extension creative from a video ID. Use creatives_get to list existing creatives. Call tool_help('creatives_add') for parameters.",
+)
 @handle_cli_errors
 def creatives_add(video_id: str, dry_run: bool = False) -> dict:
     """Add a creative.

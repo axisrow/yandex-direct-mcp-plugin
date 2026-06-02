@@ -7,7 +7,10 @@ from server.tools.helpers import finalize_json_args
 MAX_WORDSTAT_PHRASES = 10
 
 
-@mcp.tool(name="v4wordstat_create_report")
+@mcp.tool(
+    name="v4wordstat_create_report",
+    description="Create a v4 Live Wordstat report via CreateNewWordstatReport (up to 10 phrases). Call tool_help('v4wordstat_create_report') for parameters.",
+)
 @handle_cli_errors
 def v4wordstat_create_report(
     phrases: str,
@@ -49,7 +52,10 @@ def v4wordstat_create_report(
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4wordstat_list_reports")
+@mcp.tool(
+    name="v4wordstat_list_reports",
+    description="List v4 Live Wordstat reports via GetWordstatReportList. Call tool_help('v4wordstat_list_reports') for parameters.",
+)
 @handle_cli_errors
 def v4wordstat_list_reports(dry_run: bool = False) -> dict | list[dict]:
     """List v4 Live Wordstat reports via GetWordstatReportList."""
@@ -57,7 +63,10 @@ def v4wordstat_list_reports(dry_run: bool = False) -> dict | list[dict]:
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4wordstat_get_report")
+@mcp.tool(
+    name="v4wordstat_get_report",
+    description="Get a ready v4 Live Wordstat report by ID via GetWordstatReport. Call tool_help('v4wordstat_get_report') for parameters.",
+)
 @handle_cli_errors
 def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[dict]:
     """Get a ready v4 Live Wordstat report via GetWordstatReport.
@@ -70,7 +79,10 @@ def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
-@mcp.tool(name="v4wordstat_delete_report")
+@mcp.tool(
+    name="v4wordstat_delete_report",
+    description="Delete a v4 Live Wordstat report by ID via DeleteWordstatReport. Call tool_help('v4wordstat_delete_report') for parameters.",
+)
 @handle_cli_errors
 def v4wordstat_delete_report(
     report_id: int, dry_run: bool = False

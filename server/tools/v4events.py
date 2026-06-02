@@ -5,7 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import finalize_json_args
 
 
-@mcp.tool(name="v4events_get_events_log")
+@mcp.tool(
+    name="v4events_get_events_log",
+    description="Get v4 Live events log entries via GetEventsLog for a timestamp range. Call tool_help('v4events_get_events_log') for parameters.",
+)
 @handle_cli_errors
 def v4events_get_events_log(
     timestamp_from: str,

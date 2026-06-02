@@ -5,7 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import check_batch_limit
 
 
-@mcp.tool(name="bids_get")
+@mcp.tool(
+    name="bids_get",
+    description="List bids at the campaign/ad-group/keyword level. Call tool_help('bids_get') for parameters.",
+)
 @handle_cli_errors
 def bids_list(
     campaign_ids: str | None = None,
@@ -59,7 +62,10 @@ def bids_list(
     return runner.run_json(args)
 
 
-@mcp.tool(name="bids_set")
+@mcp.tool(
+    name="bids_set",
+    description="Set fixed bids scoped to a campaign, ad group, or keyword; for keyword-only bids prefer keywordbids_set, and for adjustments use bidmodifiers_set. Call tool_help('bids_set') for parameters.",
+)
 @handle_cli_errors
 def bids_set(
     keyword_id: int | None = None,
@@ -132,7 +138,10 @@ def bids_set(
     return runner.run_json(args)
 
 
-@mcp.tool(name="bids_set_auto")
+@mcp.tool(
+    name="bids_set_auto",
+    description="Switch campaign/ad-group/keyword bids to an automatic bidding strategy. Call tool_help('bids_set_auto') for parameters.",
+)
 @handle_cli_errors
 def bids_set_auto(
     campaign_id: int | None = None,

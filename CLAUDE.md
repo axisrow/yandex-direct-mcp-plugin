@@ -191,7 +191,7 @@ yandex-direct-mcp-plugin/
 └── .github/workflows/           # CI/CD pipelines
 ```
 
-## MCP Tools (145 total) + 1 Prompt
+## MCP Tools (146 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -344,7 +344,7 @@ These are public but explicitly not 1:1 Direct API methods.
 | `dictionaries_list_names` | List available dictionary names |
 | `reports_list_types` | List available report types |
 
-### Plugin tools (3)
+### Plugin tools (4)
 
 Auth/utility tools unrelated to Direct API parity.
 
@@ -353,6 +353,7 @@ Auth/utility tools unrelated to Direct API parity.
 | `auth_status` | Check direct auth profile status |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
+| `tool_help` | Return the full docstring (parameters, examples, constraints) for any tool on demand. Every tool exposes only a one-line description to keep startup context small; call `tool_help('<name>')` before using an unfamiliar tool. Omit the name to list all tools. |
 
 | Prompt | Purpose |
 |---|---|
@@ -388,6 +389,31 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.1`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
+
+## Breaking Changes (0.3.0 — progressive disclosure of tool descriptions)
+
+- **Tools now expose a one-line `description`; full docs moved to `tool_help`.**
+  Previously every tool's entire docstring (parameter reference, examples,
+  constraints) was sent to the model as the tool `description` on every request
+  — ~16.6k tokens of the plugin's tool-spec budget. Now each `@mcp.tool(...)`
+  carries a short English `description=` (what it does + when to pick it over a
+  sibling), and the full docstring is served on demand by a new meta-tool
+  `tool_help('<name>')`. The function docstrings themselves are unchanged — they
+  are simply no longer broadcast at startup.
+
+- **Measured effect** (`python -m tests.measure_tool_tokens`, tiktoken
+  cl100k_base): tool-spec budget **54,457 → 40,792 tokens (−25%)**; the
+  descriptions portion **16,582 → 4,522 (−73%)**. JSON-Schema of parameters is
+  untouched (that is a separate, riskier task — see issue #154 / Epic #149).
+
+- **No API break.** Tool names, parameters and behavior are identical. The only
+  surface change is what the model sees: short summaries instead of full docs.
+  A client that relied on reading the long `description` text must now call
+  `tool_help`.
+
+- **Tool count 145 → 146.** One new plugin tool `tool_help`. Registered in
+  `server/contract.py` (`PLUGIN_TOOL_NAMES`), `server/main.py`, the bundled
+  `plugins/yandex-direct/server/main.py`, `CLAUDE.md`, and `README.md`.
 
 ## Breaking Changes (CLI 0.4.1 alignment)
 
