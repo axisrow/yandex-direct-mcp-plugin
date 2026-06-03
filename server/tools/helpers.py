@@ -5,11 +5,12 @@ from dataclasses import asdict, dataclass
 
 from server.cli.runner import (
     CliAuthError,
+    CliError,
     CliNotFoundError,
     CliRegistrationError,
     CliTimeoutError,
 )
-from server.tools import ToolError
+from server.tools import ToolError, _hint_for_cli_error
 
 MAX_BATCH_SIZE = 10
 
@@ -204,7 +205,12 @@ def run_single_id_batch(
         except (CliAuthError, CliNotFoundError, CliRegistrationError, CliTimeoutError):
             raise
         except Exception as e:
-            results.append({"success": False, "id": item_id, "error": str(e)})
+            item_error: dict = {"success": False, "id": item_id, "error": str(e)}
+            if isinstance(e, CliError):
+                hint = _hint_for_cli_error(e)
+                if hint is not None:
+                    item_error["hint"] = hint
+            results.append(item_error)
             failed.append(item_id)
     if len(results) == 1:
         return results[0]
