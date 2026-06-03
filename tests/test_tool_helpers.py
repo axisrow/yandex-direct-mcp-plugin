@@ -169,6 +169,18 @@ def test_handle_cli_errors_maps_error_code_9300_to_limit_exceeded() -> None:
     assert "10 IDs" in result["hint"]
 
 
+def test_handle_cli_errors_maps_error_code_8300_to_invalid_status_with_hint() -> None:
+    result = _wrap_cli_error("boom", error_code=8300)()
+    assert result["error"] == "invalid_status"
+    assert "ads_archive" in result["hint"]
+
+
+def test_handle_cli_errors_maps_error_code_8301_to_invalid_status_with_hint() -> None:
+    result = _wrap_cli_error("boom", error_code=8301)()
+    assert result["error"] == "invalid_status"
+    assert "archive/suspend method for ad groups" in result["hint"]
+
+
 def test_handle_cli_errors_unknown_code_keeps_unknown_and_no_hint() -> None:
     result = _wrap_cli_error("boom", error_code=99999)()
     assert result["error"] == "unknown"
@@ -228,3 +240,35 @@ def test_run_single_id_batch_reports_partial_failure() -> None:
     assert result["succeeded"] == ["1"]
     assert result["failed"] == ["2"]
     assert result["results"][1] == {"success": False, "id": "2", "error": "boom"}
+
+
+def test_run_single_id_batch_attaches_hint_for_business_cli_error() -> None:
+    """A batch (>1 ID) CliError must carry the same hint as the single-ID path."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_json.side_effect = [
+        {"success": True},
+        CliError("direct failed (exit 1): Error 8300", error_code=8300),
+    ]
+
+    result = run_single_id_batch(runner, "ads", "delete", "1,2")
+
+    assert result["success"] is False
+    assert result["results"][1]["id"] == "2"
+    assert "ads_archive" in result["results"][1]["hint"]
+
+
+def test_run_single_id_batch_omits_hint_when_none_applies() -> None:
+    """A CliError with an unknown code keeps the raw error and no hint key."""
+    from server.cli.runner import CliError
+
+    runner = MagicMock()
+    runner.run_json.side_effect = [
+        CliError("direct failed (exit 1): Error 99999", error_code=99999),
+        {"success": True},
+    ]
+
+    result = run_single_id_batch(runner, "ads", "delete", "1,2")
+
+    assert "hint" not in result["results"][0]
