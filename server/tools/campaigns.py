@@ -713,11 +713,13 @@ def campaigns_update(
             dict key is the original flat option name, e.g.
             text_search_options={"text_search_average_cpc": 15_000_000,
             "text_search_weekly_spend_limit": 500_000_000}. The micro-unit and
-            plain-integer rules above apply to the dict values. Unknown keys are
-            ignored. The update-only "*_budget_type" key (switch a strategy
-            between WEEKLY_BUDGET and CUSTOM_PERIOD_BUDGET) goes inside the
-            matching dict, e.g. text_search_options={"text_search_budget_type":
-            "WEEKLY_BUDGET"}; it is accepted here but ignored by campaigns_add.
+            plain-integer rules above apply to the dict values. Unknown keys,
+            including typos, are ignored; a dict containing only unknown keys
+            emits no strategy flags. The update-only "*_budget_type" key
+            (switch a strategy between WEEKLY_BUDGET and CUSTOM_PERIOD_BUDGET)
+            goes inside the matching dict, e.g.
+            text_search_options={"text_search_budget_type": "WEEKLY_BUDGET"};
+            it is accepted here but ignored by campaigns_add.
         dry_run: Show the direct request without sending it.
     """
     values = locals()
@@ -960,8 +962,10 @@ def campaigns_add(
             text_search_options={"text_search_average_cpc": 15_000_000}. The
             micro-unit / plain-integer rules above apply to the dict values.
             Smart `*_filter_average_*` keys are per-filter, others per-campaign.
-            Unknown keys are ignored. The update-only "*_budget_type" key is
-            not used by campaigns_add (use campaigns_update).
+            Unknown keys, including typos, are ignored; a dict containing only
+            unknown keys emits no strategy flags. The update-only
+            "*_budget_type" key is not used by campaigns_add (use
+            campaigns_update).
         search_placement_search_results / search_placement_product_gallery /
             search_placement_dynamic_places: TextCampaign / Unified /
             DynamicText Search PlacementTypes (YES/NO).
