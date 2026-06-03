@@ -290,6 +290,7 @@ def test_run_single_id_batch_reports_partial_failure() -> None:
     assert result["failed"] == ["2"]
     assert result["results"][1] == {"success": False, "id": "2", "error": "boom"}
 
+
 def test_validate_phrase_csv_returns_normalized_string_when_valid() -> None:
     assert validate_phrase_csv("  a, b ", 10, subject="forecast") == "a, b"
 
