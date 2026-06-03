@@ -13,6 +13,26 @@ from server.cli.runner import (
 
 _FILTER_TOKEN_RE = re.compile(r"\bfilter\b", re.IGNORECASE)
 
+# Yandex error_detail for an invalid enum spells out the allowed values, e.g.
+# "One of the following values is expected: Id, Name, State". Capture that list
+# so the agent gets the right field names from the first response instead of
+# guessing and re-calling. Stop at the first sentence break / end of string.
+_EXPECTED_VALUES_RE = re.compile(
+    r"following values?\s+(?:is|are)\s+expected:\s*(?P<values>[^.\n]+)",
+    re.IGNORECASE,
+)
+
+
+def _extract_expected_values(stderr: str | None) -> str | None:
+    """Pull the 'One of the following values is expected: ...' list from stderr."""
+    if not stderr:
+        return None
+    match = _EXPECTED_VALUES_RE.search(stderr)
+    if not match:
+        return None
+    values = match.group("values").strip().rstrip(",").strip()
+    return values or None
+
 
 @dataclass
 class ToolError:
@@ -111,12 +131,20 @@ def _build_invalid_request_hint(stderr: str | None) -> str:
         return _INVALID_REQUEST_HINT_GENERIC
     detail = stderr.lower()
     if "fieldnames" in detail:
-        return _INVALID_REQUEST_HINT_FIELDNAMES
-    if "sortorder" in detail:
-        return _INVALID_REQUEST_HINT_SORTORDER
-    if _FILTER_TOKEN_RE.search(stderr):
-        return _INVALID_REQUEST_HINT_FILTER
-    return _INVALID_REQUEST_HINT_GENERIC
+        base = _INVALID_REQUEST_HINT_FIELDNAMES
+    elif "sortorder" in detail:
+        base = _INVALID_REQUEST_HINT_SORTORDER
+    elif _FILTER_TOKEN_RE.search(stderr):
+        base = _INVALID_REQUEST_HINT_FILTER
+    else:
+        base = _INVALID_REQUEST_HINT_GENERIC
+
+    # When Yandex enumerates the allowed values, surface them verbatim so the
+    # agent picks correct fields on the first try instead of re-calling.
+    expected = _extract_expected_values(stderr)
+    if expected:
+        return f"{base} Allowed values for this endpoint: {expected}."
+    return base
 
 
 def _hint_for_cli_error(error: CliError) -> str | None:
