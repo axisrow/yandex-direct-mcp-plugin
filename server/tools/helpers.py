@@ -108,6 +108,39 @@ def finalize_json_args(args: list[str], dry_run: bool) -> list[str]:
     return args
 
 
+def validate_phrase_csv(
+    phrases: str,
+    max_count: int,
+    *,
+    subject: str,
+) -> str | ToolError:
+    """Validate a comma-separated phrase list against a max-count limit.
+
+    Strips the input, counts non-empty CSV items, and returns the normalized
+    string when valid. Returns a ToolError with the same payload v4forecast /
+    v4wordstat produced inline before: error="missing_phrases" when empty,
+    error="phrases_limit" (message "Maximum {max_count} phrases per {subject}.
+    Got: {n}") when over the limit.
+    """
+    normalized = phrases.strip()
+    phrase_count = (
+        sum(1 for phrase in normalized.split(",") if phrase.strip())
+        if normalized
+        else 0
+    )
+    if phrase_count == 0:
+        return ToolError(
+            error="missing_phrases",
+            message="Provide at least one phrase.",
+        )
+    if phrase_count > max_count:
+        return ToolError(
+            error="phrases_limit",
+            message=f"Maximum {max_count} phrases per {subject}. Got: {phrase_count}",
+        )
+    return normalized
+
+
 def validate_state(state: str, allowed: tuple[str, ...]) -> ToolError | None:
     """Validate state value against allowed options."""
     if state not in allowed:
