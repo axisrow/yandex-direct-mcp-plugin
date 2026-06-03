@@ -84,10 +84,11 @@ _HINTS_BY_ERROR_CODE: dict[int, str] = {
         "the Direct web interface."
     ),
     8301: (
-        "Ad group cannot be removed because it still contains ads, so "
-        "adgroups_delete does not apply. Direct API v5 has no archive/suspend "
-        "method for ad groups — a draft group can only be removed by hand in "
-        "the Direct web interface."
+        "Ad group cannot be removed because it still contains ads (error "
+        "8301). Archive the ads first: call ads_get with ad_group_ids to list "
+        "them, then ads_archive for those ads, then retry adgroups_delete. If "
+        "ads_archive also fails with error 8300, the group can only be removed "
+        "from the Direct web interface."
     ),
     8800: (
         "Object not found. Either the ID is wrong or it belongs to a "

@@ -178,7 +178,9 @@ def test_handle_cli_errors_maps_error_code_8300_to_invalid_status_with_hint() ->
 def test_handle_cli_errors_maps_error_code_8301_to_invalid_status_with_hint() -> None:
     result = _wrap_cli_error("boom", error_code=8301)()
     assert result["error"] == "invalid_status"
-    assert "archive/suspend method for ad groups" in result["hint"]
+    assert "ads_get with ad_group_ids" in result["hint"]
+    assert "ads_archive" in result["hint"]
+    assert "adgroups_delete" in result["hint"]
 
 
 def test_handle_cli_errors_unknown_code_keeps_unknown_and_no_hint() -> None:
