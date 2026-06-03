@@ -141,6 +141,52 @@ def test_handle_cli_errors_targeted_hint_8000_generic_when_no_detail_match() -> 
     assert "dry_run=True" in result["hint"]
 
 
+def test_handle_cli_errors_8000_hint_surfaces_allowed_values_for_fieldnames() -> None:
+    """The allowed-values enumeration from the API is appended to the hint, so
+    the agent gets the right FieldNames without a second guessing call."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr=(
+            "error_code=8000, error_detail=An item in the FieldNames array "
+            "contains an invalid enumeration value. One of the following "
+            "values is expected: Id, Name, State, Status"
+        ),
+    )()
+    assert result["error"] == "invalid_request"
+    assert "FieldNames are case-sensitive" in result["hint"]
+    assert "Allowed values for this endpoint: Id, Name, State, Status" in result["hint"]
+
+
+def test_handle_cli_errors_8000_hint_surfaces_allowed_values_in_generic_case() -> None:
+    """Allowed values are surfaced even when no FieldNames/SortOrder/Filter
+    keyword matched (generic 8000)."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr=(
+            "error_code=8000, error_detail=Invalid value. One of the following "
+            "values is expected: WEEK, MONTH, CUSTOM_PERIOD."
+        ),
+    )()
+    assert result["error"] == "invalid_request"
+    assert (
+        "Allowed values for this endpoint: WEEK, MONTH, CUSTOM_PERIOD" in result["hint"]
+    )
+
+
+def test_handle_cli_errors_8000_hint_without_enumeration_keeps_base_hint() -> None:
+    """No 'expected:' list in stderr → hint stays the base text, no trailing junk."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8000,
+        stderr="error_code=8000, error_detail=FieldNames must not be empty",
+    )()
+    assert result["error"] == "invalid_request"
+    assert "FieldNames are case-sensitive" in result["hint"]
+    assert "Allowed values for this endpoint" not in result["hint"]
+
+
 def test_handle_cli_errors_maps_error_code_53_to_auth_error_with_hint() -> None:
     result = _wrap_cli_error("boom", error_code=53, stderr="error_code=53")()
     assert result["error"] == "auth_error"
