@@ -559,3 +559,111 @@ class TestCampaignsCrudOperations:
         result = campaigns_resume(ids=ids)
         assert "error" in result
         assert result["error"] == "batch_limit"
+
+
+class TestCampaignsStrategyDictExpansion:
+    """Strategy params are grouped into dicts; expansion must keep argv identical."""
+
+    def test_update_text_search_dict_argv_identical_to_old_flat(self):
+        """Dict keys expand to the same flags the old flat params produced."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_update(
+                id=12345,
+                text_search_options={
+                    "text_search_average_cpc": 15_000_000,
+                    "text_search_weekly_spend_limit": 500_000_000,
+                },
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv.count("--text-search-average-cpc") == 1
+        assert argv[argv.index("--text-search-average-cpc") + 1] == "15000000"
+        assert argv[argv.index("--text-search-weekly-spend-limit") + 1] == "500000000"
+        assert "text_search_options" not in argv
+
+    def test_update_search_and_network_dicts_both_expand(self):
+        """Search and network dicts for the same campaign type both expand."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_update(
+                id=12345,
+                text_search_options={"text_search_average_cpc": 10_000_000},
+                text_network_options={"text_network_average_cpc": 8_000_000},
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--text-search-average-cpc") + 1] == "10000000"
+        assert argv[argv.index("--text-network-average-cpc") + 1] == "8000000"
+
+    def test_update_budget_type_via_dict_reaches_cli(self):
+        """The update-only *_budget_type key inside a dict reaches the CLI."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_update(
+                id=12345,
+                text_search_options={"text_search_budget_type": "WEEKLY_BUDGET"},
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--text-search-budget-type") + 1] == "WEEKLY_BUDGET"
+
+    def test_update_empty_strategy_dict_triggers_guard(self):
+        """An empty dict does not satisfy the update guard (bool({}) is False)."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(id=12345, text_search_options={})
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()
+
+    def test_update_non_dict_strategy_param_rejected(self):
+        """A non-dict strategy value returns invalid_param before any CLI call."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(id=12345, text_search_options="bad")
+        assert result["error"] == "invalid_param"
+        runner.run_json.assert_not_called()
+
+    def test_update_unknown_dict_key_silently_ignored(self):
+        """Unknown keys inside a strategy dict never reach argv."""
+        runner = mock_runner({"Id": 12345})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_update(
+                id=12345,
+                text_search_options={
+                    "text_search_average_cpc": 5_000_000,
+                    "not_a_real_option": "ignored",
+                },
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "not_a_real_option" not in argv
+        assert "--not-a-real-option" not in argv
+        assert "--text-search-average-cpc" in argv
+
+    def test_add_strategy_dict_argv_parity(self):
+        """campaigns_add expands a strategy dict to the correct flags."""
+        runner = mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                campaign_type="TEXT_CAMPAIGN",
+                search_strategy="WB_MAXIMUM_CLICKS",
+                text_search_options={"text_search_weekly_spend_limit": 100_000_000},
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--search-strategy") + 1] == "WB_MAXIMUM_CLICKS"
+        assert argv[argv.index("--text-search-weekly-spend-limit") + 1] == "100000000"
+
+    def test_add_ignores_update_only_budget_type_in_dict(self):
+        """budget_type is update-only; campaigns_add must not emit it."""
+        runner = mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            campaigns_add(
+                name="c",
+                start_date="2026-01-01",
+                text_search_options={
+                    "text_search_budget_type": "WEEKLY_BUDGET",
+                    "text_search_pay_cpa": 3_000_000,
+                },
+            )
+        argv = runner.run_json.call_args[0][0]
+        assert "--text-search-budget-type" not in argv
+        assert "--text-search-pay-cpa" in argv

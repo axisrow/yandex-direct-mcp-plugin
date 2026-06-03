@@ -132,9 +132,28 @@ def test_runtime_and_package_require_direct_cli_0312_or_newer() -> None:
     )
 
 
+def _campaign_strategy_dict_param_names() -> set[str]:
+    """CLI option names exposed via campaigns_* grouped strategy dicts.
+
+    campaigns_add/update collapse the ~138 per-campaign-type bidding-strategy
+    flags (and the 10 update-only *_budget_type flags) into nested dict params
+    to cut tool-spec tokens (#154). They are still 1:1 reachable — just as dict
+    keys, not flat signature params — so the parity guard treats them as exposed.
+    """
+    from server.tools.campaigns import (
+        CAMPAIGN_UPDATE_ONLY_OPTIONS,
+        _STRATEGY_DICT_REGISTRY,
+    )
+
+    names = {opt.name for _, opts in _STRATEGY_DICT_REGISTRY for opt in opts}
+    names |= {opt.name for opt in CAMPAIGN_UPDATE_ONLY_OPTIONS}
+    return names
+
+
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
     _require_direct_cli_0312()
 
+    strategy_dict_params = _campaign_strategy_dict_param_names()
     missing_by_command: dict[str, list[str]] = {}
     for group, subcommand, module_name, function_name in TARGET_COMMANDS:
         click_command = cli.commands[group].commands[subcommand]
@@ -145,6 +164,10 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
         ]
         fn = getattr(importlib.import_module(module_name), function_name)
         mcp_params = set(inspect.signature(fn).parameters)
+        # Strategy options moved from flat campaigns_* params into grouped dicts;
+        # they remain exposed (as dict keys), so count them as present.
+        if group == "campaigns":
+            mcp_params |= strategy_dict_params
         aliases = ALIASES.get((group, subcommand), {})
         missing = [
             name for name in cli_params if aliases.get(name, name) not in mcp_params

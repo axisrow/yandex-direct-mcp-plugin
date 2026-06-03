@@ -405,6 +405,86 @@ CAMPAIGN_UPDATE_ONLY_OPTIONS = (
 )
 
 
+# --- Grouped bidding-strategy parameters ---------------------------------
+# The per-campaign-type strategy flags (~147 of them) are exposed to the model
+# as 10 nested dict params instead of 147 flat `int|None`/`str|None` params.
+# This collapses the JSON-Schema that FastMCP broadcasts at startup (each flat
+# Optional emits a verbose `anyOf:[...,{"type":"null"}]`) without touching the
+# generated CLI argv: incoming dicts are expanded back into the flat option
+# names below before append_cli_options runs, so the `direct` call is identical.
+#
+# Each registry entry is derived from CAMPAIGN_MUTATION_OPTIONS by name prefix,
+# so the grouping stays in sync automatically if options are added/removed.
+_STRATEGY_PREFIXES: tuple[str, ...] = (
+    "text_search",
+    "text_network",
+    "dyn_search",
+    "dyn_network",
+    "smart_search",
+    "smart_network",
+    "unified_search",
+    "unified_network",
+    "mobile_search",
+    "mobile_network",
+)
+
+# (dict_param_name, CliOptions absorbed). Order matches the signatures below.
+_STRATEGY_DICT_REGISTRY: tuple[tuple[str, tuple[CliOption, ...]], ...] = tuple(
+    (
+        f"{prefix}_options",
+        tuple(o for o in CAMPAIGN_MUTATION_OPTIONS if o.name.startswith(f"{prefix}_")),
+    )
+    for prefix in _STRATEGY_PREFIXES
+)
+
+# Update-only budget-type opts keyed by their strategy prefix.
+_BUDGET_TYPE_BY_PREFIX: dict[str, CliOption] = {
+    o.name.replace("_budget_type", ""): o for o in CAMPAIGN_UPDATE_ONLY_OPTIONS
+}
+
+
+def _expand_strategy_dicts(
+    values: dict,
+    strategy_dicts: dict[str, dict | None],
+    *,
+    include_budget_types: bool,
+) -> ToolError | None:
+    """Expand grouped strategy dict params into flat keys in *values*.
+
+    Mutates *values* in place so that ``append_cli_options`` sees the individual
+    option names it expects, keeping the generated CLI argv byte-for-byte
+    identical to the old flat signature. Returns a ToolError on a type mismatch
+    (non-dict value), or None on success.
+
+    Unknown keys inside a strategy dict are silently ignored — they never reach
+    the CLI. This is intentional forward-compatibility: a new CLI flag does not
+    require a plugin release to be passable.
+    """
+    for dict_name, incoming in strategy_dicts.items():
+        if incoming is None:
+            continue
+        if not isinstance(incoming, dict):
+            return ToolError(
+                error="invalid_param",
+                message=(
+                    f"'{dict_name}' must be a dict or null, "
+                    f"got {type(incoming).__name__}"
+                ),
+            )
+        for reg_name, opts in _STRATEGY_DICT_REGISTRY:
+            if reg_name == dict_name:
+                for opt in opts:
+                    if opt.name in incoming:
+                        values[opt.name] = incoming[opt.name]
+                break
+        if include_budget_types:
+            prefix = dict_name.removesuffix("_options")
+            bt_opt = _BUDGET_TYPE_BY_PREFIX.get(prefix)
+            if bt_opt is not None and bt_opt.name in incoming:
+                values[bt_opt.name] = incoming[bt_opt.name]
+    return None
+
+
 @mcp.tool(
     name="campaigns_get",
     description="List advertising campaigns, with optional state/status/type/ID filters. Read-only; use campaigns_add to create or campaigns_update to modify. Call tool_help('campaigns_get') for parameters.",
@@ -575,165 +655,19 @@ def campaigns_update(
     strategy_end_date: str | None = None,
     strategy_spend_limit: int | None = None,
     strategy_start_date: str | None = None,
-    # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
-    text_search_average_cpc: int | None = None,
-    text_search_clicks_per_week: int | None = None,
-    text_search_custom_period_auto_continue: str | None = None,
-    text_search_custom_period_end_date: str | None = None,
-    text_search_custom_period_spend_limit: int | None = None,
-    text_search_custom_period_start_date: str | None = None,
-    text_search_exploration_is_custom: str | None = None,
-    text_search_exploration_min_budget: int | None = None,
-    text_search_pay_cpa: int | None = None,
-    text_search_profitability: int | None = None,
-    text_search_reserve_return: int | None = None,
-    text_search_roi_coef: int | None = None,
-    text_search_weekly_spend_limit: int | None = None,
-    # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
-    text_network_average_cpc: int | None = None,
-    text_network_clicks_per_week: int | None = None,
-    text_network_custom_period_auto_continue: str | None = None,
-    text_network_custom_period_end_date: str | None = None,
-    text_network_custom_period_spend_limit: int | None = None,
-    text_network_custom_period_start_date: str | None = None,
-    text_network_exploration_is_custom: str | None = None,
-    text_network_exploration_min_budget: int | None = None,
-    text_network_limit_percent: int | None = None,
-    text_network_pay_cpa: int | None = None,
-    text_network_profitability: int | None = None,
-    text_network_reserve_return: int | None = None,
-    text_network_roi_coef: int | None = None,
-    text_network_weekly_spend_limit: int | None = None,
-    # --- DynamicTextCampaign.BiddingStrategy.Search (17 flags) ---
-    dyn_search_average_cpa: int | None = None,
-    dyn_search_average_cpc: int | None = None,
-    dyn_search_bid_ceiling: int | None = None,
-    dyn_search_clicks_per_week: int | None = None,
-    dyn_search_cpa: int | None = None,
-    dyn_search_crr: int | None = None,
-    dyn_search_custom_period_auto_continue: str | None = None,
-    dyn_search_custom_period_end_date: str | None = None,
-    dyn_search_custom_period_spend_limit: int | None = None,
-    dyn_search_custom_period_start_date: str | None = None,
-    dyn_search_exploration_budget: int | None = None,
-    dyn_search_exploration_budget_custom: str | None = None,
-    dyn_search_goal_id: int | None = None,
-    dyn_search_profitability: int | None = None,
-    dyn_search_reserve_return: int | None = None,
-    dyn_search_roi_coef: int | None = None,
-    dyn_search_weekly_spend_limit: int | None = None,
-    # --- DynamicTextCampaign.BiddingStrategy.Network (18 flags) ---
-    dyn_network_average_cpa: int | None = None,
-    dyn_network_average_cpc: int | None = None,
-    dyn_network_bid_ceiling: int | None = None,
-    dyn_network_clicks_per_week: int | None = None,
-    dyn_network_cpa: int | None = None,
-    dyn_network_crr: int | None = None,
-    dyn_network_custom_period_auto_continue: str | None = None,
-    dyn_network_custom_period_end_date: str | None = None,
-    dyn_network_custom_period_spend_limit: int | None = None,
-    dyn_network_custom_period_start_date: str | None = None,
-    dyn_network_exploration_budget: int | None = None,
-    dyn_network_exploration_budget_custom: str | None = None,
-    dyn_network_goal_id: int | None = None,
-    dyn_network_limit_percent: int | None = None,
-    dyn_network_profitability: int | None = None,
-    dyn_network_reserve_return: int | None = None,
-    dyn_network_roi_coef: int | None = None,
-    dyn_network_weekly_spend_limit: int | None = None,
-    # --- SmartCampaign.BiddingStrategy.Search (18 flags) ---
-    smart_search_average_cpa: int | None = None,
-    smart_search_average_cpc: int | None = None,
-    smart_search_bid_ceiling: int | None = None,
-    smart_search_cp_auto_continue: str | None = None,
-    smart_search_cp_end_date: str | None = None,
-    smart_search_cp_spend_limit: int | None = None,
-    smart_search_cp_start_date: str | None = None,
-    smart_search_cpa: int | None = None,
-    smart_search_crr: int | None = None,
-    smart_search_exploration_min: int | None = None,
-    smart_search_exploration_min_custom: str | None = None,
-    smart_search_filter_average_cpa: int | None = None,
-    smart_search_filter_average_cpc: int | None = None,
-    smart_search_goal_id: int | None = None,
-    smart_search_profitability: int | None = None,
-    smart_search_reserve_return: int | None = None,
-    smart_search_roi_coef: int | None = None,
-    smart_search_weekly_spend_limit: int | None = None,
-    # --- SmartCampaign.BiddingStrategy.Network (19 flags) ---
-    smart_network_average_cpa: int | None = None,
-    smart_network_average_cpc: int | None = None,
-    smart_network_bid_ceiling: int | None = None,
-    smart_network_cp_auto_continue: str | None = None,
-    smart_network_cp_end_date: str | None = None,
-    smart_network_cp_spend_limit: int | None = None,
-    smart_network_cp_start_date: str | None = None,
-    smart_network_cpa: int | None = None,
-    smart_network_crr: int | None = None,
-    smart_network_exploration_min: int | None = None,
-    smart_network_exploration_min_custom: str | None = None,
-    smart_network_filter_average_cpa: int | None = None,
-    smart_network_filter_average_cpc: int | None = None,
-    smart_network_goal_id: int | None = None,
-    smart_network_limit_percent: int | None = None,
-    smart_network_profitability: int | None = None,
-    smart_network_reserve_return: int | None = None,
-    smart_network_roi_coef: int | None = None,
-    smart_network_weekly_spend_limit: int | None = None,
-    # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
-    unified_search_average_cpc: int | None = None,
-    unified_search_custom_period_auto_continue: str | None = None,
-    unified_search_custom_period_end_date: str | None = None,
-    unified_search_custom_period_spend_limit: int | None = None,
-    unified_search_custom_period_start_date: str | None = None,
-    unified_search_exploration_is_custom: str | None = None,
-    unified_search_exploration_min_budget: int | None = None,
-    unified_search_pay_cpa: int | None = None,
-    unified_search_placement_maps: str | None = None,
-    unified_search_placement_search_organization_list: str | None = None,
-    unified_search_weekly_spend_limit: int | None = None,
-    # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
-    unified_network_average_cpc: int | None = None,
-    unified_network_cpa: int | None = None,
-    unified_network_custom_period_auto_continue: str | None = None,
-    unified_network_custom_period_end_date: str | None = None,
-    unified_network_custom_period_spend_limit: int | None = None,
-    unified_network_custom_period_start_date: str | None = None,
-    unified_network_exploration_is_custom: str | None = None,
-    unified_network_exploration_min_budget: int | None = None,
-    unified_network_weekly_spend_limit: int | None = None,
-    # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
-    mobile_search_average_cpc: int | None = None,
-    mobile_search_average_cpi: int | None = None,
-    mobile_search_bid_ceiling: int | None = None,
-    mobile_search_clicks_per_week: int | None = None,
-    mobile_search_custom_period_auto_continue: str | None = None,
-    mobile_search_custom_period_end_date: str | None = None,
-    mobile_search_custom_period_spend_limit: int | None = None,
-    mobile_search_custom_period_start_date: str | None = None,
-    mobile_search_weekly_spend_limit: int | None = None,
-    # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
-    mobile_network_average_cpc: int | None = None,
-    mobile_network_average_cpi: int | None = None,
-    mobile_network_bid_ceiling: int | None = None,
-    mobile_network_clicks_per_week: int | None = None,
-    mobile_network_custom_period_auto_continue: str | None = None,
-    mobile_network_custom_period_end_date: str | None = None,
-    mobile_network_custom_period_spend_limit: int | None = None,
-    mobile_network_custom_period_start_date: str | None = None,
-    mobile_network_limit_percent: int | None = None,
-    mobile_network_weekly_spend_limit: int | None = None,
-    # --- update-only: switch between WEEKLY_BUDGET / CUSTOM_PERIOD_BUDGET (10 flags) ---
-    text_search_budget_type: str | None = None,
-    text_network_budget_type: str | None = None,
-    dyn_search_budget_type: str | None = None,
-    dyn_network_budget_type: str | None = None,
-    smart_search_budget_type: str | None = None,
-    smart_network_budget_type: str | None = None,
-    unified_search_budget_type: str | None = None,
-    unified_network_budget_type: str | None = None,
-    mobile_search_budget_type: str | None = None,
-    mobile_network_budget_type: str | None = None,
+    # --- Grouped bidding-strategy dicts (replace ~147 flat params) ---
+    # Keys = the original flat option names (e.g. text_search_average_cpc).
+    # update-only *_budget_type keys also go inside the matching dict.
+    text_search_options: dict | None = None,
+    text_network_options: dict | None = None,
+    dyn_search_options: dict | None = None,
+    dyn_network_options: dict | None = None,
+    smart_search_options: dict | None = None,
+    smart_network_options: dict | None = None,
+    unified_search_options: dict | None = None,
+    unified_network_options: dict | None = None,
+    mobile_search_options: dict | None = None,
+    mobile_network_options: dict | None = None,
     notification_json: str | None = None,
     time_targeting_json: str | None = None,
     dry_run: bool = False,
@@ -771,10 +705,19 @@ def campaigns_update(
         budget: Optional new daily budget in micro-units (RUB × 1_000_000).
         start_date: Optional new start date (YYYY-MM-DD).
         end_date: Optional new end date (YYYY-MM-DD).
-        text_search_budget_type / text_network_budget_type / dyn_*_budget_type /
-            smart_*_budget_type / unified_*_budget_type / mobile_*_budget_type:
-            Switch the existing strategy between WEEKLY_BUDGET and
-            CUSTOM_PERIOD_BUDGET. Update-only; not accepted by campaigns_add.
+        text_search_options / text_network_options / dyn_search_options /
+            dyn_network_options / smart_search_options / smart_network_options /
+            unified_search_options / unified_network_options /
+            mobile_search_options / mobile_network_options: Optional dicts
+            grouping the per-campaign-type bidding-strategy detail flags. Each
+            dict key is the original flat option name, e.g.
+            text_search_options={"text_search_average_cpc": 15_000_000,
+            "text_search_weekly_spend_limit": 500_000_000}. The micro-unit and
+            plain-integer rules above apply to the dict values. Unknown keys are
+            ignored. The update-only "*_budget_type" key (switch a strategy
+            between WEEKLY_BUDGET and CUSTOM_PERIOD_BUDGET) goes inside the
+            matching dict, e.g. text_search_options={"text_search_budget_type":
+            "WEEKLY_BUDGET"}; it is accepted here but ignored by campaigns_add.
         dry_run: Show the direct request without sending it.
     """
     values = locals()
@@ -792,6 +735,18 @@ def campaigns_update(
             error="missing_update_fields",
             message="Provide at least one typed campaign field to update.",
         ).__dict__
+
+    # Expand grouped strategy dicts into the flat option names append_cli_options
+    # expects. Runs after the guard (a non-empty dict already satisfies it) and
+    # before argv assembly, so the generated CLI call is byte-identical to the
+    # old flat signature.
+    expansion_error = _expand_strategy_dicts(
+        values,
+        {name: values[name] for name, _ in _STRATEGY_DICT_REGISTRY},
+        include_budget_types=True,
+    )
+    if expansion_error is not None:
+        return expansion_error.__dict__
 
     args = ["campaigns", "update", "--id", str(id)]
     if name:
@@ -916,154 +871,18 @@ def campaigns_add(
     strategy_end_date: str | None = None,
     strategy_spend_limit: int | None = None,
     strategy_start_date: str | None = None,
-    # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
-    text_search_average_cpc: int | None = None,
-    text_search_clicks_per_week: int | None = None,
-    text_search_custom_period_auto_continue: str | None = None,
-    text_search_custom_period_end_date: str | None = None,
-    text_search_custom_period_spend_limit: int | None = None,
-    text_search_custom_period_start_date: str | None = None,
-    text_search_exploration_is_custom: str | None = None,
-    text_search_exploration_min_budget: int | None = None,
-    text_search_pay_cpa: int | None = None,
-    text_search_profitability: int | None = None,
-    text_search_reserve_return: int | None = None,
-    text_search_roi_coef: int | None = None,
-    text_search_weekly_spend_limit: int | None = None,
-    # --- TextCampaign.BiddingStrategy.Network (14 flags) ---
-    text_network_average_cpc: int | None = None,
-    text_network_clicks_per_week: int | None = None,
-    text_network_custom_period_auto_continue: str | None = None,
-    text_network_custom_period_end_date: str | None = None,
-    text_network_custom_period_spend_limit: int | None = None,
-    text_network_custom_period_start_date: str | None = None,
-    text_network_exploration_is_custom: str | None = None,
-    text_network_exploration_min_budget: int | None = None,
-    text_network_limit_percent: int | None = None,
-    text_network_pay_cpa: int | None = None,
-    text_network_profitability: int | None = None,
-    text_network_reserve_return: int | None = None,
-    text_network_roi_coef: int | None = None,
-    text_network_weekly_spend_limit: int | None = None,
-    # --- DynamicTextCampaign.BiddingStrategy.Search (17 flags) ---
-    dyn_search_average_cpa: int | None = None,
-    dyn_search_average_cpc: int | None = None,
-    dyn_search_bid_ceiling: int | None = None,
-    dyn_search_clicks_per_week: int | None = None,
-    dyn_search_cpa: int | None = None,
-    dyn_search_crr: int | None = None,
-    dyn_search_custom_period_auto_continue: str | None = None,
-    dyn_search_custom_period_end_date: str | None = None,
-    dyn_search_custom_period_spend_limit: int | None = None,
-    dyn_search_custom_period_start_date: str | None = None,
-    dyn_search_exploration_budget: int | None = None,
-    dyn_search_exploration_budget_custom: str | None = None,
-    dyn_search_goal_id: int | None = None,
-    dyn_search_profitability: int | None = None,
-    dyn_search_reserve_return: int | None = None,
-    dyn_search_roi_coef: int | None = None,
-    dyn_search_weekly_spend_limit: int | None = None,
-    # --- DynamicTextCampaign.BiddingStrategy.Network (18 flags) ---
-    dyn_network_average_cpa: int | None = None,
-    dyn_network_average_cpc: int | None = None,
-    dyn_network_bid_ceiling: int | None = None,
-    dyn_network_clicks_per_week: int | None = None,
-    dyn_network_cpa: int | None = None,
-    dyn_network_crr: int | None = None,
-    dyn_network_custom_period_auto_continue: str | None = None,
-    dyn_network_custom_period_end_date: str | None = None,
-    dyn_network_custom_period_spend_limit: int | None = None,
-    dyn_network_custom_period_start_date: str | None = None,
-    dyn_network_exploration_budget: int | None = None,
-    dyn_network_exploration_budget_custom: str | None = None,
-    dyn_network_goal_id: int | None = None,
-    dyn_network_limit_percent: int | None = None,
-    dyn_network_profitability: int | None = None,
-    dyn_network_reserve_return: int | None = None,
-    dyn_network_roi_coef: int | None = None,
-    dyn_network_weekly_spend_limit: int | None = None,
-    # --- SmartCampaign.BiddingStrategy.Search (18 flags) ---
-    smart_search_average_cpa: int | None = None,
-    smart_search_average_cpc: int | None = None,
-    smart_search_bid_ceiling: int | None = None,
-    smart_search_cp_auto_continue: str | None = None,
-    smart_search_cp_end_date: str | None = None,
-    smart_search_cp_spend_limit: int | None = None,
-    smart_search_cp_start_date: str | None = None,
-    smart_search_cpa: int | None = None,
-    smart_search_crr: int | None = None,
-    smart_search_exploration_min: int | None = None,
-    smart_search_exploration_min_custom: str | None = None,
-    smart_search_filter_average_cpa: int | None = None,
-    smart_search_filter_average_cpc: int | None = None,
-    smart_search_goal_id: int | None = None,
-    smart_search_profitability: int | None = None,
-    smart_search_reserve_return: int | None = None,
-    smart_search_roi_coef: int | None = None,
-    smart_search_weekly_spend_limit: int | None = None,
-    # --- SmartCampaign.BiddingStrategy.Network (19 flags) ---
-    smart_network_average_cpa: int | None = None,
-    smart_network_average_cpc: int | None = None,
-    smart_network_bid_ceiling: int | None = None,
-    smart_network_cp_auto_continue: str | None = None,
-    smart_network_cp_end_date: str | None = None,
-    smart_network_cp_spend_limit: int | None = None,
-    smart_network_cp_start_date: str | None = None,
-    smart_network_cpa: int | None = None,
-    smart_network_crr: int | None = None,
-    smart_network_exploration_min: int | None = None,
-    smart_network_exploration_min_custom: str | None = None,
-    smart_network_filter_average_cpa: int | None = None,
-    smart_network_filter_average_cpc: int | None = None,
-    smart_network_goal_id: int | None = None,
-    smart_network_limit_percent: int | None = None,
-    smart_network_profitability: int | None = None,
-    smart_network_reserve_return: int | None = None,
-    smart_network_roi_coef: int | None = None,
-    smart_network_weekly_spend_limit: int | None = None,
-    # --- UnifiedCampaign.BiddingStrategy.Search (11 flags) ---
-    unified_search_average_cpc: int | None = None,
-    unified_search_custom_period_auto_continue: str | None = None,
-    unified_search_custom_period_end_date: str | None = None,
-    unified_search_custom_period_spend_limit: int | None = None,
-    unified_search_custom_period_start_date: str | None = None,
-    unified_search_exploration_is_custom: str | None = None,
-    unified_search_exploration_min_budget: int | None = None,
-    unified_search_pay_cpa: int | None = None,
-    unified_search_placement_maps: str | None = None,
-    unified_search_placement_search_organization_list: str | None = None,
-    unified_search_weekly_spend_limit: int | None = None,
-    # --- UnifiedCampaign.BiddingStrategy.Network (9 flags) ---
-    unified_network_average_cpc: int | None = None,
-    unified_network_cpa: int | None = None,
-    unified_network_custom_period_auto_continue: str | None = None,
-    unified_network_custom_period_end_date: str | None = None,
-    unified_network_custom_period_spend_limit: int | None = None,
-    unified_network_custom_period_start_date: str | None = None,
-    unified_network_exploration_is_custom: str | None = None,
-    unified_network_exploration_min_budget: int | None = None,
-    unified_network_weekly_spend_limit: int | None = None,
-    # --- MobileAppCampaign.BiddingStrategy.Search (9 flags) ---
-    mobile_search_average_cpc: int | None = None,
-    mobile_search_average_cpi: int | None = None,
-    mobile_search_bid_ceiling: int | None = None,
-    mobile_search_clicks_per_week: int | None = None,
-    mobile_search_custom_period_auto_continue: str | None = None,
-    mobile_search_custom_period_end_date: str | None = None,
-    mobile_search_custom_period_spend_limit: int | None = None,
-    mobile_search_custom_period_start_date: str | None = None,
-    mobile_search_weekly_spend_limit: int | None = None,
-    # --- MobileAppCampaign.BiddingStrategy.Network (10 flags) ---
-    mobile_network_average_cpc: int | None = None,
-    mobile_network_average_cpi: int | None = None,
-    mobile_network_bid_ceiling: int | None = None,
-    mobile_network_clicks_per_week: int | None = None,
-    mobile_network_custom_period_auto_continue: str | None = None,
-    mobile_network_custom_period_end_date: str | None = None,
-    mobile_network_custom_period_spend_limit: int | None = None,
-    mobile_network_custom_period_start_date: str | None = None,
-    mobile_network_limit_percent: int | None = None,
-    mobile_network_weekly_spend_limit: int | None = None,
+    # --- Grouped bidding-strategy dicts (replace ~138 flat params) ---
+    # Keys = the original flat option names (e.g. text_search_average_cpc).
+    text_search_options: dict | None = None,
+    text_network_options: dict | None = None,
+    dyn_search_options: dict | None = None,
+    dyn_network_options: dict | None = None,
+    smart_search_options: dict | None = None,
+    smart_network_options: dict | None = None,
+    unified_search_options: dict | None = None,
+    unified_network_options: dict | None = None,
+    mobile_search_options: dict | None = None,
+    mobile_network_options: dict | None = None,
     notification_json: str | None = None,
     time_targeting_json: str | None = None,
     dry_run: bool = False,
@@ -1132,14 +951,17 @@ def campaigns_add(
         average_cpm / average_cpv / strategy_spend_limit / strategy_start_date /
             strategy_end_date / strategy_auto_continue: CpmBannerCampaign bidding
             strategy flags (money in micro-units).
-        text_search_* / text_network_*: TextCampaign Search/Network bidding
-            strategy detail flags (WSDL parity).
-        dyn_search_* / dyn_network_*: DynamicTextCampaign Search/Network.
-        smart_search_* / smart_network_*: SmartCampaign Search/Network
-            (per-campaign / per-filter variants — `*_filter_average_*` are
-            per-filter, others per-campaign).
-        unified_search_* / unified_network_*: UnifiedCampaign Search/Network.
-        mobile_search_* / mobile_network_*: MobileAppCampaign Search/Network.
+        text_search_options / text_network_options / dyn_search_options /
+            dyn_network_options / smart_search_options / smart_network_options /
+            unified_search_options / unified_network_options /
+            mobile_search_options / mobile_network_options: Optional dicts
+            grouping the per-campaign-type bidding-strategy detail flags (WSDL
+            parity). Each dict key is the original flat option name, e.g.
+            text_search_options={"text_search_average_cpc": 15_000_000}. The
+            micro-unit / plain-integer rules above apply to the dict values.
+            Smart `*_filter_average_*` keys are per-filter, others per-campaign.
+            Unknown keys are ignored. The update-only "*_budget_type" key is
+            not used by campaigns_add (use campaigns_update).
         search_placement_search_results / search_placement_product_gallery /
             search_placement_dynamic_places: TextCampaign / Unified /
             DynamicText Search PlacementTypes (YES/NO).
@@ -1184,6 +1006,15 @@ def campaigns_add(
         values["notification"] = notification_json
     if time_targeting is None and time_targeting_json is not None:
         values["time_targeting"] = time_targeting_json
+    # Expand grouped strategy dicts into flat option names (argv stays identical).
+    # *_budget_type keys are update-only; include_budget_types=False ignores them.
+    expansion_error = _expand_strategy_dicts(
+        values,
+        {name: values[name] for name, _ in _STRATEGY_DICT_REGISTRY},
+        include_budget_types=False,
+    )
+    if expansion_error is not None:
+        return expansion_error.__dict__
     for already_appended in (
         "search_strategy",
         "network_strategy",
