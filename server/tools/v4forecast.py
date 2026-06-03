@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import finalize_json_args
+from server.tools.helpers import (
+    finalize_json_args,
+    normalize_optional_str,
+    validate_phrase_csv,
+)
 
 MAX_PHRASES = 100
 
@@ -26,24 +30,14 @@ def v4forecast_create(
         currency: Forecast currency (default RUB).
         dry_run: Show the direct request without sending it.
     """
-    normalized_phrases = phrases.strip()
-    if not normalized_phrases:
-        return ToolError(
-            error="missing_phrases",
-            message="Provide at least one phrase.",
-        ).__dict__
-    phrase_count = sum(1 for p in normalized_phrases.split(",") if p.strip())
-    if phrase_count > MAX_PHRASES:
-        return ToolError(
-            error="phrases_limit",
-            message=f"Maximum {MAX_PHRASES} phrases per forecast. Got: {phrase_count}",
-        ).__dict__
+    normalized_phrases = validate_phrase_csv(phrases, MAX_PHRASES, subject="forecast")
+    if isinstance(normalized_phrases, ToolError):
+        return normalized_phrases.__dict__
 
     args = ["v4forecast", "create", "--phrases", normalized_phrases]
-    if geo_ids is not None:
-        normalized_geo = geo_ids.strip()
-        if normalized_geo:
-            args.extend(["--geo-ids", normalized_geo])
+    normalized_geo = normalize_optional_str(geo_ids)
+    if normalized_geo:
+        args.extend(["--geo-ids", normalized_geo])
     if currency:
         args.extend(["--currency", currency])
 

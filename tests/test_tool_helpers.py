@@ -17,6 +17,7 @@ from server.tools.helpers import (
     provided_update_value,
     run_single_id_batch,
     tool_error_dict,
+    validate_phrase_csv,
 )
 
 
@@ -288,6 +289,30 @@ def test_run_single_id_batch_reports_partial_failure() -> None:
     assert result["succeeded"] == ["1"]
     assert result["failed"] == ["2"]
     assert result["results"][1] == {"success": False, "id": "2", "error": "boom"}
+
+
+def test_validate_phrase_csv_returns_normalized_string_when_valid() -> None:
+    assert validate_phrase_csv("  a, b ", 10, subject="forecast") == "a, b"
+
+
+def test_validate_phrase_csv_rejects_empty_with_missing_phrases() -> None:
+    result = validate_phrase_csv("  , , ", 10, subject="Wordstat report")
+    assert isinstance(result, tools.ToolError)
+    assert result.error == "missing_phrases"
+    assert result.message == "Provide at least one phrase."
+
+
+def test_validate_phrase_csv_preserves_forecast_limit_message() -> None:
+    result = validate_phrase_csv(",".join(["w"] * 101), 100, subject="forecast")
+    assert isinstance(result, tools.ToolError)
+    assert result.error == "phrases_limit"
+    assert result.message == "Maximum 100 phrases per forecast. Got: 101"
+
+
+def test_validate_phrase_csv_preserves_wordstat_limit_message() -> None:
+    result = validate_phrase_csv(",".join(["w"] * 11), 10, subject="Wordstat report")
+    assert isinstance(result, tools.ToolError)
+    assert result.message == "Maximum 10 phrases per Wordstat report. Got: 11"
 
 
 def test_run_single_id_batch_attaches_hint_for_business_cli_error() -> None:

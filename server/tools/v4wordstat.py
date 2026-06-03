@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import finalize_json_args
+from server.tools.helpers import (
+    finalize_json_args,
+    normalize_optional_str,
+    validate_phrase_csv,
+)
 
 MAX_WORDSTAT_PHRASES = 10
 
@@ -24,31 +28,16 @@ def v4wordstat_create_report(
         geo_ids: Optional comma-separated geo region IDs.
         dry_run: Show the direct request without sending it.
     """
-    normalized_phrases = phrases.strip()
-    phrase_count = (
-        sum(1 for phrase in normalized_phrases.split(",") if phrase.strip())
-        if normalized_phrases
-        else 0
+    normalized_phrases = validate_phrase_csv(
+        phrases, MAX_WORDSTAT_PHRASES, subject="Wordstat report"
     )
-    if phrase_count == 0:
-        return ToolError(
-            error="missing_phrases",
-            message="Provide at least one phrase.",
-        ).__dict__
-    if phrase_count > MAX_WORDSTAT_PHRASES:
-        return ToolError(
-            error="phrases_limit",
-            message=(
-                f"Maximum {MAX_WORDSTAT_PHRASES} phrases per Wordstat report. "
-                f"Got: {phrase_count}"
-            ),
-        ).__dict__
+    if isinstance(normalized_phrases, ToolError):
+        return normalized_phrases.__dict__
 
     args = ["v4wordstat", "create-report", "--phrases", normalized_phrases]
-    if geo_ids is not None:
-        normalized_geo = geo_ids.strip()
-        if normalized_geo:
-            args.extend(["--geo-ids", normalized_geo])
+    normalized_geo = normalize_optional_str(geo_ids)
+    if normalized_geo:
+        args.extend(["--geo-ids", normalized_geo])
     return get_runner().run_json(finalize_json_args(args, dry_run))
 
 
