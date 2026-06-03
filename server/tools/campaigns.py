@@ -11,27 +11,27 @@ from server.tools.helpers import (
 )
 
 CAMPAIGN_GET_SELECTOR_FLAGS = (
-    ("text_campaign_fields", "--text-campaign-fields"),
+    ("text_campaign_fields", "--text-campaign-field-names"),
     (
         "text_campaign_search_strategy_placement_types_fields",
-        "--text-campaign-search-strategy-placement-types-fields",
+        "--text-campaign-search-strategy-placement-types-field-names",
     ),
-    ("mobile_app_campaign_fields", "--mobile-app-campaign-fields"),
-    ("dynamic_text_campaign_fields", "--dynamic-text-campaign-fields"),
+    ("mobile_app_campaign_fields", "--mobile-app-campaign-field-names"),
+    ("dynamic_text_campaign_fields", "--dynamic-text-campaign-field-names"),
     (
         "dynamic_text_campaign_search_strategy_placement_types_fields",
-        "--dynamic-text-campaign-search-strategy-placement-types-fields",
+        "--dynamic-text-campaign-search-strategy-placement-types-field-names",
     ),
-    ("cpm_banner_campaign_fields", "--cpm-banner-campaign-fields"),
-    ("smart_campaign_fields", "--smart-campaign-fields"),
-    ("unified_campaign_fields", "--unified-campaign-fields"),
+    ("cpm_banner_campaign_fields", "--cpm-banner-campaign-field-names"),
+    ("smart_campaign_fields", "--smart-campaign-field-names"),
+    ("unified_campaign_fields", "--unified-campaign-field-names"),
     (
         "unified_campaign_search_strategy_placement_types_fields",
-        "--unified-campaign-search-strategy-placement-types-fields",
+        "--unified-campaign-search-strategy-placement-types-field-names",
     ),
     (
         "unified_campaign_package_bidding_strategy_platforms_fields",
-        "--unified-campaign-package-bidding-strategy-platforms-fields",
+        "--unified-campaign-package-bidding-strategy-platforms-field-names",
     ),
 )
 

@@ -168,7 +168,7 @@ def ads_list(
     if fields is not None:
         args.extend(["--fields", fields])
     if text_ad_fields is not None:
-        args.extend(["--text-ad-fields", text_ad_fields])
+        args.extend(["--text-ad-field-names", text_ad_fields])
 
     runner = get_runner()
     return runner.run_json(args)

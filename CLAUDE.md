@@ -386,7 +386,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.1`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.2`.
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -466,3 +466,32 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
   the CLI default and does not forward it).
 
 Closes plugin issue tracking the 0.4.1 bump.
+
+## Breaking Changes (CLI 0.4.2 alignment)
+
+- **`direct-cli>=0.4.2` alignment**: the minimum CLI bump reflects
+  the flag-rename breaking change below and resyncs `pyproject.toml`,
+  `README.md`, `hooks/setup.sh`, and `server/cli/runner.py`.
+  The current runtime floor is 0.4.2.
+
+- **Nested FieldNames flags renamed**: CLI 0.4.2 renamed all
+  sub-object FieldNames flags from `--*-fields` to `--*-field-names`
+  (e.g. `--text-campaign-fields` → `--text-campaign-field-names`).
+  The top-level `--fields` flag is unchanged. The MCP plugin's
+  `CAMPAIGN_GET_SELECTOR_FLAGS` and `ads_get` now emit the new flag
+  names. Python parameter names (`text_campaign_fields`, etc.) stay
+  unchanged.
+
+- **Empty SelectionCriteria guard**: CLI 0.4.2 rejects empty filter
+  sets for 8 get-commands (`adgroups`, `ads`, `keywords`, `strategies`,
+  `creatives`, `dynamicads`, `smartadtargets`, `audiencetargets`) with
+  a clear `UsageError` instead of letting the request reach the API and
+  fail with error 4001. No MCP plugin changes needed — the plugin
+  already requires at least one filter for the affected tools.
+
+- **Auth credential precedence reversed**: base environment variables
+  (`YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`) now override the
+  active OAuth profile, reversing the previous order. No MCP plugin
+  changes needed — auth precedence is owned by `direct-cli`.
+
+- **No tool count change.** The 146-tool surface is unchanged.
