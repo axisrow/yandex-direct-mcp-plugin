@@ -713,9 +713,11 @@ def campaigns_update(
             dict key is the original flat option name, e.g.
             text_search_options={"text_search_average_cpc": 15_000_000,
             "text_search_weekly_spend_limit": 500_000_000}. The micro-unit and
-            plain-integer rules above apply to the dict values. Unknown keys,
-            including typos, are ignored; a dict containing only unknown keys
-            emits no strategy flags. The update-only "*_budget_type" key
+            plain-integer rules above apply to the dict values. Key names must
+            exactly match the original flat option names. Unknown keys,
+            including typos, are ignored; if all keys are unknown, no strategy
+            flags are sent and the call may still return success without
+            changing bidding settings. The update-only "*_budget_type" key
             (switch a strategy between WEEKLY_BUDGET and CUSTOM_PERIOD_BUDGET)
             goes inside the matching dict, e.g.
             text_search_options={"text_search_budget_type": "WEEKLY_BUDGET"};
@@ -962,8 +964,10 @@ def campaigns_add(
             text_search_options={"text_search_average_cpc": 15_000_000}. The
             micro-unit / plain-integer rules above apply to the dict values.
             Smart `*_filter_average_*` keys are per-filter, others per-campaign.
-            Unknown keys, including typos, are ignored; a dict containing only
-            unknown keys emits no strategy flags. The update-only
+            Key names must exactly match the original flat option names.
+            Unknown keys, including typos, are ignored; if all keys are
+            unknown, no strategy flags are sent and the call may still return
+            success without changing bidding settings. The update-only
             "*_budget_type" key is not used by campaigns_add (use
             campaigns_update).
         search_placement_search_results / search_placement_product_gallery /
