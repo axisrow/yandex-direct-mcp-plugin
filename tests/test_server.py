@@ -96,6 +96,46 @@ def test_mcp_server_registers_all_tools():
         proc.wait(timeout=5)
 
 
+def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
+    assert proc.stdin is not None
+    proc.stdin.write(
+        json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+        + "\n"
+    )
+    proc.stdin.flush()
+    resp = _read_response(proc)
+    assert resp["id"] == 2
+    return {t["name"] for t in resp["result"]["tools"]}
+
+
+def test_mcp_server_respects_disabled_tool_groups():
+    """YANDEX_DIRECT_DISABLED_GROUPS removes a group from tools/list (#190)."""
+    proc = _start_server(env={"YANDEX_DIRECT_DISABLED_GROUPS": "destructive"})
+    try:
+        _initialize(proc)
+        names = _list_tool_names(proc)
+        assert "campaigns_delete" not in names
+        assert "ads_archive" not in names
+        assert "campaigns_get" in names
+        assert names < PUBLIC_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_mcp_server_allowlist_profile_via_enabled_groups():
+    """YANDEX_DIRECT_ENABLED_GROUPS switches to allow-list mode (#190)."""
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_GROUPS": "analytics"})
+    try:
+        _initialize(proc)
+        names = _list_tool_names(proc)
+        assert "reports_get" in names
+        assert "campaigns_add" not in names
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
 def test_mcp_server_keeps_helper_and_plugin_tools_separate():
     assert CLI_HELPER_TOOL_NAMES <= PUBLIC_TOOL_NAMES
     assert PLUGIN_ONLY_TOOL_NAMES <= PUBLIC_TOOL_NAMES
