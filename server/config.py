@@ -193,10 +193,36 @@ class ToolSurfaceConfig:
 
 
 # --- preset profiles --------------------------------------------------------
-# "full" is the default 146-tool surface (backward compatible). Scenario
-# profiles (core / analytics / campaign-editor) are added in #191.
+# "full" is the default 146-tool surface (backward compatible). The scenario
+# profiles are allow-list configs (default_enabled=False). Auth / tool_help are
+# always included as tool-level enables so any profile can still authenticate
+# and look up docs (tool-level beats group-level, so they survive a disabled
+# "mutate" group).
+_ALWAYS_ON = frozenset({"auth_status", "auth_setup", "auth_login", "tool_help"})
+
 PROFILES: dict[str, ToolSurfaceConfig] = {
+    # Everything — the historical default surface.
     "full": ToolSurfaceConfig(),
+    # Minimal read-only campaign diagnostics.
+    "core": ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_groups=frozenset({"campaign_management"}),
+        disabled_groups=frozenset({"mutate", "destructive"}),
+        enabled_tools=_ALWAYS_ON,
+    ),
+    # Reporting / dictionaries / forecasting — no campaign-object mutations.
+    "analytics": ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_groups=frozenset({"analytics"}),
+        enabled_tools=_ALWAYS_ON,
+    ),
+    # Read + mutate the core campaign objects, but not destructive lifecycle ops.
+    "campaign-editor": ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_groups=frozenset({"campaign_management", "bidding_budget"}),
+        disabled_groups=frozenset({"destructive"}),
+        enabled_tools=_ALWAYS_ON,
+    ),
 }
 
 # env var names (kept together so docs and code stay in sync)
