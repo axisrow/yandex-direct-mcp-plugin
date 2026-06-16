@@ -202,6 +202,39 @@ class TestAdgroupsUpdate:
         assert result["error"] == "conflicting_modes"
         runner.run_json.assert_not_called()
 
+    def test_adgroups_update_dynamic_feed_is_bare_flag(self):
+        """--dynamic-feed is is_flag=True in CLI 0.4.2: emit it with no value.
+
+        dynamic_feed=True must append a bare --dynamic-feed; a value would be
+        treated by Click as a stray positional argument and abort the call.
+        """
+        runner = mock_runner({"Id": 123})
+        with patch(
+            "server.tools.adgroups.get_runner",
+            return_value=runner,
+        ):
+            adgroups_update(
+                id=123,
+                dynamic_feed=True,
+                autotargeting_categories=["EXACT=YES"],
+            )
+            argv = runner.run_json.call_args[0][0]
+            assert "--dynamic-feed" in argv
+            # No value follows the flag (next token is another flag or end).
+            idx = argv.index("--dynamic-feed")
+            assert idx == len(argv) - 1 or argv[idx + 1].startswith("--")
+
+    def test_adgroups_update_dynamic_feed_default_omitted(self):
+        """dynamic_feed defaults to False and must not appear in argv."""
+        runner = mock_runner({"Id": 123})
+        with patch(
+            "server.tools.adgroups.get_runner",
+            return_value=runner,
+        ):
+            adgroups_update(id=123, name="x")
+            argv = runner.run_json.call_args[0][0]
+            assert "--dynamic-feed" not in argv
+
 
 class TestAdgroupsDelete:
     """Tests for adgroups_delete tool."""

@@ -284,21 +284,26 @@ class TestCampaignsUpdate:
         )
         assert result == {"success": True, "id": 12345}
 
-    def test_campaigns_update_passes_notification_and_time_targeting_json(self):
-        """Update supports JSON aliases just like add."""
+    def test_campaigns_update_passes_typed_notification_and_time_targeting(self):
+        """Update emits the typed Notification/TimeTargeting flags.
+
+        direct-cli 0.4.2 removed the free-form --notification/--time-targeting
+        blob flags (and the notification_json/time_targeting_json aliases); the
+        granular typed flags are the supported path now.
+        """
         runner = mock_runner({"Id": 12345})
-        notification = '{"EmailSettings":{"Email":"ops@example.com"}}'
-        time_targeting = '{"ConsiderWorkingWeekends":"YES"}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_update(
                 id=12345,
-                notification_json=notification,
-                time_targeting_json=time_targeting,
+                notification_email="ops@example.com",
+                consider_working_weekends="YES",
             )
 
         argv = runner.run_json.call_args[0][0]
-        assert argv[argv.index("--notification") + 1] == notification
-        assert argv[argv.index("--time-targeting") + 1] == time_targeting
+        assert argv[argv.index("--notification-email") + 1] == "ops@example.com"
+        assert argv[argv.index("--consider-working-weekends") + 1] == "YES"
+        assert "--notification" not in argv
+        assert "--time-targeting" not in argv
 
 
 class TestCampaignsCrudOperations:
@@ -435,33 +440,34 @@ class TestCampaignsCrudOperations:
         assert "--bid-ceiling" in argv
         assert "200000000" in argv
 
-    def test_campaigns_add_passes_notification_json(self):
+    def test_campaigns_add_passes_typed_notification(self):
+        """Typed Notification flags reach argv; the removed blob flag does not."""
         runner = mock_runner({"Id": 1})
-        payload = '{"SmsSettings":{"Events":["FINISHED"]}}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
                 start_date="2026-01-01",
                 campaign_type="TEXT_CAMPAIGN",
-                notification_json=payload,
+                notification_email="ops@example.com",
+                notification_send_warnings="YES",
             )
         argv = runner.run_json.call_args[0][0]
-        assert "--notification" in argv
-        assert payload in argv
+        assert argv[argv.index("--notification-email") + 1] == "ops@example.com"
+        assert "--notification" not in argv
 
-    def test_campaigns_add_passes_time_targeting_json(self):
+    def test_campaigns_add_passes_typed_time_targeting(self):
+        """Typed TimeTargeting flags reach argv; the removed blob flag does not."""
         runner = mock_runner({"Id": 1})
-        payload = '{"ConsiderWorkingWeekends":"YES"}'
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_add(
                 name="c",
                 start_date="2026-01-01",
                 campaign_type="TEXT_CAMPAIGN",
-                time_targeting_json=payload,
+                consider_working_weekends="YES",
             )
         argv = runner.run_json.call_args[0][0]
-        assert "--time-targeting" in argv
-        assert payload in argv
+        assert argv[argv.index("--consider-working-weekends") + 1] == "YES"
+        assert "--time-targeting" not in argv
 
     def test_campaigns_delete_success(self):
         """Test deleting campaigns successfully."""

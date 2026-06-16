@@ -38,7 +38,6 @@ ADS_ADD_EXTRA_OPTIONS = (
 )
 
 ADS_UPDATE_EXTRA_OPTIONS = (
-    CliOption("status", "--status"),
     CliOption("titles", "--titles"),
     CliOption("texts", "--texts"),
     CliOption("image_hashes", "--image-hashes"),
@@ -342,7 +341,7 @@ def ads_add(
 
 
 @mcp.tool(
-    description="Update one or many ads — a single ad by id, or a batch via from_file/ads_json. Supports clear_image_hash to reset AdImageHash. Use ads_add to create. Call tool_help('ads_update') for parameters.",
+    description="Update one or many ads — a single ad by id, or a batch via from_file/ads_json. Supports clear_image_hash to reset AdImageHash. For status changes use ads_suspend/resume/archive/unarchive. Use ads_add to create. Call tool_help('ads_update') for parameters.",
 )
 @handle_cli_errors
 def ads_update(
@@ -408,7 +407,9 @@ def ads_update(
 
     CLI 0.3.12 exposes typed flags for supported ad update subtypes. `type`
     is optional when the CLI can apply the supplied fields without an explicit
-    subtype, and `status` is accepted for typed status updates.
+    subtype. Ad *status* is NOT mutable here (WSDL AdUpdateItem has no status
+    field; CLI 0.4.2 rejects `--status`) — use ads_suspend / ads_resume /
+    ads_archive / ads_unarchive to change an ad's status instead.
     Field/type compatibility examples:
 
     - TEXT_AD: title, text, href, title2, display_url_path, mobile, vcard_id,
@@ -421,7 +422,8 @@ def ads_update(
         type: Ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and newer
             0.3.12 subtype families). Required by the CLI in single mode — it
             picks the typed payload branch; omit it and the CLI rejects the call.
-        status: Optional ad status value.
+        status: Deprecated — ad status is not mutable via this tool. Passing it
+            returns an error pointing to ads_suspend/resume/archive/unarchive.
         title: Optional new title (TEXT_AD / MOBILE_APP_AD).
         text: Optional new text (TEXT_AD / MOBILE_APP_AD).
         titles: Structured title list for responsive/shopping/listing subtypes.
@@ -457,6 +459,17 @@ def ads_update(
         ads_json: Inline JSON array of ad-update objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
+    if status is not None:
+        return ToolError(
+            error="status_not_updatable",
+            message=(
+                "Ad status is not mutable via ads_update (WSDL AdUpdateItem has "
+                "no status field; direct-cli 0.4.2 rejects --status). Use "
+                "ads_suspend / ads_resume / ads_archive / ads_unarchive to "
+                "change an ad's status."
+            ),
+        ).__dict__
+
     if (from_file or ads_json) and id is not None:
         return ToolError(
             error="conflicting_modes",
@@ -514,7 +527,6 @@ def ads_update(
             sitelink_set_id,
             turbo_page_id,
             ad_extensions,
-            status,
             callouts_add,
             callouts_remove,
             callouts_set,
@@ -544,7 +556,7 @@ def ads_update(
                 "Provide at least one typed update field, for example: title, "
                 "text, href, image_hash, clear_image_hash, tracking_url, "
                 "action, age_label, title2, display_url_path, mobile, vcard_id, "
-                "sitelink_set_id, turbo_page_id, ad_extensions, status, "
+                "sitelink_set_id, turbo_page_id, ad_extensions, "
                 "callouts_*, video_extension_*, price_extension_*, business_id, "
                 "creative_id, final_url, tracking_pixels, "
                 "feed_filter_conditions, title_sources, text_sources, or "
