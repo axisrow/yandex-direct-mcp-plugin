@@ -72,6 +72,15 @@ TARGET_COMMANDS: tuple[tuple[str, str, str, str], ...] = (
 )
 
 IGNORED_CLI_PARAMS = {"output", "output_format", "format"}
+
+# CLI options the plugin intentionally does NOT expose because the Direct API
+# rejects them even though direct-cli still accepts the flag. Keyed by
+# (group, subcommand) -> set of click param names.
+INTENTIONALLY_UNEXPOSED_CLI_PARAMS = {
+    # RetargetingLists.update rejects the Type field (API error 8000); a list's
+    # type is fixed at creation, so retargeting_update drops list_type. See #166.
+    ("retargeting", "update"): {"list_type"},
+}
 ALIASES = {
     ("campaigns", "update"): {"campaign_id": "id"},
     ("adgroups", "add"): {"group_type": "type"},
@@ -169,8 +178,11 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
         if group == "campaigns":
             mcp_params |= strategy_dict_params
         aliases = ALIASES.get((group, subcommand), {})
+        unexposed = INTENTIONALLY_UNEXPOSED_CLI_PARAMS.get((group, subcommand), set())
         missing = [
-            name for name in cli_params if aliases.get(name, name) not in mcp_params
+            name
+            for name in cli_params
+            if name not in unexposed and aliases.get(name, name) not in mcp_params
         ]
         if missing:
             missing_by_command[f"{group} {subcommand}"] = missing
