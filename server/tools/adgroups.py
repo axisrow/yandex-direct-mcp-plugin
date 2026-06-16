@@ -6,6 +6,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     check_batch_limit,
+    parse_ids,
     provided_update_value,
 )
 
@@ -185,7 +186,8 @@ def adgroups_add(
         tracking_params: Tracking parameter specs.
         dry_run: Show the direct request without sending it.
     """
-    if not region_ids:
+    normalized_region_ids = ",".join(parse_ids(region_ids)) if region_ids else ""
+    if not normalized_region_ids:
         return ToolError(
             error="region_ids_required",
             message=(
@@ -205,8 +207,7 @@ def adgroups_add(
     ]
     if type is not None:
         args.extend(["--type", type])
-    if region_ids is not None:
-        args.extend(["--region-ids", region_ids])
+    args.extend(["--region-ids", normalized_region_ids])
     if domain_url is not None:
         args.extend(["--domain-url", domain_url])
     if feed_id is not None:
