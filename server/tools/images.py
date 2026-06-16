@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import normalize_optional_str
 
 
 @mcp.tool(
@@ -73,6 +74,11 @@ def adimages_add(
         type: Ad image type.
         dry_run: Show the direct request without sending it.
     """
+    # Match the CLI's truthy XOR (`bool(image_data) == bool(image_file)`):
+    # normalize blanks to None so an empty-string source counts as absent and
+    # is never emitted as `--image-data ""`. (#170-24)
+    image_data = normalize_optional_str(image_data)
+    image_file = normalize_optional_str(image_file)
     if image_data is None and image_file is None:
         return ToolError(
             error="missing_image_source",

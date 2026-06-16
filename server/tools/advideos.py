@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import normalize_optional_str
 
 
 @mcp.tool(
@@ -63,6 +64,13 @@ def advideos_add(
         name: Optional video name.
         dry_run: Show the direct request without sending it.
     """
+    # Match the CLI's truthiness semantics: it selects the source with
+    # `if url: ... elif video_data: ...`, treating blank strings as absent.
+    # Normalize blanks to None first so an LLM filling unused optional params
+    # with "" doesn't trip a spurious conflict or emit `--url ""`. (#170-15)
+    url = normalize_optional_str(url)
+    video_data = normalize_optional_str(video_data)
+    video_file = normalize_optional_str(video_file)
     sources = [s for s in (url, video_data, video_file) if s is not None]
     if len(sources) != 1:
         return ToolError(
