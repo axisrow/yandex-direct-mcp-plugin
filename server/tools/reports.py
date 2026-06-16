@@ -587,14 +587,20 @@ def reports_custom(
 
     args: list[str] = ["reports", "get", "--type", report_type]
 
+    # `direct reports get` marks --from/--to as required=True even when
+    # --date-range-type is set, and always emits DateFrom/DateTo in the
+    # SelectionCriteria (the API ignores them for non-CUSTOM_DATE ranges).
+    # So we must ALWAYS pass a concrete date pair; otherwise Click rejects the
+    # call with "Missing option '--from'" before the request is ever built and
+    # every preset-range report fails. See issue #170 finding #1.
+    resolved_dates = _resolve_report_dates(date_from, date_to)
+    if isinstance(resolved_dates, ToolError):
+        return tool_error_dict(resolved_dates)
+    resolved_from, resolved_to = resolved_dates
+    args.extend(["--from", resolved_from, "--to", resolved_to])
+
     if date_range_type:
         args.extend(["--date-range-type", date_range_type])
-    else:
-        resolved_dates = _resolve_report_dates(date_from, date_to)
-        if isinstance(resolved_dates, ToolError):
-            return tool_error_dict(resolved_dates)
-        resolved_from, resolved_to = resolved_dates
-        args.extend(["--from", resolved_from, "--to", resolved_to])
 
     args.extend(["--name", name, "--fields", field_names])
 

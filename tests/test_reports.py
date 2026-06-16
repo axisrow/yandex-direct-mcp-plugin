@@ -483,7 +483,12 @@ def test_reports_custom_invalid_request_hint():
 
 
 def test_reports_custom_date_range_type():
-    """date_range_type without explicit dates uses --date-range-type."""
+    """date_range_type emits --date-range-type AND a concrete --from/--to pair.
+
+    `direct reports get` keeps --from/--to required=True even with a preset
+    --date-range-type, so the plugin must always supply a date pair (the API
+    ignores it for non-CUSTOM_DATE ranges). See issue #170 finding #1.
+    """
     runner = mock_runner([])
     with patch("server.tools.reports.get_runner", return_value=runner):
         reports_custom(
@@ -494,7 +499,8 @@ def test_reports_custom_date_range_type():
     args = _custom_args(runner.run_json.call_args)
     assert "--date-range-type" in args
     assert args[args.index("--date-range-type") + 1] == "last_30_days"
-    assert "--from" not in args and "--to" not in args
+    # Both required CLI flags must be present so Click does not reject the call.
+    assert "--from" in args and "--to" in args
 
 
 def test_reports_custom_date_range_type_conflict():
