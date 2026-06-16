@@ -17,6 +17,10 @@ from server.cli.runner import (
 )
 from server.main import mcp
 
+# Real Yandex OAuth token prefixes accepted by auth_setup: the current
+# ``y0_…`` format and the legacy ``AQAA…`` format (the CLI accepts both).
+_OAUTH_TOKEN_PREFIXES = ("y0_", "AQAA")
+
 
 def _human_readable_time(seconds: float) -> str:
     """Convert seconds to human-readable Russian string."""
@@ -121,7 +125,17 @@ def _status_from_cli(profile: str | None = None) -> dict:
     stdout = _strip_ansi(result.stdout).strip()
     stderr = _strip_ansi(result.stderr).strip()
     if result.returncode != 0:
-        return _not_authenticated(profile, stderr or stdout)
+        # Only a recognised "no profile / not authenticated" message means the
+        # user simply isn't logged in. Other non-zero exits (network, broken
+        # config, CLI errors) are real failures and must not masquerade as
+        # not_authenticated. (#170-26)
+        detail = stderr or stdout
+        if _is_not_authenticated_message(detail):
+            return _not_authenticated(profile, detail)
+        return _error(
+            "auth_failed",
+            detail or f"direct auth status exited with code {result.returncode}.",
+        )
 
     try:
         payload = json.loads(stdout) if stdout else {}
@@ -262,19 +276,26 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
     if not code:
         return {
             "error": "invalid_code",
-            "message": "Введите готовый OAuth-токен, начинающийся с y0_.",
+            "message": "Введите готовый OAuth-токен (y0_... или legacy AQAA...).",
             "hint": (
                 "Для browser OAuth запустите auth_login(); "
-                'auth_setup принимает только auth_setup(code="y0_...").'
+                'auth_setup принимает готовый токен: auth_setup(code="y0_...").'
             ),
         }
-    if not code.startswith("y0_"):
+    # Accept both real Yandex OAuth token formats — the new ``y0_…`` and the
+    # legacy ``AQAA…`` (the CLI accepts both). Only a short browser
+    # authorization *code* cannot be saved here; it must finish the PKCE flow
+    # in auth_login. Hard-requiring the y0_ prefix wrongly blocked valid
+    # AQAA tokens. (#170-30)
+    if not code.startswith(_OAUTH_TOKEN_PREFIXES):
         return {
             "success": False,
             "error": "unsupported_oauth_code_flow",
             "message": (
-                "Код из браузерного OAuth нельзя сохранить через auth_setup: "
-                "он завершается только через pending PKCE flow в auth_login()."
+                "Это не похоже на готовый OAuth-токен (ожидается y0_... или "
+                "AQAA...). Код из браузерного OAuth нельзя сохранить через "
+                "auth_setup: он завершается только через pending PKCE flow в "
+                "auth_login()."
             ),
             "hint": (
                 "Для browser OAuth запустите auth_login() и введите код в его форму; "

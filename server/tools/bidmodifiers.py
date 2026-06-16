@@ -33,7 +33,7 @@ def bidmodifiers_list(
     campaign_ids: str | None = None,
     ad_group_ids: str | None = None,
     types: str | None = None,
-    levels: str | None = None,
+    levels: list[str] | None = None,
     limit: int | None = None,
     fetch_all: bool = False,
     fields: str | None = None,
@@ -45,16 +45,20 @@ def bidmodifiers_list(
         campaign_ids: Comma-separated campaign IDs (max 10).
         ad_group_ids: Comma-separated ad group IDs (max 10).
         types: Comma-separated bid modifier types.
-        levels: Level filter — "CAMPAIGN" or "AD_GROUP" (CLI default: both).
+        levels: Level filters — any of "CAMPAIGN" / "AD_GROUP" (the CLI's
+            --levels is repeatable; pass a list, e.g. ["CAMPAIGN", "AD_GROUP"]).
+            CLI default when omitted: both levels.
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    if levels is not None and levels not in _BIDMOD_LEVELS:
-        return ToolError(
-            error="invalid_levels",
-            message=f"levels must be one of {_BIDMOD_LEVELS}; got '{levels}'",
-        ).__dict__
+    if levels:
+        invalid = [lv for lv in levels if lv not in _BIDMOD_LEVELS]
+        if invalid:
+            return ToolError(
+                error="invalid_levels",
+                message=f"levels must each be one of {_BIDMOD_LEVELS}; got {invalid}",
+            ).__dict__
 
     args = ["bidmodifiers", "get", "--format", "json"]
     if ids is not None:
@@ -75,8 +79,9 @@ def bidmodifiers_list(
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if types is not None:
         args.extend(["--types", types])
-    if levels is not None:
-        args.extend(["--levels", levels])
+    for lv in levels or []:
+        # --levels is multiple=True in the CLI: emit one flag per value.
+        args.extend(["--levels", lv])
     if limit is not None:
         args.extend(["--limit", str(limit)])
     if fetch_all:

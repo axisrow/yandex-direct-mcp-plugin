@@ -72,6 +72,47 @@ def test_v4account_enable_shared_account_requires_dry_run_or_sandbox():
     assert result["error"] == "sandbox_or_dry_run_required"
 
 
+# ---------------------------------------------------------------------------
+# v4account_update_account — day_budget / spend_mode pairing (#170-28)
+# ---------------------------------------------------------------------------
+
+
+def test_v4account_update_day_budget_without_spend_mode_rejected():
+    """direct-cli requires day_budget and spend_mode together; one alone is a
+    hard CLI error, so the tool rejects it before calling the CLI (#170-28)."""
+    runner = mock_runner({"ok": True})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        result = v4account_update_account(
+            account_id=1, day_budget="1000", dry_run=True
+        )
+    assert result["error"] == "day_budget_spend_mode_pair"
+    runner.run_json.assert_not_called()
+
+
+def test_v4account_update_spend_mode_without_day_budget_rejected():
+    runner = mock_runner({"ok": True})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        result = v4account_update_account(
+            account_id=1, spend_mode="Stretched", dry_run=True
+        )
+    assert result["error"] == "day_budget_spend_mode_pair"
+    runner.run_json.assert_not_called()
+
+
+def test_v4account_update_day_budget_with_spend_mode_ok():
+    runner = mock_runner({"ok": True})
+    with patch("server.tools.v4account.get_runner", return_value=runner):
+        v4account_update_account(
+            account_id=1,
+            day_budget="1000",
+            spend_mode="Default",
+            dry_run=True,
+        )
+    argv = runner.run_json.call_args[0][0]
+    assert argv[argv.index("--day-budget") + 1] == "1000"
+    assert argv[argv.index("--spend-mode") + 1] == "Default"
+
+
 def test_v4account_enable_shared_account_requires_login():
     result = v4account_enable_shared_account(client_login=" ", dry_run=True)
     assert result["error"] == "missing_client_login"

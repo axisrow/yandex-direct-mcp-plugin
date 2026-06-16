@@ -223,6 +223,20 @@ def v4account_update_account(
     if safety_error:
         return safety_error.__dict__
 
+    # direct-cli requires day_budget and spend_mode to be set together (the
+    # DayBudget block needs both Amount and Mode); one without the other is a
+    # hard CLI error. Match the emission's blank-string handling. (#170-28)
+    budget_set = bool(day_budget and day_budget.strip())
+    mode_set = bool(spend_mode and spend_mode.strip())
+    if budget_set != mode_set:
+        return ToolError(
+            error="day_budget_spend_mode_pair",
+            message=(
+                "day_budget and spend_mode must be set together — direct-cli "
+                "rejects one without the other."
+            ),
+        ).__dict__
+
     args = _base_args(sandbox=sandbox)
     args.extend(
         [

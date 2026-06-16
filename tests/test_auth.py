@@ -162,6 +162,35 @@ class TestAuthStatus:
             "profile": "default",
         }
 
+    def test_auth_status_nonzero_exit_real_error_is_not_flattened(self) -> None:
+        """A non-zero exit whose message is NOT a "not authenticated" message is
+        a real failure (auth_failed), not a silent not_authenticated (#170-26)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr="Network is unreachable: could not reach api.direct.yandex.com",
+                returncode=1,
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is False
+        assert result["error"] == "auth_failed"
+        assert result.get("reason") != "not_authenticated"
+        assert "Network is unreachable" in result["message"]
+
+    def test_auth_status_nonzero_exit_not_authenticated_message(self) -> None:
+        """A non-zero exit that IS a not-authenticated message still maps to
+        not_authenticated (#170-26)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(stderr="No active profile.", returncode=1),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is False
+        assert result["reason"] == "not_authenticated"
+
 
 class TestAuthSetup:
     def test_auth_setup_with_direct_token(self) -> None:
@@ -205,6 +234,32 @@ class TestAuthSetup:
             ),
             call(["auth", "status", "--profile", "default", "--format", "json"]),
         ]
+
+    def test_auth_setup_accepts_legacy_aqaa_token(self) -> None:
+        """Legacy AQAA… tokens are valid and must not be rejected by the prefix
+        guard — they reach the CLI like y0_ tokens (#170-30)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                completed("✓ Profile 'default' is saved and active.\n"),
+                completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": None,
+                        }
+                    )
+                ),
+            ],
+        ) as mock_run:
+            result = auth_setup("AQAA-legacy-token")
+
+        assert result["success"] is True
+        # The token reached the CLI rather than being rejected up front.
+        assert mock_run.call_args_list[0].args[0][:2] == ["auth", "login"]
+        assert "AQAA-legacy-token" in mock_run.call_args_list[0].args[0]
 
     def test_auth_setup_returns_status_login_when_param_omitted(self) -> None:
         with patch(
