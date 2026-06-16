@@ -116,7 +116,7 @@ def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
 
 @mcp.tool(
     name="retargeting_update",
-    description="Update an existing retargeting list's name, description, type, or rules. Call tool_help('retargeting_update') for parameters.",
+    description="Update an existing retargeting list's name, description, or rules (type is fixed at creation). Call tool_help('retargeting_update') for parameters.",
 )
 @handle_cli_errors
 def retargeting_update(
