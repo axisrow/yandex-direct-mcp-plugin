@@ -33,7 +33,36 @@ def audience_targets_list(
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
+
+    Unlike retargeting_get, AudienceTargets.get requires at least one typed
+    filter — a filterless request (even with fetch_all) is rejected. To audit
+    the whole account, list campaigns first and page through batches of <=10
+    campaign_ids.
     """
+    typed_filters = (
+        campaign_ids,
+        ad_group_ids,
+        ids,
+        retargeting_list_ids,
+        interest_ids,
+        states,
+    )
+    if not any(value and value.strip() for value in typed_filters):
+        return ToolError(
+            error="filter_required",
+            message=(
+                "audiencetargets_get needs at least one typed filter: "
+                "campaign_ids, ad_group_ids, ids, retargeting_list_ids, "
+                "interest_ids, or states."
+            ),
+            hint=(
+                "Direct API/CLI rejects a filterless audiencetargets request "
+                "(unlike retargeting_get). To audit the whole account, call "
+                "campaigns_get and request audiencetargets_get in batches of "
+                "<=10 campaign_ids."
+            ),
+        ).__dict__
+
     args = ["audiencetargets", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
