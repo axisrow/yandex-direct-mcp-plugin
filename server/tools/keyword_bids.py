@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import require_single_selector
 
 
 @mcp.tool(
@@ -27,18 +28,37 @@ def keyword_bids_list(
         limit: Limit number of results.
         fetch_all: Fetch all pages.
     """
-    args = ["keywordbids", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
+    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
+    normalized_serving = (
+        serving_statuses.strip() if serving_statuses is not None else None
+    )
+    if not (
+        normalized_campaign_ids
+        or normalized_ad_group_ids
+        or normalized_keyword_ids
+        or normalized_serving
+    ):
+        # direct-cli rejects an empty SelectionCriteria; fetch_all is not a
+        # filter. Surface a clear ToolError like keywords_get does (#170-18).
+        return ToolError(
+            error="missing_selector",
+            message=(
+                "keywordbids_get requires at least one filter: campaign_ids, "
+                "ad_group_ids, keyword_ids, or serving_statuses."
+            ),
+        ).__dict__
+
+    args = ["keywordbids", "get", "--format", "json"]
     if normalized_campaign_ids:
         args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
         args.extend(["--keyword-ids", normalized_keyword_ids])
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
+    if normalized_serving:
+        args.extend(["--serving-statuses", normalized_serving])
     if limit is not None:
         args.extend(["--limit", str(limit)])
     if fetch_all:
@@ -64,10 +84,12 @@ def keyword_bids_set(
 ) -> dict:
     """Set keyword bids.
 
+    Provide EXACTLY ONE selector (keyword_id, campaign_id, or ad_group_id).
+
     Args:
-        keyword_id: Keyword ID selector.
-        campaign_id: Campaign ID selector.
-        ad_group_id: Ad group ID selector.
+        keyword_id: Keyword ID selector (provide exactly one selector).
+        campaign_id: Campaign ID selector (provide exactly one selector).
+        ad_group_id: Ad group ID selector (provide exactly one selector).
         search_bid: Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         network_bid: Optional network bid in micro-units (same rules as `search_bid`).
@@ -75,11 +97,16 @@ def keyword_bids_set(
         priority: Strategy priority.
         dry_run: Show the direct request without sending it.
     """
-    if keyword_id is None and campaign_id is None and ad_group_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
-        ).__dict__
+    selector_error = require_single_selector(
+        {
+            "keyword_id": keyword_id,
+            "campaign_id": campaign_id,
+            "ad_group_id": ad_group_id,
+        },
+        "keywordbids_set",
+    )
+    if selector_error:
+        return selector_error.__dict__
     if (
         search_bid is None
         and network_bid is None
@@ -137,12 +164,17 @@ def keyword_bids_set_auto(
 ) -> dict:
     """Configure automatic keyword bidding.
 
+    Provide EXACTLY ONE of target_traffic_volume or target_coverage (the
+    bidding-rule root); increase_percent and bid_ceiling are optional modifiers.
+
     Args:
         campaign_id: Campaign ID.
         ad_group_id: Ad group ID.
         keyword_id: Keyword ID.
-        target_traffic_volume: WbMaximumClicks target traffic volume.
-        target_coverage: NetworkByCoverage target coverage value.
+        target_traffic_volume: WbMaximumClicks target traffic volume (provide
+            exactly one of target_traffic_volume/target_coverage).
+        target_coverage: NetworkByCoverage target coverage value (provide
+            exactly one of target_traffic_volume/target_coverage).
         increase_percent: Bidding rule IncreasePercent.
         bid_ceiling: Optional bidding rule bid ceiling in micro-units (RUB × 1,000,000);
             CLI 0.2.10+ rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
@@ -152,17 +184,16 @@ def keyword_bids_set_auto(
             error="missing_target_scope",
             message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
         ).__dict__
-    if (
-        target_traffic_volume is None
-        and target_coverage is None
-        and increase_percent is None
-        and bid_ceiling is None
-    ):
+    if (target_traffic_volume is None) == (target_coverage is None):
+        # direct-cli requires EXACTLY ONE of --target-traffic-volume or
+        # --target-coverage (the bidding-rule root). increase_percent and
+        # bid_ceiling are optional modifiers of the chosen target. (#170-9)
         return ToolError(
-            error="missing_update_fields",
+            error="invalid_bidding_rule",
             message=(
-                "Provide at least one of: target_traffic_volume, "
-                "target_coverage, increase_percent, bid_ceiling"
+                "Provide exactly one of target_traffic_volume or "
+                "target_coverage. increase_percent and bid_ceiling are "
+                "optional modifiers of the chosen target."
             ),
         ).__dict__
 

@@ -35,13 +35,21 @@ class TestKeywordBidsList:
             assert result[0]["CampaignId"] == 333
 
     def test_keyword_bids_list_empty(self):
-        """Test listing keyword bids with empty result."""
+        """Test listing keyword bids with empty result (with a filter)."""
         with patch(
             "server.tools.keyword_bids.get_runner",
             return_value=mock_runner([]),
         ):
-            result = keyword_bids_list()
+            result = keyword_bids_list(keyword_ids="111")
             assert result == []
+
+    def test_keyword_bids_list_requires_filter(self):
+        """No filter (incl. all-blank) is rejected; CLI needs a filter (#170-18)."""
+        runner = mock_runner(SAMPLE_BIDS)
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_list(fetch_all=True)
+        assert result["error"] == "missing_selector"
+        runner.run_json.assert_not_called()
 
     def test_keyword_bids_list_by_keyword(self):
         """Test listing keyword bids by keyword IDs."""
@@ -93,17 +101,21 @@ class TestKeywordBidsList:
         )
 
     def test_keyword_bids_list_ignores_blank_filters(self):
-        """Test blank filters behave like no filter."""
+        """Blank ID filters are dropped; a real filter still drives the call."""
         runner = mock_runner(SAMPLE_BIDS)
         with patch("server.tools.keyword_bids.get_runner", return_value=runner):
             result = keyword_bids_list(
-                campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
+                campaign_ids="   ",
+                ad_group_ids="   ",
+                keyword_ids="   ",
+                serving_statuses="ELIGIBLE",
             )
             assert len(result) == 1
             call_args = runner.run_json.call_args[0][0]
             assert "--campaign-ids" not in call_args
             assert "--adgroup-ids" not in call_args
             assert "--keyword-ids" not in call_args
+            assert "--serving-statuses" in call_args
 
 
 class TestKeywordBidsSet:
@@ -155,6 +167,15 @@ class TestKeywordBidsSet:
             ["keywordbids", "set", "--keyword-id", "111", "--search-bid", "10000000"]
         )
 
+    def test_keyword_bids_set_requires_single_selector(self):
+        """Exactly one selector — zero or multiple are rejected (#170-16)."""
+        none_selector = keyword_bids_set(search_bid=10000000)
+        assert none_selector["error"] == "invalid_target_scope"
+        multi_selector = keyword_bids_set(
+            campaign_id=1, keyword_id=2, search_bid=10000000
+        )
+        assert multi_selector["error"] == "invalid_target_scope"
+
 
 class TestKeywordBidsSetAuto:
     """Tests for keyword_bids_set_auto tool."""
@@ -185,3 +206,12 @@ class TestKeywordBidsSetAuto:
     def test_keyword_bids_set_auto_requires_scope(self):
         result = keyword_bids_set_auto(target_traffic_volume=80)
         assert result["error"] == "missing_target_scope"
+
+    def test_keyword_bids_set_auto_requires_exactly_one_target(self):
+        """Exactly one of target_traffic_volume/target_coverage (#170-9)."""
+        neither = keyword_bids_set_auto(keyword_id=111, increase_percent=10)
+        assert neither["error"] == "invalid_bidding_rule"
+        both = keyword_bids_set_auto(
+            keyword_id=111, target_traffic_volume=80, target_coverage=100
+        )
+        assert both["error"] == "invalid_bidding_rule"

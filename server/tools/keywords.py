@@ -91,24 +91,37 @@ def keywords_list(
         args.extend([flag, normalized])
         has_selector = True
 
-    if not has_selector and not fetch_all:
+    # Statuses/States/ModifiedSince/ServingStatuses are also valid CLI filters,
+    # so they count toward "has at least one filter".
+    if status is not None:
+        args.extend(["--status", status])
+        has_selector = True
+    if statuses is not None:
+        args.extend(["--statuses", statuses])
+        has_selector = True
+    if states is not None:
+        args.extend(["--states", states])
+        has_selector = True
+    if modified_since is not None:
+        args.extend(["--modified-since", modified_since])
+        has_selector = True
+    if serving_statuses is not None:
+        args.extend(["--serving-statuses", serving_statuses])
+        has_selector = True
+
+    if not has_selector:
+        # direct-cli's keywords get requires at least one typed filter and
+        # rejects an empty SelectionCriteria. fetch_all only paginates — it is
+        # NOT a filter — so unfiltered account-wide listing is unsupported.
         return ToolError(
             error="missing_selector",
             message=(
-                "Provide at least one of: campaign_ids, ids, ad_group_ids. "
-                "To list every keyword in the account, pass fetch_all=True explicitly."
+                "Provide at least one typed filter: campaign_ids, ids, "
+                "ad_group_ids, status, statuses, states, modified_since, or "
+                "serving_statuses. fetch_all paginates but is not a filter; "
+                "direct-cli does not support unfiltered account-wide listing."
             ),
         ).__dict__
-    if status is not None:
-        args.extend(["--status", status])
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-    if states is not None:
-        args.extend(["--states", states])
-    if modified_since is not None:
-        args.extend(["--modified-since", modified_since])
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
     if limit is not None:
         args.extend(["--limit", str(limit)])
     if fetch_all:
@@ -290,6 +303,41 @@ def keywords_add(
                 "pass exactly one."
             ),
         ).__dict__
+
+    if from_file or keywords_json:
+        # direct-cli rejects per-keyword flags in batch mode; per-row values
+        # must live inside the JSONL/JSON objects instead. (#170-20)
+        single_item_params = {
+            "bid": bid,
+            "context_bid": context_bid,
+            "autotargeting_search_bid_is_auto": autotargeting_search_bid_is_auto,
+            "priority": priority,
+            "autotargeting_categories": autotargeting_categories,
+            "autotargeting_brand_options": autotargeting_brand_options,
+            "autotargeting_settings_exact": autotargeting_settings_exact,
+            "autotargeting_settings_narrow": autotargeting_settings_narrow,
+            "autotargeting_settings_alternative": autotargeting_settings_alternative,
+            "autotargeting_settings_accessory": autotargeting_settings_accessory,
+            "autotargeting_settings_broader": autotargeting_settings_broader,
+            "autotargeting_settings_without_brands": autotargeting_settings_without_brands,
+            "autotargeting_settings_with_advertiser_brand": autotargeting_settings_with_advertiser_brand,
+            "autotargeting_settings_with_competitors_brand": autotargeting_settings_with_competitors_brand,
+            "user_param_1": user_param_1,
+            "user_param_2": user_param_2,
+        }
+        unsupported = [
+            name for name, value in single_item_params.items() if value not in (None, ())
+        ]
+        if unsupported:
+            return ToolError(
+                error="single_item_flags_in_batch",
+                message=(
+                    "These per-keyword fields are only supported in single "
+                    "(keyword=...) mode, not with from_file/keywords_json: "
+                    f"{', '.join(unsupported)}. Put per-row values inside the "
+                    "JSONL/JSON objects (Bid, ContextBid, UserParam1, UserParam2)."
+                ),
+            ).__dict__
 
     args = ["keywords", "add"]
     if ad_group_id is not None:

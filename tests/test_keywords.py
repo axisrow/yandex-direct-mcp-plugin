@@ -49,13 +49,23 @@ def test_keywords_list_blank_selector_rejected():
     runner.run_json.assert_not_called()
 
 
-def test_keywords_list_fetch_all_allows_no_selector():
-    """fetch_all=True is an explicit opt-in for unscoped enumeration."""
+def test_keywords_list_fetch_all_is_not_a_filter():
+    """fetch_all paginates but is not a filter; direct-cli rejects empty
+    SelectionCriteria, so fetch_all alone is rejected up front (#170-19)."""
     runner = mock_runner(SAMPLE_KEYWORDS)
     with patch("server.tools.keywords.get_runner", return_value=runner):
-        keywords_list(fetch_all=True)
+        result = keywords_list(fetch_all=True)
+    assert result["error"] == "missing_selector"
+    runner.run_json.assert_not_called()
+
+
+def test_keywords_list_status_counts_as_filter():
+    """A status/state filter alone is a valid SelectionCriteria (no IDs needed)."""
+    runner = mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        keywords_list(statuses="ACCEPTED", fetch_all=True)
     argv = runner.run_json.call_args[0][0]
-    assert "--campaign-ids" not in argv
+    assert "--statuses" in argv
     assert "--fetch-all" in argv
 
 
@@ -210,6 +220,30 @@ class TestKeywordsCrudOperations:
             assert "--adgroup-id" in argv
             assert "42" in argv
             assert "--keywords-json" in argv
+
+    def test_keywords_add_rejects_single_item_flags_in_batch(self):
+        """Per-keyword flags are single-item-only; CLI rejects them in batch
+        mode, so the tool returns single_item_flags_in_batch first (#170-20)."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            result = keywords_add(
+                ad_group_id=42,
+                keywords_json='[{"Keyword":"x"}]',
+                bid=15000000,
+                priority="HIGH",
+            )
+        assert result["error"] == "single_item_flags_in_batch"
+        assert "bid" in result["message"]
+        runner.run_json.assert_not_called()
+
+    def test_keywords_add_batch_without_single_item_flags_ok(self):
+        """Batch mode without per-keyword flags still builds the call."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.keywords.get_runner", return_value=runner):
+            keywords_add(ad_group_id=42, keywords_json='[{"Keyword":"x"}]')
+            argv = runner.run_json.call_args[0][0]
+            assert "--keywords-json" in argv
+            assert "--bid" not in argv
 
     def test_keywords_add_rejects_no_mode(self):
         """Neither keyword nor batch flag → missing_mode, runner not invoked."""

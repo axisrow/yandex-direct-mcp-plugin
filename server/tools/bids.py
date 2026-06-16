@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, require_single_selector
 
 
 @mcp.tool(
@@ -30,27 +30,46 @@ def bids_list(
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    args = ["bids", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
+    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
+    normalized_serving = (
+        serving_statuses.strip() if serving_statuses is not None else None
+    )
+    if not (
+        normalized_campaign_ids
+        or normalized_ad_group_ids
+        or normalized_keyword_ids
+        or normalized_serving
+    ):
+        # direct-cli rejects an empty SelectionCriteria; fetch_all is not a
+        # filter. Surface a clear ToolError like keywords_get does (#170-18).
+        return ToolError(
+            error="missing_selector",
+            message=(
+                "bids_get requires at least one filter: campaign_ids, "
+                "ad_group_ids, keyword_ids, or serving_statuses."
+            ),
+        ).__dict__
+
+    args = ["bids", "get", "--format", "json"]
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
         batch_error = check_batch_limit(normalized_keyword_ids)
         if batch_error:
             return batch_error.__dict__
         args.extend(["--keyword-ids", normalized_keyword_ids])
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
+    if normalized_serving:
+        args.extend(["--serving-statuses", normalized_serving])
     if limit is not None:
         args.extend(["--limit", str(limit)])
     if fetch_all:
@@ -81,11 +100,12 @@ def bids_set(
 
     CLI 0.3.12 supports keyword-, campaign-, and ad-group-scoped bid updates
     with typed search/context bid, autotargeting, and priority fields.
+    Provide EXACTLY ONE selector (keyword_id, campaign_id, or ad_group_id).
 
     Args:
-        keyword_id: Keyword ID selector.
-        campaign_id: Campaign ID selector.
-        ad_group_id: Ad group ID selector.
+        keyword_id: Keyword ID selector (provide exactly one selector).
+        campaign_id: Campaign ID selector (provide exactly one selector).
+        ad_group_id: Ad group ID selector (provide exactly one selector).
         bid: Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
             0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         context_bid: Context bid in micro-units.
@@ -93,11 +113,16 @@ def bids_set(
         priority: Strategy priority.
         dry_run: Show the direct request without sending it.
     """
-    if keyword_id is None and campaign_id is None and ad_group_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
-        ).__dict__
+    selector_error = require_single_selector(
+        {
+            "keyword_id": keyword_id,
+            "campaign_id": campaign_id,
+            "ad_group_id": ad_group_id,
+        },
+        "bids_set",
+    )
+    if selector_error:
+        return selector_error.__dict__
     if (
         bid is None
         and context_bid is None
@@ -157,37 +182,40 @@ def bids_set_auto(
 ) -> dict:
     """Configure automatic bidding.
 
+    Provide EXACTLY ONE selector (campaign_id, ad_group_id, or keyword_id) and
+    at least one scope value (scope is required by the CLI for set-auto).
+
     Args:
-        campaign_id: Campaign ID.
-        ad_group_id: Ad group ID.
-        keyword_id: Keyword ID.
+        campaign_id: Campaign ID (provide exactly one selector).
+        ad_group_id: Ad group ID (provide exactly one selector).
+        keyword_id: Keyword ID (provide exactly one selector).
         max_bid: Optional maximum bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
             rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
         position: Strategy position.
         increase_percent: Bid increase percent.
         calculate_by: Bid calculation method.
         context_coverage: Network coverage value.
-        scope: Bidding scope.
+        scope: Bidding scope (required; provide at least one value).
         dry_run: Show the direct request without sending it.
     """
-    if campaign_id is None and ad_group_id is None and keyword_id is None:
+    selector_error = require_single_selector(
+        {
+            "campaign_id": campaign_id,
+            "ad_group_id": ad_group_id,
+            "keyword_id": keyword_id,
+        },
+        "bids_set_auto",
+    )
+    if selector_error:
+        return selector_error.__dict__
+    if not scope:
+        # direct-cli's bids set-auto unconditionally requires at least one
+        # --scope value (it raises "Provide at least one --scope"). (#170-7)
         return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
-        ).__dict__
-    if (
-        max_bid is None
-        and position is None
-        and increase_percent is None
-        and calculate_by is None
-        and context_coverage is None
-        and scope is None
-    ):
-        return ToolError(
-            error="missing_update_fields",
+            error="missing_scope",
             message=(
-                "Provide at least one of: max_bid, position, increase_percent, "
-                "calculate_by, context_coverage, scope"
+                "bids_set_auto requires at least one scope value "
+                "(direct-cli mandates --scope for set-auto)."
             ),
         ).__dict__
 

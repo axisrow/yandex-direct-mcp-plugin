@@ -70,6 +70,27 @@ def check_batch_limit(ids_str: str, max_size: int = MAX_BATCH_SIZE) -> ToolError
     return None
 
 
+def require_single_selector(
+    selectors: Mapping[str, object], command: str
+) -> ToolError | None:
+    """Return a ToolError unless exactly one selector is provided.
+
+    Mirrors direct-cli's ``add_single_id_selector`` (used by bids set,
+    bids set-auto, and keywordbids set), which requires EXACTLY one of the
+    campaign/ad-group/keyword id selectors and rejects zero or more than one.
+    """
+    provided = [name for name, value in selectors.items() if value is not None]
+    if len(provided) == 1:
+        return None
+    return ToolError(
+        error="invalid_target_scope",
+        message=(
+            f"{command} requires exactly one selector of "
+            f"{', '.join(selectors)}; got {len(provided)}."
+        ),
+    )
+
+
 def tool_error_dict(error: ToolError) -> dict:
     """Return a stable dict representation for MCP error payloads."""
     return asdict(error)

@@ -47,17 +47,29 @@ class TestBidsList:
             assert "--keyword-ids" in call_args
 
     def test_bids_list_ignores_blank_filters(self):
-        """Test blank filters behave like no filter."""
+        """Blank ID filters are dropped; a real filter still drives the call."""
         runner = mock_runner(SAMPLE_BIDS)
         with patch("server.tools.bids.get_runner", return_value=runner):
             result = bids_list(
-                campaign_ids="   ", ad_group_ids="   ", keyword_ids="   "
+                campaign_ids="   ",
+                ad_group_ids="   ",
+                keyword_ids="   ",
+                serving_statuses="ELIGIBLE",
             )
             assert len(result) == 1
             call_args = runner.run_json.call_args[0][0]
             assert "--campaign-ids" not in call_args
             assert "--adgroup-ids" not in call_args
             assert "--keyword-ids" not in call_args
+            assert "--serving-statuses" in call_args
+
+    def test_bids_list_requires_filter(self):
+        """No filter (incl. all-blank) is rejected; CLI needs a SelectionCriteria."""
+        runner = mock_runner(SAMPLE_BIDS)
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(campaign_ids="   ", fetch_all=True)
+        assert result["error"] == "missing_selector"
+        runner.run_json.assert_not_called()
 
     def test_bids_list_batch_limit(self):
         """Test batch limit validation for bids_list."""
@@ -87,6 +99,13 @@ class TestBidsSet:
             bids_set(keyword_id=99999, bid=15000000, dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
 
+    def test_bids_set_requires_single_selector(self):
+        """Exactly one selector — zero or multiple are rejected (#170-16)."""
+        none_selector = bids_set(bid=15000000)
+        assert none_selector["error"] == "invalid_target_scope"
+        multi_selector = bids_set(campaign_id=1, keyword_id=2, bid=15000000)
+        assert multi_selector["error"] == "invalid_target_scope"
+
     def test_bids_list_ad_group_batch_limit(self):
         """Test batch limit validation for ad_group_ids."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
@@ -112,6 +131,7 @@ class TestBidsSetAuto:
                 campaign_id=12345,
                 max_bid=10500000,
                 position="PREMIUM",
+                scope=["SEARCH"],
             )
 
         assert result["success"] is True
@@ -125,9 +145,21 @@ class TestBidsSetAuto:
                 "10500000",
                 "--position",
                 "PREMIUM",
+                "--scope",
+                "SEARCH",
             ]
         )
 
     def test_bids_set_auto_requires_scope(self):
-        result = bids_set_auto(max_bid=10500000)
-        assert result["error"] == "missing_target_scope"
+        """set-auto requires at least one scope value (CLI mandates --scope)."""
+        result = bids_set_auto(campaign_id=12345, max_bid=10500000)
+        assert result["error"] == "missing_scope"
+
+    def test_bids_set_auto_requires_single_selector(self):
+        """Exactly one selector — zero or multiple are rejected (#170-16)."""
+        none_selector = bids_set_auto(max_bid=10500000, scope=["SEARCH"])
+        assert none_selector["error"] == "invalid_target_scope"
+        multi_selector = bids_set_auto(
+            campaign_id=1, keyword_id=2, max_bid=10500000, scope=["SEARCH"]
+        )
+        assert multi_selector["error"] == "invalid_target_scope"
