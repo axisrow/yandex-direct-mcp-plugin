@@ -909,17 +909,24 @@ def test_reports_custom_rows_written_default_skip_state(tmp_path):
     assert result["rows_written"] == 3
 
 
-def test_reports_custom_rows_written_with_skip_column_header(tmp_path):
-    """skip_column_header=True removes the header — overhead becomes 0."""
-    out = tmp_path / "report.tsv"
-    runner = MagicMock()
+def _tsv_header_plus_3_rows(out):
+    """Realistic CLI file: format_csv/format_tsv always write exactly one
+    column header and never a report-title or summary line."""
 
     def fake_run(args, **kwargs):
-        # 3 data lines, no header
-        out.write_text("2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
+        out.write_text("Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n")
         return completed()
 
-    runner.run_checked.side_effect = fake_run
+    return fake_run
+
+
+def test_reports_custom_rows_written_unaffected_by_skip_column_header(tmp_path):
+    """skip_column_header does NOT change on-disk overhead: format_csv/format_tsv
+    always writeheader() (substituting FieldNames), so rows_written stays N
+    (overhead always 1). (#170-12)"""
+    out = tmp_path / "report.tsv"
+    runner = MagicMock()
+    runner.run_checked.side_effect = _tsv_header_plus_3_rows(out)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -932,19 +939,12 @@ def test_reports_custom_rows_written_with_skip_column_header(tmp_path):
     assert result["rows_written"] == 3
 
 
-def test_reports_custom_rows_written_with_summary_kept(tmp_path):
-    """skip_report_summary=False adds a "Total rows: N" trailer — overhead 2."""
+def test_reports_custom_rows_written_unaffected_by_summary_flag(tmp_path):
+    """skip_report_summary does NOT add a "Total rows: N" line to the file —
+    the CLI's re-serializer never emits one. rows_written stays N. (#170-12)"""
     out = tmp_path / "report.tsv"
     runner = MagicMock()
-
-    def fake_run(args, **kwargs):
-        # 1 col header + 3 data lines + 1 summary line = 5 total
-        out.write_text(
-            "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\nTotal rows: 3\n"
-        )
-        return completed()
-
-    runner.run_checked.side_effect = fake_run
+    runner.run_checked.side_effect = _tsv_header_plus_3_rows(out)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -957,20 +957,12 @@ def test_reports_custom_rows_written_with_summary_kept(tmp_path):
     assert result["rows_written"] == 3
 
 
-def test_reports_custom_rows_written_with_report_header_kept(tmp_path):
-    """skip_report_header=False adds the report title line — overhead 2."""
+def test_reports_custom_rows_written_unaffected_by_report_header_flag(tmp_path):
+    """skip_report_header does NOT add a report-title line — format_csv/
+    format_tsv never emit one. rows_written stays N. (#170-12)"""
     out = tmp_path / "report.tsv"
     runner = MagicMock()
-
-    def fake_run(args, **kwargs):
-        # 1 report header + 1 col header + 3 data lines = 5 total
-        out.write_text(
-            '"X (2026-01-01 - 2026-01-03)"\n'
-            "Date\tCost\n2026-01-01\t1\n2026-01-02\t2\n2026-01-03\t3\n"
-        )
-        return completed()
-
-    runner.run_checked.side_effect = fake_run
+    runner.run_checked.side_effect = _tsv_header_plus_3_rows(out)
     with patch("server.tools.reports.get_runner", return_value=runner):
         result = reports_custom(
             field_names="Date,Cost",
@@ -981,3 +973,50 @@ def test_reports_custom_rows_written_with_report_header_kept(tmp_path):
             skip_report_header=False,
         )
     assert result["rows_written"] == 3
+
+
+def test_reports_custom_rows_written_table_is_none(tmp_path):
+    """table output is tabulate(grid) with decorative borders; a line count is
+    meaningless, so rows_written is None rather than a wrong number. (#170-21)"""
+    out = tmp_path / "report.txt"
+    runner = MagicMock()
+
+    def fake_run(args, **kwargs):
+        out.write_text(
+            "+------------+------+\n"
+            "| Date       | Cost |\n"
+            "+============+======+\n"
+            "| 2026-01-01 | 1    |\n"
+            "+------------+------+\n"
+            "| 2026-01-02 | 2    |\n"
+            "+------------+------+\n"
+        )
+        return completed()
+
+    runner.run_checked.side_effect = fake_run
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        result = reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-03",
+            output_path=str(out),
+            response_format="table",
+        )
+    assert result["rows_written"] is None
+
+
+def test_reports_custom_warns_when_filters_override_campaign_ids(capsys):
+    """filters silently override campaign_ids/adgroup_ids in direct-cli; the
+    tool emits a stderr warning so the caller knows the selectors are ignored
+    (#170-27)."""
+    runner = mock_runner([])
+    with patch("server.tools.reports.get_runner", return_value=runner):
+        reports_custom(
+            field_names="Date,Cost",
+            date_from="2026-01-01",
+            date_to="2026-01-31",
+            campaign_ids="111,222",
+            filters=["Cost:GREATER_THAN:1000000"],
+        )
+    captured = capsys.readouterr()
+    assert "ignores the campaign_ids/adgroup_ids" in captured.err
