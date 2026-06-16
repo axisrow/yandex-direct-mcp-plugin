@@ -10,6 +10,7 @@ parameter sets to the LLM so the right tool is picked unambiguously.
 """
 
 import os
+import sys
 import tempfile
 import time
 from datetime import date, timedelta
@@ -294,44 +295,22 @@ def _count_json_rows(path: Path) -> int | None:
     return None if array_started else 0
 
 
-def _resolved_skip(value: bool | None, cli_default: bool) -> bool:
-    """Effective skip-flag value (plugin's None falls back to CLI default).
-
-    CLI 0.3.10 defaults: skip_report_header=True, skip_report_summary=True,
-    skip_column_header=False (column headers are emitted).
-    """
-    return cli_default if value is None else value
-
-
-def _tsv_overhead_rows(
-    *,
-    skip_report_header: bool | None,
-    skip_column_header: bool,
-    skip_report_summary: bool | None,
-) -> int:
-    """Number of non-data rows a TSV/CSV report contains given skip-flag state.
-
-    CLI 0.3.10 defaults to: report-header skipped, column-header kept,
-    summary skipped. Each ``False`` adds one non-data line to the file.
-    """
-    overhead = 0
-    if not _resolved_skip(skip_report_header, cli_default=True):
-        overhead += 1
-    if not skip_column_header:
-        overhead += 1
-    if not _resolved_skip(skip_report_summary, cli_default=True):
-        overhead += 1
-    return overhead
-
-
-def _count_rows_written(
-    output_path: str, response_format: str, overhead_rows: int = 1
-) -> int | None:
+def _count_rows_written(output_path: str, response_format: str) -> int | None:
     """Count data rows in a written report file.
 
     Returns 0 only when the file is missing; returns None when an existing file
-    cannot be counted. ``overhead_rows`` is subtracted for non-JSON formats —
-    callers must compute it from the resolved skip-flag state.
+    cannot be counted.
+
+    - json: count array elements.
+    - csv / tsv: the CLI re-serializes the parsed response via
+      ``output.format_csv`` / ``format_tsv``, which ALWAYS write exactly one
+      column-header row and NEVER emit a report-title or "Total rows: N"
+      summary line. So the on-disk overhead is always 1, independent of the
+      skip_report_header / skip_column_header / skip_report_summary flags
+      (those only affect the raw TSV the internal parser consumes). (#170-12)
+    - table: ``tabulate(tablefmt="grid")`` emits decorative border/separator
+      lines per row, so a raw line count bears no relation to the data-row
+      count — return None rather than a meaningless number. (#170-21)
     """
     path = Path(output_path)
     if not path.exists():
@@ -339,8 +318,10 @@ def _count_rows_written(
     try:
         if response_format == "json":
             return _count_json_rows(path)
+        if response_format == "table":
+            return None
         line_count = sum(1 for _ in path.open())
-        return max(0, line_count - overhead_rows)
+        return max(0, line_count - 1)
     except Exception:
         return None
 
@@ -604,6 +585,19 @@ def reports_custom(
 
     args.extend(["--name", name, "--fields", field_names])
 
+    if effective_filters and (campaign_ids or adgroup_ids):
+        # direct-cli builds the report Filter from `filters` OR campaign_ids OR
+        # adgroup_ids in that priority order — when `filters` is set the
+        # campaign_ids/adgroup_ids selectors are silently ignored. Warn so the
+        # caller expresses the selection as a CampaignId:IN:/AdGroupId:IN:
+        # filter entry instead of assuming both apply. (#170-27)
+        sys.stderr.write(
+            "warning: reports_custom received both `filters` and "
+            "campaign_ids/adgroup_ids; direct-cli applies `filters` and ignores "
+            "the campaign_ids/adgroup_ids selectors. Express the selection as a "
+            "--filter entry (e.g. CampaignId:IN:111,222) to be explicit.\n"
+        )
+
     if campaign_ids:
         args.extend(["--campaign-ids", campaign_ids])
     if adgroup_ids:
@@ -687,12 +681,6 @@ def reports_custom(
             "request_body": request_body,
         }
 
-    overhead = _tsv_overhead_rows(
-        skip_report_header=skip_report_header,
-        skip_column_header=skip_column_header,
-        skip_report_summary=skip_report_summary,
-    )
-
     if resolved_output_path is not None:
         # CLI writes the file itself; stdout is irrelevant for parsing.
         # run_checked raises CliError on non-zero exit so handle_cli_errors
@@ -701,7 +689,7 @@ def reports_custom(
         return {
             "output_path": str(resolved_output_path),
             "rows_written": _count_rows_written(
-                str(resolved_output_path), response_format, overhead_rows=overhead
+                str(resolved_output_path), response_format
             ),
             "report_type": report_type,
             "format": response_format,
