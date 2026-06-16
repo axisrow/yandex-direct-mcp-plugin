@@ -51,6 +51,15 @@ class TestKeywordBidsList:
         assert result["error"] == "missing_selector"
         runner.run_json.assert_not_called()
 
+    def test_keyword_bids_list_batch_limit(self):
+        """>10 IDs are rejected locally with batch_limit, like bids_get (#170-10)."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        runner = mock_runner(SAMPLE_BIDS)
+        with patch("server.tools.keyword_bids.get_runner", return_value=runner):
+            result = keyword_bids_list(keyword_ids=ids)
+        assert result["error"] == "batch_limit"
+        runner.run_json.assert_not_called()
+
     def test_keyword_bids_list_by_keyword(self):
         """Test listing keyword bids by keyword IDs."""
         with patch(

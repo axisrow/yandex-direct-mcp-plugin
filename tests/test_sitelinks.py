@@ -46,12 +46,15 @@ class TestSitelinksList:
             result = sitelinks_list()
             assert len(result) == 1
 
-    def test_list_sitelinks_batch_limit(self):
-        """Test batch limit validation for list."""
+    def test_list_sitelinks_no_batch_limit_on_read(self):
+        """Reads accept >10 IDs — the 10-ID cap applies to mutations only (#170-25)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = sitelinks_list(ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.sitelinks.get_runner", return_value=runner):
+            result = sitelinks_list(ids=ids)
+        assert not (isinstance(result, dict) and result.get("error") == "batch_limit")
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--ids") + 1] == ids
 
     def test_list_sitelinks_trims_ids_before_cli(self, mock_sitelinks):
         """Test sitelink IDs are normalized before argv construction."""

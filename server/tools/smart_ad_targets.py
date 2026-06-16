@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    check_batch_limit,
     run_set_bids,
     run_single_id_batch,
 )
@@ -39,18 +40,24 @@ def smart_ad_targets_list(
         fields: Comma-separated field names.
     """
     args = ["smartadtargets", "get", "--format", "json"]
-    if ids is not None:
-        normalized = ids.strip()
-        if normalized:
-            args.extend(["--ids", normalized])
-    if ad_group_ids is not None:
-        normalized = ad_group_ids.strip()
-        if normalized:
-            args.extend(["--adgroup-ids", normalized])
-    if campaign_ids is not None:
-        normalized = campaign_ids.strip()
-        if normalized:
-            args.extend(["--campaign-ids", normalized])
+    normalized_ids = ids.strip() if ids is not None else None
+    if normalized_ids:
+        batch_error = check_batch_limit(normalized_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--ids", normalized_ids])
+    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
+    if normalized_ad_group_ids:
+        batch_error = check_batch_limit(normalized_ad_group_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
+    if normalized_campaign_ids:
+        batch_error = check_batch_limit(normalized_campaign_ids)
+        if batch_error:
+            return batch_error.__dict__
+        args.extend(["--campaign-ids", normalized_campaign_ids])
     if states is not None:
         args.extend(["--states", states])
     if limit is not None:

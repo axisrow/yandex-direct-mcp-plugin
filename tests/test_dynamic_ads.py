@@ -32,6 +32,16 @@ def test_dynamic_ads_list():
         assert len(result) == 1
 
 
+def test_dynamic_ads_list_batch_limit():
+    """>10 campaign/adgroup IDs are rejected locally with batch_limit (#170-17)."""
+    ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+    runner = mock_runner(SAMPLE_TARGETS)
+    with patch("server.tools.dynamic_ads.get_runner", return_value=runner):
+        result = dynamic_ads_list(campaign_ids=ids)
+    assert result["error"] == "batch_limit"
+    runner.run_json.assert_not_called()
+
+
 def test_dynamic_ads_list_trims_ids():
     runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.dynamic_ads.get_runner", return_value=runner):

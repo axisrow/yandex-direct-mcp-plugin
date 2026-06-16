@@ -52,6 +52,16 @@ class TestAdextensionsList:
             result = adextensions_list()
             assert len(result) == 2
 
+    def test_list_extensions_no_batch_limit_on_read(self, mock_extensions):
+        """Reads accept >10 IDs — the 10-ID cap is mutation-only (#170-25)."""
+        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+        runner = mock_runner(mock_extensions)
+        with patch("server.tools.adextensions.get_runner", return_value=runner):
+            result = adextensions_list(ids=ids)
+        assert not (isinstance(result, dict) and result.get("error") == "batch_limit")
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--ids") + 1] == ids
+
     def test_list_extensions_empty_ids_treated_as_missing_filter(self, mock_extensions):
         """Test empty ids behaves like no filter."""
         runner = mock_runner(mock_extensions)
@@ -128,14 +138,6 @@ class TestAdextensionsList:
         ):
             result = adextensions_list(ids="999")
             assert result == []
-
-    def test_list_extensions_batch_limit(self):
-        """Test batch limit validation for adextensions_list."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = adextensions_list(ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
 
 class TestAdextensionsAdd:
     """Tests for adextensions_add tool (CLI 0.3.8: callout-only typed)."""

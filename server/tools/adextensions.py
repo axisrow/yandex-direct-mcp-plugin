@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_single_id_batch
+from server.tools.helpers import run_single_id_batch
 
 
 @mcp.tool(
@@ -37,9 +37,7 @@ def adextensions_list(
     cmd = ["adextensions", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return batch_error.__dict__
+        # No 10-ID cap on reads — that limit applies to mutations only (#170-25).
         cmd.extend(["--ids", normalized_ids])
     normalized_types = types.strip() if types is not None else None
     if normalized_types:

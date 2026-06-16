@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import require_single_selector
+from server.tools.helpers import check_batch_limit, require_single_selector
 
 
 @mcp.tool(
@@ -52,10 +52,19 @@ def keyword_bids_list(
 
     args = ["keywordbids", "get", "--format", "json"]
     if normalized_campaign_ids:
+        batch_error = check_batch_limit(normalized_campaign_ids)
+        if batch_error:
+            return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
     if normalized_ad_group_ids:
+        batch_error = check_batch_limit(normalized_ad_group_ids)
+        if batch_error:
+            return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if normalized_keyword_ids:
+        batch_error = check_batch_limit(normalized_keyword_ids)
+        if batch_error:
+            return batch_error.__dict__
         args.extend(["--keyword-ids", normalized_keyword_ids])
     if normalized_serving:
         args.extend(["--serving-statuses", normalized_serving])

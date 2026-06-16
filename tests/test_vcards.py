@@ -50,12 +50,15 @@ class TestVcardsList:
             result = vcards_list()
             assert len(result) == 2
 
-    def test_list_vcards_batch_limit(self):
-        """Test batch limit validation for list."""
+    def test_list_vcards_no_batch_limit_on_read(self):
+        """Reads accept >10 IDs — the 10-ID cap applies to mutations only (#170-25)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = vcards_list(ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.vcards.get_runner", return_value=runner):
+            result = vcards_list(ids=ids)
+        assert not (isinstance(result, dict) and result.get("error") == "batch_limit")
+        argv = runner.run_json.call_args[0][0]
+        assert argv[argv.index("--ids") + 1] == ids
 
     def test_list_vcards_trims_ids_before_cli(self, mock_vcards):
         """Test vCard IDs are normalized before argv construction."""

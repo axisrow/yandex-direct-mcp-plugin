@@ -5,7 +5,6 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    check_batch_limit,
     run_single_id_batch,
 )
 
@@ -35,7 +34,7 @@ def vcards_list(
     """List vCards.
 
     Args:
-        ids: Comma-separated vCard IDs (max 10).
+        ids: Comma-separated vCard IDs.
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
@@ -43,9 +42,7 @@ def vcards_list(
     cmd = ["vcards", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return batch_error.__dict__
+        # No 10-ID cap on reads — that limit applies to mutations only (#170-25).
         cmd.extend(["--ids", normalized_ids])
     if limit is not None:
         cmd.extend(["--limit", str(limit)])

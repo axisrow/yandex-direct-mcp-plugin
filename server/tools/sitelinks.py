@@ -4,7 +4,7 @@ import json
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_single_id_batch
+from server.tools.helpers import run_single_id_batch
 
 _SITELINK_FIELD_MAP = {
     "title": "Title",
@@ -28,7 +28,7 @@ def sitelinks_list(
     """List sitelinks sets.
 
     Args:
-        ids: Comma-separated sitelinks set IDs (max 10).
+        ids: Comma-separated sitelinks set IDs.
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
@@ -36,9 +36,7 @@ def sitelinks_list(
     cmd = ["sitelinks", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return batch_error.__dict__
+        # No 10-ID cap on reads — that limit applies to mutations only (#170-25).
         cmd.extend(["--ids", normalized_ids])
     if limit is not None:
         cmd.extend(["--limit", str(limit)])

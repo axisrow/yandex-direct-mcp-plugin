@@ -34,6 +34,16 @@ def test_smart_ad_targets_list():
         assert len(result) == 1
 
 
+def test_smart_ad_targets_list_batch_limit():
+    """>10 campaign/adgroup IDs are rejected locally with batch_limit (#170-23)."""
+    ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
+    runner = mock_runner(SAMPLE_TARGETS)
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        result = smart_ad_targets_list(campaign_ids=ids)
+    assert result["error"] == "batch_limit"
+    runner.run_json.assert_not_called()
+
+
 def test_smart_ad_targets_list_trims_ids():
     runner = mock_runner(SAMPLE_TARGETS)
     with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
