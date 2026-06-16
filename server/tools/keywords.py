@@ -120,7 +120,7 @@ def keywords_list(
 
 
 @mcp.tool(
-    description="Update keyword text or user params; use keywordbids_set for bids. Call tool_help('keywords_update') for parameters.",
+    description="Update keyword text or user params; use keywordbids_set for bids and keywords_suspend/resume for status. Call tool_help('keywords_update') for parameters.",
 )
 @handle_cli_errors
 def keywords_update(
