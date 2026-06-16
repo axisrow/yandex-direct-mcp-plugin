@@ -214,6 +214,15 @@ class TestAdsCrudOperations:
             assert result["error"] == "missing_update_fields"
             runner.run_json.assert_not_called()
 
+    def test_ads_update_requires_type(self):
+        """direct-cli 0.4.2 marks --type as required; a field-but-no-type call
+        is rejected with type_required before reaching the CLI."""
+        runner = mock_runner({"Id": 111})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=111, title="New title")
+        assert result["error"] == "type_required"
+        runner.run_json.assert_not_called()
+
     def test_ads_update_dry_run(self):
         """dry_run=True appends --dry-run to argv."""
         runner = mock_runner({"_dry_run": True})

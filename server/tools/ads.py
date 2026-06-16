@@ -344,7 +344,7 @@ def ads_update(
     """Update an ad.
 
     CLI 0.3.12 exposes typed flags for supported ad update subtypes. `type`
-    is optional when the CLI can apply the supplied fields without an explicit
+    is REQUIRED (direct-cli 0.4.2 marks --type as required); pass the ad
     subtype. Ad *status* is NOT mutable here (WSDL AdUpdateItem has no status
     field; CLI 0.4.2 rejects `--status`) — use ads_suspend / ads_resume /
     ads_archive / ads_unarchive to change an ad's status instead.
@@ -357,7 +357,7 @@ def ads_update(
 
     Args:
         id: Ad ID to update.
-        type: Optional ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and
+        type: Required ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and
             newer 0.3.12 subtype families).
         status: Deprecated — ad status is not mutable via this tool. Passing it
             returns an error pointing to ads_suspend/resume/archive/unarchive.
@@ -462,10 +462,17 @@ def ads_update(
             error="invalid_mobile",
             message=f"mobile must be one of {MOBILE_VALUES}; got '{mobile}'",
         ).__dict__
+    if type is None:
+        return ToolError(
+            error="type_required",
+            message=(
+                "ads_update requires `type` (direct-cli 0.4.2 marks --type as "
+                "required). Pass the ad subtype, e.g. TEXT_AD, TEXT_IMAGE_AD, "
+                "MOBILE_APP_AD, or a newer responsive/shopping subtype."
+            ),
+        ).__dict__
 
-    args = ["ads", "update", "--id", str(id)]
-    if type is not None:
-        args.extend(["--type", type])
+    args = ["ads", "update", "--id", str(id), "--type", type]
     if title:
         args.extend(["--title", title])
     if text:

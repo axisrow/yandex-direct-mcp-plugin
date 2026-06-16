@@ -166,7 +166,8 @@ def adgroups_add(
         campaign_id: Campaign ID to add the ad group to.
         name: Ad group name.
         type: Ad group type (TEXT_AD_GROUP, DYNAMIC_TEXT_AD_GROUP, etc.).
-        region_ids: Comma-separated region IDs for targeting.
+        region_ids: Required comma-separated region IDs for targeting
+            (WSDL AdGroupAddItem.RegionIds minOccurs=1).
         domain_url: Domain URL for DYNAMIC_TEXT_AD_GROUP.
         feed_id: Feed ID for SMART_AD_GROUP.
         feed_category_ids: Comma-separated feed category IDs.
@@ -184,6 +185,16 @@ def adgroups_add(
         tracking_params: Tracking parameter specs.
         dry_run: Show the direct request without sending it.
     """
+    if not region_ids:
+        return ToolError(
+            error="region_ids_required",
+            message=(
+                "adgroups_add requires region_ids (direct-cli 0.4.2 marks "
+                "--region-ids as required; WSDL AdGroupAddItem.RegionIds "
+                "minOccurs=1). Pass at least one region ID, e.g. '225' for "
+                "Russia."
+            ),
+        ).__dict__
     args = [
         "adgroups",
         "add",

@@ -66,7 +66,9 @@ class TestAdgroupsAdd:
             "server.tools.adgroups.get_runner",
             return_value=mock_runner(mock_result),
         ):
-            result = adgroups_add(campaign_id=12345, name="New Ad Group")
+            result = adgroups_add(
+                campaign_id=12345, name="New Ad Group", region_ids="225"
+            )
             assert result["Id"] == 123
 
     def test_adgroups_add_with_type(self):
@@ -80,10 +82,22 @@ class TestAdgroupsAdd:
                 campaign_id=12345,
                 name="Test",
                 type="MOBILE_AD_GROUP",
+                region_ids="225",
             )
             call_args = runner.run_json.call_args[0][0]
             assert "--type" in call_args
             assert "MOBILE_AD_GROUP" in call_args
+
+    def test_adgroups_add_requires_region_ids(self):
+        """direct-cli 0.4.2 marks --region-ids as required; guard before CLI."""
+        runner = mock_runner({"Id": 1})
+        with patch(
+            "server.tools.adgroups.get_runner",
+            return_value=runner,
+        ):
+            result = adgroups_add(campaign_id=12345, name="No region")
+        assert result["error"] == "region_ids_required"
+        runner.run_json.assert_not_called()
 
 
 class TestAdgroupsUpdate:
