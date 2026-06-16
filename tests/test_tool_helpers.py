@@ -246,6 +246,17 @@ def test_handle_cli_errors_maps_error_code_8300_to_invalid_status_with_hint() ->
     assert "ads_archive" in result["hint"]
 
 
+def test_error_8300_hint_explains_unknown_status_fallback() -> None:
+    """8300 hint must cover the Status=UNKNOWN fallback case (#164)."""
+    result = _wrap_cli_error("boom", error_code=8300)()
+    hint = result["hint"]
+    assert "UNKNOWN" in hint
+    assert "ads_unarchive" in hint
+    # The misleading "definitely shown/moderated" framing must no longer be the
+    # sole stated cause.
+    assert "Two common causes" in hint
+
+
 def test_handle_cli_errors_maps_error_code_8301_to_invalid_status_with_hint() -> None:
     result = _wrap_cli_error("boom", error_code=8301)()
     assert result["error"] == "invalid_status"

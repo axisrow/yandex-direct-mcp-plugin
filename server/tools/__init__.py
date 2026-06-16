@@ -98,9 +98,14 @@ _HINTS_BY_ERROR_CODE: dict[int, str] = {
         "Archive or delete unused objects first."
     ),
     8300: (
-        "Ad cannot be removed: it was shown / passed moderation while the "
-        "account had funds. Yandex forbids ads.delete for such ads — use "
-        "ads_archive instead. A draft can only be fully removed by hand in "
+        "Operation not allowed for this ad's status (error 8300). Two common "
+        "causes: (1) Status=UNKNOWN — a service fallback enum value for a status "
+        "outside the API v5 dictionary, NOT a business status; the ad is not a "
+        "DRAFT, so delete and moderate are both impossible and only ads_archive / "
+        "ads_unarchive work (in the web interface the ad still shows its real "
+        "status, e.g. draft/archived). (2) The ad was shown / passed moderation "
+        "while the account had funds — Yandex forbids ads.delete for such ads, "
+        "use ads_archive instead. A DRAFT can only be fully removed by hand in "
         "the Direct web interface."
     ),
     8301: (
