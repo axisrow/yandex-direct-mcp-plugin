@@ -24,7 +24,8 @@ or by product area (``campaign_management``).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from functools import lru_cache
 
 from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
@@ -189,3 +190,89 @@ class ToolSurfaceConfig:
         """Configured group names that match no real group (typo guard)."""
         configured = self.enabled_groups | self.disabled_groups
         return frozenset(configured - all_groups())
+
+
+# --- preset profiles --------------------------------------------------------
+# "full" is the default 146-tool surface (backward compatible). Scenario
+# profiles (core / analytics / campaign-editor) are added in #191.
+PROFILES: dict[str, ToolSurfaceConfig] = {
+    "full": ToolSurfaceConfig(),
+}
+
+# env var names (kept together so docs and code stay in sync)
+ENV_PROFILE = "YANDEX_DIRECT_TOOL_PROFILE"
+ENV_ENABLED_GROUPS = "YANDEX_DIRECT_ENABLED_GROUPS"
+ENV_DISABLED_GROUPS = "YANDEX_DIRECT_DISABLED_GROUPS"
+ENV_ENABLED_TOOLS = "YANDEX_DIRECT_ENABLED_TOOLS"
+ENV_DISABLED_TOOLS = "YANDEX_DIRECT_DISABLED_TOOLS"
+
+
+def _split_csv(value: str | None) -> frozenset[str]:
+    if not value:
+        return frozenset()
+    return frozenset(item.strip() for item in value.split(",") if item.strip())
+
+
+def config_from_env(env: Mapping[str, str]) -> ToolSurfaceConfig:
+    """Build a :class:`ToolSurfaceConfig` from environment variables.
+
+    Semantics:
+
+    * ``YANDEX_DIRECT_TOOL_PROFILE`` picks a :data:`PROFILES` base (unknown name
+      falls back to ``full``).
+    * otherwise, if any ``ENABLED_*`` var is set, the surface is allow-list mode
+      (``default_enabled=False`` — only what's explicitly enabled);
+    * otherwise it is the ``full`` surface and ``DISABLED_*`` vars subtract.
+
+    ``ENABLED_*`` / ``DISABLED_*`` vars are always merged on top of the base, so
+    they refine a profile too.
+    """
+    profile = (env.get(ENV_PROFILE) or "").strip().lower()
+    enabled_groups = _split_csv(env.get(ENV_ENABLED_GROUPS))
+    disabled_groups = _split_csv(env.get(ENV_DISABLED_GROUPS))
+    enabled_tools = _split_csv(env.get(ENV_ENABLED_TOOLS))
+    disabled_tools = _split_csv(env.get(ENV_DISABLED_TOOLS))
+
+    if profile:
+        base = PROFILES.get(profile, ToolSurfaceConfig())
+    elif enabled_groups or enabled_tools:
+        base = ToolSurfaceConfig(default_enabled=False)
+    else:
+        base = ToolSurfaceConfig(default_enabled=True)
+
+    return replace(
+        base,
+        enabled_groups=base.enabled_groups | enabled_groups,
+        disabled_groups=base.disabled_groups | disabled_groups,
+        enabled_tools=base.enabled_tools | enabled_tools,
+        disabled_tools=base.disabled_tools | disabled_tools,
+    )
+
+
+def env_config_warnings(env: Mapping[str, str], config: ToolSurfaceConfig) -> list[str]:
+    """Human-readable warnings for a parsed env config (unknown profile/groups)."""
+    warnings: list[str] = []
+    profile = (env.get(ENV_PROFILE) or "").strip().lower()
+    if profile and profile not in PROFILES:
+        warnings.append(
+            f"unknown {ENV_PROFILE}={profile!r}; known: {sorted(PROFILES)}. "
+            "Falling back to the full surface."
+        )
+    unknown = config.unknown_groups()
+    if unknown:
+        warnings.append(f"unknown tool groups ignored: {sorted(unknown)}")
+    return warnings
+
+
+def apply_tool_surface(mcp, config: ToolSurfaceConfig) -> list[str]:
+    """Remove disabled tools from a FastMCP instance; return removed names.
+
+    Uses the public ``remove_tool``. A ``full`` config removes nothing, so the
+    default 146-tool surface is untouched.
+    """
+    manager = getattr(mcp, "_tool_manager", None)
+    registered = list(getattr(manager, "_tools", {}).keys())
+    removed = [name for name in registered if not config.is_enabled(name)]
+    for name in removed:
+        mcp.remove_tool(name)
+    return removed
