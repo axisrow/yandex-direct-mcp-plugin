@@ -104,24 +104,31 @@ def test_keywords_update_dry_run():
         assert "--dry-run" in argv
 
 
-def test_keywords_update_accepts_zero_bids():
-    """Zero bid values are provided updates and must be stringified for CLI."""
+def test_keywords_update_rejects_bid_changes():
+    """direct-cli 0.4.2 removed --bid/--context-bid from `keywords update`.
+
+    Passing bid/context_bid (including a valid 0) now returns a redirect error
+    to keywordbids_set/bids_set instead of emitting flags the CLI rejects.
+    """
     runner = mock_runner(None)
     with patch("server.tools.keywords.get_runner", return_value=runner):
-        keywords_update(id=99999, bid=0, context_bid=0)
+        result = keywords_update(id=99999, bid=0, context_bid=0)
 
-    runner.run_json.assert_called_once_with(
-        [
-            "keywords",
-            "update",
-            "--id",
-            "99999",
-            "--bid",
-            "0",
-            "--context-bid",
-            "0",
-        ]
-    )
+    assert result["error"] == "bid_not_updatable_here"
+    runner.run_json.assert_not_called()
+
+
+def test_keywords_update_rejects_status_changes():
+    """Keyword status is not mutable via keywords_update (CLI removed --status).
+
+    The tool redirects to keywords_suspend / keywords_resume.
+    """
+    runner = mock_runner(None)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        result = keywords_update(id=99999, status="SUSPENDED")
+
+    assert result["error"] == "status_not_updatable"
+    runner.run_json.assert_not_called()
 
 
 def test_keywords_update_requires_changes():

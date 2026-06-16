@@ -143,12 +143,13 @@ def keywords_update(
     status: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Update keyword text or user params.
+    """Update keyword text, user params, or autotargeting projection fields.
 
-    CLI 0.3.12 accepts typed bid, status, and autotargeting projection fields
-    here. `keywordbids_set` remains the bulk bid-management tool, but this
-    wrapper mirrors the `direct keywords update` flags for single keyword
-    updates.
+    direct-cli 0.4.2 removed --bid/--context-bid/--status from
+    `keywords update`. Bids are now managed exclusively via `keywordbids_set`
+    (KeywordId-scoped) or `bids_set`; keyword status is changed via
+    `keywords_suspend` / `keywords_resume`. The bid/context_bid/status
+    parameters below are kept only to return a clear redirect error if passed.
 
     Args:
         id: Keyword ID.
@@ -158,11 +159,30 @@ def keywords_update(
         autotargeting_categories: Repeated autotargeting category specs.
         autotargeting_brand_options: Repeated autotargeting brand option specs.
         autotargeting_settings_*: Autotargeting setting values.
-        bid: Optional search bid.
-        context_bid: Optional context bid.
-        status: Optional keyword status.
+        bid: Deprecated — use keywordbids_set/bids_set (returns an error).
+        context_bid: Deprecated — use keywordbids_set/bids_set (returns an error).
+        status: Deprecated — use keywords_suspend/keywords_resume (returns an error).
         dry_run: Show the direct request without sending it.
     """
+    if bid is not None or context_bid is not None:
+        return ToolError(
+            error="bid_not_updatable_here",
+            message=(
+                "Keyword bids are not mutable via keywords_update (direct-cli "
+                "0.4.2 removed --bid/--context-bid). Use keywordbids_set "
+                "(KeywordId-scoped) or bids_set instead."
+            ),
+        ).__dict__
+    if status is not None:
+        return ToolError(
+            error="status_not_updatable",
+            message=(
+                "Keyword status is not mutable via the Keywords API (direct-cli "
+                "0.4.2 removed --status). Use keywords_suspend / keywords_resume "
+                "to pause or resume keywords."
+            ),
+        ).__dict__
+
     values = locals()
     if not any(
         provided_update_value(value)
@@ -183,12 +203,6 @@ def keywords_update(
     if user_param_2 is not None:
         args.extend(["--user-param-2", user_param_2])
     append_cli_options(args, values, KEYWORD_AUTOTARGETING_OPTIONS)
-    if bid is not None:
-        args.extend(["--bid", str(bid)])
-    if context_bid is not None:
-        args.extend(["--context-bid", str(context_bid)])
-    if status is not None:
-        args.extend(["--status", status])
     if dry_run:
         args.append("--dry-run")
     cli_output = runner.run_json(args)

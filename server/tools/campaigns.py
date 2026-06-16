@@ -78,8 +78,6 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("average_cpa", "--average-cpa"),
     CliOption("crr", "--crr"),
     CliOption("bid_ceiling", "--bid-ceiling"),
-    CliOption("notification", "--notification"),
-    CliOption("time_targeting", "--time-targeting"),
     CliOption("client_info", "--client-info"),
     CliOption("sms_events", "--sms-events"),
     CliOption("sms_time_from", "--sms-time-from"),
@@ -615,8 +613,6 @@ def campaigns_update(
     frequency_cap_period_days: int | None = None,
     frequency_cap_period_all: bool = False,
     video_target: str | None = None,
-    notification: str | None = None,
-    time_targeting: str | None = None,
     client_info: str | None = None,
     sms_events: str | None = None,
     sms_time_from: str | None = None,
@@ -668,8 +664,6 @@ def campaigns_update(
     unified_network_options: dict | None = None,
     mobile_search_options: dict | None = None,
     mobile_network_options: dict | None = None,
-    notification_json: str | None = None,
-    time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update campaign fields.
@@ -725,14 +719,8 @@ def campaigns_update(
         dry_run: Show the direct request without sending it.
     """
     values = locals()
-    if notification is None and notification_json is not None:
-        values["notification"] = notification_json
-    if time_targeting is None and time_targeting_json is not None:
-        values["time_targeting"] = time_targeting_json
     optional_values = [
-        value
-        for key, value in values.items()
-        if key not in {"id", "dry_run", "notification_json", "time_targeting_json"}
+        value for key, value in values.items() if key not in {"id", "dry_run"}
     ]
     if not any(provided_update_value(value) for value in optional_values):
         return ToolError(
@@ -842,8 +830,6 @@ def campaigns_add(
     frequency_cap_period_days: int | None = None,
     frequency_cap_period_all: bool = False,
     video_target: str | None = None,
-    notification: str | None = None,
-    time_targeting: str | None = None,
     client_info: str | None = None,
     sms_events: str | None = None,
     sms_time_from: str | None = None,
@@ -887,8 +873,6 @@ def campaigns_add(
     unified_network_options: dict | None = None,
     mobile_search_options: dict | None = None,
     mobile_network_options: dict | None = None,
-    notification_json: str | None = None,
-    time_targeting_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create a new campaign.
@@ -973,10 +957,14 @@ def campaigns_add(
         search_placement_search_results / search_placement_product_gallery /
             search_placement_dynamic_places: TextCampaign / Unified /
             DynamicText Search PlacementTypes (YES/NO).
-        notification_json: Optional JSON for `CampaignBase.Notification`
-            ({"SmsSettings": {...}, "EmailSettings": {...}}).
-        time_targeting_json: Optional JSON for `CampaignAddItem.TimeTargeting`
-            ({"Schedule": [...], "ConsiderWorkingWeekends": "YES|NO", ...}).
+        Notification settings use the typed flags notification_email,
+            notification_warning_balance, notification_send_account_news,
+            notification_send_warnings, notification_check_position_interval.
+        TimeTargeting uses time_targeting_schedule, consider_working_weekends,
+            holidays_suspend_on_holidays, holidays_bid_percent,
+            holidays_start_hour, holidays_end_hour. (The free-form
+            notification/time_targeting blob flags were removed in direct-cli
+            0.4.2.)
         dry_run: Show the direct request without sending it.
     """
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
@@ -1010,10 +998,6 @@ def campaigns_add(
     if bid_ceiling is not None:
         args.extend(["--bid-ceiling", str(bid_ceiling)])
     values = locals()
-    if notification is None and notification_json is not None:
-        values["notification"] = notification_json
-    if time_targeting is None and time_targeting_json is not None:
-        values["time_targeting"] = time_targeting_json
     # Expand grouped strategy dicts into flat option names (argv stays identical).
     # *_budget_type keys are update-only; include_budget_types=False ignores them.
     expansion_error = _expand_strategy_dicts(

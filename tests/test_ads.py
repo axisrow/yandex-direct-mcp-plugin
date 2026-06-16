@@ -176,6 +176,18 @@ class TestAdsCrudOperations:
                 ]
             )
 
+    def test_ads_update_rejects_status(self):
+        """direct-cli 0.4.2 rejects `ads update --status`; the tool redirects.
+
+        Ad status is changed via ads_suspend/resume/archive/unarchive, so a
+        status update is intercepted before any CLI call.
+        """
+        runner = mock_runner({"Id": 111})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=111, status="SUSPENDED")
+        assert result["error"] == "status_not_updatable"
+        runner.run_json.assert_not_called()
+
     def test_ads_update_mobile_app_argv(self):
         """MOBILE_APP_AD update accepts tracking_url / action / age_label / image_hash."""
         runner = mock_runner({"Id": 222})

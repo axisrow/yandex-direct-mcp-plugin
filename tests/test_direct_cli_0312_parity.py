@@ -72,6 +72,17 @@ TARGET_COMMANDS: tuple[tuple[str, str, str, str], ...] = (
 )
 
 IGNORED_CLI_PARAMS = {"output", "output_format", "format"}
+
+# CLI options that direct-cli 0.4.2 still DEFINES (so it can emit a friendly
+# deprecation error) but REJECTS at runtime. The MCP plugin intentionally does
+# not forward them — campaigns_add/update drop the free-form notification/
+# time_targeting blob flags in favour of the typed --notification-*/
+# --time-targeting-* flags (issue #170 finding #8) — so they are excluded from
+# the "every CLI option must be exposed" parity guard.
+DEPRECATED_REJECTED_CLI_PARAMS: dict[tuple[str, str], set[str]] = {
+    ("campaigns", "add"): {"notification", "time_targeting"},
+    ("campaigns", "update"): {"notification", "time_targeting"},
+}
 ALIASES = {
     ("campaigns", "update"): {"campaign_id": "id"},
     ("adgroups", "add"): {"group_type": "type"},
@@ -157,10 +168,13 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
     missing_by_command: dict[str, list[str]] = {}
     for group, subcommand, module_name, function_name in TARGET_COMMANDS:
         click_command = cli.commands[group].commands[subcommand]
+        ignored = DEPRECATED_REJECTED_CLI_PARAMS.get((group, subcommand), set())
         cli_params = [
             param.name
             for param in click_command.params
-            if hasattr(param, "opts") and param.name not in IGNORED_CLI_PARAMS
+            if hasattr(param, "opts")
+            and param.name not in IGNORED_CLI_PARAMS
+            and param.name not in ignored
         ]
         fn = getattr(importlib.import_module(module_name), function_name)
         mcp_params = set(inspect.signature(fn).parameters)
@@ -248,12 +262,13 @@ def test_adgroups_and_ads_0312_flags_are_forwarded() -> None:
         autotargeting_categories=["EXACT"],
         tracking_params="x=1",
     )
+    # --dynamic-feed is is_flag=True in CLI 0.4.2: bare flag, no value.
     _run_with_runner(
         "server.tools.adgroups.get_runner",
         adgroups_update,
-        ["--dynamic-feed", "YES", "--feed-category-ids", "1,2"],
+        ["--dynamic-feed", "--feed-category-ids", "1,2"],
         id=1,
-        dynamic_feed="YES",
+        dynamic_feed=True,
         feed_category_ids="1,2",
     )
     _run_with_runner(
@@ -286,13 +301,14 @@ def test_keyword_bid_and_target_0312_flags_are_forwarded() -> None:
         autotargeting_categories=["EXACT"],
         priority="HIGH",
     )
+    # CLI 0.4.2 removed --bid/--context-bid/--status from `keywords update`;
+    # only typed text/user-param/autotargeting fields are forwarded now.
     _run_with_runner(
         "server.tools.keywords.get_runner",
         keywords_update,
-        ["--autotargeting-brand-option", "WITHOUT_BRANDS=YES", "--status", "ON"],
+        ["--autotargeting-brand-option", "WITHOUT_BRANDS=YES"],
         id=1,
         autotargeting_brand_options=["WITHOUT_BRANDS=YES"],
-        status="ON",
     )
     _run_with_runner(
         "server.tools.bids.get_runner",

@@ -221,7 +221,7 @@ def adgroups_update(
     status: str | None = None,
     region_ids: str | None = None,
     domain_url: str | None = None,
-    dynamic_feed: str | None = None,
+    dynamic_feed: bool = False,
     negative_keywords: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
     tracking_params: str | None = None,
@@ -276,8 +276,10 @@ def adgroups_update(
         args.extend(["--region-ids", region_ids])
     if domain_url is not None:
         args.extend(["--domain-url", domain_url])
-    if dynamic_feed is not None:
-        args.extend(["--dynamic-feed", dynamic_feed])
+    if dynamic_feed:
+        # CLI 0.4.2 defines --dynamic-feed as is_flag=True (no value); it builds
+        # a DynamicTextFeedAdGroup update block for --autotargeting-category.
+        args.append("--dynamic-feed")
     if feed_id is not None:
         args.extend(["--feed-id", str(feed_id)])
     if ad_title_source is not None:
