@@ -3,6 +3,7 @@
 from server.config import (
     ACTION_GROUPS,
     AREA_GROUPS,
+    PROFILES,
     SCENARIO_GROUPS,
     ToolSurfaceConfig,
     all_groups,
@@ -229,3 +230,46 @@ def test_config_from_env_valid_enabled_group_no_zero_warning():
     warnings = env_config_warnings(env, cfg)
     assert not any("zero tools" in w for w in warnings)
     assert any(cfg.is_enabled(name) for name in tool_names())
+
+
+# --- preset profiles ------------------------------------------------------
+
+
+def test_full_profile_is_the_whole_surface():
+    assert PROFILES["full"].enabled_tool_names() == tool_names()
+
+
+def test_every_profile_keeps_auth_and_help():
+    for name, cfg in PROFILES.items():
+        enabled = cfg.enabled_tool_names()
+        assert {"auth_status", "auth_login", "tool_help"} <= enabled, name
+
+
+def test_core_profile_is_read_only_campaign_basics():
+    enabled = PROFILES["core"].enabled_tool_names()
+    assert "campaigns_get" in enabled
+    assert "ads_get" in enabled
+    assert "campaigns_add" not in enabled  # no mutate
+    assert "campaigns_delete" not in enabled  # no destructive
+    assert "reports_get" not in enabled  # analytics not in core
+
+
+def test_analytics_profile_has_reporting_not_campaign_mutations():
+    enabled = PROFILES["analytics"].enabled_tool_names()
+    assert "reports_get" in enabled
+    assert "changes_check" in enabled
+    assert "campaigns_add" not in enabled
+
+
+def test_campaign_editor_allows_mutate_not_destructive():
+    enabled = PROFILES["campaign-editor"].enabled_tool_names()
+    assert "campaigns_add" in enabled
+    assert "campaigns_update" in enabled
+    assert "campaigns_delete" not in enabled  # destructive excluded
+    assert "ads_archive" not in enabled
+
+
+def test_scenario_profiles_are_smaller_than_full():
+    full = len(tool_names())
+    for name in ("core", "analytics", "campaign-editor"):
+        assert 0 < len(PROFILES[name].enabled_tool_names()) < full

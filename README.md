@@ -182,6 +182,36 @@ The public contract is now defined as:
 The machine-readable parity source lives in
 [`server/contract.py`](server/contract.py).
 
+### Configuring the tool surface (profiles & groups)
+
+By default all 146 tools are exposed. The full spec (names + descriptions +
+parameter schemas) is a fixed per-request cost, so you can narrow it to the
+tools you actually use via environment variables. Resolution is deterministic:
+`tool disabled > tool enabled > group disabled > group enabled > profile/default`.
+
+| Env var | Effect |
+|---|---|
+| `YANDEX_DIRECT_TOOL_PROFILE` | preset: `full` (default), `core`, `analytics`, `campaign-editor` |
+| `YANDEX_DIRECT_ENABLED_GROUPS` | allow-list mode: expose only these groups |
+| `YANDEX_DIRECT_DISABLED_GROUPS` | subtract groups from the full surface |
+| `YANDEX_DIRECT_ENABLED_TOOLS` / `YANDEX_DIRECT_DISABLED_TOOLS` | per-tool overrides (comma-separated) |
+
+Groups are **service** names (`campaigns`, `ads`, …), **actions**
+(`read` / `mutate` / `destructive`), or **product areas** (`analytics`,
+`campaign_management`, `bidding_budget`, `assets_creatives`,
+`targeting_audience`). `auth_*` and `tool_help` stay available in every profile.
+
+```jsonc
+// ~/.claude/settings.json — analytics-only, read surface
+{ "env": { "YANDEX_DIRECT_TOOL_PROFILE": "analytics" } }
+```
+
+Approximate budget by profile (share of full; see
+[`docs/token-budget.md`](docs/token-budget.md)): `core` ~7% (10 tools),
+`analytics` ~11% (28), `campaign-editor` ~51% (39), `full` 100% (146).
+Disabled tools are absent from `tools/list`; unknown profile/group names log a
+warning on stderr and fall back to the full surface.
+
 ### Naming rules
 
 - Direct operations use canonical `service_method` names borrowed from the CLI:

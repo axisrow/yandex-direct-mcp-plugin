@@ -95,9 +95,37 @@ FastMCP генерирует `anyOf: [..., {"type":"null"}]` 200+ раз.
 | топ-10 | 47% |
 | топ-20 | 58% |
 
+## Профили tool-surface (#149, этап 2)
+
+Реализован управляемый tool surface ([#189](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/189)/[#190](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/190)/[#191](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/191)):
+можно включать/выключать группы инструментов и выбирать preset-профиль через
+переменные окружения. Дефолт — `full` (все 146 тулов, обратная совместимость).
+
+| Профиль | Tools | Бюджет (approx `len/4`) | ~% от full |
+|---|--:|--:|--:|
+| `full` | 146 | 34 744 | 100% |
+| `core` (read-only кампаний + auth) | 10 | 2 566 | 7% |
+| `analytics` (отчёты/справочники/прогнозы) | 28 | 3 790 | 11% |
+| `campaign-editor` (read+mutate кампаний/групп/объявлений/ключей/ставок, без destructive) | 39 | 17 801 | 51% |
+
+> Абсолютные числа здесь — `approx(len/4)` (tiktoken недоступен в окружении этого
+> замера из-за PEP 668), поэтому строка `full` отличается от tiktoken-базы в
+> «Сводке» выше. **Проценты от full устойчивы между токенайзерами** — именно они
+> показывают экономию профиля.
+
+Как задать (env):
+
+```bash
+export YANDEX_DIRECT_TOOL_PROFILE=core            # preset-профиль
+export YANDEX_DIRECT_DISABLED_GROUPS=destructive  # вычесть группу из full
+export YANDEX_DIRECT_ENABLED_GROUPS=analytics     # allow-list: только эти группы
+export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
+```
+
+Регрессионный guard на общий бюджет — `tests/test_token_budget.py`; разбивку по
+модулю/сервису даёт `python -m tests.measure_tool_tokens`.
+
 ## Что НЕ входит в этот замер
 
 - Стоимость самих ответов инструментов (runtime payload) — это переменная,
   не постоянная стоимость спецификации.
-- Конфиг профилей/групп (`enabled_tools` / presets) — следующие этапы эпика #149,
-  ещё не реализованы.

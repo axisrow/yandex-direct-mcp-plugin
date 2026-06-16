@@ -126,6 +126,12 @@ Run `auth_login` (interactive, uses elicitation) or `auth_setup` (manual code/to
 - `YANDEX_DIRECT_LOGIN` — Direct Client-Login
 - `YANDEX_DIRECT_CLI_PATH` — explicit `direct` binary path
 
+Tool-surface selection (`server/config.py`, default = full 146 tools):
+
+- `YANDEX_DIRECT_TOOL_PROFILE` — `full` | `core` | `analytics` | `campaign-editor`
+- `YANDEX_DIRECT_ENABLED_GROUPS` / `YANDEX_DIRECT_DISABLED_GROUPS` — group allow/deny (service, action `read`/`mutate`/`destructive`, or product-area names)
+- `YANDEX_DIRECT_ENABLED_TOOLS` / `YANDEX_DIRECT_DISABLED_TOOLS` — per-tool overrides
+
 Integration tests: copy `.env.test.example` → `.env.test` and fill `YANDEX_OAUTH_TOKEN`, `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_LOGIN`.
 
 ## Project Structure
