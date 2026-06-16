@@ -68,6 +68,11 @@ def _is_not_authenticated_message(message: str) -> bool:
         "нет активного профиля" in normalized
         or "no active profile" in normalized
         or "not authenticated" in normalized
+        # An unconfigured profile means "not logged in", not a hard failure:
+        # `direct auth status --profile X` emits "Profile 'X' is not configured."
+        # and the no-profiles case emits "No profiles configured."
+        or "is not configured" in normalized
+        or "no profiles configured" in normalized
     )
 
 

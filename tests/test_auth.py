@@ -191,6 +191,21 @@ class TestAuthStatus:
         assert result["valid"] is False
         assert result["reason"] == "not_authenticated"
 
+    def test_auth_status_unconfigured_profile_is_not_authenticated(self) -> None:
+        """An unconfigured profile means "not logged in", not a hard failure:
+        `direct auth status --profile X` emits "Profile 'X' is not configured."
+        (#170-26)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr="Profile 'missing' is not configured.", returncode=1
+            ),
+        ):
+            result = auth_status(profile="missing")
+
+        assert result["valid"] is False
+        assert result["reason"] == "not_authenticated"
+
 
 class TestAuthSetup:
     def test_auth_setup_with_direct_token(self) -> None:
