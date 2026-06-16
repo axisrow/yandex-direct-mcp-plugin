@@ -3,10 +3,16 @@
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 
+# Names accepted by Dictionaries.get in Direct API v5. The CLI's own
+# `dictionaries list-names` only knows the first ten, but `dictionaries get`
+# (and the API) accept the audience / schema dictionaries too — so list them
+# here to keep this tool in sync with what dictionaries_get can actually fetch.
+# Source: https://yandex.ru/dev/direct/doc/ru/dictionaries/get
 ALLOWED_DICTIONARY_NAMES = (
     "Currencies",
     "MetroStations",
     "GeoRegions",
+    "GeoRegionNames",
     "TimeZones",
     "Constants",
     "AdCategories",
@@ -14,6 +20,10 @@ ALLOWED_DICTIONARY_NAMES = (
     "ProductivityAssertions",
     "SupplySidePlatforms",
     "Interests",
+    "AudienceInterests",
+    "AudienceCriteriaTypes",
+    "AudienceDemographicProfiles",
+    "FilterSchemas",
 )
 
 
@@ -26,9 +36,11 @@ def dictionaries_get(names: str) -> dict:
 
     Args:
         names: Comma-separated dictionary names to retrieve.
-            Available: Currencies, MetroStations, GeoRegions, TimeZones,
-            Constants, AdCategories, OperationSystemVersions,
-            ProductivityAssertions, SupplySidePlatforms, Interests.
+            Available: Currencies, MetroStations, GeoRegions, GeoRegionNames,
+            TimeZones, Constants, AdCategories, OperationSystemVersions,
+            ProductivityAssertions, SupplySidePlatforms, Interests,
+            AudienceInterests, AudienceCriteriaTypes,
+            AudienceDemographicProfiles, FilterSchemas.
     """
     runner = get_runner()
     result = runner.run_json(

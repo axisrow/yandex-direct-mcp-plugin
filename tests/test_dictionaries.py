@@ -87,6 +87,20 @@ class TestDictionariesListNames:
         assert "GeoRegions" in result
         assert "TimeZones" in result
 
+    def test_lists_audience_and_schema_dictionaries(self):
+        """dictionaries_get accepts these v5 names, so list_names must too (#169)."""
+        result = dictionaries_list_names()
+        for name in (
+            "GeoRegionNames",
+            "AudienceInterests",
+            "AudienceCriteriaTypes",
+            "AudienceDemographicProfiles",
+            "FilterSchemas",
+        ):
+            assert name in result
+        assert len(result) == 15
+        assert len(set(result)) == len(result)
+
 
 class TestDictionariesGetGeoRegions:
     """Test scenarios for dictionaries_get_geo_regions."""
