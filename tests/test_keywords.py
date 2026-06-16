@@ -69,6 +69,18 @@ def test_keywords_list_status_counts_as_filter():
     assert "--fetch-all" in argv
 
 
+def test_keywords_list_blank_status_filter_rejected():
+    """A blank status/statuses filter is treated as absent: the CLI drops empty
+    criteria values, so `--statuses ""` would trip the same empty-criteria
+    rejection. Catch it up front instead of forwarding garbage."""
+    runner = mock_runner(SAMPLE_KEYWORDS)
+    with patch("server.tools.keywords.get_runner", return_value=runner):
+        result = keywords_list(statuses="  ", fetch_all=True)
+    assert isinstance(result, dict)
+    assert result["error"] == "missing_selector"
+    runner.run_json.assert_not_called()
+
+
 def test_keywords_update():
     """Test updating keyword text."""
     with patch("server.tools.keywords.get_runner", return_value=mock_runner(None)):

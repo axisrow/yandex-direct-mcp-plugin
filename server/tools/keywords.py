@@ -92,21 +92,23 @@ def keywords_list(
         has_selector = True
 
     # Statuses/States/ModifiedSince/ServingStatuses are also valid CLI filters,
-    # so they count toward "has at least one filter".
-    if status is not None:
-        args.extend(["--status", status])
-        has_selector = True
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-        has_selector = True
-    if states is not None:
-        args.extend(["--states", states])
-        has_selector = True
-    if modified_since is not None:
-        args.extend(["--modified-since", modified_since])
-        has_selector = True
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
+    # so they count toward "has at least one filter". Blank/whitespace values are
+    # treated as absent: the CLI drops empty criteria values, so forwarding
+    # `--statuses ""` would leave SelectionCriteria empty and trip the same
+    # "provide at least one typed filter" rejection this guard prevents.
+    for value, flag in (
+        (status, "--status"),
+        (statuses, "--statuses"),
+        (states, "--states"),
+        (modified_since, "--modified-since"),
+        (serving_statuses, "--serving-statuses"),
+    ):
+        if value is None:
+            continue
+        normalized = value.strip()
+        if not normalized:
+            continue
+        args.extend([flag, normalized])
         has_selector = True
 
     if not has_selector:
