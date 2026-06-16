@@ -15,7 +15,12 @@ _DIRECT_INSTALL_HINT = (
 )
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-_ERROR_CODE_RE = re.compile(r"\berror_code=(\d+)\b")
+# direct-cli surfaces errors two ways: top-level HTTP API errors as
+# "error_code=<N>" and per-action result errors as "Error <N>: <message>"
+# (output.py _format_api_result_error). Match both so action-level codes
+# (8800 not-found, 8300/8301 can't-delete, 9300/7001 limit) are extracted and
+# their hints/classifications fire. (#170-2)
+_ERROR_CODE_RE = re.compile(r"(?:error_code=|\bError\s+)(\d+)\b")
 # Anchor on the literal program token ``direct`` (or its package alias
 # ``direct-cli``) followed by ``version X.Y.Z``. Matches Click's standard
 # ``version_option`` output ``"direct, version X.Y.Z"`` while rejecting
@@ -326,7 +331,10 @@ def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:
     error_code: int | None = None
     if match := _ERROR_CODE_RE.search(stderr):
         error_code = int(match.group(1))
-    if "401" in stderr or "Unauthorized" in stderr or error_code == 53:
+    # Rely on the structured signals, not a bare "401" substring: request_ids
+    # are long random digit runs that frequently contain "401", which used to
+    # misclassify funds/limit errors as auth failures. (#170-3)
+    if error_code == 53 or "Unauthorized" in stderr:
         raise CliAuthError("Token expired or invalid")
     if error_code == 58:
         raise CliRegistrationError(

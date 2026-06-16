@@ -860,3 +860,44 @@ class TestRunJson:
             )
             assert exc_info.value.stderr is not None
             assert "\x1b" not in exc_info.value.stderr
+
+    def test_action_level_error_code_parsed(self, runner):
+        """`Error <N>: <msg>` action-level errors yield a parsed error_code so
+        downstream not_found/limit hints fire, not just `error_code=<N>`
+        (#170-2)."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = "✗ Error 8800: Object not found in the account"
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            from server.cli.runner import CliError
+
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["ads", "delete"])
+            assert exc_info.value.error_code == 8800
+
+    def test_request_id_containing_401_is_not_auth_error(self, runner):
+        """A request_id whose digits contain '401' must NOT be misclassified as
+        an auth error; only error_code==53 / 'Unauthorized' mean auth (#170-3)."""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = (
+            "✗ request_id=6630240138472724014, error_code=152, "
+            "error_string=Account is out of money"
+        )
+        mock_result.returncode = 1
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            from server.cli.runner import CliError
+
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["campaigns", "get"])
+            assert not isinstance(exc_info.value, CliAuthError)
+            assert exc_info.value.error_code == 152

@@ -122,6 +122,30 @@ def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint()
     assert "Operators are usually one of" in result["hint"]
 
 
+def test_handle_cli_errors_maps_8800_not_found_with_client_login_hint() -> None:
+    """error_code 8800 → not_found + client-login hint. Reachable now that the
+    runner parses action-level 'Error 8800: ...' codes (#170-13 / #170-2)."""
+    result = _wrap_cli_error(
+        "boom",
+        error_code=8800,
+        stderr="Error 8800: object is not available under the current Client-Login",
+    )()
+    assert result["error"] == "not_found"
+    assert "auth_login or auth_setup" in result["hint"]
+
+
+def test_handle_cli_errors_maps_8300_invalid_status() -> None:
+    """error_code 8300/8301 → invalid_status (#170-13)."""
+    result = _wrap_cli_error("boom", error_code=8300, stderr="Error 8300: ...")()
+    assert result["error"] == "invalid_status"
+
+
+def test_handle_cli_errors_maps_9300_limit_exceeded() -> None:
+    """error_code 9300/7001 → limit_exceeded (#170-13)."""
+    result = _wrap_cli_error("boom", error_code=9300, stderr="Error 9300: ...")()
+    assert result["error"] == "limit_exceeded"
+
+
 def test_handle_cli_errors_filter_hint_matches_only_whole_word() -> None:
     """A substring like 'filterable' or 'unfiltered' must NOT trigger the
     Filter hint — only the standalone word 'filter' does."""
