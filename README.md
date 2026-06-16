@@ -61,6 +61,37 @@ This repository now includes a Codex marketplace entry and installable plugin bu
 python -m server.main
 ```
 
+### How the MCP server starts (Linux/macOS)
+
+On `SessionStart` the `hooks/setup.sh` hook installs `mcp` and `direct-cli`.
+On Debian/Ubuntu and other externally-managed Pythons (PEP 668) a plain
+`pip install --user` is blocked, so dependencies go into a per-user
+virtualenv at `${CLAUDE_PLUGIN_DATA}/venv` (default
+`~/.claude/plugins/data/yandex-direct/venv`). On macOS they fall back to user
+site-packages.
+
+`.mcp.json` therefore does **not** launch the server with a bare `python3`
+(the system interpreter would not see the venv on Linux). Instead it runs
+`hooks/run-server.sh`, which prefers the venv interpreter and falls back to
+system `python3`:
+
+```jsonc
+// .mcp.json
+{ "mcpServers": { "yandex-direct-mcp": {
+  "command": "bash",
+  "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/run-server.sh"]
+}}}
+```
+
+Troubleshooting (server fails to start / no tools):
+
+- Confirm the venv exists and has deps:
+  `~/.claude/plugins/data/yandex-direct/venv/bin/python3 -c "import mcp, direct_cli"`.
+- If `CLAUDE_PLUGIN_DATA` is set to a volatile path (e.g. under `/tmp`), the
+  venv is lost on reboot — point it at a stable per-user directory.
+- You should not need to hardcode an absolute interpreter path in
+  `settings.json`; the wrapper resolves it at launch.
+
 ## Authentication
 
 Authentication is handled by `direct-cli`. The plugin does not store tokens;
