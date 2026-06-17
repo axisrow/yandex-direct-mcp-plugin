@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import normalize_optional_str
+from server.tools.helpers import normalize_optional_str, validate_yes_no
 
 
 @mcp.tool(
@@ -28,11 +28,12 @@ def adimages_list(
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    if associated is not None and associated not in ("YES", "NO"):
-        return ToolError(
-            error="invalid_associated",
-            message=f"associated must be YES or NO; got '{associated}'",
-        ).__dict__
+    if associated is not None:
+        err = validate_yes_no(
+            associated, field="associated", error="invalid_associated"
+        )
+        if err is not None:
+            return err.__dict__
 
     cmd = ["adimages", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None

@@ -7,10 +7,10 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     run_batch_mutation,
+    validate_yes_no,
 )
 
 MAX_BATCH_SIZE = 10
-MOBILE_VALUES = ("YES", "NO")
 
 ADS_ADD_EXTRA_OPTIONS = (
     CliOption("titles", "--titles"),
@@ -145,11 +145,9 @@ def ads_list(
     if types is not None:
         args.extend(["--types", types])
     if mobile is not None:
-        if mobile not in ("YES", "NO"):
-            return ToolError(
-                error="invalid_mobile",
-                message=f"mobile must be YES or NO; got '{mobile}'",
-            ).__dict__
+        err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
+        if err is not None:
+            return err.__dict__
         args.extend(["--mobile", mobile])
     if vcard_ids is not None:
         args.extend(["--vcard-ids", vcard_ids])
@@ -296,11 +294,10 @@ def ads_add(
             ),
         ).__dict__
 
-    if mobile is not None and mobile not in MOBILE_VALUES:
-        return ToolError(
-            error="invalid_mobile",
-            message=f"mobile must be one of {MOBILE_VALUES}; got '{mobile}'",
-        ).__dict__
+    if mobile is not None:
+        err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
+        if err is not None:
+            return err.__dict__
 
     args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
@@ -563,11 +560,10 @@ def ads_update(
                 "default_texts."
             ),
         ).__dict__
-    if mobile is not None and mobile not in MOBILE_VALUES:
-        return ToolError(
-            error="invalid_mobile",
-            message=f"mobile must be one of {MOBILE_VALUES}; got '{mobile}'",
-        ).__dict__
+    if mobile is not None:
+        err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
+        if err is not None:
+            return err.__dict__
 
     args = ["ads", "update", "--id", str(id)]
     if type is not None:

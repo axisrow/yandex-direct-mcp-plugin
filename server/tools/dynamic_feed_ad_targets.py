@@ -1,8 +1,13 @@
 """MCP tools for dynamic feed ad target management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
+from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import (
+    check_batch_limit,
+    run_set_bids,
+    run_single_id_batch,
+    validate_yes_no,
+)
 
 
 @mcp.tool(
@@ -109,14 +114,13 @@ def dynamic_feed_ad_targets_add(
     if context_bid is not None:
         args.extend(["--context-bid", str(context_bid)])
     if available_items_only is not None:
-        if available_items_only not in ("YES", "NO"):
-            return ToolError(
-                error="invalid_available_items_only",
-                message=(
-                    f"available_items_only must be YES or NO; "
-                    f"got '{available_items_only}'"
-                ),
-            ).__dict__
+        err = validate_yes_no(
+            available_items_only,
+            field="available_items_only",
+            error="invalid_available_items_only",
+        )
+        if err is not None:
+            return err.__dict__
         args.extend(["--available-items-only", available_items_only])
     if dry_run:
         args.append("--dry-run")
