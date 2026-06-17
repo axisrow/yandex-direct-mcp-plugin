@@ -69,7 +69,9 @@ def expand_grouped_dicts(
     *registry* maps each dict param name to the flat option names it absorbs.
     Mutates *values* in place. Returns a :class:`ToolError` on a non-dict value
     (e.g. a string), else ``None``. Unknown keys inside a group dict are silently
-    ignored — forward-compatible with new CLI flags.
+    ignored — forward-compatible with new CLI flags. **Caveat for callers:**
+    a typo in a key (e.g. ``pirce_extension_price``) is therefore a silent no-op;
+    dict-key spelling must match the registry exactly.
     """
     for dict_name, member_names in registry:
         incoming = values.get(dict_name)

@@ -170,27 +170,30 @@ def _campaign_strategy_dict_param_names() -> set[str]:
     return names
 
 
-def _ads_extra_dict_param_names() -> set[str]:
-    """CLI option names exposed via ads_* grouped extension dicts (#220).
+def _ads_extra_dict_param_names_by_subcommand() -> dict[str, set[str]]:
+    """CLI option names exposed via ads_* grouped extension dicts (#220),
+    scoped per subcommand.
 
     ads_add/ads_update collapse the price_extension / video_extension / callouts
     / creative / text-source flag families into nested dict params; the flat
     names live on as dict keys, so the parity guard treats them as exposed.
+    Scoping per subcommand (rather than unioning both registries) avoids
+    masking an accidentally-dropped flat param on one subcommand by a dict
+    member name that exists only on the other.
     """
     from server.tools.ads import ADS_ADD_DICT_REGISTRY, ADS_UPDATE_DICT_REGISTRY
 
-    names: set[str] = set()
-    for registry in (ADS_ADD_DICT_REGISTRY, ADS_UPDATE_DICT_REGISTRY):
-        for _, members in registry:
-            names.update(members)
-    return names
+    return {
+        "add": {m for _, members in ADS_ADD_DICT_REGISTRY for m in members},
+        "update": {m for _, members in ADS_UPDATE_DICT_REGISTRY for m in members},
+    }
 
 
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
     _require_direct_cli_0312()
 
     strategy_dict_params = _campaign_strategy_dict_param_names()
-    ads_dict_params = _ads_extra_dict_param_names()
+    ads_dict_params_by_sub = _ads_extra_dict_param_names_by_subcommand()
     missing_by_command: dict[str, list[str]] = {}
     for group, subcommand, module_name, function_name in TARGET_COMMANDS:
         click_command = cli.commands[group].commands[subcommand]
@@ -209,7 +212,7 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
         if group == "campaigns":
             mcp_params |= strategy_dict_params
         if group == "ads":
-            mcp_params |= ads_dict_params
+            mcp_params |= ads_dict_params_by_sub.get(subcommand, set())
         aliases = ALIASES.get((group, subcommand), {})
         unexposed = INTENTIONALLY_UNEXPOSED_CLI_PARAMS.get((group, subcommand), set())
         missing = [
