@@ -437,6 +437,20 @@ Got: {n}”) when over the limit.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.validate_yes_no">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">validate_yes_no</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.validate_yes_no" title="Link to this definition">¶</a></dt>
+<dd><p>Validate a YES/NO flag, returning a ToolError | None.</p>
+<p>Several tools repeat the same inline check for “YES”/”NO” CLI flags. The
+<code class="docutils literal notranslate"><span class="pre">field</span></code>/<code class="docutils literal notranslate"><span class="pre">error</span></code> parameters preserve each call site’s existing payload
+(error key + message), so the wire contract is unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-server.tools.campaigns">
 <span id="campaign-ad-management"></span><h2>Campaign &amp; Ad Management<a class="headerlink" href="#module-server.tools.campaigns" title="Link to this heading">¶</a></h2>
@@ -3599,6 +3613,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_phrase_csv"><code class="docutils literal notranslate"><span class="pre">validate_phrase_csv()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_positive_int"><code class="docutils literal notranslate"><span class="pre">validate_positive_int()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_state"><code class="docutils literal notranslate"><span class="pre">validate_state()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.validate_yes_no"><code class="docutils literal notranslate"><span class="pre">validate_yes_no()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-server.tools.campaigns">Campaign &amp; Ad Management</a><ul>
