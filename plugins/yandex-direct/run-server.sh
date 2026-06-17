@@ -34,7 +34,14 @@ elif command -v python3 >/dev/null 2>&1 && _can_import_mcp python3; then
 else
     # No usable interpreter — bootstrap a venv and install deps into it. Errors
     # are surfaced (no `|| true`) so a failed install does not silently fall
-    # back to a python3 that cannot import mcp.
+    # back to a python3 that cannot import mcp; the operator sees the pip/venv
+    # error instead of a server that starts and then fails every call.
+    #
+    # Version floors mirror pyproject.toml; full supply-chain hardening (pinned
+    # hashes / vendored wheels) and install-failure backoff are tracked in a
+    # follow-up issue — this matches the existing open-version install in
+    # hooks/setup.sh (the Claude Code channel), not a new policy.
+    mkdir -p "$DATA"
     python3 -m venv "$VENV"
     "$VENV/bin/pip" install --quiet --disable-pip-version-check \
         "mcp>=1.23.3,<2" "direct-cli>=0.4.3"
