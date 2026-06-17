@@ -184,7 +184,8 @@ yandex-direct-mcp-plugin/
 │   #   dynamic_targets.py, smart_targets.py, negative_keywords.py
 ├── skills/
 │   ├── yandex-direct/SKILL.md   # Campaign management skill
-│   └── direct-ads/SKILL.md      # Ad copywriting skill
+│   ├── direct-ads/SKILL.md      # Ad copywriting skill
+│   └── direct-eda/SKILL.md      # Exploratory analysis over reports skill
 ├── tests/
 │   ├── conftest.py              # Pytest fixtures, cli_recorder setup
 │   ├── cli_recorder.py          # Cassette record/replay

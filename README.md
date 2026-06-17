@@ -358,6 +358,7 @@ blocked from the public MCP surface pending separate financial-operation gates.
 
 - `/yandex-direct:yandex-direct` — campaign management guidance
 - `/yandex-direct:direct-ads` — ad copywriting for Yandex.Direct
+- `/yandex-direct:direct-eda` — exploratory analysis of Direct statistics over reports
 
 ## Usage Examples
 
