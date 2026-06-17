@@ -203,6 +203,21 @@ def validate_state(state: str, allowed: tuple[str, ...]) -> ToolError | None:
     return None
 
 
+def validate_yes_no(value: str, *, field: str, error: str) -> ToolError | None:
+    """Validate a YES/NO flag, returning a ToolError | None.
+
+    Several tools repeat the same inline check for "YES"/"NO" CLI flags. The
+    ``field``/``error`` parameters preserve each call site's existing payload
+    (error key + message), so the wire contract is unchanged.
+    """
+    if value not in ("YES", "NO"):
+        return ToolError(
+            error=error,
+            message=f"{field} must be YES or NO; got '{value}'",
+        )
+    return None
+
+
 def validate_positive_int(value: str, field_name: str) -> int | ToolError:
     """Validate and convert string to positive integer. Returns int or ToolError."""
     try:

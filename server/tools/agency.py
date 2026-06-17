@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import validate_yes_no
 
 
 @mcp.tool(
@@ -28,11 +29,10 @@ def agency_clients_list(
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    if archived is not None and archived not in ("YES", "NO"):
-        return ToolError(
-            error="invalid_archived",
-            message=f"archived must be YES or NO; got '{archived}'",
-        ).__dict__
+    if archived is not None:
+        err = validate_yes_no(archived, field="archived", error="invalid_archived")
+        if err is not None:
+            return err.__dict__
 
     runner = get_runner()
     cmd = ["agencyclients", "get", "--format", "json"]

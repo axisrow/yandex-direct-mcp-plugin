@@ -8,9 +8,9 @@ from server.tools.helpers import (
     provided_update_value,
     run_set_bids,
     run_single_id_batch,
+    validate_yes_no,
 )
 
-_YES_NO = ("YES", "NO")
 SMART_TARGET_CONDITION_OPTIONS = (CliOption("conditions", "--condition", repeat=True),)
 
 
@@ -119,14 +119,13 @@ def smart_ad_targets_add(
     if priority is not None:
         args.extend(["--priority", priority])
     if available_items_only is not None:
-        if available_items_only not in _YES_NO:
-            return ToolError(
-                error="invalid_available_items_only",
-                message=(
-                    f"available_items_only must be YES or NO; "
-                    f"got '{available_items_only}'"
-                ),
-            ).__dict__
+        err = validate_yes_no(
+            available_items_only,
+            field="available_items_only",
+            error="invalid_available_items_only",
+        )
+        if err is not None:
+            return err.__dict__
         args.extend(["--available-items-only", available_items_only])
     if dry_run:
         args.append("--dry-run")
@@ -206,14 +205,13 @@ def smart_ad_targets_update(
     if priority is not None:
         args.extend(["--priority", priority])
     if available_items_only is not None:
-        if available_items_only not in _YES_NO:
-            return ToolError(
-                error="invalid_available_items_only",
-                message=(
-                    f"available_items_only must be YES or NO; "
-                    f"got '{available_items_only}'"
-                ),
-            ).__dict__
+        err = validate_yes_no(
+            available_items_only,
+            field="available_items_only",
+            error="invalid_available_items_only",
+        )
+        if err is not None:
+            return err.__dict__
         args.extend(["--available-items-only", available_items_only])
     if dry_run:
         args.append("--dry-run")
