@@ -2,10 +2,11 @@
 name = "yandex-direct-mcp-plugin"
 version = "0.3.3"
 requires-python = ">=3.11"
-# mcp lower bound matches the version whose internal API (_tool_manager,
-# _tools, Tool.fn) tool_help relies on; capped below the next major so a
-# breaking rename can't slip in via an unattended upgrade.
-dependencies = ["mcp>=1.23.3,<2", "direct-cli>=0.4.3"]
+# Runtime deps are pinned to exact versions to defend against PyPI supply-chain
+# changes (mcp is third-party; direct-cli is ours). Versions are kept in lockstep
+# with scripts/runtime-pins.env (single source of truth) by scripts/update-pins.sh;
+# tests/test_pins_consistency.py enforces alignment. Bump via the script, not by hand.
+dependencies = ["mcp==1.23.3", "direct-cli==0.4.3"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff", "mypy", "pre-commit"]

@@ -63,12 +63,24 @@ python -m server.main
 
 ### How the MCP server starts (Linux/macOS)
 
-On `SessionStart` the `hooks/setup.sh` hook installs `mcp` and `direct-cli`.
+On `SessionStart` the `hooks/setup.sh` hook installs **exact-pinned** versions
+of `mcp` and `direct-cli`. The pinned versions live in
+[`scripts/runtime-pins.env`](scripts/runtime-pins.env) — the single source of
+truth for both bootstrap channels (Claude Code's `hooks/setup.sh` and the
+Codex bundle's `plugins/yandex-direct/run-server.sh`).
+
 On Debian/Ubuntu and other externally-managed Pythons (PEP 668) a plain
 `pip install --user` is blocked, so dependencies go into a per-user
 virtualenv at `${CLAUDE_PLUGIN_DATA}/venv` (default
 `~/.claude/plugins/data/yandex-direct/venv`). On macOS they fall back to user
 site-packages.
+
+**Bootstrap runs once per (plugin, mcp, direct-cli) triple, not per session.**
+After the first successful install, `hooks/setup.sh` writes a stamp file
+`${CLAUDE_PLUGIN_DATA}/.installed-<plugin>-<mcp>-<direct-cli>` and exits
+immediately on every later session start — no `pip`, no network, no `import`
+probe. A new plugin release or a pinned-version bump changes the stamp name
+and triggers a single re-install.
 
 `.mcp.json` therefore does **not** launch the server with a bare `python3`
 (the system interpreter would not see the venv on Linux). Instead it runs
@@ -87,6 +99,10 @@ Troubleshooting (server fails to start / no tools):
 
 - Confirm the venv exists and has deps:
   `~/.claude/plugins/data/yandex-direct/venv/bin/python3 -c "import mcp, direct_cli"`.
+- If the venv is broken but the stamp file lingers, bootstrap will skip the
+  reinstall. Force it: `rm "$CLAUDE_PLUGIN_DATA"/.installed-*` and restart the
+  session. (Default `CLAUDE_PLUGIN_DATA` is
+  `~/.claude/plugins/data/yandex-direct`.)
 - If `CLAUDE_PLUGIN_DATA` is set to a volatile path (e.g. under `/tmp`), the
   venv is lost on reboot — point it at a stable per-user directory.
 - You should not need to hardcode an absolute interpreter path in
@@ -980,8 +996,8 @@ name = "yandex-direct-mcp-plugin"
 version = "0.2.3"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp",
-    "direct-cli>=0.4.3",
+    "mcp==1.23.3",
+    "direct-cli==0.4.3",
 ]
 
 [project.optional-dependencies]
