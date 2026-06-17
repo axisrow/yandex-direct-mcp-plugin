@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     provided_update_value,
+    run_batch_mutation,
 )
 
 MAX_BATCH_SIZE = 10
@@ -125,12 +126,12 @@ def adgroups_list(
 
 
 @mcp.tool(
-    description="Create a new ad group within a campaign (sets type, regions, targeting). Use adgroups_update to change an existing group instead. Call tool_help('adgroups_add') for parameters.",
+    description="Create one or many ad groups — a single group in a campaign, or a batch via from_file/adgroups_json. Use adgroups_update to change an existing group. Call tool_help('adgroups_add') for parameters.",
 )
 @handle_cli_errors
 def adgroups_add(
-    campaign_id: int,
-    name: str,
+    campaign_id: int | None = None,
+    name: str | None = None,
     type: str | None = None,
     region_ids: str | None = None,
     domain_url: str | None = None,
@@ -155,16 +156,28 @@ def adgroups_add(
     negative_keywords: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
     tracking_params: str | None = None,
+    from_file: str | None = None,
+    adgroups_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Create a new ad group.
+    """Create one or many ad groups.
+
+    Three mutually exclusive modes (CLI #564):
+
+    1. Single: campaign_id + name (+ region_ids and typed fields).
+    2. JSONL batch: from_file = path to a .jsonl file, one ad-group object per
+       line. Per-row keys use the kebab CLI-flag form ("campaign-id", "name",
+       "region-ids", "type", ...); "campaign-id", "name", "region-ids" are
+       required per row, and campaign_id acts as the batch default.
+    3. Inline JSON: adgroups_json = a JSON array of the same objects.
 
     CLI 0.3.8 dropped the free-form --json flag; only the typed flags listed
-    below are accepted.
+    below are accepted. CLI #564 chunks the batch at 100 (API ceiling 1000).
 
     Args:
-        campaign_id: Campaign ID to add the ad group to.
-        name: Ad group name.
+        campaign_id: Campaign ID. Required in single mode; optional default in
+            batch modes (each row's campaign-id wins).
+        name: Ad group name (single mode).
         type: Ad group type (TEXT_AD_GROUP, DYNAMIC_TEXT_AD_GROUP, etc.).
         region_ids: Comma-separated region IDs for targeting.
         domain_url: Domain URL for DYNAMIC_TEXT_AD_GROUP.
@@ -182,8 +195,33 @@ def adgroups_add(
         negative_keywords: Ad group negative keyword specs.
         negative_keyword_shared_set_ids: Negative keyword shared set IDs.
         tracking_params: Tracking parameter specs.
+        from_file: Path to a JSONL file with ad-group objects (batch mode).
+        adgroups_json: Inline JSON array of ad-group objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
+    result = run_batch_mutation(
+        get_runner(),
+        "adgroups",
+        "add",
+        from_file=from_file,
+        json_arg=adgroups_json,
+        json_flag="--adgroups-json",
+        default_id_flag="--campaign-id",
+        default_id=campaign_id,
+        dry_run=dry_run,
+    )
+    if result is not None:
+        return result
+
+    if campaign_id is None or name is None:
+        return ToolError(
+            error="missing_mode",
+            message=(
+                "Single mode requires campaign_id and name; otherwise use "
+                "from_file (JSONL) or adgroups_json (inline JSON array)."
+            ),
+        ).__dict__
+
     args = [
         "adgroups",
         "add",
@@ -212,11 +250,11 @@ def adgroups_add(
 
 
 @mcp.tool(
-    description="Update fields of an existing ad group identified by id (name, status, regions, targeting). Use adgroups_add to create a new group instead. Call tool_help('adgroups_update') for parameters.",
+    description="Update one or many ad groups — a single group by id, or a batch via from_file/adgroups_json. Use adgroups_add to create. Call tool_help('adgroups_update') for parameters.",
 )
 @handle_cli_errors
 def adgroups_update(
-    id: int,
+    id: int | None = None,
     name: str | None = None,
     status: str | None = None,
     region_ids: str | None = None,
@@ -242,25 +280,68 @@ def adgroups_update(
     autotargeting_settings_without_brands: str | None = None,
     autotargeting_settings_with_advertiser_brand: str | None = None,
     autotargeting_settings_with_competitors_brand: str | None = None,
+    from_file: str | None = None,
+    adgroups_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Update an ad group.
+    """Update one or many ad groups.
+
+    Three mutually exclusive modes (CLI #565):
+
+    1. Single: id (+ at least one typed update field).
+    2. JSONL batch: from_file = path to a .jsonl file, one ad-group-update
+       object per line. Per-row keys use the kebab CLI-flag form ("id", "name",
+       "status", ...); "id" is required per row.
+    3. Inline JSON: adgroups_json = a JSON array of the same objects.
 
     CLI 0.3.8 dropped the free-form --json flag; only the typed flags listed
-    below are accepted.
+    below are accepted. CLI #565 chunks the batch at 100 (API ceiling 1000).
 
     Args:
-        id: Ad group ID to update.
+        id: Ad group ID to update (single mode).
         name: New name for the ad group.
         status: New status.
         region_ids: Comma-separated region IDs for targeting.
+        from_file: Path to a JSONL file with ad-group-update objects (batch mode).
+        adgroups_json: Inline JSON array of ad-group-update objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
+    if (from_file or adgroups_json) and id is not None:
+        return ToolError(
+            error="conflicting_modes",
+            message=(
+                "id is for single-group mode; in batch mode every row carries "
+                "its own id. Pass id OR from_file/adgroups_json, not both."
+            ),
+        ).__dict__
+
+    result = run_batch_mutation(
+        get_runner(),
+        "adgroups",
+        "update",
+        from_file=from_file,
+        json_arg=adgroups_json,
+        json_flag="--adgroups-json",
+        dry_run=dry_run,
+    )
+    if result is not None:
+        return result
+
+    if id is None:
+        return ToolError(
+            error="missing_mode",
+            message=(
+                "Provide exactly one of: id (single group), from_file (JSONL), "
+                "or adgroups_json (inline JSON array)."
+            ),
+        ).__dict__
+
     values = locals()
     if not any(
         provided_update_value(value)
         for key, value in values.items()
-        if key not in {"id", "dry_run"}
+        if key
+        not in {"id", "dry_run", "from_file", "adgroups_json", "handled", "result"}
     ):
         return ToolError(
             error="missing_update_fields",

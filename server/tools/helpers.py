@@ -109,6 +109,54 @@ def finalize_json_args(args: list[str], dry_run: bool) -> list[str]:
     return args
 
 
+def run_batch_mutation(
+    runner,
+    resource: str,
+    action: str,
+    *,
+    from_file: str | None,
+    json_arg: str | None,
+    json_flag: str,
+    default_id_flag: str | None = None,
+    default_id: int | None = None,
+    dry_run: bool = False,
+) -> dict | None:
+    """Dispatch the batch path of an add/update tool.
+
+    A batch is requested when either ``from_file`` (a JSONL path) or
+    ``json_arg`` (an inline JSON array) is given. Returns:
+
+    - ``None`` — no batch input; the caller runs its single-item path.
+    - an error dict — both batch inputs given (mutually exclusive).
+    - the CLI result dict — the CLI was invoked for the batch.
+
+    ``default_id``/``default_id_flag`` forward an optional batch-default scope
+    (e.g. ``--adgroup-id`` for ads, ``--campaign-id`` for ad groups) that rows
+    may override.
+    """
+    if not from_file and not json_arg:
+        return None
+    if from_file and json_arg:
+        return ToolError(
+            error="conflicting_modes",
+            message=(
+                f"from_file and {json_flag.lstrip('-').replace('-', '_')} are "
+                "mutually exclusive — pass exactly one."
+            ),
+        ).__dict__
+
+    args = [resource, action]
+    if default_id is not None and default_id_flag is not None:
+        args.extend([default_id_flag, str(default_id)])
+    if from_file:
+        args.extend(["--from-file", from_file])
+    if json_arg:
+        args.extend([json_flag, json_arg])
+    if dry_run:
+        args.append("--dry-run")
+    return runner.run_json(args)
+
+
 def validate_phrase_csv(
     phrases: str,
     max_count: int,

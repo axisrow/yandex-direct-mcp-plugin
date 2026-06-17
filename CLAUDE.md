@@ -210,12 +210,12 @@ WSDL/reports spec wins when there is drift.
 | `campaigns_suspend` | Suspend campaigns |
 | `campaigns_resume` | Resume campaigns |
 | `adgroups_get` | List ad groups |
-| `adgroups_add` | Create ad group |
-| `adgroups_update` | Update ad group |
+| `adgroups_add` | Create ad group (single, or batch via `from_file`/`adgroups_json`) |
+| `adgroups_update` | Update ad group (single by id, or batch via `from_file`/`adgroups_json`) |
 | `adgroups_delete` | Delete ad groups |
 | `ads_get` | List ads by campaign IDs |
-| `ads_add` | Create ad |
-| `ads_update` | Update ad |
+| `ads_add` | Create ad (single, or batch via `from_file`/`ads_json`) |
+| `ads_update` | Update ad (single by id, or batch via `from_file`/`ads_json`); `clear_image_hash` resets AdImageHash |
 | `ads_delete` | Delete ads |
 | `ads_moderate` | Submit ads for moderation |
 | `ads_suspend` | Suspend ads |
@@ -495,3 +495,42 @@ Closes plugin issue tracking the 0.4.1 bump.
   changes needed — auth precedence is owned by `direct-cli`.
 
 - **No tool count change.** The 146-tool surface is unchanged.
+
+## Feature Changes (CLI batch-mode + clear-image-hash sync)
+
+Surfaces direct-cli `main` features (#552, #562–565) that the plugin did not
+yet forward. **Additive only** — existing single-item calls are unchanged.
+
+- **Batch mode for `ads_add` / `ads_update` / `adgroups_add` /
+  `adgroups_update`.** Each now accepts `from_file` (path to a JSONL file) and
+  `ads_json` / `adgroups_json` (inline JSON array) in addition to single-item
+  flags. Modes are mutually exclusive; rows use the CLI's kebab-key flag form
+  (`adgroup-id`, `image-hash`, `clear-image-hash`, ...). The CLI chunks the
+  batch (100/chunk, API ceiling 1000) and reports partial success — the plugin
+  forwards the result. Single-item required params became optional in the
+  signature so batch mode can omit them; a `missing_mode` / `conflicting_modes`
+  guard mirrors `keywords_add`.
+
+- **`ads_update(clear_image_hash=True)`** emits `--clear-image-hash`, resetting
+  `AdImageHash` to null (TEXT_AD / DYNAMIC_TEXT_AD / MOBILE_APP_AD). Mutually
+  exclusive with `image_hash` (`conflicting_image_hash`). The CLI rejects it for
+  image-ad subtypes (error 8000) — the plugin does not duplicate that guard.
+  Closes the long-standing "cannot reset AdImageHash" gap (issue #181/#171-B).
+
+- **`ads_update` now needs `type` in single mode.** direct-cli `main` requires
+  `--type` to pick the typed payload branch; the plugin forwards the CLI's
+  error rather than re-validating.
+
+- **Dev CLI.** These features live on direct-cli `main`, not yet on PyPI
+  (`main` still reports `version 0.4.2`). Install the dev build to use them:
+  `pip install 'direct-cli @ git+https://github.com/axisrow/direct-cli@main'`.
+  The runtime floor stays `direct-cli>=0.4.2` (the version number is unchanged).
+
+- **No tool count change.** 146 tools — new parameters, not new tools.
+
+- **Deferred to CLI:** SelectionCriteria array-length limits on the remaining
+  `get` commands (the wrong `check_batch_limit(max=10)`, plugin issue #201) are
+  being moved into direct-cli (`enforce_criteria_array_limits`, issue #571 —
+  follow-up to #555). Live API confirms limits are per-method/per-filter
+  (`ads get` CampaignIds=10 but Ids>10), so the plugin will drop its duplicate
+  once the CLI covers all `get` commands. Not changed in this iteration.

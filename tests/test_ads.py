@@ -210,6 +210,93 @@ class TestAdsCrudOperations:
             argv = runner.run_json.call_args[0][0]
             assert "--dry-run" in argv
 
+    def test_ads_update_clear_image_hash(self):
+        """clear_image_hash=True appends --clear-image-hash (CLI #552/#553)."""
+        runner = mock_runner({"Id": 111})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(id=111, type="TEXT_AD", clear_image_hash=True)
+            argv = runner.run_json.call_args[0][0]
+            assert "--clear-image-hash" in argv
+            assert "--image-hash" not in argv
+
+    def test_ads_update_clear_and_set_image_hash_conflict(self):
+        """image_hash + clear_image_hash is rejected before the CLI call."""
+        runner = mock_runner({"Id": 111})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(
+                id=111, type="TEXT_AD", image_hash="abc", clear_image_hash=True
+            )
+        assert result["error"] == "conflicting_image_hash"
+        runner.run_json.assert_not_called()
+
+    def test_ads_add_from_file(self):
+        """Batch add via from_file emits --from-file, no single-item flags (CLI #562)."""
+        runner = mock_runner({"AddResults": [{"Id": 1}, {"Id": 2}]})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(from_file="/tmp/ads.jsonl")
+            runner.run_json.assert_called_once_with(
+                ["ads", "add", "--from-file", "/tmp/ads.jsonl"]
+            )
+
+    def test_ads_add_ads_json_with_default_adgroup(self):
+        """ads_json batch forwards --adgroup-id default + --ads-json."""
+        payload = '[{"type":"TEXT_AD","title":"x"}]'
+        runner = mock_runner({"AddResults": [{"Id": 1}]})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_add(ad_group_id=42, ads_json=payload)
+            argv = runner.run_json.call_args[0][0]
+            assert argv == ["ads", "add", "--adgroup-id", "42", "--ads-json", payload]
+
+    def test_ads_add_rejects_no_mode(self):
+        """Neither ad_group_id nor batch flag → missing_mode."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_add()
+        assert result["error"] == "missing_mode"
+        runner.run_json.assert_not_called()
+
+    def test_ads_add_rejects_conflicting_batch_modes(self):
+        """from_file + ads_json → conflicting_modes."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_add(from_file="/tmp/a.jsonl", ads_json="[]")
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
+
+    def test_ads_update_from_file(self):
+        """Batch update via from_file emits --from-file (CLI #563)."""
+        runner = mock_runner({"UpdateResults": [{"Id": 1}]})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(from_file="/tmp/ads.jsonl")
+            runner.run_json.assert_called_once_with(
+                ["ads", "update", "--from-file", "/tmp/ads.jsonl"]
+            )
+
+    def test_ads_update_ads_json(self):
+        """Batch update via ads_json emits --ads-json."""
+        payload = '[{"id":1,"type":"TEXT_AD","title":"x"}]'
+        runner = mock_runner({"UpdateResults": [{"Id": 1}]})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            ads_update(ads_json=payload)
+            argv = runner.run_json.call_args[0][0]
+            assert argv == ["ads", "update", "--ads-json", payload]
+
+    def test_ads_update_rejects_no_mode(self):
+        """Neither id nor batch flag → missing_mode."""
+        runner = mock_runner({"UpdateResults": []})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update()
+        assert result["error"] == "missing_mode"
+        runner.run_json.assert_not_called()
+
+    def test_ads_update_rejects_id_with_batch(self):
+        """id + batch flag → conflicting_modes."""
+        runner = mock_runner({"UpdateResults": []})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=1, ads_json="[]")
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
+
     def test_ads_delete_success(self):
         """Test deleting ads successfully."""
         runner = mock_runner({"success": True})

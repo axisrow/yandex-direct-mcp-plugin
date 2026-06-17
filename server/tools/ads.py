@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, check_batch_limit
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    check_batch_limit,
+    run_batch_mutation,
+)
 
 MAX_BATCH_SIZE = 10
 MOBILE_VALUES = ("YES", "NO")
@@ -175,11 +180,11 @@ def ads_list(
 
 
 @mcp.tool(
-    description="Create a new ad in an ad group (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, etc.). Use ads_update to change an existing ad instead. Call tool_help('ads_add') for parameters.",
+    description="Create one or many ads — a single ad in an ad group, or a batch via from_file/ads_json. Use ads_update to change an existing ad. Call tool_help('ads_add') for parameters.",
 )
 @handle_cli_errors
 def ads_add(
-    ad_group_id: int,
+    ad_group_id: int | None = None,
     ad_type: str | None = None,
     title: str | None = None,
     text: str | None = None,
@@ -217,9 +222,20 @@ def ads_add(
     title_sources: str | None = None,
     text_sources: str | None = None,
     default_texts: str | None = None,
+    from_file: str | None = None,
+    ads_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Create a new ad.
+    """Create one or many ads.
+
+    Three mutually exclusive modes (CLI #562):
+
+    1. Single: ad_group_id + typed ad fields.
+    2. JSONL batch: from_file = path to a .jsonl file, one ad object per line.
+       Per-row keys use the kebab CLI-flag form ("adgroup-id", "type", "title",
+       "image-hash", ...); "type" defaults to TEXT_AD, and ad_group_id acts as
+       the batch default for rows that omit "adgroup-id".
+    3. Inline JSON: ads_json = a JSON array of the same objects.
 
     CLI 0.3.9 enforces strict WSDL parity — invalid field/type combinations
     (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
@@ -230,8 +246,12 @@ def ads_add(
     - TEXT_IMAGE_AD: href, image_hash, turbo_page_id.
     - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
 
+    CLI #562 forwards the array as Yandex Direct API requests (chunked at 100,
+    API ceiling 1000 per call) with partial-success reporting.
+
     Args:
-        ad_group_id: Ad group ID to add the ad to.
+        ad_group_id: Ad group ID. Required in single mode; optional default in
+            batch modes (each row's adgroup-id wins).
         ad_type: Ad type (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD).
         title: Ad title (TEXT_AD / MOBILE_APP_AD).
         text: Ad text content (TEXT_AD / MOBILE_APP_AD).
@@ -247,8 +267,33 @@ def ads_add(
         sitelink_set_id: Sitelink set ID (TEXT_AD).
         turbo_page_id: Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Comma-separated ad extension IDs (TEXT_AD).
+        from_file: Path to a JSONL file with ad objects (batch mode).
+        ads_json: Inline JSON array of ad objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
+    result = run_batch_mutation(
+        get_runner(),
+        "ads",
+        "add",
+        from_file=from_file,
+        json_arg=ads_json,
+        json_flag="--ads-json",
+        default_id_flag="--adgroup-id",
+        default_id=ad_group_id,
+        dry_run=dry_run,
+    )
+    if result is not None:
+        return result
+
+    if ad_group_id is None:
+        return ToolError(
+            error="missing_mode",
+            message=(
+                "Provide exactly one of: ad_group_id (single ad), from_file "
+                "(JSONL), or ads_json (inline JSON array)."
+            ),
+        ).__dict__
+
     if mobile is not None and mobile not in MOBILE_VALUES:
         return ToolError(
             error="invalid_mobile",
@@ -294,11 +339,11 @@ def ads_add(
 
 
 @mcp.tool(
-    description="Update fields of an existing ad identified by id (title, text, href, extensions, status, etc.). Use ads_add to create a new ad instead. Call tool_help('ads_update') for parameters.",
+    description="Update one or many ads — a single ad by id, or a batch via from_file/ads_json. Supports clear_image_hash to reset AdImageHash. Use ads_add to create. Call tool_help('ads_update') for parameters.",
 )
 @handle_cli_errors
 def ads_update(
-    id: int,
+    id: int | None = None,
     type: str | None = None,
     status: str | None = None,
     title: str | None = None,
@@ -307,6 +352,7 @@ def ads_update(
     texts: str | None = None,
     href: str | None = None,
     image_hash: str | None = None,
+    clear_image_hash: bool = False,
     image_hashes: str | None = None,
     tracking_url: str | None = None,
     action: str | None = None,
@@ -340,9 +386,19 @@ def ads_update(
     title_sources: str | None = None,
     text_sources: str | None = None,
     default_texts: str | None = None,
+    from_file: str | None = None,
+    ads_json: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Update an ad.
+    """Update one or many ads.
+
+    Three mutually exclusive modes (CLI #563):
+
+    1. Single: id (+ at least one typed update field).
+    2. JSONL batch: from_file = path to a .jsonl file, one ad-update object per
+       line. Per-row keys use the kebab CLI-flag form ("id", "type",
+       "image-hash", "clear-image-hash", ...); "id" is required per row.
+    3. Inline JSON: ads_json = a JSON array of the same objects.
 
     CLI 0.3.12 exposes typed flags for supported ad update subtypes. `type`
     is optional when the CLI can apply the supplied fields without an explicit
@@ -355,9 +411,10 @@ def ads_update(
     - MOBILE_APP_AD: title, text, image_hash, tracking_url, action, age_label.
 
     Args:
-        id: Ad ID to update.
-        type: Optional ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and
-            newer 0.3.12 subtype families).
+        id: Ad ID to update (single mode).
+        type: Ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and newer
+            0.3.12 subtype families). Required by the CLI in single mode — it
+            picks the typed payload branch; omit it and the CLI rejects the call.
         status: Optional ad status value.
         title: Optional new title (TEXT_AD / MOBILE_APP_AD).
         text: Optional new text (TEXT_AD / MOBILE_APP_AD).
@@ -365,6 +422,9 @@ def ads_update(
         texts: Structured text list for responsive/shopping/listing subtypes.
         href: Optional new URL (TEXT_AD / TEXT_IMAGE_AD).
         image_hash: Optional new image hash (TEXT_AD / TEXT_IMAGE_AD / MOBILE_APP_AD).
+        clear_image_hash: Set AdImageHash to null to remove the image. Mutually
+            exclusive with image_hash. Available for TEXT_AD / DYNAMIC_TEXT_AD /
+            MOBILE_APP_AD; the CLI rejects it for image-ad subtypes (error 8000).
         image_hashes: Structured image hash list for multi-image subtypes.
         tracking_url: Optional MOBILE_APP_AD tracking URL.
         action: Optional MOBILE_APP_AD call-to-action.
@@ -387,8 +447,46 @@ def ads_update(
         final_url/tracking_pixels: Final URL and tracking pixel fields.
         feed_filter_conditions: Repeated feed filter condition specs.
         title_sources/text_sources/default_texts: Smart/ad builder text sources.
+        from_file: Path to a JSONL file with ad-update objects (batch mode).
+        ads_json: Inline JSON array of ad-update objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
+    if (from_file or ads_json) and id is not None:
+        return ToolError(
+            error="conflicting_modes",
+            message=(
+                "id is for single-ad mode; in batch mode every row carries its "
+                "own id. Pass id OR from_file/ads_json, not both."
+            ),
+        ).__dict__
+
+    result = run_batch_mutation(
+        get_runner(),
+        "ads",
+        "update",
+        from_file=from_file,
+        json_arg=ads_json,
+        json_flag="--ads-json",
+        dry_run=dry_run,
+    )
+    if result is not None:
+        return result
+
+    if id is None:
+        return ToolError(
+            error="missing_mode",
+            message=(
+                "Provide exactly one of: id (single ad), from_file (JSONL), "
+                "or ads_json (inline JSON array)."
+            ),
+        ).__dict__
+
+    if image_hash and clear_image_hash:
+        return ToolError(
+            error="conflicting_image_hash",
+            message="Use either image_hash or clear_image_hash, not both.",
+        ).__dict__
+
     if not any(
         (
             title,
@@ -397,6 +495,7 @@ def ads_update(
             texts,
             href,
             image_hash,
+            clear_image_hash,
             image_hashes,
             tracking_url,
             action,
@@ -437,10 +536,10 @@ def ads_update(
             error="missing_update_fields",
             message=(
                 "Provide at least one typed update field, for example: title, "
-                "text, href, image_hash, tracking_url, action, age_label, "
-                "title2, display_url_path, mobile, vcard_id, sitelink_set_id, "
-                "turbo_page_id, ad_extensions, status, callouts_*, "
-                "video_extension_*, price_extension_*, business_id, "
+                "text, href, image_hash, clear_image_hash, tracking_url, "
+                "action, age_label, title2, display_url_path, mobile, vcard_id, "
+                "sitelink_set_id, turbo_page_id, ad_extensions, status, "
+                "callouts_*, video_extension_*, price_extension_*, business_id, "
                 "creative_id, final_url, tracking_pixels, "
                 "feed_filter_conditions, title_sources, text_sources, or "
                 "default_texts."
@@ -463,6 +562,8 @@ def ads_update(
         args.extend(["--href", href])
     if image_hash:
         args.extend(["--image-hash", image_hash])
+    if clear_image_hash:
+        args.append("--clear-image-hash")
     if tracking_url:
         args.extend(["--tracking-url", tracking_url])
     if action:

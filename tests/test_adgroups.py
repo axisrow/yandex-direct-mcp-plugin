@@ -85,6 +85,47 @@ class TestAdgroupsAdd:
             assert "--type" in call_args
             assert "MOBILE_AD_GROUP" in call_args
 
+    def test_adgroups_add_from_file(self):
+        """Batch add via from_file emits --from-file only (CLI #564)."""
+        runner = mock_runner({"AddResults": [{"Id": 1}]})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_add(from_file="/tmp/ag.jsonl")
+            runner.run_json.assert_called_once_with(
+                ["adgroups", "add", "--from-file", "/tmp/ag.jsonl"]
+            )
+
+    def test_adgroups_add_json_with_default_campaign(self):
+        """adgroups_json batch forwards --campaign-id default + --adgroups-json."""
+        payload = '[{"name":"g","region-ids":"225"}]'
+        runner = mock_runner({"AddResults": [{"Id": 1}]})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_add(campaign_id=7, adgroups_json=payload)
+            argv = runner.run_json.call_args[0][0]
+            assert argv == [
+                "adgroups",
+                "add",
+                "--campaign-id",
+                "7",
+                "--adgroups-json",
+                payload,
+            ]
+
+    def test_adgroups_add_rejects_no_mode(self):
+        """Neither campaign_id+name nor batch flag → missing_mode."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_add(campaign_id=7)  # name missing, no batch
+        assert result["error"] == "missing_mode"
+        runner.run_json.assert_not_called()
+
+    def test_adgroups_add_rejects_conflicting_batch_modes(self):
+        """from_file + adgroups_json → conflicting_modes."""
+        runner = mock_runner({"AddResults": []})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_add(from_file="/tmp/a.jsonl", adgroups_json="[]")
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
+
 
 class TestAdgroupsUpdate:
     """Tests for adgroups_update tool."""
@@ -126,6 +167,40 @@ class TestAdgroupsUpdate:
             call_args = runner.run_json.call_args[0][0]
             assert "--status" in call_args
             assert "SUSPENDED" in call_args
+
+    def test_adgroups_update_from_file(self):
+        """Batch update via from_file emits --from-file only (CLI #565)."""
+        runner = mock_runner({"UpdateResults": [{"Id": 1}]})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_update(from_file="/tmp/ag.jsonl")
+            runner.run_json.assert_called_once_with(
+                ["adgroups", "update", "--from-file", "/tmp/ag.jsonl"]
+            )
+
+    def test_adgroups_update_json(self):
+        """Batch update via adgroups_json emits --adgroups-json."""
+        payload = '[{"id":1,"name":"g2"}]'
+        runner = mock_runner({"UpdateResults": [{"Id": 1}]})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            adgroups_update(adgroups_json=payload)
+            argv = runner.run_json.call_args[0][0]
+            assert argv == ["adgroups", "update", "--adgroups-json", payload]
+
+    def test_adgroups_update_rejects_no_mode(self):
+        """Neither id nor batch flag → missing_mode."""
+        runner = mock_runner({"UpdateResults": []})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_update()
+        assert result["error"] == "missing_mode"
+        runner.run_json.assert_not_called()
+
+    def test_adgroups_update_rejects_id_with_batch(self):
+        """id + batch flag → conflicting_modes."""
+        runner = mock_runner({"UpdateResults": []})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_update(id=1, adgroups_json="[]")
+        assert result["error"] == "conflicting_modes"
+        runner.run_json.assert_not_called()
 
 
 class TestAdgroupsDelete:
