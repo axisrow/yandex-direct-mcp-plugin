@@ -250,7 +250,7 @@ def config_from_env(env: Mapping[str, str]) -> ToolSurfaceConfig:
 
 
 def env_config_warnings(env: Mapping[str, str], config: ToolSurfaceConfig) -> list[str]:
-    """Human-readable warnings for a parsed env config (unknown profile/groups)."""
+    """Human-readable warnings for a parsed env config (unknown profile/groups/tools)."""
     warnings: list[str] = []
     profile = (env.get(ENV_PROFILE) or "").strip().lower()
     if profile and profile not in PROFILES:
@@ -258,9 +258,22 @@ def env_config_warnings(env: Mapping[str, str], config: ToolSurfaceConfig) -> li
             f"unknown {ENV_PROFILE}={profile!r}; known: {sorted(PROFILES)}. "
             "Falling back to the full surface."
         )
-    unknown = config.unknown_groups()
-    if unknown:
-        warnings.append(f"unknown tool groups ignored: {sorted(unknown)}")
+    unknown_groups = config.unknown_groups()
+    if unknown_groups:
+        warnings.append(f"unknown tool groups ignored: {sorted(unknown_groups)}")
+    known_tools = tool_names()
+    unknown_tools = (config.enabled_tools | config.disabled_tools) - known_tools
+    if unknown_tools:
+        warnings.append(f"unknown tool names ignored: {sorted(unknown_tools)}")
+    # Allow-list mode that names nothing valid would disable the whole surface;
+    # apply_tool_surface keeps the full surface in that case, so flag the typo.
+    if not config.default_enabled and not any(
+        config.is_enabled(name) for name in known_tools
+    ):
+        warnings.append(
+            "tool-surface config enables zero tools (likely an allow-list typo); "
+            "keeping the full surface instead of an empty server."
+        )
     return warnings
 
 
@@ -269,10 +282,19 @@ def apply_tool_surface(mcp, config: ToolSurfaceConfig) -> list[str]:
 
     Uses the public ``remove_tool``. A ``full`` config removes nothing, so the
     default 146-tool surface is untouched.
+
+    Fail-safe: if the config would remove *every* registered tool — almost
+    always a typo in an allow-list env var (e.g. ``YANDEX_DIRECT_ENABLED_GROUPS``
+    or ``...ENABLED_TOOLS`` naming nothing that matches) — the removal is
+    abandoned and the full surface is kept. An empty MCP server is never a
+    useful outcome, so a startup typo must not silently wipe the surface.
     """
     manager = getattr(mcp, "_tool_manager", None)
     registered = list(getattr(manager, "_tools", {}).keys())
     removed = [name for name in registered if not config.is_enabled(name)]
+    if registered and len(removed) == len(registered):
+        # Would disable everything — treat as misconfiguration, keep full surface.
+        return []
     for name in removed:
         mcp.remove_tool(name)
     return removed

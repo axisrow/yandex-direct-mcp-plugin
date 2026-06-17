@@ -191,3 +191,41 @@ def test_apply_tool_surface_full_removes_nothing():
     removed = apply_tool_surface(mcp, ToolSurfaceConfig())
     assert removed == []
     assert set(mcp._tool_manager._tools) == {"campaigns_get", "campaigns_delete"}
+
+
+def test_apply_tool_surface_failsafe_keeps_full_when_all_disabled():
+    """An allow-list that matches nothing must NOT wipe the whole surface."""
+    mcp = _StubMcp(["campaigns_get", "ads_get"])
+    # allow-list mode naming a non-existent group → every tool 'disabled'
+    cfg = ToolSurfaceConfig(
+        default_enabled=False, enabled_groups=frozenset({"typo_group"})
+    )
+    removed = apply_tool_surface(mcp, cfg)
+    assert removed == []
+    assert set(mcp._tool_manager._tools) == {"campaigns_get", "ads_get"}
+
+
+def test_config_from_env_enabled_groups_typo_warns_and_keeps_full():
+    """A typo in YANDEX_DIRECT_ENABLED_GROUPS surfaces a zero-tools warning."""
+    cfg = config_from_env({"YANDEX_DIRECT_ENABLED_GROUPS": "analyticz"})
+    warnings = env_config_warnings({"YANDEX_DIRECT_ENABLED_GROUPS": "analyticz"}, cfg)
+    assert any("zero tools" in w for w in warnings)
+    assert any("unknown tool groups" in w for w in warnings)
+
+
+def test_config_from_env_enabled_tools_typo_warns():
+    """A typo in YANDEX_DIRECT_ENABLED_TOOLS is now flagged (previously silent)."""
+    env = {"YANDEX_DIRECT_ENABLED_TOOLS": "campaign_delete"}  # missing 's'
+    cfg = config_from_env(env)
+    warnings = env_config_warnings(env, cfg)
+    assert any("unknown tool names" in w for w in warnings)
+    assert any("zero tools" in w for w in warnings)
+
+
+def test_config_from_env_valid_enabled_group_no_zero_warning():
+    """A valid allow-list group narrows the surface without the zero-tools warning."""
+    env = {"YANDEX_DIRECT_ENABLED_GROUPS": "read"}
+    cfg = config_from_env(env)
+    warnings = env_config_warnings(env, cfg)
+    assert not any("zero tools" in w for w in warnings)
+    assert any(cfg.is_enabled(name) for name in tool_names())
