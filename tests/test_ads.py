@@ -625,3 +625,87 @@ def test_ads_update_empty_args_yield_missing_mode_via_dispatch_issue_181():
     """
     result = asyncio.run(mcp.call_tool("ads_update", {}))
     assert "missing_mode" in str(result)
+
+
+class TestAdsDictGrouping:
+    """Grouped extension dict params expand to byte-identical CLI argv (#220)."""
+
+    def _argv(self, fn, **kwargs):
+        runner = mock_runner({"ok": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            fn(**kwargs)
+        return runner.run_json.call_args[0][0]
+
+    def test_add_price_video_text_dicts_expand_to_flags(self):
+        argv = self._argv(
+            ads_add,
+            ad_group_id=1,
+            ad_type="TEXT_AD",
+            price_extension_options={
+                "price_extension_price": "100",
+                "price_extension_price_currency": "RUB",
+            },
+            video_extension_options={"video_extension_ids": "7,8"},
+            text_source_options={"title_sources": "A", "default_texts": "D"},
+        )
+        assert argv[argv.index("--price-extension-price") + 1] == "100"
+        assert argv[argv.index("--price-extension-price-currency") + 1] == "RUB"
+        assert argv[argv.index("--video-extension-ids") + 1] == "7,8"
+        assert argv[argv.index("--title-sources") + 1] == "A"
+        assert argv[argv.index("--default-texts") + 1] == "D"
+        # the dict param name itself never reaches argv
+        assert "price_extension_options" not in argv
+
+    def test_update_callouts_creative_dicts_expand_to_flags(self):
+        argv = self._argv(
+            ads_update,
+            id=5,
+            type="TEXT_AD",
+            callouts_options={"callouts_add": "c1", "callouts_set": "c2"},
+            creative_options={
+                "creative_id": 99,
+                "creative_erir_ad_description": "erir",
+            },
+        )
+        assert argv[argv.index("--callouts-add") + 1] == "c1"
+        assert argv[argv.index("--callouts-set") + 1] == "c2"
+        assert argv[argv.index("--creative-id") + 1] == "99"
+        assert argv[argv.index("--creative-erir-ad-description") + 1] == "erir"
+
+    def test_non_dict_group_param_rejected(self):
+        runner = mock_runner({"ok": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=5, type="TEXT_AD", price_extension_options="bad")
+        assert result["error"] == "invalid_param"
+        runner.run_json.assert_not_called()
+
+    def test_empty_group_dict_does_not_satisfy_update_guard(self):
+        runner = mock_runner({"ok": True})
+        with patch("server.tools.ads.get_runner", return_value=runner):
+            result = ads_update(id=5, type="TEXT_AD", price_extension_options={})
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()
+
+    def test_unknown_group_key_silently_ignored(self):
+        argv = self._argv(
+            ads_update,
+            id=5,
+            type="TEXT_AD",
+            price_extension_options={"price_extension_price": "1", "nope": "x"},
+        )
+        assert "--price-extension-price" in argv
+        assert "nope" not in argv
+        assert "--nope" not in argv
+
+    def test_add_has_no_grouped_flat_params(self):
+        import inspect
+
+        params = inspect.signature(ads_add).parameters
+        for gone in ("price_extension_price", "video_extension_ids", "title_sources"):
+            assert gone not in params
+        for grouped in (
+            "price_extension_options",
+            "video_extension_options",
+            "text_source_options",
+        ):
+            assert grouped in params

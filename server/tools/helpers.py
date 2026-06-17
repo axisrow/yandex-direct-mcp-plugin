@@ -54,6 +54,41 @@ def append_cli_options(
         args.extend([option.flag, str(value)])
 
 
+def expand_grouped_dicts(
+    values: dict,
+    registry: Sequence[tuple[str, Sequence[str]]],
+) -> ToolError | None:
+    """Expand grouped dict params into flat option keys in *values*.
+
+    Wide mutate tools expose families of flat params as a single nested
+    ``dict | None`` param to shrink the JSON Schema FastMCP broadcasts at startup
+    (#220). At call time the incoming dict is expanded back into the individual
+    option names that :func:`append_cli_options` expects, so the generated CLI
+    argv is byte-for-byte identical to the old flat signature.
+
+    *registry* maps each dict param name to the flat option names it absorbs.
+    Mutates *values* in place. Returns a :class:`ToolError` on a non-dict value
+    (e.g. a string), else ``None``. Unknown keys inside a group dict are silently
+    ignored — forward-compatible with new CLI flags.
+    """
+    for dict_name, member_names in registry:
+        incoming = values.get(dict_name)
+        if incoming is None:
+            continue
+        if not isinstance(incoming, dict):
+            return ToolError(
+                error="invalid_param",
+                message=(
+                    f"'{dict_name}' must be a dict or null, "
+                    f"got {type(incoming).__name__}"
+                ),
+            )
+        for member in member_names:
+            if member in incoming:
+                values[member] = incoming[member]
+    return None
+
+
 def parse_ids(ids_str: str) -> list[str]:
     """Parse comma-separated IDs string into a list."""
     return [id.strip() for id in ids_str.split(",") if id.strip()]

@@ -6,12 +6,41 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     check_batch_limit,
+    expand_grouped_dicts,
     run_batch_mutation,
     tool_error_dict,
     validate_yes_no,
 )
 
 MAX_BATCH_SIZE = 10
+
+# Families of flat extension params are exposed to the model as nested dict
+# params (#220) to shrink the JSON Schema; expand_grouped_dicts unfolds the dict
+# keys back into the flat option names below before append_cli_options runs, so
+# the generated `direct` argv stays byte-for-byte identical. Dict keys = the
+# original flat param names.
+_PRICE_EXTENSION_MEMBERS = (
+    "price_extension_price",
+    "price_extension_old_price",
+    "price_extension_price_qualifier",
+    "price_extension_price_currency",
+)
+_VIDEO_EXTENSION_MEMBERS = ("video_extension_creative_id", "video_extension_ids")
+_TEXT_SOURCE_MEMBERS = ("title_sources", "text_sources", "default_texts")
+
+ADS_ADD_DICT_REGISTRY: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("price_extension_options", _PRICE_EXTENSION_MEMBERS),
+    ("video_extension_options", _VIDEO_EXTENSION_MEMBERS),
+    ("text_source_options", _TEXT_SOURCE_MEMBERS),
+)
+
+ADS_UPDATE_DICT_REGISTRY: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("price_extension_options", _PRICE_EXTENSION_MEMBERS),
+    ("video_extension_options", _VIDEO_EXTENSION_MEMBERS),
+    ("callouts_options", ("callouts_add", "callouts_remove", "callouts_set")),
+    ("creative_options", ("creative_id", "creative_erir_ad_description")),
+    ("text_source_options", _TEXT_SOURCE_MEMBERS),
+)
 
 ADS_ADD_EXTRA_OPTIONS = (
     CliOption("titles", "--titles"),
@@ -203,12 +232,8 @@ def ads_add(
     turbo_page_id: int | None = None,
     ad_extensions: str | None = None,
     final_url: str | None = None,
-    video_extension_creative_id: int | None = None,
-    price_extension_price: str | None = None,
-    price_extension_old_price: str | None = None,
-    price_extension_price_qualifier: str | None = None,
-    price_extension_price_currency: str | None = None,
-    video_extension_ids: str | None = None,
+    price_extension_options: dict | None = None,
+    video_extension_options: dict | None = None,
     business_id: int | None = None,
     prefer_vcard_over_business: str | None = None,
     erir_ad_description: str | None = None,
@@ -217,9 +242,7 @@ def ads_add(
     logo_extension_hash: str | None = None,
     feed_id: int | None = None,
     feed_filter_conditions: list[str] | None = None,
-    title_sources: str | None = None,
-    text_sources: str | None = None,
-    default_texts: str | None = None,
+    text_source_options: dict | None = None,
     from_file: str | None = None,
     ads_json: str | None = None,
     dry_run: bool = False,
@@ -268,6 +291,13 @@ def ads_add(
         sitelink_set_id: Sitelink set ID (TEXT_AD).
         turbo_page_id: Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Comma-separated ad extension IDs (TEXT_AD).
+        price_extension_options: Price extension dict — keys: price_extension_price,
+            price_extension_old_price, price_extension_price_qualifier,
+            price_extension_price_currency.
+        video_extension_options: Video extension dict — keys:
+            video_extension_creative_id, video_extension_ids.
+        text_source_options: Smart/ad-builder text sources dict — keys:
+            title_sources, text_sources, default_texts.
         from_file: Path to a JSONL file with ad objects (batch mode).
         ads_json: Inline JSON array of ad objects (batch mode).
         dry_run: Show the direct request without sending it.
@@ -333,7 +363,11 @@ def ads_add(
         args.extend(["--turbo-page-id", str(turbo_page_id)])
     if ad_extensions:
         args.extend(["--ad-extensions", ad_extensions])
-    append_cli_options(args, locals(), ADS_ADD_EXTRA_OPTIONS)
+    values = locals()
+    expansion_error = expand_grouped_dicts(values, ADS_ADD_DICT_REGISTRY)
+    if expansion_error is not None:
+        return tool_error_dict(expansion_error)
+    append_cli_options(args, values, ADS_ADD_EXTRA_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
@@ -367,27 +401,18 @@ def ads_update(
     sitelink_set_id: int | None = None,
     turbo_page_id: int | None = None,
     ad_extensions: str | None = None,
-    callouts_add: str | None = None,
-    callouts_remove: str | None = None,
-    callouts_set: str | None = None,
-    video_extension_creative_id: int | None = None,
-    video_extension_ids: str | None = None,
-    price_extension_price: str | None = None,
-    price_extension_old_price: str | None = None,
-    price_extension_price_qualifier: str | None = None,
-    price_extension_price_currency: str | None = None,
+    callouts_options: dict | None = None,
+    video_extension_options: dict | None = None,
+    price_extension_options: dict | None = None,
     business_id: int | None = None,
     prefer_vcard_over_business: str | None = None,
     erir_ad_description: str | None = None,
     logo_extension_hash: str | None = None,
-    creative_id: int | None = None,
-    creative_erir_ad_description: str | None = None,
+    creative_options: dict | None = None,
     final_url: str | None = None,
     tracking_pixels: str | None = None,
     feed_filter_conditions: list[str] | None = None,
-    title_sources: str | None = None,
-    text_sources: str | None = None,
-    default_texts: str | None = None,
+    text_source_options: dict | None = None,
     from_file: str | None = None,
     ads_json: str | None = None,
     dry_run: bool = False,
@@ -445,16 +470,22 @@ def ads_update(
         sitelink_set_id: Optional sitelink set ID (TEXT_AD).
         turbo_page_id: Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).
         ad_extensions: Optional comma-separated ad extension IDs (TEXT_AD).
-        callouts_add/callouts_remove/callouts_set: Callout update operations.
-        video_extension_*: Video extension typed fields.
-        price_extension_*: Price extension typed fields.
+        callouts_options: Callout update dict — keys: callouts_add,
+            callouts_remove, callouts_set.
+        video_extension_options: Video extension dict — keys:
+            video_extension_creative_id, video_extension_ids.
+        price_extension_options: Price extension dict — keys: price_extension_price,
+            price_extension_old_price, price_extension_price_qualifier,
+            price_extension_price_currency.
         business_id/prefer_vcard_over_business: Business/VCard binding fields.
         erir_ad_description: ERIR ad description.
         logo_extension_hash: Logo extension hash.
-        creative_id/creative_erir_ad_description: Ad builder creative fields.
+        creative_options: Ad-builder creative dict — keys: creative_id,
+            creative_erir_ad_description.
         final_url/tracking_pixels: Final URL and tracking pixel fields.
         feed_filter_conditions: Repeated feed filter condition specs.
-        title_sources/text_sources/default_texts: Smart/ad builder text sources.
+        text_source_options: Smart/ad-builder text sources dict — keys:
+            title_sources, text_sources, default_texts.
         from_file: Path to a JSONL file with ad-update objects (batch mode).
         ads_json: Inline JSON array of ad-update objects (batch mode).
         dry_run: Show the direct request without sending it.
@@ -535,27 +566,18 @@ def ads_update(
             sitelink_set_id,
             turbo_page_id,
             ad_extensions,
-            callouts_add,
-            callouts_remove,
-            callouts_set,
-            video_extension_creative_id,
-            video_extension_ids,
-            price_extension_price,
-            price_extension_old_price,
-            price_extension_price_qualifier,
-            price_extension_price_currency,
+            callouts_options,
+            video_extension_options,
+            price_extension_options,
             business_id,
             prefer_vcard_over_business,
             erir_ad_description,
             logo_extension_hash,
-            creative_id,
-            creative_erir_ad_description,
+            creative_options,
             final_url,
             tracking_pixels,
             feed_filter_conditions,
-            title_sources,
-            text_sources,
-            default_texts,
+            text_source_options,
         )
     ):
         return tool_error_dict(
@@ -565,11 +587,10 @@ def ads_update(
                     "Provide at least one typed update field, for example: title, "
                     "text, href, image_hash, clear_image_hash, tracking_url, "
                     "action, age_label, title2, display_url_path, mobile, vcard_id, "
-                    "sitelink_set_id, turbo_page_id, ad_extensions, "
-                    "callouts_*, video_extension_*, price_extension_*, business_id, "
-                    "creative_id, final_url, tracking_pixels, "
-                    "feed_filter_conditions, title_sources, text_sources, or "
-                    "default_texts."
+                    "sitelink_set_id, turbo_page_id, ad_extensions, business_id, "
+                    "final_url, tracking_pixels, feed_filter_conditions, or one of "
+                    "the grouped dicts: callouts_options, video_extension_options, "
+                    "price_extension_options, creative_options, text_source_options."
                 ),
             )
         )
@@ -611,7 +632,11 @@ def ads_update(
         args.extend(["--turbo-page-id", str(turbo_page_id)])
     if ad_extensions:
         args.extend(["--ad-extensions", ad_extensions])
-    append_cli_options(args, locals(), ADS_UPDATE_EXTRA_OPTIONS)
+    values = locals()
+    expansion_error = expand_grouped_dicts(values, ADS_UPDATE_DICT_REGISTRY)
+    if expansion_error is not None:
+        return tool_error_dict(expansion_error)
+    append_cli_options(args, values, ADS_UPDATE_EXTRA_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()

@@ -170,10 +170,27 @@ def _campaign_strategy_dict_param_names() -> set[str]:
     return names
 
 
+def _ads_extra_dict_param_names() -> set[str]:
+    """CLI option names exposed via ads_* grouped extension dicts (#220).
+
+    ads_add/ads_update collapse the price_extension / video_extension / callouts
+    / creative / text-source flag families into nested dict params; the flat
+    names live on as dict keys, so the parity guard treats them as exposed.
+    """
+    from server.tools.ads import ADS_ADD_DICT_REGISTRY, ADS_UPDATE_DICT_REGISTRY
+
+    names: set[str] = set()
+    for registry in (ADS_ADD_DICT_REGISTRY, ADS_UPDATE_DICT_REGISTRY):
+        for _, members in registry:
+            names.update(members)
+    return names
+
+
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
     _require_direct_cli_0312()
 
     strategy_dict_params = _campaign_strategy_dict_param_names()
+    ads_dict_params = _ads_extra_dict_param_names()
     missing_by_command: dict[str, list[str]] = {}
     for group, subcommand, module_name, function_name in TARGET_COMMANDS:
         click_command = cli.commands[group].commands[subcommand]
@@ -187,10 +204,12 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
         ]
         fn = getattr(importlib.import_module(module_name), function_name)
         mcp_params = set(inspect.signature(fn).parameters)
-        # Strategy options moved from flat campaigns_* params into grouped dicts;
+        # Strategy / extension options moved from flat params into grouped dicts;
         # they remain exposed (as dict keys), so count them as present.
         if group == "campaigns":
             mcp_params |= strategy_dict_params
+        if group == "ads":
+            mcp_params |= ads_dict_params
         aliases = ALIASES.get((group, subcommand), {})
         unexposed = INTENTIONALLY_UNEXPOSED_CLI_PARAMS.get((group, subcommand), set())
         missing = [
@@ -298,8 +317,8 @@ def test_adgroups_and_ads_0312_flags_are_forwarded() -> None:
         ["--callouts-set", "1,2", "--creative-erir-ad-description", "erir"],
         id=1,
         type="TEXT_AD",
-        callouts_set="1,2",
-        creative_erir_ad_description="erir",
+        callouts_options={"callouts_set": "1,2"},
+        creative_options={"creative_erir_ad_description": "erir"},
     )
 
 

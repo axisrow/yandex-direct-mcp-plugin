@@ -255,6 +255,24 @@ warning on stderr and fall back to the full surface.
 | `keywords_has_volume` | `keywordsresearch_has_search_volume` |
 | `keywords_deduplicate` | `keywordsresearch_deduplicate` |
 | `turbo_pages_list` | `turbopages_get` |
+
+#### Grouped dict params (token-budget, #220)
+
+To shrink the JSON Schema of the widest mutate tools, families of flat params are
+exposed as a single nested `dict` param (keys = the **old flat param names**, so
+the underlying `direct` CLI call is unchanged). Migration for `ads_add` /
+`ads_update`:
+
+| Old flat params | New dict param (keys unchanged) |
+|---|---|
+| `price_extension_price`, `price_extension_old_price`, `price_extension_price_qualifier`, `price_extension_price_currency` | `price_extension_options={...}` |
+| `video_extension_creative_id`, `video_extension_ids` | `video_extension_options={...}` |
+| `callouts_add`, `callouts_remove`, `callouts_set` (ads_update) | `callouts_options={...}` |
+| `creative_id`, `creative_erir_ad_description` (ads_update) | `creative_options={...}` |
+| `title_sources`, `text_sources`, `default_texts` | `text_source_options={...}` |
+
+Example: `ads_update(id=…, price_extension_options={"price_extension_price": "100"})`.
+(In `ads_add`, `creative_id` stays a flat param and there are no callouts.)
 | `dynamic_targets_*`, `smart_targets_*`, `negative_keywords_*` | removed legacy aliases |
 | `turbo_pages_add`, `dynamic_ads_update` | removed from the public contract because current `direct` CLI does not expose them |
 

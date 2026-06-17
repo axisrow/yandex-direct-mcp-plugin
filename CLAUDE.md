@@ -574,3 +574,29 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
 - **Tool count unchanged (146).** Updated `pyproject.toml`, `hooks/setup.sh`,
   `README.md`, and this file; plugin/marketplace version bumped via
   `scripts/update-version.sh`.
+
+## Breaking Changes (#220-A — ads param grouping for token budget)
+
+- **`ads_add` / `ads_update` extension families are now nested dict params.**
+  Following the #154 strategy-dict pattern, flat families collapse into single
+  `dict | None` params to shrink the JSON Schema FastMCP broadcasts (part of
+  #149). Dict keys are the **old flat param names**, and
+  `helpers.expand_grouped_dicts` unfolds them before `append_cli_options`, so the
+  generated `direct` argv is **byte-for-byte identical**.
+
+  - `price_extension_options` ← `price_extension_{price,old_price,price_qualifier,price_currency}`
+  - `video_extension_options` ← `video_extension_{creative_id,ids}`
+  - `callouts_options` ← `callouts_{add,remove,set}` (`ads_update` only)
+  - `creative_options` ← `creative_id`, `creative_erir_ad_description` (`ads_update`; in `ads_add`, `creative_id` stays flat)
+  - `text_source_options` ← `title_sources`, `text_sources`, `default_texts`
+
+- **Effect** (`measure_tool_tokens`, approx): `ads_update` 46→37 params (≈1262→1042),
+  `ads_add` 41→35 (≈1118→963); total tool-spec 34,781→34,406. `TOTAL_TOKEN_CEILING`
+  lowered 38,000→35,500.
+
+- **New shared helper** `server/tools/helpers.py:expand_grouped_dicts(values, registry)`
+  (reused by campaigns in #220-B). Parity guard treats absorbed flat names as
+  exposed via `_ads_extra_dict_param_names()`.
+
+- **No CLI/API break.** Only the tool's parameter shape changed. A caller that
+  passed the old flat params must move them under the matching `*_options` dict.
