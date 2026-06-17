@@ -107,27 +107,18 @@ _HINTS_BY_ERROR_CODE: dict[int, str] = {
         "Per-account object limit reached (campaigns / ads / keywords). "
         "Archive or delete unused objects first."
     ),
-    8300: (
-        "Operation not allowed for this ad's status (error 8300). Two common "
-        "causes: (1) Status=UNKNOWN — a service fallback enum value for a status "
-        "outside the API v5 dictionary, NOT a business status; the ad is not a "
-        "DRAFT, so delete and moderate are both impossible and only ads_archive / "
-        "ads_unarchive work (in the web interface the ad still shows its real "
-        "status, e.g. draft/archived). (2) The ad was shown / passed moderation "
-        "while the account had funds — Yandex forbids ads.delete for such ads, "
-        "use ads_archive instead. A DRAFT can only be fully removed by hand in "
-        "the Direct web interface."
-    ),
+    # 8300 / 8800 hints are intentionally NOT defined here: direct-cli >=0.4.3
+    # emits them itself (direct_cli/output.py), and the whole CLI stderr flows
+    # into the ToolError message, so a plugin-side hint would duplicate it (#219).
+    # The machine-readable error_kind classification below (invalid_status /
+    # not_found) is kept — it is structured data, not a text dup. 8301 / 9300 /
+    # 1000 / 7001 / 8000 stay: the CLI does not emit hints for those.
     8301: (
         "Ad group cannot be removed because it still contains ads (error "
         "8301). Archive the ads first: call ads_get with ad_group_ids to list "
         "them, then ads_archive for those ads, then retry adgroups_delete. If "
         "ads_archive also fails with error 8300, the group can only be removed "
         "from the Direct web interface."
-    ),
-    8800: (
-        "Object not found. Either the ID is wrong or it belongs to a "
-        "different client. Verify with a *_get call."
     ),
     9300: (
         "Too many objects in one request. Yandex API caps batch size at "
@@ -166,13 +157,10 @@ def _hint_for_cli_error(error: CliError) -> str | None:
     """Return the best hint for a CliError, or None if nothing specific applies."""
     if error.error_code == 8000:
         return _build_invalid_request_hint(error.stderr)
-    if error.error_code == 8800 and error.stderr:
-        detail = error.stderr.lower()
-        if "client-login" in detail or "nonexistent username" in detail:
-            return (
-                "The active direct auth profile has a missing or wrong login. "
-                "Run auth_status, then auth_login or auth_setup with the correct login."
-            )
+    # 8800 (wrong Client-Login / object not found) is no longer hinted here:
+    # direct-cli >=0.4.3 emits a Client-Login hint itself ("Check --login,
+    # YANDEX_DIRECT_LOGIN, or the selected auth profile…"), which reaches the LLM
+    # via the ToolError message. A plugin hint would duplicate it (#219).
     if error.error_code is not None and error.error_code in _HINTS_BY_ERROR_CODE:
         return _HINTS_BY_ERROR_CODE[error.error_code]
     return None

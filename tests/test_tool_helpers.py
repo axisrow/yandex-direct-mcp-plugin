@@ -122,22 +122,32 @@ def test_handle_cli_errors_targeted_hint_8000_filter_falls_back_to_filter_hint()
     assert "Operators are usually one of" in result["hint"]
 
 
-def test_handle_cli_errors_maps_8800_not_found_with_client_login_hint() -> None:
-    """error_code 8800 → not_found + client-login hint. Reachable now that the
-    runner parses action-level 'Error 8800: ...' codes (#170-13 / #170-2)."""
+def test_handle_cli_errors_maps_8800_not_found_without_duplicate_hint() -> None:
+    """error_code 8800 → not_found, and NO plugin hint (#219).
+
+    direct-cli >=0.4.3 emits the Client-Login hint itself ("Check --login,
+    YANDEX_DIRECT_LOGIN, or the selected auth profile…"), which reaches the LLM
+    via the ToolError message. The plugin must not add a duplicate hint — only
+    the machine-readable error_kind classification is kept.
+    """
     result = _wrap_cli_error(
         "boom",
         error_code=8800,
         stderr="Error 8800: object is not available under the current Client-Login",
     )()
     assert result["error"] == "not_found"
-    assert "auth_login or auth_setup" in result["hint"]
+    assert result["hint"] is None
 
 
-def test_handle_cli_errors_maps_8300_invalid_status() -> None:
-    """error_code 8300/8301 → invalid_status (#170-13)."""
+def test_handle_cli_errors_maps_8300_invalid_status_without_duplicate_hint() -> None:
+    """error_code 8300/8301 → invalid_status, and NO plugin hint (#219).
+
+    direct-cli >=0.4.3 emits the 8300 hint itself (not-DRAFT → archive/unarchive);
+    the plugin keeps only the error_kind classification, not a duplicate text.
+    """
     result = _wrap_cli_error("boom", error_code=8300, stderr="Error 8300: ...")()
     assert result["error"] == "invalid_status"
+    assert result["hint"] is None
 
 
 def test_handle_cli_errors_maps_9300_limit_exceeded() -> None:
@@ -218,16 +228,6 @@ def test_handle_cli_errors_maps_error_code_53_to_auth_error_with_hint() -> None:
     assert "auth_login" in result["hint"]
 
 
-def test_handle_cli_errors_error_code_8800_client_login_hint() -> None:
-    result = _wrap_cli_error(
-        "boom",
-        error_code=8800,
-        stderr="error_code=8800, error_detail=The HTTP Client-Login header contains a nonexistent username",
-    )()
-    assert result["error"] == "not_found"
-    assert "direct auth profile" in result["hint"]
-
-
 def test_handle_cli_errors_maps_error_code_152_to_insufficient_funds() -> None:
     result = _wrap_cli_error("boom", error_code=152)()
     assert result["error"] == "insufficient_funds"
@@ -238,23 +238,6 @@ def test_handle_cli_errors_maps_error_code_9300_to_limit_exceeded() -> None:
     result = _wrap_cli_error("boom", error_code=9300)()
     assert result["error"] == "limit_exceeded"
     assert "10 IDs" in result["hint"]
-
-
-def test_handle_cli_errors_maps_error_code_8300_to_invalid_status_with_hint() -> None:
-    result = _wrap_cli_error("boom", error_code=8300)()
-    assert result["error"] == "invalid_status"
-    assert "ads_archive" in result["hint"]
-
-
-def test_error_8300_hint_explains_unknown_status_fallback() -> None:
-    """8300 hint must cover the Status=UNKNOWN fallback case (#164)."""
-    result = _wrap_cli_error("boom", error_code=8300)()
-    hint = result["hint"]
-    assert "UNKNOWN" in hint
-    assert "ads_unarchive" in hint
-    # The misleading "definitely shown/moderated" framing must no longer be the
-    # sole stated cause.
-    assert "Two common causes" in hint
 
 
 def test_handle_cli_errors_maps_error_code_8301_to_invalid_status_with_hint() -> None:
@@ -351,20 +334,24 @@ def test_validate_phrase_csv_preserves_wordstat_limit_message() -> None:
 
 
 def test_run_single_id_batch_attaches_hint_for_business_cli_error() -> None:
-    """A batch (>1 ID) CliError must carry the same hint as the single-ID path."""
+    """A batch (>1 ID) CliError must carry the same hint as the single-ID path.
+
+    Uses error 9300 (still plugin-hinted) — the 8300/8800 hints now come from
+    direct-cli via the message, not the plugin (#219).
+    """
     from server.cli.runner import CliError
 
     runner = MagicMock()
     runner.run_json.side_effect = [
         {"success": True},
-        CliError("direct failed (exit 1): Error 8300", error_code=8300),
+        CliError("direct failed (exit 1): Error 9300", error_code=9300),
     ]
 
     result = run_single_id_batch(runner, "ads", "delete", "1,2")
 
     assert result["success"] is False
     assert result["results"][1]["id"] == "2"
-    assert "ads_archive" in result["results"][1]["hint"]
+    assert "10 IDs" in result["results"][1]["hint"]
 
 
 def test_run_single_id_batch_omits_hint_when_none_applies() -> None:
