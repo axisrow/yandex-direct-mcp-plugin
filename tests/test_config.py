@@ -273,3 +273,19 @@ def test_scenario_profiles_are_smaller_than_full():
     full = len(tool_names())
     for name in ("core", "analytics", "campaign-editor"):
         assert 0 < len(PROFILES[name].enabled_tool_names()) < full
+
+
+def test_no_scenario_profile_exposes_money_movement_tools():
+    """campaign-editor (and other scenario profiles) must NOT expose financial
+    v4account money-movement tools — they leak via the bidding_budget group
+    until #205 reclassifies them into a high-risk group."""
+    financial = {
+        "v4account_deposit",
+        "v4account_invoice",
+        "v4account_transfer_money",
+        "v4account_update_account",
+    }
+    for name in ("core", "analytics", "campaign-editor"):
+        enabled = PROFILES[name].enabled_tool_names()
+        leaked = financial & enabled
+        assert not leaked, f"profile {name} leaks financial tools: {sorted(leaked)}"

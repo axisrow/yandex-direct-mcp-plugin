@@ -208,7 +208,7 @@ Groups are **service** names (`campaigns`, `ads`, …), **actions**
 
 Approximate budget by profile (share of full; see
 [`docs/token-budget.md`](docs/token-budget.md)): `core` ~7% (10 tools),
-`analytics` ~11% (28), `campaign-editor` ~51% (39), `full` 100% (146).
+`analytics` ~11% (28), `campaign-editor` ~49% (35), `full` 100% (146).
 Disabled tools are absent from `tools/list`; unknown profile/group names log a
 warning on stderr and fall back to the full surface.
 
