@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "yandex-direct-mcp": {
-      "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/server/main.py"]
+      "command": "bash",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/run-server.sh"]
     }
   }
 }

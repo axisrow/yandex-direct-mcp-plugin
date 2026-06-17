@@ -11,6 +11,7 @@ PLUGIN_MANIFEST = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE_MANIFEST = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 MCP_MANIFEST = PLUGIN_ROOT / ".mcp.json"
 SERVER_ENTRYPOINT = PLUGIN_ROOT / "server" / "main.py"
+SERVER_WRAPPER = PLUGIN_ROOT / "run-server.sh"
 
 
 def _load_json(path: Path) -> dict:
@@ -62,9 +63,28 @@ def test_plugin_manifest_matches_bundle_layout() -> None:
     assert plugin["mcpServers"] == "./.mcp.json"
     assert plugin["interface"]["displayName"] == "Yandex Direct"
 
+    # The bundle launches via a venv-aware wrapper, NOT a bare interpreter, so a
+    # Linux/PEP-668 install can still find `mcp`/`direct-cli` (issue #197).
     server = mcp["mcpServers"]["yandex-direct-mcp"]
-    assert server["command"] == "python3"
-    assert server["args"] == ["${CLAUDE_PLUGIN_ROOT}/server/main.py"]
+    assert server["command"] == "bash"
+    assert server["args"] == ["${CLAUDE_PLUGIN_ROOT}/run-server.sh"]
+
+
+def test_bundle_does_not_launch_bare_interpreter() -> None:
+    """Regression guard for #197: a marketplace/Codex install on Linux must not
+    rely on a bare `python3` that cannot import the plugin deps."""
+    mcp = _load_json(MCP_MANIFEST)
+    server = mcp["mcpServers"]["yandex-direct-mcp"]
+    assert server["command"] not in {"python", "python3"}, (
+        "bundle .mcp.json must launch via the venv-aware wrapper, not a bare "
+        f"interpreter (got {server['command']!r})"
+    )
+    assert SERVER_WRAPPER.exists(), "bundle run-server.sh wrapper is missing"
+    text = SERVER_WRAPPER.read_text()
+    # The wrapper must be self-sufficient (no hooks/setup.sh in the bundle): it
+    # resolves/bootstraps a venv and ultimately execs the server entrypoint.
+    assert "server/main.py" in text
+    assert "import mcp" in text
 
 
 def test_plugin_entrypoint_imports_same_tools_as_repo_entrypoint() -> None:
