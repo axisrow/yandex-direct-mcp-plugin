@@ -58,16 +58,28 @@ class TestBidModifiersList:
         assert result["error"] == "batch_limit"
 
     def test_bidmodifiers_list_with_levels(self):
-        """Test listing bid modifiers with levels filter."""
+        """Test listing bid modifiers with a single level filter."""
         runner = mock_runner(SAMPLE_BIDMODIFIERS)
         with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
-            bidmodifiers_list(campaign_ids="12345", levels="CAMPAIGN")
+            bidmodifiers_list(campaign_ids="12345", levels=["CAMPAIGN"])
             call_args = runner.run_json.call_args[0][0]
             assert "--levels" in call_args
             assert "CAMPAIGN" in call_args
 
+    def test_bidmodifiers_list_with_multiple_levels(self):
+        """--levels is repeatable in the CLI: emit one flag per value (#170-31)."""
+        runner = mock_runner(SAMPLE_BIDMODIFIERS)
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            bidmodifiers_list(levels=["CAMPAIGN", "AD_GROUP"])
+            call_args = runner.run_json.call_args[0][0]
+            # Two separate --levels flags, one per value.
+            assert call_args.count("--levels") == 2
+            i = call_args.index("--levels")
+            assert call_args[i + 1] == "CAMPAIGN"
+            assert call_args[call_args.index("--levels", i + 1) + 1] == "AD_GROUP"
+
     def test_bidmodifiers_list_rejects_invalid_levels(self):
-        result = bidmodifiers_list(levels="campaign")
+        result = bidmodifiers_list(levels=["campaign"])
         assert result["error"] == "invalid_levels"
 
 

@@ -159,6 +159,12 @@ def _find_direct() -> str | None:
     return first_unknown
 
 
+# Paths already warned about this process — keeps _warn_unverified_direct
+# idempotent per path so a noisy diagnostic does not repeat on every
+# re-resolution. (#170-29)
+_WARNED_UNVERIFIED_PATHS: set[str] = set()
+
+
 def _warn_unverified_direct(path: str) -> None:
     """Surface the fail-open fallback so users notice an unverified binary.
 
@@ -168,9 +174,12 @@ def _warn_unverified_direct(path: str) -> None:
     old CLI binaries without ``--version`` support). The compromise is
     warn-and-use: pick the candidate so MCP tool calls keep working,
     but write a single diagnostic to stderr so the user sees that the
-    floor could not be verified. The module-level cache makes this fire
-    at most once per process.
+    floor could not be verified. The module-level ``_WARNED_UNVERIFIED_PATHS``
+    cache makes this fire at most once per path per process.
     """
+    if path in _WARNED_UNVERIFIED_PATHS:
+        return
+    _WARNED_UNVERIFIED_PATHS.add(path)
     sys.stderr.write(
         f"warning: direct binary at {path} could not be verified "
         f"as direct-cli >= {'.'.join(map(str, MIN_DIRECT_VERSION))}; "
@@ -199,6 +208,7 @@ def _reset_direct_cache() -> None:
     """Test helper: clear the cached resolution so the next call re-resolves."""
     global _RESOLVED_DIRECT
     _RESOLVED_DIRECT = _UNCACHED
+    _WARNED_UNVERIFIED_PATHS.clear()
 
 
 def _direct_env() -> dict[str, str]:
