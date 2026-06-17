@@ -273,6 +273,22 @@ the underlying `direct` CLI call is unchanged). Migration for `ads_add` /
 
 Example: `ads_update(id=…, price_extension_options={"price_extension_price": "100"})`.
 (In `ads_add`, `creative_id` stays a flat param and there are no callouts.)
+
+Same migration for `campaigns_add` / `campaigns_update` (keys unchanged):
+
+| Old flat params | New dict param |
+|---|---|
+| `notification_email`, `notification_check_position_interval`, `notification_warning_balance`, `notification_send_account_news`, `notification_send_warnings` | `notification_options={...}` |
+| `time_targeting_schedule`, `consider_working_weekends`, `holidays_suspend_on_holidays`, `holidays_bid_percent`, `holidays_start_hour`, `holidays_end_hour` | `time_targeting_options={...}` |
+| `frequency_cap_impressions`, `frequency_cap_period_days`, `frequency_cap_period_all` | `frequency_cap_options={...}` |
+| `relevant_keywords_budget_percent`, `relevant_keywords_mode`, `relevant_keywords_optimize_goal_id` | `relevant_keywords_options={...}` |
+| `package_platform_*` (7 flags) | `package_platform_options={...}` |
+| `sms_events`, `sms_time_from`, `sms_time_to` | `sms_options={...}` |
+| `search_placement_*` (3 flags) | `search_placement_options={...}` |
+| `strategy_auto_continue`, `strategy_end_date`, `strategy_spend_limit`, `strategy_start_date` (CPM) | `cpm_strategy_options={...}` |
+
+Small families (`attribution_model`, `package_strategy_*`, `dynamic_placement_*`)
+stay flat. This is in addition to the bidding-strategy `*_options` dicts from #154.
 | `dynamic_targets_*`, `smart_targets_*`, `negative_keywords_*` | removed legacy aliases |
 | `turbo_pages_add`, `dynamic_ads_update` | removed from the public contract because current `direct` CLI does not expose them |
 

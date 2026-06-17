@@ -270,7 +270,9 @@ class TestCampaignsUpdate:
         """Zero-valued typed fields are valid updates and must reach the CLI."""
         runner = mock_runner({"Id": 12345})
         with patch("server.tools.campaigns.get_runner", return_value=runner):
-            result = campaigns_update(id=12345, holidays_start_hour=0)
+            result = campaigns_update(
+                id=12345, time_targeting_options={"holidays_start_hour": 0}
+            )
 
         runner.run_json.assert_called_once_with(
             [
@@ -295,8 +297,8 @@ class TestCampaignsUpdate:
         with patch("server.tools.campaigns.get_runner", return_value=runner):
             campaigns_update(
                 id=12345,
-                notification_email="ops@example.com",
-                consider_working_weekends="YES",
+                notification_options={"notification_email": "ops@example.com"},
+                time_targeting_options={"consider_working_weekends": "YES"},
             )
 
         argv = runner.run_json.call_args[0][0]
@@ -448,8 +450,10 @@ class TestCampaignsCrudOperations:
                 name="c",
                 start_date="2026-01-01",
                 campaign_type="TEXT_CAMPAIGN",
-                notification_email="ops@example.com",
-                notification_send_warnings="YES",
+                notification_options={
+                    "notification_email": "ops@example.com",
+                    "notification_send_warnings": "YES",
+                },
             )
         argv = runner.run_json.call_args[0][0]
         assert argv[argv.index("--notification-email") + 1] == "ops@example.com"
@@ -463,7 +467,7 @@ class TestCampaignsCrudOperations:
                 name="c",
                 start_date="2026-01-01",
                 campaign_type="TEXT_CAMPAIGN",
-                consider_working_weekends="YES",
+                time_targeting_options={"consider_working_weekends": "YES"},
             )
         argv = runner.run_json.call_args[0][0]
         assert argv[argv.index("--consider-working-weekends") + 1] == "YES"
@@ -673,3 +677,87 @@ class TestCampaignsStrategyDictExpansion:
         argv = runner.run_json.call_args[0][0]
         assert "--text-search-budget-type" not in argv
         assert "--text-search-pay-cpa" in argv
+
+
+class TestCampaignsFamilyDictGrouping:
+    """Grouped flat-family dict params expand to byte-identical argv (#220-B)."""
+
+    def _argv(self, fn, **kwargs):
+        runner = mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            fn(**kwargs)
+        return runner.run_json.call_args[0][0]
+
+    def test_registry_members_are_real_cli_options(self):
+        """Every grouped member name must be an actual CAMPAIGN_MUTATION_OPTIONS flag."""
+        from server.tools.campaigns import (
+            CAMPAIGN_MUTATION_OPTIONS,
+            _CAMPAIGN_FAMILY_DICT_REGISTRY,
+        )
+
+        known = {opt.name for opt in CAMPAIGN_MUTATION_OPTIONS}
+        for _, members in _CAMPAIGN_FAMILY_DICT_REGISTRY:
+            for member in members:
+                assert member in known, member
+
+    def test_update_families_expand_to_flags(self):
+        argv = self._argv(
+            campaigns_update,
+            id=1,
+            notification_options={"notification_email": "a@b.c"},
+            package_platform_options={"package_platform_network": "YES"},
+            cpm_strategy_options={"strategy_spend_limit": 100_000_000},
+        )
+        assert argv[argv.index("--notification-email") + 1] == "a@b.c"
+        assert argv[argv.index("--package-platform-network") + 1] == "YES"
+        assert argv[argv.index("--strategy-spend-limit") + 1] == "100000000"
+        assert "notification_options" not in argv
+
+    def test_repeat_and_flag_members_preserved(self):
+        argv = self._argv(
+            campaigns_update,
+            id=1,
+            time_targeting_options={"time_targeting_schedule": ["1=10-18", "2=10-18"]},
+            frequency_cap_options={
+                "frequency_cap_impressions": 5,
+                "frequency_cap_period_all": True,
+            },
+        )
+        assert argv.count("--time-targeting-schedule") == 2  # repeat=True
+        assert "--frequency-cap-period-all" in argv  # is_flag=True, bare
+        assert argv[argv.index("--frequency-cap-impressions") + 1] == "5"
+
+    def test_zero_member_value_reaches_cli(self):
+        argv = self._argv(
+            campaigns_update,
+            id=1,
+            time_targeting_options={"holidays_start_hour": 0},
+        )
+        assert argv[argv.index("--holidays-start-hour") + 1] == "0"
+
+    def test_non_dict_family_rejected(self):
+        runner = mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(id=1, notification_options="bad")
+        assert result["error"] == "invalid_param"
+        runner.run_json.assert_not_called()
+
+    def test_empty_family_dict_does_not_satisfy_update_guard(self):
+        runner = mock_runner({"Id": 1})
+        with patch("server.tools.campaigns.get_runner", return_value=runner):
+            result = campaigns_update(id=1, notification_options={})
+        assert result["error"] == "missing_update_fields"
+        runner.run_json.assert_not_called()
+
+    def test_add_has_no_grouped_flat_params(self):
+        import inspect
+
+        params = inspect.signature(campaigns_add).parameters
+        for gone in ("notification_email", "sms_events", "package_platform_network"):
+            assert gone not in params
+        for grouped in (
+            "notification_options",
+            "sms_options",
+            "package_platform_options",
+        ):
+            assert grouped in params

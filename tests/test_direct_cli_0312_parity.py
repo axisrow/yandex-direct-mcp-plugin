@@ -162,11 +162,15 @@ def _campaign_strategy_dict_param_names() -> set[str]:
     """
     from server.tools.campaigns import (
         CAMPAIGN_UPDATE_ONLY_OPTIONS,
+        _CAMPAIGN_FAMILY_DICT_REGISTRY,
         _STRATEGY_DICT_REGISTRY,
     )
 
     names = {opt.name for _, opts in _STRATEGY_DICT_REGISTRY for opt in opts}
     names |= {opt.name for opt in CAMPAIGN_UPDATE_ONLY_OPTIONS}
+    # #220-B grouped the remaining flat families into dicts too; their member
+    # names live on as dict keys, so they are still exposed.
+    names |= {m for _, members in _CAMPAIGN_FAMILY_DICT_REGISTRY for m in members}
     return names
 
 
@@ -271,8 +275,8 @@ def test_campaigns_0312_flags_are_forwarded() -> None:
         name="c",
         start_date="2026-01-01",
         dynamic_placement_search_results="YES",
-        time_targeting_schedule=["1=10-18"],
-        frequency_cap_period_all=True,
+        time_targeting_options={"time_targeting_schedule": ["1=10-18"]},
+        frequency_cap_options={"frequency_cap_period_all": True},
         tracking_params="utm_source=x",
     )
     _run_with_runner(
@@ -281,7 +285,7 @@ def test_campaigns_0312_flags_are_forwarded() -> None:
         ["--type", "TEXT_CAMPAIGN", "--package-platform-network", "YES"],
         id=1,
         campaign_type="TEXT_CAMPAIGN",
-        package_platform_network="YES",
+        package_platform_options={"package_platform_network": "YES"},
     )
 
 
