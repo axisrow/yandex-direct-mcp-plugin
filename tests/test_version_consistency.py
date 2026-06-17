@@ -40,7 +40,9 @@ def _json_version(path: Path) -> str:
 def _marketplace_version(path: Path) -> str:
     data = json.loads(path.read_text())
     entries = [p for p in data["plugins"] if p.get("name") == "yandex-direct"]
-    assert len(entries) == 1, f"expected one yandex-direct entry in {path}, got {entries}"
+    assert len(entries) == 1, (
+        f"expected one yandex-direct entry in {path}, got {entries}"
+    )
     return entries[0]["version"]
 
 
@@ -68,4 +70,6 @@ def test_plugin_version_is_consistent_across_manifests() -> None:
 
 def test_plugin_version_is_valid_semver() -> None:
     for source, version in _all_versions().items():
-        assert _SEMVER_RE.match(version), f"{source} has a non-semver version: {version!r}"
+        assert _SEMVER_RE.match(version), (
+            f"{source} has a non-semver version: {version!r}"
+        )
