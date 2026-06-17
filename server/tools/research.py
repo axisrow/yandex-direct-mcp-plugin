@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 
 @mcp.tool(
@@ -25,15 +26,19 @@ def keywords_has_volume(
         fields: Comma-separated field names.
     """
     if not keywords.strip():
-        return ToolError(
-            error="missing_keywords",
-            message="Provide at least one keyword.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_keywords",
+                message="Provide at least one keyword.",
+            )
+        )
     if not region_ids.strip():
-        return ToolError(
-            error="missing_region_ids",
-            message="Provide at least one region ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_region_ids",
+                message="Provide at least one region ID.",
+            )
+        )
     args = [
         "keywordsresearch",
         "has-search-volume",

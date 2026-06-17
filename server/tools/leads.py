@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 
 @mcp.tool(
@@ -32,10 +33,12 @@ def leads_list(
     """
     normalized = turbo_page_ids.strip()
     if not normalized:
-        return ToolError(
-            error="missing_turbo_page_ids",
-            message="Provide at least one turbo page ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_turbo_page_ids",
+                message="Provide at least one turbo page ID.",
+            )
+        )
 
     args = [
         "leads",

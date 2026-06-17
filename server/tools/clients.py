@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, provided_update_value
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    provided_update_value,
+    tool_error_dict,
+)
 
 ERIR_OPTIONS = (
     CliOption("erir_organization_name", "--erir-organization-name"),
@@ -131,10 +136,12 @@ def clients_update(
         for key, value in values.items()
         if key not in {"dry_run"}
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one typed client field to update.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one typed client field to update.",
+            )
+        )
 
     args = ["clients", "update"]
     if client_info is not None:

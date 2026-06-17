@@ -8,6 +8,7 @@ from server.tools.helpers import (
     check_batch_limit,
     provided_update_value,
     run_batch_mutation,
+    tool_error_dict,
 )
 
 MAX_BATCH_SIZE = 10
@@ -88,13 +89,13 @@ def adgroups_list(
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
@@ -217,13 +218,15 @@ def adgroups_add(
         return result
 
     if campaign_id is None or name is None:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Single mode requires campaign_id and name; otherwise use "
-                "from_file (JSONL) or adgroups_json (inline JSON array)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Single mode requires campaign_id and name; otherwise use "
+                    "from_file (JSONL) or adgroups_json (inline JSON array)."
+                ),
+            )
+        )
 
     args = [
         "adgroups",
@@ -313,13 +316,15 @@ def adgroups_update(
         dry_run: Show the direct request without sending it.
     """
     if (from_file or adgroups_json) and id is not None:
-        return ToolError(
-            error="conflicting_modes",
-            message=(
-                "id is for single-group mode; in batch mode every row carries "
-                "its own id. Pass id OR from_file/adgroups_json, not both."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    "id is for single-group mode; in batch mode every row carries "
+                    "its own id. Pass id OR from_file/adgroups_json, not both."
+                ),
+            )
+        )
 
     result = run_batch_mutation(
         get_runner(),
@@ -334,13 +339,15 @@ def adgroups_update(
         return result
 
     if id is None:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Provide exactly one of: id (single group), from_file (JSONL), "
-                "or adgroups_json (inline JSON array)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Provide exactly one of: id (single group), from_file (JSONL), "
+                    "or adgroups_json (inline JSON array)."
+                ),
+            )
+        )
 
     values = locals()
     if not any(
@@ -349,10 +356,12 @@ def adgroups_update(
         if key
         not in {"id", "dry_run", "from_file", "adgroups_json", "handled", "result"}
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one typed ad group field to update.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one typed ad group field to update.",
+            )
+        )
 
     args = ["adgroups", "update", "--id", str(id)]
     if name is not None:

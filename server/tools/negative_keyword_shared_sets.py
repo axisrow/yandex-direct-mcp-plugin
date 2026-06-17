@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 
 @mcp.tool(
@@ -86,10 +87,12 @@ def negative_keyword_shared_sets_update(
         dry_run: Show the direct request without sending it.
     """
     if not any((name, keywords)):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one of: name, keywords",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one of: name, keywords",
+            )
+        )
 
     args = ["negativekeywordsharedsets", "update", "--id", str(id)]
     if name is not None:

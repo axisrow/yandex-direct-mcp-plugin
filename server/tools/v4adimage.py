@@ -6,6 +6,7 @@ from server.tools.helpers import (
     finalize_json_args,
     normalize_optional_str,
     normalize_str_list,
+    tool_error_dict,
 )
 
 
@@ -88,10 +89,12 @@ def v4adimage_set(
     """
     normalized = normalize_str_list(associations)
     if not normalized:
-        return ToolError(
-            error="missing_associations",
-            message="Provide at least one association (AD_ID or AD_ID=HASH).",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_associations",
+                message="Provide at least one association (AD_ID or AD_ID=HASH).",
+            )
+        )
 
     args = ["v4adimage", "set"]
     for item in normalized:

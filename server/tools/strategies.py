@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, tool_error_dict
 
 IS_ARCHIVED_VALUES = ("YES", "NO")
 STRATEGY_TYPES = (
@@ -50,19 +50,21 @@ def strategies_list(
         fields: Comma-separated field names.
     """
     if is_archived is not None and is_archived not in IS_ARCHIVED_VALUES:
-        return ToolError(
-            error="invalid_is_archived",
-            message=(
-                f"is_archived must be one of {IS_ARCHIVED_VALUES}; got '{is_archived}'"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_is_archived",
+                message=(
+                    f"is_archived must be one of {IS_ARCHIVED_VALUES}; got '{is_archived}'"
+                ),
+            )
+        )
 
     args = ["strategies", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if types is not None:
         args.extend(["--types", types])
@@ -137,18 +139,22 @@ def strategies_add(
         dry_run: Show the direct request without sending it.
     """
     if type not in STRATEGY_TYPES:
-        return ToolError(
-            error="invalid_type",
-            message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_type",
+                message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
+            )
+        )
     if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
-        return ToolError(
-            error="invalid_attribution_model",
-            message=(
-                f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
-                f"got '{attribution_model}'"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_attribution_model",
+                message=(
+                    f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
+                    f"got '{attribution_model}'"
+                ),
+            )
+        )
     args = ["strategies", "add", "--name", name, "--type", type]
     if average_cpc is not None:
         args.extend(["--average-cpc", str(average_cpc)])
@@ -258,28 +264,34 @@ def strategies_update(
         )
         and not priority_goals
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: name, type, average_cpc, average_cpa, "
-                "average_crr, goal_id, spend_limit, weekly_spend_limit, "
-                "bid_ceiling, custom_period_*, minimum_exploration_budget, "
-                "counter_ids, priority_goals, attribution_model"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: name, type, average_cpc, average_cpa, "
+                    "average_crr, goal_id, spend_limit, weekly_spend_limit, "
+                    "bid_ceiling, custom_period_*, minimum_exploration_budget, "
+                    "counter_ids, priority_goals, attribution_model"
+                ),
+            )
+        )
     if type is not None and type not in STRATEGY_TYPES:
-        return ToolError(
-            error="invalid_type",
-            message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_type",
+                message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
+            )
+        )
     if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
-        return ToolError(
-            error="invalid_attribution_model",
-            message=(
-                f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
-                f"got '{attribution_model}'"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_attribution_model",
+                message=(
+                    f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
+                    f"got '{attribution_model}'"
+                ),
+            )
+        )
 
     args = ["strategies", "update", "--id", str(id)]
     if name is not None:

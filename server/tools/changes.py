@@ -4,7 +4,7 @@ import re
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, parse_ids
+from server.tools.helpers import check_batch_limit, parse_ids, tool_error_dict
 
 ALLOWED_FIELD_NAMES = {"CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"}
 
@@ -84,10 +84,10 @@ def changes_check(
     if selected_fields is not None:
         field_error = _validate_field_names(selected_fields)
         if field_error:
-            return field_error.__dict__
+            return tool_error_dict(field_error)
     validated_timestamp = _validate_timestamp(timestamp)
     if isinstance(validated_timestamp, ToolError):
-        return validated_timestamp.__dict__
+        return tool_error_dict(validated_timestamp)
 
     provided: list[tuple[str, str, str, int]] = []
     for cli_flag, label, value, limit in (
@@ -108,23 +108,29 @@ def changes_check(
         provided.append((cli_flag, label, stripped, limit))
 
     if not provided:
-        return ToolError(
-            error="missing_id_filter",
-            message=("Provide exactly one of campaign_ids, ad_group_ids, or ad_ids."),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_id_filter",
+                message=(
+                    "Provide exactly one of campaign_ids, ad_group_ids, or ad_ids."
+                ),
+            )
+        )
     if len(provided) > 1:
-        return ToolError(
-            error="conflicting_id_filters",
-            message=(
-                "Pass exactly one of campaign_ids, ad_group_ids, or ad_ids — "
-                f"got: {', '.join(p[1] for p in provided)}."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_id_filters",
+                message=(
+                    "Pass exactly one of campaign_ids, ad_group_ids, or ad_ids — "
+                    f"got: {', '.join(p[1] for p in provided)}."
+                ),
+            )
+        )
 
     cli_flag, _label, value, limit = provided[0]
     batch_error = check_batch_limit(value, max_size=limit)
     if batch_error:
-        return batch_error.__dict__
+        return tool_error_dict(batch_error)
 
     args = [
         "changes",
@@ -154,7 +160,7 @@ def changes_checkcamp(timestamp: str) -> dict:
     """
     validated_timestamp = _validate_timestamp(timestamp)
     if isinstance(validated_timestamp, ToolError):
-        return validated_timestamp.__dict__
+        return tool_error_dict(validated_timestamp)
     return get_runner().run_json(
         [
             "changes",

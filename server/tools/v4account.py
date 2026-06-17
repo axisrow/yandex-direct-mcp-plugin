@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import finalize_json_args
+from server.tools.helpers import finalize_json_args, tool_error_dict
 
 
 def _base_args(*, sandbox: bool) -> list[str]:
@@ -103,14 +103,16 @@ def v4account_enable_shared_account(
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
     if safety_error:
-        return safety_error.__dict__
+        return tool_error_dict(safety_error)
 
     normalized_login = client_login.strip()
     if not normalized_login:
-        return ToolError(
-            error="missing_client_login",
-            message="Provide client_login.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_client_login",
+                message="Provide client_login.",
+            )
+        )
 
     args = _base_args(sandbox=sandbox)
     args.extend(["enable-shared-account", "--client-login", normalized_login])
@@ -153,22 +155,26 @@ def v4account_get_accounts(
     normalized_account_ids = account_ids.strip() if account_ids is not None else ""
 
     if logins_provided and not normalized_logins:
-        return ToolError(
-            error="empty_selector",
-            message=(
-                "logins was provided but is empty after stripping whitespace; "
-                "omit the argument entirely to list every shared account."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="empty_selector",
+                message=(
+                    "logins was provided but is empty after stripping whitespace; "
+                    "omit the argument entirely to list every shared account."
+                ),
+            )
+        )
     if account_ids_provided and not normalized_account_ids:
-        return ToolError(
-            error="empty_selector",
-            message=(
-                "account_ids was provided but is empty after stripping "
-                "whitespace; omit the argument entirely to list every "
-                "shared account."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="empty_selector",
+                message=(
+                    "account_ids was provided but is empty after stripping "
+                    "whitespace; omit the argument entirely to list every "
+                    "shared account."
+                ),
+            )
+        )
 
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Get"])
@@ -221,7 +227,7 @@ def v4account_update_account(
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
     if safety_error:
-        return safety_error.__dict__
+        return tool_error_dict(safety_error)
 
     # direct-cli requires day_budget and spend_mode to be set together (the
     # DayBudget block needs both Amount and Mode); one without the other is a
@@ -229,13 +235,15 @@ def v4account_update_account(
     budget_set = bool(day_budget and day_budget.strip())
     mode_set = bool(spend_mode and spend_mode.strip())
     if budget_set != mode_set:
-        return ToolError(
-            error="day_budget_spend_mode_pair",
-            message=(
-                "day_budget and spend_mode must be set together — direct-cli "
-                "rejects one without the other."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="day_budget_spend_mode_pair",
+                message=(
+                    "day_budget and spend_mode must be set together — direct-cli "
+                    "rejects one without the other."
+                ),
+            )
+        )
 
     args = _base_args(sandbox=sandbox)
     args.extend(
@@ -295,17 +303,17 @@ def v4account_deposit(
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
     if safety_error:
-        return safety_error.__dict__
+        return tool_error_dict(safety_error)
 
     normalized = _normalize_payment(payment)
     if isinstance(normalized, ToolError):
-        return normalized.__dict__
+        return tool_error_dict(normalized)
 
     normalized_currency = _require_non_empty(
         currency, field="currency", error="missing_currency"
     )
     if isinstance(normalized_currency, ToolError):
-        return normalized_currency.__dict__
+        return tool_error_dict(normalized_currency)
 
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Deposit"])
@@ -344,17 +352,17 @@ def v4account_invoice(
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
     if safety_error:
-        return safety_error.__dict__
+        return tool_error_dict(safety_error)
 
     normalized = _normalize_payment(payment)
     if isinstance(normalized, ToolError):
-        return normalized.__dict__
+        return tool_error_dict(normalized)
 
     normalized_currency = _require_non_empty(
         currency, field="currency", error="missing_currency"
     )
     if isinstance(normalized_currency, ToolError):
-        return normalized_currency.__dict__
+        return tool_error_dict(normalized_currency)
 
     args = _base_args(sandbox=sandbox)
     args.extend(["account-management", "--action", "Invoice"])
@@ -395,19 +403,19 @@ def v4account_transfer_money(
     """
     safety_error = _require_dry_run_or_sandbox(dry_run, sandbox)
     if safety_error:
-        return safety_error.__dict__
+        return tool_error_dict(safety_error)
 
     normalized_amount = _require_non_empty(
         amount, field="amount", error="missing_amount"
     )
     if isinstance(normalized_amount, ToolError):
-        return normalized_amount.__dict__
+        return tool_error_dict(normalized_amount)
 
     normalized_currency = _require_non_empty(
         currency, field="currency", error="missing_currency"
     )
     if isinstance(normalized_currency, ToolError):
-        return normalized_currency.__dict__
+        return tool_error_dict(normalized_currency)
 
     args = _base_args(sandbox=sandbox)
     args.extend(

@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 
 @mcp.tool(
@@ -76,23 +77,27 @@ def keyword_bids_set(
         dry_run: Show the direct request without sending it.
     """
     if keyword_id is None and campaign_id is None and ad_group_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
+            )
+        )
     if (
         search_bid is None
         and network_bid is None
         and autotargeting_search_bid_is_auto is None
         and priority is None
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: search_bid, network_bid, "
-                "autotargeting_search_bid_is_auto, priority"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: search_bid, network_bid, "
+                    "autotargeting_search_bid_is_auto, priority"
+                ),
+            )
+        )
 
     args = ["keywordbids", "set"]
     if campaign_id is not None:
@@ -148,23 +153,27 @@ def keyword_bids_set_auto(
             CLI 0.2.10+ rejects values 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
     """
     if campaign_id is None and ad_group_id is None and keyword_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
+            )
+        )
     if (
         target_traffic_volume is None
         and target_coverage is None
         and increase_percent is None
         and bid_ceiling is None
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: target_traffic_volume, "
-                "target_coverage, increase_percent, bid_ceiling"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: target_traffic_volume, "
+                    "target_coverage, increase_percent, bid_ceiling"
+                ),
+            )
+        )
 
     args = ["keywordbids", "set-auto"]
     if campaign_id is not None:

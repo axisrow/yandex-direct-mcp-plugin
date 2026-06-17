@@ -4,7 +4,11 @@ import json
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_single_id_batch
+from server.tools.helpers import (
+    check_batch_limit,
+    run_single_id_batch,
+    tool_error_dict,
+)
 
 _SITELINK_FIELD_MAP = {
     "title": "Title",
@@ -38,7 +42,7 @@ def sitelinks_list(
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         cmd.extend(["--ids", normalized_ids])
     if limit is not None:
         cmd.extend(["--limit", str(limit)])
@@ -109,36 +113,46 @@ def sitelinks_add(
         if value is not None
     ]
     if not provided:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Provide exactly one of: sitelinks (list[str]), "
-                "items (list[dict]), or from_file (path)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Provide exactly one of: sitelinks (list[str]), "
+                    "items (list[dict]), or from_file (path)."
+                ),
+            )
+        )
     if len(provided) > 1:
-        return ToolError(
-            error="conflicting_modes",
-            message=(
-                "Pass exactly one of sitelinks, items, or from_file — "
-                f"got: {', '.join(provided)}."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    "Pass exactly one of sitelinks, items, or from_file — "
+                    f"got: {', '.join(provided)}."
+                ),
+            )
+        )
     if sitelinks is not None and not sitelinks:
-        return ToolError(
-            error="empty_mode",
-            message="sitelinks must contain at least one spec.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="empty_mode",
+                message="sitelinks must contain at least one spec.",
+            )
+        )
     if items is not None and not items:
-        return ToolError(
-            error="empty_mode",
-            message="items must contain at least one sitelink object.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="empty_mode",
+                message="items must contain at least one sitelink object.",
+            )
+        )
     if from_file is not None and not from_file:
-        return ToolError(
-            error="empty_mode",
-            message="from_file must be a non-empty path.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="empty_mode",
+                message="from_file must be a non-empty path.",
+            )
+        )
 
     args = ["sitelinks", "add"]
     if sitelinks is not None:
@@ -149,7 +163,7 @@ def sitelinks_add(
         for item in items:
             converted = _to_wsdl_sitelink(item)
             if isinstance(converted, ToolError):
-                return converted.__dict__
+                return tool_error_dict(converted)
             wsdl_items.append(converted)
         args.extend(["--sitelink-json", json.dumps(wsdl_items, ensure_ascii=False)])
     else:

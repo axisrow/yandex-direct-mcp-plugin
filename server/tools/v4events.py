@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import finalize_json_args
+from server.tools.helpers import finalize_json_args, tool_error_dict
 
 
 @mcp.tool(
@@ -31,10 +31,12 @@ def v4events_get_events_log(
     normalized_from = timestamp_from.strip()
     normalized_to = timestamp_to.strip()
     if not normalized_from or not normalized_to:
-        return ToolError(
-            error="missing_timestamp",
-            message="Provide non-empty timestamp_from and timestamp_to.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_timestamp",
+                message="Provide non-empty timestamp_from and timestamp_to.",
+            )
+        )
 
     args = [
         "v4events",

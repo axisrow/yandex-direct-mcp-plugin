@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, provided_update_value
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    provided_update_value,
+    tool_error_dict,
+)
 
 BUSINESS_TYPES = ("RETAIL", "HOTELS", "REALTY", "AUTOMOBILES", "FLIGHTS", "OTHER")
 
@@ -81,13 +86,15 @@ def feeds_add(
         dry_run: Show the direct request without sending it.
     """
     if business_type not in BUSINESS_TYPES:
-        return ToolError(
-            error="invalid_business_type",
-            message=(
-                f"business_type must be one of {', '.join(BUSINESS_TYPES)}; "
-                f"got '{business_type}'"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_business_type",
+                message=(
+                    f"business_type must be one of {', '.join(BUSINESS_TYPES)}; "
+                    f"got '{business_type}'"
+                ),
+            )
+        )
 
     args = [
         "feeds",
@@ -138,10 +145,12 @@ def feeds_update(
         for key, value in values.items()
         if key not in {"id", "dry_run"}
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one typed feed field to update.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one typed feed field to update.",
+            )
+        )
 
     args = ["feeds", "update", "--id", str(id)]
     if name is not None:

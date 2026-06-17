@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     provided_update_value,
+    tool_error_dict,
 )
 
 MAX_BATCH_SIZE = 10
@@ -87,18 +88,20 @@ def keywords_list(
         if batch:
             batch_error = check_batch_limit(normalized, MAX_BATCH_SIZE)
             if batch_error:
-                return batch_error.__dict__
+                return tool_error_dict(batch_error)
         args.extend([flag, normalized])
         has_selector = True
 
     if not has_selector and not fetch_all:
-        return ToolError(
-            error="missing_selector",
-            message=(
-                "Provide at least one of: campaign_ids, ids, ad_group_ids. "
-                "To list every keyword in the account, pass fetch_all=True explicitly."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_selector",
+                message=(
+                    "Provide at least one of: campaign_ids, ids, ad_group_ids. "
+                    "To list every keyword in the account, pass fetch_all=True explicitly."
+                ),
+            )
+        )
     if status is not None:
         args.extend(["--status", status])
     if statuses is not None:
@@ -165,23 +168,27 @@ def keywords_update(
         dry_run: Show the direct request without sending it.
     """
     if bid is not None or context_bid is not None:
-        return ToolError(
-            error="bid_not_updatable_here",
-            message=(
-                "Keyword bids are not mutable via keywords_update (direct-cli "
-                "0.4.2 removed --bid/--context-bid). Use keywordbids_set "
-                "(KeywordId-scoped) or bids_set instead."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="bid_not_updatable_here",
+                message=(
+                    "Keyword bids are not mutable via keywords_update (direct-cli "
+                    "0.4.2 removed --bid/--context-bid). Use keywordbids_set "
+                    "(KeywordId-scoped) or bids_set instead."
+                ),
+            )
+        )
     if status is not None:
-        return ToolError(
-            error="status_not_updatable",
-            message=(
-                "Keyword status is not mutable via the Keywords API (direct-cli "
-                "0.4.2 removed --status). Use keywords_suspend / keywords_resume "
-                "to pause or resume keywords."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="status_not_updatable",
+                message=(
+                    "Keyword status is not mutable via the Keywords API (direct-cli "
+                    "0.4.2 removed --status). Use keywords_suspend / keywords_resume "
+                    "to pause or resume keywords."
+                ),
+            )
+        )
 
     values = locals()
     if not any(
@@ -189,10 +196,12 @@ def keywords_update(
         for key, value in values.items()
         if key not in {"id", "dry_run"}
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one typed keyword field to update.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one typed keyword field to update.",
+            )
+        )
 
     runner = get_runner()
     args = ["keywords", "update", "--id", str(id)]
@@ -289,21 +298,25 @@ def keywords_add(
     modes = (bool(keyword), bool(from_file), bool(keywords_json))
     mode_count = sum(modes)
     if mode_count == 0:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Provide exactly one of: keyword (single), from_file (JSONL), "
-                "or keywords_json (inline JSON array)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Provide exactly one of: keyword (single), from_file (JSONL), "
+                    "or keywords_json (inline JSON array)."
+                ),
+            )
+        )
     if mode_count > 1:
-        return ToolError(
-            error="conflicting_modes",
-            message=(
-                "keyword, from_file and keywords_json are mutually exclusive — "
-                "pass exactly one."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    "keyword, from_file and keywords_json are mutually exclusive — "
+                    "pass exactly one."
+                ),
+            )
+        )
 
     args = ["keywords", "add"]
     if ad_group_id is not None:

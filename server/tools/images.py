@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import normalize_optional_str, validate_yes_no
+from server.tools.helpers import (
+    normalize_optional_str,
+    tool_error_dict,
+    validate_yes_no,
+)
 
 
 @mcp.tool(
@@ -33,7 +37,7 @@ def adimages_list(
             associated, field="associated", error="invalid_associated"
         )
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
 
     cmd = ["adimages", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
@@ -81,15 +85,19 @@ def adimages_add(
     image_data = normalize_optional_str(image_data)
     image_file = normalize_optional_str(image_file)
     if image_data is None and image_file is None:
-        return ToolError(
-            error="missing_image_source",
-            message="Provide either image_data (base64) or image_file (path).",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_image_source",
+                message="Provide either image_data (base64) or image_file (path).",
+            )
+        )
     if image_data is not None and image_file is not None:
-        return ToolError(
-            error="conflicting_image_source",
-            message="Provide image_data OR image_file, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_image_source",
+                message="Provide image_data OR image_file, not both.",
+            )
+        )
 
     args = ["adimages", "add", "--name", name]
     if image_data is not None:

@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     finalize_json_args,
     normalize_optional_str,
+    tool_error_dict,
     validate_phrase_csv,
 )
 
@@ -32,7 +33,7 @@ def v4wordstat_create_report(
         phrases, MAX_WORDSTAT_PHRASES, subject="Wordstat report"
     )
     if isinstance(normalized_phrases, ToolError):
-        return normalized_phrases.__dict__
+        return tool_error_dict(normalized_phrases)
 
     args = ["v4wordstat", "create-report", "--phrases", normalized_phrases]
     normalized_geo = normalize_optional_str(geo_ids)

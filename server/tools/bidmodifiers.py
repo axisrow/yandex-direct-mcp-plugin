@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, tool_error_dict
 
 
 _BIDMOD_LEVELS = ("CAMPAIGN", "AD_GROUP")
@@ -55,10 +55,12 @@ def bidmodifiers_list(
     if levels:
         invalid = [lv for lv in levels if lv not in _BIDMOD_LEVELS]
         if invalid:
-            return ToolError(
-                error="invalid_levels",
-                message=f"levels must each be one of {_BIDMOD_LEVELS}; got {invalid}",
-            ).__dict__
+            return tool_error_dict(
+                ToolError(
+                    error="invalid_levels",
+                    message=f"levels must each be one of {_BIDMOD_LEVELS}; got {invalid}",
+                )
+            )
 
     args = ["bidmodifiers", "get", "--format", "json"]
     if ids is not None:
@@ -69,13 +71,13 @@ def bidmodifiers_list(
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if types is not None:
         args.extend(["--types", types])
@@ -180,17 +182,21 @@ def bidmodifiers_add(
         dry_run: Show the direct request without sending it.
     """
     if modifier_type not in _BIDMOD_TYPES:
-        return ToolError(
-            error="invalid_modifier_type",
-            message=(
-                f"modifier_type must be one of {_BIDMOD_TYPES}; got '{modifier_type}'"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_modifier_type",
+                message=(
+                    f"modifier_type must be one of {_BIDMOD_TYPES}; got '{modifier_type}'"
+                ),
+            )
+        )
     if campaign_id is None and ad_group_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: campaign_id, ad_group_id",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: campaign_id, ad_group_id",
+            )
+        )
 
     args = ["bidmodifiers", "add", "--type", modifier_type, "--value", str(value)]
     if campaign_id is not None:

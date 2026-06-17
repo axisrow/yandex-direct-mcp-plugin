@@ -2,15 +2,18 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import tool_error_dict
 
 
 def _run_goals_command(method: str, campaign_ids: str) -> dict | list[dict]:
     normalized_ids = campaign_ids.strip()
     if not normalized_ids:
-        return ToolError(
-            error="missing_campaign_ids",
-            message="Provide at least one campaign ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_campaign_ids",
+                message="Provide at least one campaign ID.",
+            )
+        )
     return get_runner().run_json(
         ["v4goals", method, "--campaign-ids", normalized_ids, "--format", "json"]
     )

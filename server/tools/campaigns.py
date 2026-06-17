@@ -8,6 +8,7 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     provided_update_value,
+    tool_error_dict,
 )
 
 CAMPAIGN_GET_SELECTOR_FLAGS = (
@@ -535,17 +536,19 @@ def campaigns_list(
             UnifiedCampaignPackageBiddingStrategyPlatformsFieldNames (optional).
     """
     if state is not None and state not in ("ON", "OFF"):
-        return ToolError(
-            error="invalid_state",
-            message=f"State must be 'ON' or 'OFF', got '{state}'",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_state",
+                message=f"State must be 'ON' or 'OFF', got '{state}'",
+            )
+        )
 
     args = ["campaigns", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])
@@ -723,10 +726,12 @@ def campaigns_update(
         value for key, value in values.items() if key not in {"id", "dry_run"}
     ]
     if not any(provided_update_value(value) for value in optional_values):
-        return ToolError(
-            error="missing_update_fields",
-            message="Provide at least one typed campaign field to update.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message="Provide at least one typed campaign field to update.",
+            )
+        )
 
     # Expand grouped strategy dicts into the flat option names append_cli_options
     # expects. Runs after the guard (a non-empty dict already satisfies it) and
@@ -738,7 +743,7 @@ def campaigns_update(
         include_budget_types=True,
     )
     if expansion_error is not None:
-        return expansion_error.__dict__
+        return tool_error_dict(expansion_error)
 
     args = ["campaigns", "update", "--id", str(id)]
     if name:
@@ -765,9 +770,9 @@ def campaigns_update(
         raise
     except Exception as exc:
         if "not found" in str(exc).lower():
-            return ToolError(
-                error="not_found", message=f"Campaign '{id}' not found"
-            ).__dict__
+            return tool_error_dict(
+                ToolError(error="not_found", message=f"Campaign '{id}' not found")
+            )
         raise
     if dry_run:
         return {
@@ -1006,7 +1011,7 @@ def campaigns_add(
         include_budget_types=False,
     )
     if expansion_error is not None:
-        return expansion_error.__dict__
+        return tool_error_dict(expansion_error)
     for already_appended in (
         "search_strategy",
         "network_strategy",

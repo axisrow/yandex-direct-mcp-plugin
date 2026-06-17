@@ -7,6 +7,7 @@ from server.tools.helpers import (
     finalize_json_args,
     normalize_optional_str,
     normalize_str_list,
+    tool_error_dict,
 )
 
 
@@ -23,10 +24,12 @@ def v4tags_get_campaigns(campaign_ids: str) -> dict | list[dict]:
     """
     normalized_ids = campaign_ids.strip()
     if not normalized_ids:
-        return ToolError(
-            error="missing_campaign_ids",
-            message="Provide at least one campaign ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_campaign_ids",
+                message="Provide at least one campaign ID.",
+            )
+        )
 
     return get_runner().run_json(
         [
@@ -57,23 +60,27 @@ def v4tags_get_banners(
     normalized_campaign_ids = normalize_optional_str(campaign_ids)
     normalized_banner_ids = normalize_optional_str(banner_ids)
     if normalized_campaign_ids and normalized_banner_ids:
-        return ToolError(
-            error="conflicting_selectors",
-            message="Pass either campaign_ids or banner_ids, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_selectors",
+                message="Pass either campaign_ids or banner_ids, not both.",
+            )
+        )
     if not normalized_campaign_ids and not normalized_banner_ids:
-        return ToolError(
-            error="missing_selector",
-            message="Pass campaign_ids or banner_ids.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_selector",
+                message="Pass campaign_ids or banner_ids.",
+            )
+        )
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids, max_size=10)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
     if normalized_banner_ids:
         batch_error = check_batch_limit(normalized_banner_ids, max_size=2000)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
 
     args = ["v4tags", "get-banners"]
     if normalized_campaign_ids:
@@ -107,15 +114,19 @@ def v4tags_update_campaigns(
     """
     normalized_tags = normalize_str_list(tags)
     if normalized_tags and clear_tags:
-        return ToolError(
-            error="conflicting_tag_actions",
-            message="Pass tags or clear_tags, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_tag_actions",
+                message="Pass tags or clear_tags, not both.",
+            )
+        )
     if not normalized_tags and not clear_tags:
-        return ToolError(
-            error="missing_tag_action",
-            message="Pass tags or set clear_tags=True.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_tag_action",
+                message="Pass tags or set clear_tags=True.",
+            )
+        )
 
     args = ["v4tags", "update-campaigns", "--campaign-id", str(campaign_id)]
     for tag in normalized_tags:
@@ -147,26 +158,32 @@ def v4tags_update_banners(
     """
     normalized_banner_ids = banner_ids.strip()
     if not normalized_banner_ids:
-        return ToolError(
-            error="missing_banner_ids",
-            message="Provide at least one banner ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_banner_ids",
+                message="Provide at least one banner ID.",
+            )
+        )
 
     normalized_tag_ids = normalize_optional_str(tag_ids)
     if normalized_tag_ids and clear_tags:
-        return ToolError(
-            error="conflicting_tag_actions",
-            message="Pass tag_ids or clear_tags, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_tag_actions",
+                message="Pass tag_ids or clear_tags, not both.",
+            )
+        )
     if not normalized_tag_ids and not clear_tags:
-        return ToolError(
-            error="missing_tag_action",
-            message="Pass tag_ids or set clear_tags=True.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_tag_action",
+                message="Pass tag_ids or set clear_tags=True.",
+            )
+        )
     if normalized_tag_ids:
         batch_error = check_batch_limit(normalized_tag_ids, max_size=30)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
 
     args = ["v4tags", "update-banners", "--banner-ids", normalized_banner_ids]
     if normalized_tag_ids:

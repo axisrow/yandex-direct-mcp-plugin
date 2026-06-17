@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import wraps
 
 from server.cli.runner import (
@@ -40,6 +40,16 @@ class ToolError:
     message: str
     auth_url: str | None = None
     hint: str | None = None
+
+
+def tool_error_dict(error: ToolError) -> dict:
+    """Return a stable dict representation for MCP error payloads.
+
+    Canonical home is here (next to ``ToolError``) so ``handle_cli_errors`` can
+    use it without importing ``helpers`` (which imports back from this module).
+    ``helpers`` re-exports it for the tool modules.
+    """
+    return asdict(error)
 
 
 _INVALID_REQUEST_HINT_GENERIC = (
@@ -179,17 +189,21 @@ def handle_cli_errors(func):
         try:
             return func(*args, **kwargs)
         except CliRegistrationError as e:
-            return ToolError(error="incomplete_registration", message=str(e)).__dict__
+            return tool_error_dict(
+                ToolError(error="incomplete_registration", message=str(e))
+            )
         except CliAuthError as e:
-            return ToolError(
-                error="auth_expired",
-                message=str(e) or "Token expired. Re-authorization required.",
-                hint="Run auth_status to check the active direct auth profile, then auth_login to re-authorize.",
-            ).__dict__
+            return tool_error_dict(
+                ToolError(
+                    error="auth_expired",
+                    message=str(e) or "Token expired. Re-authorization required.",
+                    hint="Run auth_status to check the active direct auth profile, then auth_login to re-authorize.",
+                )
+            )
         except CliNotFoundError as e:
-            return ToolError(error="cli_not_found", message=str(e)).__dict__
+            return tool_error_dict(ToolError(error="cli_not_found", message=str(e)))
         except CliTimeoutError as e:
-            return ToolError(error="timeout", message=str(e)).__dict__
+            return tool_error_dict(ToolError(error="timeout", message=str(e)))
         except CliError as e:
             hint = _hint_for_cli_error(e)
             if e.error_code in _INVALID_REQUEST_CODES:
@@ -210,9 +224,11 @@ def handle_cli_errors(func):
                 error_kind = "limit_exceeded"
             else:
                 error_kind = "unknown"
-            return ToolError(error=error_kind, message=str(e), hint=hint).__dict__
+            return tool_error_dict(
+                ToolError(error=error_kind, message=str(e), hint=hint)
+            )
         except Exception as e:
-            return ToolError(error="unknown", message=str(e)).__dict__
+            return tool_error_dict(ToolError(error="unknown", message=str(e)))
 
     return wrapper
 

@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import CliOption, append_cli_options, run_single_id_batch
+from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
+    run_single_id_batch,
+    tool_error_dict,
+)
 
 _LIST_TYPES = ("RETARGETING", "AUDIENCE")
 RETARGETING_RULE_OPTIONS = (CliOption("rules", "--rule", repeat=True),)
@@ -76,10 +81,12 @@ def retargeting_add(
         dry_run: Show the direct request without sending it.
     """
     if list_type not in _LIST_TYPES:
-        return ToolError(
-            error="invalid_list_type",
-            message=f"list_type must be one of {_LIST_TYPES}; got '{list_type}'",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_list_type",
+                message=f"list_type must be one of {_LIST_TYPES}; got '{list_type}'",
+            )
+        )
     args = [
         "retargeting",
         "add",
@@ -146,13 +153,15 @@ def retargeting_update(
         dry_run: Show the direct request without sending it.
     """
     if not any((name, description, rules, rule)):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: name, description, "
-                "rule, rules. Use rule for one spec or rules for repeated specs."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: name, description, "
+                    "rule, rules. Use rule for one spec or rules for repeated specs."
+                ),
+            )
+        )
 
     args = ["retargeting", "update", "--id", str(id)]
     if name is not None:

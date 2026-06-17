@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import validate_yes_no
+from server.tools.helpers import tool_error_dict, validate_yes_no
 
 
 @mcp.tool(
@@ -32,7 +32,7 @@ def agency_clients_list(
     if archived is not None:
         err = validate_yes_no(archived, field="archived", error="invalid_archived")
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
 
     runner = get_runner()
     cmd = ["agencyclients", "get", "--format", "json"]
@@ -181,19 +181,23 @@ def agency_clients_update(
             clear_grants,
         )
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: client_info, phone, notification_email, "
-                "notification_lang, email_subscriptions, settings, tin_type, tin, "
-                "grants, clear_grants"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: client_info, phone, notification_email, "
+                    "notification_lang, email_subscriptions, settings, tin_type, tin, "
+                    "grants, clear_grants"
+                ),
+            )
+        )
     if grants and clear_grants:
-        return ToolError(
-            error="conflicting_grants",
-            message="Pass grants or clear_grants, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_grants",
+                message="Pass grants or clear_grants, not both.",
+            )
+        )
 
     args = ["agencyclients", "update", "--client-id", str(client_id)]
     if client_info is not None:

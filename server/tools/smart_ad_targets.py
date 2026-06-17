@@ -8,6 +8,7 @@ from server.tools.helpers import (
     provided_update_value,
     run_set_bids,
     run_single_id_batch,
+    tool_error_dict,
     validate_yes_no,
 )
 
@@ -125,7 +126,7 @@ def smart_ad_targets_add(
             error="invalid_available_items_only",
         )
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
         args.extend(["--available-items-only", available_items_only])
     if dry_run:
         args.append("--dry-run")
@@ -182,13 +183,15 @@ def smart_ad_targets_update(
             available_items_only,
         )
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: name, audience, condition, average_cpc, "
-                "average_cpa, priority, available_items_only"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: name, audience, condition, average_cpc, "
+                    "average_cpa, priority, available_items_only"
+                ),
+            )
+        )
 
     args = ["smartadtargets", "update", "--id", str(id)]
     if name is not None:
@@ -211,7 +214,7 @@ def smart_ad_targets_update(
             error="invalid_available_items_only",
         )
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
         args.extend(["--available-items-only", available_items_only])
     if dry_run:
         args.append("--dry-run")

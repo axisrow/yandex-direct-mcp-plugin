@@ -2,7 +2,12 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
+from server.tools.helpers import (
+    check_batch_limit,
+    run_set_bids,
+    run_single_id_batch,
+    tool_error_dict,
+)
 
 
 @mcp.tool(
@@ -48,39 +53,41 @@ def audience_targets_list(
         states,
     )
     if not any(value and value.strip() for value in typed_filters):
-        return ToolError(
-            error="filter_required",
-            message=(
-                "audiencetargets_get needs at least one typed filter: "
-                "campaign_ids, ad_group_ids, ids, retargeting_list_ids, "
-                "interest_ids, or states."
-            ),
-            hint=(
-                "Direct API/CLI rejects a filterless audiencetargets request "
-                "(unlike retargeting_get). To audit the whole account, call "
-                "campaigns_get and request audiencetargets_get in batches of "
-                "<=10 campaign_ids."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="filter_required",
+                message=(
+                    "audiencetargets_get needs at least one typed filter: "
+                    "campaign_ids, ad_group_ids, ids, retargeting_list_ids, "
+                    "interest_ids, or states."
+                ),
+                hint=(
+                    "Direct API/CLI rejects a filterless audiencetargets request "
+                    "(unlike retargeting_get). To audit the whole account, call "
+                    "campaigns_get and request audiencetargets_get in batches of "
+                    "<=10 campaign_ids."
+                ),
+            )
+        )
 
     args = ["audiencetargets", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if retargeting_list_ids is not None:
         args.extend(["--retargeting-list-ids", retargeting_list_ids])
@@ -127,15 +134,19 @@ def audience_targets_add(
         dry_run: Show the direct request without sending it.
     """
     if retargeting_list_id is None and interest_id is None:
-        return ToolError(
-            error="missing_target",
-            message="Provide retargeting_list_id or interest_id.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target",
+                message="Provide retargeting_list_id or interest_id.",
+            )
+        )
     if retargeting_list_id is not None and interest_id is not None:
-        return ToolError(
-            error="conflicting_target",
-            message="Pass retargeting_list_id or interest_id, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_target",
+                message="Pass retargeting_list_id or interest_id, not both.",
+            )
+        )
 
     args = [
         "audiencetargets",

@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     run_batch_mutation,
+    tool_error_dict,
     validate_yes_no,
 )
 
@@ -119,7 +120,7 @@ def ads_list(
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
 
     args = ["ads", "get", "--format", "json"]
     if normalized_campaign_ids:
@@ -128,13 +129,13 @@ def ads_list(
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids, MAX_BATCH_SIZE)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])
@@ -147,7 +148,7 @@ def ads_list(
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
         args.extend(["--mobile", mobile])
     if vcard_ids is not None:
         args.extend(["--vcard-ids", vcard_ids])
@@ -286,18 +287,20 @@ def ads_add(
         return result
 
     if ad_group_id is None:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Provide exactly one of: ad_group_id (single ad), from_file "
-                "(JSONL), or ads_json (inline JSON array)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Provide exactly one of: ad_group_id (single ad), from_file "
+                    "(JSONL), or ads_json (inline JSON array)."
+                ),
+            )
+        )
 
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
 
     args = ["ads", "add", "--adgroup-id", str(ad_group_id)]
     if ad_type:
@@ -457,24 +460,28 @@ def ads_update(
         dry_run: Show the direct request without sending it.
     """
     if status is not None:
-        return ToolError(
-            error="status_not_updatable",
-            message=(
-                "Ad status is not mutable via ads_update (WSDL AdUpdateItem has "
-                "no status field; direct-cli 0.4.2 rejects --status). Use "
-                "ads_suspend / ads_resume / ads_archive / ads_unarchive to "
-                "change an ad's status."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="status_not_updatable",
+                message=(
+                    "Ad status is not mutable via ads_update (WSDL AdUpdateItem has "
+                    "no status field; direct-cli 0.4.2 rejects --status). Use "
+                    "ads_suspend / ads_resume / ads_archive / ads_unarchive to "
+                    "change an ad's status."
+                ),
+            )
+        )
 
     if (from_file or ads_json) and id is not None:
-        return ToolError(
-            error="conflicting_modes",
-            message=(
-                "id is for single-ad mode; in batch mode every row carries its "
-                "own id. Pass id OR from_file/ads_json, not both."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    "id is for single-ad mode; in batch mode every row carries its "
+                    "own id. Pass id OR from_file/ads_json, not both."
+                ),
+            )
+        )
 
     result = run_batch_mutation(
         get_runner(),
@@ -489,19 +496,23 @@ def ads_update(
         return result
 
     if id is None:
-        return ToolError(
-            error="missing_mode",
-            message=(
-                "Provide exactly one of: id (single ad), from_file (JSONL), "
-                "or ads_json (inline JSON array)."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_mode",
+                message=(
+                    "Provide exactly one of: id (single ad), from_file (JSONL), "
+                    "or ads_json (inline JSON array)."
+                ),
+            )
+        )
 
     if image_hash and clear_image_hash:
-        return ToolError(
-            error="conflicting_image_hash",
-            message="Use either image_hash or clear_image_hash, not both.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_image_hash",
+                message="Use either image_hash or clear_image_hash, not both.",
+            )
+        )
 
     if not any(
         (
@@ -547,23 +558,25 @@ def ads_update(
             default_texts,
         )
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one typed update field, for example: title, "
-                "text, href, image_hash, clear_image_hash, tracking_url, "
-                "action, age_label, title2, display_url_path, mobile, vcard_id, "
-                "sitelink_set_id, turbo_page_id, ad_extensions, "
-                "callouts_*, video_extension_*, price_extension_*, business_id, "
-                "creative_id, final_url, tracking_pixels, "
-                "feed_filter_conditions, title_sources, text_sources, or "
-                "default_texts."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one typed update field, for example: title, "
+                    "text, href, image_hash, clear_image_hash, tracking_url, "
+                    "action, age_label, title2, display_url_path, mobile, vcard_id, "
+                    "sitelink_set_id, turbo_page_id, ad_extensions, "
+                    "callouts_*, video_extension_*, price_extension_*, business_id, "
+                    "creative_id, final_url, tracking_pixels, "
+                    "feed_filter_conditions, title_sources, text_sources, or "
+                    "default_texts."
+                ),
+            )
+        )
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:
-            return err.__dict__
+            return tool_error_dict(err)
 
     args = ["ads", "update", "--id", str(id)]
     if type is not None:

@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     check_batch_limit,
     run_single_id_batch,
+    tool_error_dict,
 )
 
 VCARD_0312_OPTIONS = (
@@ -45,7 +46,7 @@ def vcards_list(
     if normalized_ids:
         batch_error = check_batch_limit(normalized_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         cmd.extend(["--ids", normalized_ids])
     if limit is not None:
         cmd.extend(["--limit", str(limit)])

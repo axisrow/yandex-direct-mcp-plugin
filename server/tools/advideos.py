@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import normalize_optional_str
+from server.tools.helpers import normalize_optional_str, tool_error_dict
 
 
 @mcp.tool(
@@ -28,10 +28,12 @@ def advideos_get(
     """
     normalized_ids = ids.strip()
     if not normalized_ids:
-        return ToolError(
-            error="missing_ids",
-            message="Provide at least one video ID.",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_ids",
+                message="Provide at least one video ID.",
+            )
+        )
 
     args = ["advideos", "get", "--format", "json", "--ids", normalized_ids]
     if limit is not None:
@@ -73,10 +75,12 @@ def advideos_add(
     video_file = normalize_optional_str(video_file)
     sources = [s for s in (url, video_data, video_file) if s is not None]
     if len(sources) != 1:
-        return ToolError(
-            error="invalid_video_source",
-            message="Provide exactly one of: url, video_data, video_file",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="invalid_video_source",
+                message="Provide exactly one of: url, video_data, video_file",
+            )
+        )
 
     args = ["advideos", "add"]
     if url is not None:

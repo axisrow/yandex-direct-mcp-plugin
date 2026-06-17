@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
+from server.tools.helpers import check_batch_limit, tool_error_dict
 
 
 @mcp.tool(
@@ -35,19 +35,19 @@ def bids_list(
     if normalized_campaign_ids:
         batch_error = check_batch_limit(normalized_campaign_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         batch_error = check_batch_limit(normalized_ad_group_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
         batch_error = check_batch_limit(normalized_keyword_ids)
         if batch_error:
-            return batch_error.__dict__
+            return tool_error_dict(batch_error)
         args.extend(["--keyword-ids", normalized_keyword_ids])
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])
@@ -94,23 +94,27 @@ def bids_set(
         dry_run: Show the direct request without sending it.
     """
     if keyword_id is None and campaign_id is None and ad_group_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
+            )
+        )
     if (
         bid is None
         and context_bid is None
         and autotargeting_search_bid_is_auto is None
         and priority is None
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: bid, context_bid, "
-                "autotargeting_search_bid_is_auto, priority"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: bid, context_bid, "
+                    "autotargeting_search_bid_is_auto, priority"
+                ),
+            )
+        )
 
     args = ["bids", "set"]
     if campaign_id is not None:
@@ -171,10 +175,12 @@ def bids_set_auto(
         dry_run: Show the direct request without sending it.
     """
     if campaign_id is None and ad_group_id is None and keyword_id is None:
-        return ToolError(
-            error="missing_target_scope",
-            message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_target_scope",
+                message="Provide at least one of: campaign_id, ad_group_id, keyword_id",
+            )
+        )
     if (
         max_bid is None
         and position is None
@@ -183,13 +189,15 @@ def bids_set_auto(
         and context_coverage is None
         and scope is None
     ):
-        return ToolError(
-            error="missing_update_fields",
-            message=(
-                "Provide at least one of: max_bid, position, increase_percent, "
-                "calculate_by, context_coverage, scope"
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="missing_update_fields",
+                message=(
+                    "Provide at least one of: max_bid, position, increase_percent, "
+                    "calculate_by, context_coverage, scope"
+                ),
+            )
+        )
 
     args = ["bids", "set-auto"]
     if campaign_id is not None:

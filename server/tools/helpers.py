@@ -1,7 +1,7 @@
 """Shared helpers for MCP tool modules."""
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from server.cli.runner import (
     CliAuthError,
@@ -10,7 +10,7 @@ from server.cli.runner import (
     CliRegistrationError,
     CliTimeoutError,
 )
-from server.tools import ToolError, _hint_for_cli_error
+from server.tools import ToolError, _hint_for_cli_error, tool_error_dict
 
 MAX_BATCH_SIZE = 10
 
@@ -68,11 +68,6 @@ def check_batch_limit(ids_str: str, max_size: int = MAX_BATCH_SIZE) -> ToolError
             message=f"Maximum {max_size} IDs per request. Got: {len(ids)}",
         )
     return None
-
-
-def tool_error_dict(error: ToolError) -> dict:
-    """Return a stable dict representation for MCP error payloads."""
-    return asdict(error)
 
 
 def provided_update_value(value: object) -> bool:
@@ -140,13 +135,15 @@ def run_batch_mutation(
     if not from_file and not json_arg:
         return None
     if from_file and json_arg:
-        return ToolError(
-            error="conflicting_modes",
-            message=(
-                f"from_file and {json_flag.lstrip('-').replace('-', '_')} are "
-                "mutually exclusive — pass exactly one."
-            ),
-        ).__dict__
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    f"from_file and {json_flag.lstrip('-').replace('-', '_')} are "
+                    "mutually exclusive — pass exactly one."
+                ),
+            )
+        )
 
     args = [resource, action]
     if default_id is not None and default_id_flag is not None:
