@@ -34,11 +34,23 @@ def test_every_tool_has_at_most_one_area_group():
 
 
 def test_group_membership_examples():
+    # delete is the only irreversible removal → destructive.
     assert groups_for_tool("campaigns_delete") == frozenset(
         {"campaigns", "campaign_management", "destructive"}
     )
+    # archive is a reversible state change → lifecycle, not destructive (#205-A).
+    assert groups_for_tool("ads_archive") == frozenset(
+        {"ads", "campaign_management", "lifecycle"}
+    )
     assert groups_for_tool("reports_get") == frozenset({"reports", "analytics", "read"})
+    # Money movement keeps its mutate action and additionally carries the
+    # financial risk group (#205-B).
     assert groups_for_tool("v4account_deposit") == frozenset(
+        {"v4account", "bidding_budget", "mutate", "financial"}
+    )
+    # update_account adjusts settings (day budget / spend mode), not a transfer,
+    # so it stays mutate-only — NOT financial.
+    assert groups_for_tool("v4account_update_account") == frozenset(
         {"v4account", "bidding_budget", "mutate"}
     )
     # AccountManagement is one CLI verb split by action: get is read, deposit mutate.
@@ -63,8 +75,27 @@ def test_disabled_group_removes_its_tools():
     cfg = ToolSurfaceConfig(disabled_groups=frozenset({"destructive"}))
     enabled = cfg.enabled_tool_names()
     assert "campaigns_delete" not in enabled
-    assert "ads_archive" not in enabled
+    assert "ads_archive" in enabled  # archive is lifecycle now, not destructive
     assert "campaigns_get" in enabled  # read tool stays
+
+
+def test_disabled_lifecycle_group_keeps_destructive_separate():
+    # Disabling lifecycle removes state churn but NOT irreversible delete, and
+    # vice versa — the two axes are independent (#205-A).
+    no_lifecycle = ToolSurfaceConfig(disabled_groups=frozenset({"lifecycle"}))
+    enabled = no_lifecycle.enabled_tool_names()
+    assert "ads_archive" not in enabled
+    assert "ads_unarchive" not in enabled
+    assert "campaigns_delete" in enabled  # delete is destructive, not lifecycle
+
+
+def test_disabled_financial_group_removes_money_movement():
+    cfg = ToolSurfaceConfig(disabled_groups=frozenset({"financial"}))
+    enabled = cfg.enabled_tool_names()
+    assert "v4account_deposit" not in enabled
+    assert "v4account_transfer_money" not in enabled
+    assert "v4account_update_account" in enabled  # settings, not money movement
+    assert "v4account_get_accounts" in enabled  # read stays
 
 
 def test_allowlist_profile_enables_only_named_groups():
@@ -181,7 +212,8 @@ class _StubMcp:
 
 def test_apply_tool_surface_removes_disabled():
     mcp = _StubMcp(["campaigns_get", "campaigns_delete", "ads_archive"])
-    cfg = ToolSurfaceConfig(disabled_groups=frozenset({"destructive"}))
+    # destructive=delete only; lifecycle=archive — disable both to strip them.
+    cfg = ToolSurfaceConfig(disabled_groups=frozenset({"destructive", "lifecycle"}))
     removed = apply_tool_surface(mcp, cfg)
     assert set(removed) == {"campaigns_delete", "ads_archive"}
     assert set(mcp._tool_manager._tools) == {"campaigns_get"}
@@ -266,7 +298,8 @@ def test_campaign_editor_allows_mutate_not_destructive():
     assert "campaigns_add" in enabled
     assert "campaigns_update" in enabled
     assert "campaigns_delete" not in enabled  # destructive excluded
-    assert "ads_archive" not in enabled
+    assert "ads_archive" not in enabled  # lifecycle excluded
+    assert "ads_suspend" not in enabled  # lifecycle excluded
 
 
 def test_scenario_profiles_are_smaller_than_full():
@@ -276,14 +309,16 @@ def test_scenario_profiles_are_smaller_than_full():
 
 
 def test_no_scenario_profile_exposes_money_movement_tools():
-    """campaign-editor (and other scenario profiles) must NOT expose financial
-    v4account money-movement tools — they leak via the bidding_budget group
-    until #205 reclassifies them into a high-risk group."""
+    """No scenario profile may expose financial v4account money-movement tools.
+
+    #205-B reclassified deposit/invoice/transfer_money into the denyable
+    ``financial`` risk group, so the scenario profiles exclude them via that
+    group (no per-tool deny list). update_account is settings, not money
+    movement, so it is NOT in this set."""
     financial = {
         "v4account_deposit",
         "v4account_invoice",
         "v4account_transfer_money",
-        "v4account_update_account",
     }
     for name in ("core", "analytics", "campaign-editor"):
         enabled = PROFILES[name].enabled_tool_names()

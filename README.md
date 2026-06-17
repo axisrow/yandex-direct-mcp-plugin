@@ -197,9 +197,12 @@ tools you actually use via environment variables. Resolution is deterministic:
 | `YANDEX_DIRECT_ENABLED_TOOLS` / `YANDEX_DIRECT_DISABLED_TOOLS` | per-tool overrides (comma-separated) |
 
 Groups are **service** names (`campaigns`, `ads`, …), **actions**
-(`read` / `mutate` / `destructive`), or **product areas** (`analytics`,
+(`read` / `mutate` / `destructive` = delete only / `lifecycle` =
+suspend·resume·archive·unarchive·moderate), **product areas** (`analytics`,
 `campaign_management`, `bidding_budget`, `assets_creatives`,
-`targeting_audience`). `auth_*` and `tool_help` stay available in every profile.
+`targeting_audience`), or the **risk** group `financial`
+(money-movement `v4account_deposit` / `invoice` / `transfer_money`).
+`auth_*` and `tool_help` stay available in every profile.
 
 ```jsonc
 // ~/.claude/settings.json — analytics-only, read surface

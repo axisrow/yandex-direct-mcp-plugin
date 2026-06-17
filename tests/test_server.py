@@ -109,13 +109,17 @@ def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
 
 
 def test_mcp_server_respects_disabled_tool_groups():
-    """YANDEX_DIRECT_DISABLED_GROUPS removes a group from tools/list (#190)."""
-    proc = _start_server(env={"YANDEX_DIRECT_DISABLED_GROUPS": "destructive"})
+    """YANDEX_DIRECT_DISABLED_GROUPS removes a group from tools/list (#190).
+
+    destructive=delete only; archive is the separate lifecycle group (#205-A),
+    so disabling destructive drops campaigns_delete but keeps ads_archive.
+    """
+    proc = _start_server(env={"YANDEX_DIRECT_DISABLED_GROUPS": "destructive,lifecycle"})
     try:
         _initialize(proc)
         names = _list_tool_names(proc)
-        assert "campaigns_delete" not in names
-        assert "ads_archive" not in names
+        assert "campaigns_delete" not in names  # destructive
+        assert "ads_archive" not in names  # lifecycle
         assert "campaigns_get" in names
         assert names < PUBLIC_TOOL_NAMES
     finally:

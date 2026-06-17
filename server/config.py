@@ -12,14 +12,25 @@ Two kinds of groups:
   utilities.
 * **scenario groups** — cross-cutting, product-oriented:
 
-  * *action*: ``read`` | ``mutate`` | ``destructive`` (every tool has exactly one)
+  * *action*: ``read`` | ``mutate`` | ``destructive`` | ``lifecycle`` (every
+    tool has exactly one). ``destructive`` is now *only* irreversible removal
+    (delete); reversible state changes (suspend/resume/archive/unarchive/
+    moderate) are the separate ``lifecycle`` action — so disabling
+    ``destructive`` no longer also strips the ability to *undo* a state change
+    (#205-A).
   * *area*: ``analytics`` | ``campaign_management`` | ``bidding_budget`` |
     ``assets_creatives`` | ``targeting_audience``
+  * *risk*: ``financial`` — an extra deny axis layered *on top of* the action
+    group for money-movement tools (``v4account_deposit`` / ``invoice`` /
+    ``transfer_money``). It is not an action group: these tools keep their
+    ``mutate`` action and additionally carry ``financial`` so a profile can
+    deny money movement with one group (#205-B).
 
-A tool belongs to its service group, its single action group, and (if its
-service maps to one) one area group. ``groups_for_tool`` returns that union, so
-a user can toggle a tool by service (``campaigns``), by action (``destructive``)
-or by product area (``campaign_management``).
+A tool belongs to its service group, its single action group, (if its service
+maps to one) one area group, and (for money-movement tools) the ``financial``
+risk group. ``groups_for_tool`` returns that union, so a user can toggle a tool
+by service (``campaigns``), by action (``destructive`` / ``lifecycle``), by
+product area (``campaign_management``) or by risk (``financial``).
 """
 
 from __future__ import annotations
@@ -30,11 +41,16 @@ from functools import lru_cache
 
 from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
 
-# --- action classification (read / mutate / destructive) --------------------
-# Keyed by cli_method. Anything not destructive/mutate is read (get/list/check/
-# has_search_volume/deduplicate/get_suggestion/reports_custom/balance_get/…).
-_DESTRUCTIVE_METHODS = frozenset(
-    {"delete", "archive", "unarchive", "suspend", "resume", "moderate", "delete_report"}
+# --- action classification (read / mutate / destructive / lifecycle) --------
+# Keyed by cli_method. Anything not destructive/lifecycle/mutate is read (get/
+# list/check/has_search_volume/deduplicate/get_suggestion/reports_custom/…).
+#
+# destructive = irreversible removal only. lifecycle = reversible state changes
+# (suspend/resume/archive/unarchive/moderate): disabling "destructive" must not
+# also strip the ability to undo a state change (#205-A).
+_DESTRUCTIVE_METHODS = frozenset({"delete", "delete_report"})
+_LIFECYCLE_METHODS = frozenset(
+    {"archive", "unarchive", "suspend", "resume", "moderate"}
 )
 _MUTATE_METHODS = frozenset(
     {
@@ -102,14 +118,29 @@ _SERVICE_AREA: dict[str, str] = {
     # agencyclients / clients / businesses / plugin: account/admin, no area group
 }
 
-ACTION_GROUPS = frozenset({"read", "mutate", "destructive"})
+# --- financial risk axis ----------------------------------------------------
+# Money-movement tools. AccountManagement is one CLI verb (cli_method=
+# "account_management") split across action-scoped tools, so these cannot be
+# selected by a cli_method frozenset — they are pinned by public name. They keep
+# their "mutate" action and additionally carry the "financial" risk group, so a
+# profile can deny money movement with one group instead of a tool list (#205-B).
+# update_account adjusts shared-account settings (day budget / spend mode), not a
+# transfer, so it stays mutate-only and is NOT financial.
+_FINANCIAL_TOOLS = frozenset(
+    {"v4account_deposit", "v4account_invoice", "v4account_transfer_money"}
+)
+
+ACTION_GROUPS = frozenset({"read", "mutate", "destructive", "lifecycle"})
+RISK_GROUPS = frozenset({"financial"})
 AREA_GROUPS = frozenset(set(_SERVICE_AREA.values()))
-SCENARIO_GROUPS = ACTION_GROUPS | AREA_GROUPS
+SCENARIO_GROUPS = ACTION_GROUPS | AREA_GROUPS | RISK_GROUPS
 
 
 def _action_group(name: str, cli_method: str | None) -> str:
     if cli_method in _DESTRUCTIVE_METHODS:
         return "destructive"
+    if cli_method in _LIFECYCLE_METHODS:
+        return "lifecycle"
     if cli_method == "account_management":
         # AccountManagement is one CLI verb split across action-scoped tools.
         return "read" if name.endswith("get_accounts") else "mutate"
@@ -141,6 +172,8 @@ def groups_for_tool(name: str) -> frozenset[str]:
         if area:
             groups.add(area)
     groups.add(_action_group(name, cli_method))
+    if name in _FINANCIAL_TOOLS:
+        groups.add("financial")
     return frozenset(groups)
 
 
@@ -200,20 +233,6 @@ class ToolSurfaceConfig:
 # "mutate" group).
 _ALWAYS_ON = frozenset({"auth_status", "auth_setup", "auth_login", "tool_help"})
 
-# Money-movement v4account tools: the highest-risk surface (env-only finance/
-# master tokens, no dry-run safety net). They currently classify as plain
-# ``mutate`` + ``bidding_budget``, so a profile that enables ``bidding_budget``
-# would leak them. Until #205 moves them into a denyable high-risk group, scenario
-# profiles exclude them explicitly at tool level (tool-disable beats group-enable).
-_FINANCIAL_TOOLS = frozenset(
-    {
-        "v4account_deposit",
-        "v4account_invoice",
-        "v4account_transfer_money",
-        "v4account_update_account",
-    }
-)
-
 PROFILES: dict[str, ToolSurfaceConfig] = {
     # Everything — the historical default surface.
     "full": ToolSurfaceConfig(),
@@ -221,7 +240,7 @@ PROFILES: dict[str, ToolSurfaceConfig] = {
     "core": ToolSurfaceConfig(
         default_enabled=False,
         enabled_groups=frozenset({"campaign_management"}),
-        disabled_groups=frozenset({"mutate", "destructive"}),
+        disabled_groups=frozenset({"mutate", "destructive", "lifecycle"}),
         enabled_tools=_ALWAYS_ON,
     ),
     # Reporting / dictionaries / forecasting — no campaign-object mutations.
@@ -230,13 +249,12 @@ PROFILES: dict[str, ToolSurfaceConfig] = {
         enabled_groups=frozenset({"analytics"}),
         enabled_tools=_ALWAYS_ON,
     ),
-    # Read + mutate the core campaign objects, but not destructive lifecycle ops
-    # and not money-movement (financial tools excluded at tool level until #205).
+    # Read + mutate the core campaign objects, but not removal (destructive), not
+    # reversible state churn (lifecycle), and not money movement (financial).
     "campaign-editor": ToolSurfaceConfig(
         default_enabled=False,
         enabled_groups=frozenset({"campaign_management", "bidding_budget"}),
-        disabled_groups=frozenset({"destructive"}),
-        disabled_tools=_FINANCIAL_TOOLS,
+        disabled_groups=frozenset({"destructive", "lifecycle", "financial"}),
         enabled_tools=_ALWAYS_ON,
     ),
 }
