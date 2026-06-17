@@ -237,6 +237,9 @@ def ads_add(
        the batch default for rows that omit "adgroup-id".
     3. Inline JSON: ads_json = a JSON array of the same objects.
 
+    In batch mode the rows are the source of truth; any single-item content
+    field passed alongside from_file/ads_json is ignored.
+
     CLI 0.3.9 enforces strict WSDL parity — invalid field/type combinations
     (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
     not by this tool. Field/type compatibility:
@@ -399,6 +402,9 @@ def ads_update(
        line. Per-row keys use the kebab CLI-flag form ("id", "type",
        "image-hash", "clear-image-hash", ...); "id" is required per row.
     3. Inline JSON: ads_json = a JSON array of the same objects.
+
+    In batch mode the rows are the source of truth; any single-item content
+    field passed alongside from_file/ads_json is ignored.
 
     CLI 0.3.12 exposes typed flags for supported ad update subtypes. `type`
     is optional when the CLI can apply the supplied fields without an explicit

@@ -132,7 +132,10 @@ def run_batch_mutation(
 
     ``default_id``/``default_id_flag`` forward an optional batch-default scope
     (e.g. ``--adgroup-id`` for ads, ``--campaign-id`` for ad groups) that rows
-    may override.
+    may override. Single-item content fields the caller may also have received
+    are NOT forwarded here — in batch mode the file/JSON rows are the source of
+    truth, so any stray single-item field is ignored (callers should document
+    this).
     """
     if not from_file and not json_arg:
         return None

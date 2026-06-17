@@ -171,6 +171,9 @@ def adgroups_add(
        required per row, and campaign_id acts as the batch default.
     3. Inline JSON: adgroups_json = a JSON array of the same objects.
 
+    In batch mode the rows are the source of truth; any single-item content
+    field passed alongside from_file/adgroups_json is ignored.
+
     CLI 0.3.8 dropped the free-form --json flag; only the typed flags listed
     below are accepted. CLI #564 chunks the batch at 100 (API ceiling 1000).
 
@@ -293,6 +296,9 @@ def adgroups_update(
        object per line. Per-row keys use the kebab CLI-flag form ("id", "name",
        "status", ...); "id" is required per row.
     3. Inline JSON: adgroups_json = a JSON array of the same objects.
+
+    In batch mode the rows are the source of truth; any single-item content
+    field passed alongside from_file/adgroups_json is ignored.
 
     CLI 0.3.8 dropped the free-form --json flag; only the typed flags listed
     below are accepted. CLI #565 chunks the batch at 100 (API ceiling 1000).
