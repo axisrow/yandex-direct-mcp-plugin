@@ -85,6 +85,9 @@ def test_bundle_does_not_launch_bare_interpreter() -> None:
     # resolves/bootstraps a venv and ultimately execs the server entrypoint.
     assert "server/main.py" in text
     assert "import mcp" in text
+    # Install-failure backoff (#214): a failed bootstrap must not silently
+    # re-hammer pip on every cold start — it records a throttle marker.
+    assert ".bootstrap-failed" in text
 
 
 def test_plugin_entrypoint_imports_same_tools_as_repo_entrypoint() -> None:

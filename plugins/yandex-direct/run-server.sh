@@ -37,15 +37,41 @@ else
     # back to a python3 that cannot import mcp; the operator sees the pip/venv
     # error instead of a server that starts and then fails every call.
     #
+    # Install-failure backoff (#214): a failed bootstrap (no network, busy
+    # mirror) must not silently re-run pip on every cold start. Record the
+    # failure time; within BACKOFF_SECONDS a later start fails fast with a
+    # clear, actionable message instead of re-hammering pip. The marker is
+    # cleared on a successful install.
+    #
     # Version floors mirror pyproject.toml; full supply-chain hardening (pinned
-    # hashes / vendored wheels) and install-failure backoff are tracked in a
-    # follow-up issue — this matches the existing open-version install in
-    # hooks/setup.sh (the Claude Code channel), not a new policy.
+    # hashes / vendored wheels), plus harmonizing this with hooks/setup.sh, is
+    # tracked separately — the open-version install here matches the existing
+    # one in hooks/setup.sh (the Claude Code channel), not a new policy.
     mkdir -p "$DATA"
-    python3 -m venv "$VENV"
-    "$VENV/bin/pip" install --quiet --disable-pip-version-check \
-        "mcp>=1.23.3,<2" "direct-cli>=0.4.3"
-    PYTHON="$VENV_PYTHON"
+    FAIL_MARKER="$DATA/.bootstrap-failed"
+    BACKOFF_SECONDS=120
+
+    if [ -f "$FAIL_MARKER" ]; then
+        last="$(cat "$FAIL_MARKER" 2>/dev/null || true)"
+        case "$last" in '' | *[!0-9]*) last=0 ;; esac
+        if [ "$(($(date +%s) - last))" -lt "$BACKOFF_SECONDS" ]; then
+            echo "yandex-direct: dependency bootstrap failed <${BACKOFF_SECONDS}s ago; not retrying pip yet." >&2
+            echo "  Fix network/pip, then: rm -f '$FAIL_MARKER' and restart (or wait ${BACKOFF_SECONDS}s)." >&2
+            exit 1
+        fi
+    fi
+
+    if python3 -m venv "$VENV" \
+        && "$VENV/bin/pip" install --quiet --disable-pip-version-check \
+            "mcp>=1.23.3,<2" "direct-cli>=0.4.3"; then
+        rm -f "$FAIL_MARKER"
+        PYTHON="$VENV_PYTHON"
+    else
+        date +%s >"$FAIL_MARKER"
+        echo "yandex-direct: failed to install MCP server dependencies (mcp, direct-cli)." >&2
+        echo "  Check network/pip and restart; retries are throttled for ${BACKOFF_SECONDS}s." >&2
+        exit 1
+    fi
 fi
 
 export PYTHONPATH="$PLUGIN_ROOT${PYTHONPATH:+:$PYTHONPATH}"
