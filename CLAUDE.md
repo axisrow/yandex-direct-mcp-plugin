@@ -39,6 +39,23 @@ MCP → direct → tapi-yandex-direct → Yandex.Direct API
 The machine-readable parity source is `server/contract.py`
 (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
 
+### Dual-channel layout (Claude Code + Codex bundle)
+
+The repository ships the plugin to two distinct hosts, so manifests and
+`.mcp.json` deliberately exist in two places. This is **not** a duplication
+bug — do not "consolidate" them:
+
+| Channel | Plugin manifest | MCP config | Launcher | Bootstrap |
+|---|---|---|---|---|
+| Claude Code | `.claude-plugin/plugin.json` | `.mcp.json` | `hooks/run-server.sh` | `hooks/setup.sh` (SessionStart hook) |
+| Codex bundle | `plugins/yandex-direct/.codex-plugin/plugin.json` | `plugins/yandex-direct/.mcp.json` | `plugins/yandex-direct/run-server.sh` | self-bootstrap inside the launcher (no `SessionStart` hook in Codex) |
+
+The two `.mcp.json` files differ only in the wrapper-script path
+(`${CLAUDE_PLUGIN_ROOT}/hooks/run-server.sh` vs
+`${CLAUDE_PLUGIN_ROOT}/run-server.sh`); both declare `"type": "stdio"`
+explicitly. `scripts/update-version.sh` syncs version fields across both
+manifests + the marketplace entry so they cannot drift on releases.
+
 ## Tech Stack
 
 - **Python >= 3.11**, no Node.js

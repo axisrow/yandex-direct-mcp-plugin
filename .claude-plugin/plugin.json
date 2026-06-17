@@ -3,12 +3,17 @@
   "version": "0.3.3",
   "description": "Управление Яндекс.Директ: кампании, объявления, ставки, OAuth",
   "author": {
-    "name": "axisrow"
+    "name": "axisrow",
+    "url": "https://github.com/axisrow/yandex-direct-mcp-plugin"
   },
+  "homepage": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+  "repository": "https://github.com/axisrow/yandex-direct-mcp-plugin",
+  "license": "MIT",
   "keywords": [
     "yandex",
     "direct",
     "advertising",
-    "oauth"
+    "oauth",
+    "mcp"
   ]
 }
