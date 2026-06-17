@@ -52,9 +52,11 @@ bug — do not "consolidate" them:
 
 The two `.mcp.json` files differ only in the wrapper-script path
 (`${CLAUDE_PLUGIN_ROOT}/hooks/run-server.sh` vs
-`${CLAUDE_PLUGIN_ROOT}/run-server.sh`); both declare `"type": "stdio"`
-explicitly. `scripts/update-version.sh` syncs version fields across both
-manifests + the marketplace entry so they cannot drift on releases.
+`${CLAUDE_PLUGIN_ROOT}/run-server.sh`); both omit the `type` field
+(stdio is implicit when `command` is present — the canonical form per
+plugin-dev/mcp-integration). `scripts/update-version.sh` syncs version
+fields across both manifests + the marketplace entry so they cannot
+drift on releases.
 
 ## Tech Stack
 
