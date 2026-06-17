@@ -116,14 +116,13 @@ def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
 
 @mcp.tool(
     name="retargeting_update",
-    description="Update an existing retargeting list's name, description, type, or rules. Call tool_help('retargeting_update') for parameters.",
+    description="Update an existing retargeting list's name, description, or rules (type is fixed at creation). Call tool_help('retargeting_update') for parameters.",
 )
 @handle_cli_errors
 def retargeting_update(
     id: int,
     name: str | None = None,
     description: str | None = None,
-    list_type: str | None = None,
     rules: list[str] | None = None,
     rule: str | None = None,
     dry_run: bool = False,
@@ -132,28 +131,27 @@ def retargeting_update(
 
     CLI 0.3.8 expects --rule as a CLI-DSL string (see retargeting_add).
 
+    The list type is fixed at creation: ``RetargetingLists.update`` in Direct
+    API v5 does not accept the ``Type`` field, so this tool intentionally has
+    no ``list_type`` parameter — passing it previously triggered API error 8000
+    ("unknown parameter Type"). Use ``retargeting_add`` to pick a type.
+
     Args:
         id: Retargeting list ID to update.
         name: New name for the list.
         description: New list description.
-        list_type: New list type (RETARGETING | AUDIENCE).
         rule: Single new rule spec in CLI DSL form.
         rules: Additional new rule specs; each item is forwarded as repeated
             ``--rule``.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, description, list_type, rules, rule)):
+    if not any((name, description, rules, rule)):
         return ToolError(
             error="missing_update_fields",
             message=(
-                "Provide at least one of: name, description, list_type, "
+                "Provide at least one of: name, description, "
                 "rule, rules. Use rule for one spec or rules for repeated specs."
             ),
-        ).__dict__
-    if list_type is not None and list_type not in _LIST_TYPES:
-        return ToolError(
-            error="invalid_list_type",
-            message=f"list_type must be one of {_LIST_TYPES}; got '{list_type}'",
         ).__dict__
 
     args = ["retargeting", "update", "--id", str(id)]
@@ -161,8 +159,6 @@ def retargeting_update(
         args.extend(["--name", name])
     if description is not None:
         args.extend(["--description", description])
-    if list_type is not None:
-        args.extend(["--type", list_type])
     if rule is not None:
         args.extend(["--rule", rule])
     append_cli_options(args, locals(), RETARGETING_RULE_OPTIONS)

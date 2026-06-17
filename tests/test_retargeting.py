@@ -1,5 +1,6 @@
 """Tests for retargeting MCP tools."""
 
+import inspect
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -180,7 +181,6 @@ class TestRetargetingUpdate:
             result = retargeting_update(
                 id=201,
                 name="Updated",
-                list_type="AUDIENCE",
             )
 
         assert result["success"] is True
@@ -192,10 +192,14 @@ class TestRetargetingUpdate:
                 "201",
                 "--name",
                 "Updated",
-                "--type",
-                "AUDIENCE",
             ]
         )
+
+    def test_update_retargeting_has_no_list_type_param(self):
+        """RetargetingLists.update rejects Type (API error 8000), so the tool
+        must not expose list_type / emit --type (issue #166)."""
+        params = inspect.signature(retargeting_update).parameters
+        assert "list_type" not in params
 
     def test_update_retargeting_requires_changes(self):
         result = retargeting_update(id=201)
