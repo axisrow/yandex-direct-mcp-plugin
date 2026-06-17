@@ -243,10 +243,14 @@ PROFILES: dict[str, ToolSurfaceConfig] = {
         disabled_groups=frozenset({"mutate", "destructive", "lifecycle"}),
         enabled_tools=_ALWAYS_ON,
     ),
-    # Reporting / dictionaries / forecasting — no campaign-object mutations.
+    # Reporting / dictionaries / forecasting. Creating forecast/wordstat reports
+    # is a mutate the profile keeps, but deleting them (destructive) and any
+    # lifecycle op are out of an analytics surface — so v4forecast_delete /
+    # v4wordstat_delete_report do not leak (#205 review finding).
     "analytics": ToolSurfaceConfig(
         default_enabled=False,
         enabled_groups=frozenset({"analytics"}),
+        disabled_groups=frozenset({"destructive", "lifecycle"}),
         enabled_tools=_ALWAYS_ON,
     ),
     # Read + mutate the core campaign objects, but not removal (destructive), not

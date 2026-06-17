@@ -324,3 +324,17 @@ def test_no_scenario_profile_exposes_money_movement_tools():
         enabled = PROFILES[name].enabled_tool_names()
         leaked = financial & enabled
         assert not leaked, f"profile {name} leaks financial tools: {sorted(leaked)}"
+
+
+def test_no_scenario_profile_exposes_destructive_deletes():
+    """No scenario profile may expose an irreversible delete tool.
+
+    Regression guard for the #205 review finding: analytics used to leak
+    v4forecast_delete / v4wordstat_delete_report because both are analytics-area
+    destructive tools and the profile had no disabled_groups."""
+    destructive = {n for n in tool_names() if "destructive" in groups_for_tool(n)}
+    assert destructive  # sanity: the set is non-empty
+    for name in ("core", "analytics", "campaign-editor"):
+        enabled = PROFILES[name].enabled_tool_names()
+        leaked = destructive & enabled
+        assert not leaked, f"profile {name} leaks destructive tools: {sorted(leaked)}"
