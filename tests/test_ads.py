@@ -1,7 +1,10 @@
 """Tests for ads MCP tool."""
 
+import asyncio
+
 from unittest.mock import call, patch
 
+from server.main import mcp
 from server.tools.ads import (
     ads_list,
     ads_add,
@@ -594,3 +597,31 @@ class TestAdsTypedTextAdFields:
         assert result["Id"] == 555
         argv = runner.run_json.call_args[0][0]
         assert "--title2" in argv
+
+
+def test_ads_update_schema_has_no_required_fields_issue_181():
+    """Regression guard for #181: ads_update must expose NO required parameters.
+
+    The original bug (#181) was that ads_update declared ``id: int`` (required),
+    so when an MCP host sent empty arguments ``{}`` the FastMCP validation layer
+    raised ``id Field required [input_value={}]`` instead of a helpful message.
+    PR #202 made ``id`` optional and added a ``missing_mode`` guard. If ``id``
+    (or any field) becomes schema-required again, an empty host call resurrects
+    the confusing pydantic crash — lock the fix at the schema level here.
+    """
+    tools = asyncio.run(mcp.list_tools())
+    schema = next(t.inputSchema for t in tools if t.name == "ads_update")
+    assert schema.get("required", []) == [], (
+        "ads_update must have no required fields so an empty {} call yields the "
+        "graceful missing_mode guard, not a pydantic 'id required' crash (#181)."
+    )
+
+
+def test_ads_update_empty_args_yield_missing_mode_via_dispatch_issue_181():
+    """#181: through the FastMCP dispatch layer, ads_update({}) is graceful.
+
+    Calls the tool the way an MCP host does — name + empty arguments — and
+    asserts the response is the ``missing_mode`` guard, never a validation error.
+    """
+    result = asyncio.run(mcp.call_tool("ads_update", {}))
+    assert "missing_mode" in str(result)
