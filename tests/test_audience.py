@@ -106,12 +106,16 @@ class TestAudienceTargetsList:
         )
         assert result["error"] == "filter_required"
 
-    def test_list_audience_targets_batch_limit(self):
-        """Test batch limit validation for list."""
+    def test_list_audience_targets_forwards_many_ids_without_plugin_limit(self):
+        """Plugin no longer caps the get array; CLI 0.4.3 (#555) owns the real
+        per-method limit. The plugin forwards all IDs (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))
-        result = audience_targets_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.audience.get_runner", return_value=runner):
+            result = audience_targets_list(campaign_ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--campaign-ids" in call_args and ids in call_args
 
 
 class TestAudienceTargetsAdd:

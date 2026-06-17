@@ -41,12 +41,18 @@ class TestDynamicFeedAdTargetsList:
                 ]
             )
 
-    def test_dynamic_feed_ad_targets_list_batch_limit(self):
-        """Test batch limit validation rejects 11 IDs."""
+    def test_dynamic_feed_ad_targets_list_forwards_many_ids_without_plugin_limit(self):
+        """Plugin no longer caps the get array; CLI 0.4.3 (#555) owns the real
+        per-method limit (campaign_ids ≤2 for this method). Plugin forwards (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))
-        result = dynamic_feed_ad_targets_list(ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch(
+            "server.tools.dynamic_feed_ad_targets.get_runner", return_value=runner
+        ):
+            result = dynamic_feed_ad_targets_list(ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--ids" in call_args and ids in call_args
 
 
 class TestDynamicFeedAdTargetsAdd:

@@ -50,12 +50,16 @@ class TestBidModifiersList:
             assert "--campaign-ids" not in call_args
             assert "--adgroup-ids" not in call_args
 
-    def test_bidmodifiers_list_batch_limit(self):
-        """Test batch limit validation for bidmodifiers_list."""
+    def test_bidmodifiers_list_forwards_many_ids_without_plugin_limit(self):
+        """Plugin no longer caps the get array; CLI 0.4.3 (#555) owns the real
+        per-method limit. The plugin forwards all IDs (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bidmodifiers_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.bidmodifiers.get_runner", return_value=runner):
+            result = bidmodifiers_list(campaign_ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--campaign-ids" in call_args and ids in call_args
 
     def test_bidmodifiers_list_with_levels(self):
         """Test listing bid modifiers with a single level filter."""

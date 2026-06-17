@@ -59,12 +59,17 @@ class TestBidsList:
             assert "--adgroup-ids" not in call_args
             assert "--keyword-ids" not in call_args
 
-    def test_bids_list_batch_limit(self):
-        """Test batch limit validation for bids_list."""
+    def test_bids_list_forwards_many_ids_without_plugin_limit(self):
+        """Plugin no longer caps SelectionCriteria arrays — CLI 0.4.3 (#555)
+        enforces the real per-method limits. The plugin forwards all IDs (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(campaign_ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--campaign-ids" in call_args
+        assert ids in call_args
 
 
 class TestBidsSet:
@@ -87,19 +92,25 @@ class TestBidsSet:
             bids_set(keyword_id=99999, bid=15000000, dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
 
-    def test_bids_list_ad_group_batch_limit(self):
-        """Test batch limit validation for ad_group_ids."""
+    def test_bids_list_ad_group_ids_forwarded_without_plugin_limit(self):
+        """ad_group_ids forwarded as-is; CLI 0.4.3 owns the array limit (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(ad_group_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(ad_group_ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--adgroup-ids" in call_args and ids in call_args
 
-    def test_bids_list_keyword_batch_limit(self):
-        """Test batch limit validation for keyword_ids."""
+    def test_bids_list_keyword_ids_forwarded_without_plugin_limit(self):
+        """keyword_ids forwarded as-is; CLI 0.4.3 owns the array limit (#201)."""
         ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(keyword_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+        runner = mock_runner([])
+        with patch("server.tools.bids.get_runner", return_value=runner):
+            result = bids_list(keyword_ids=ids)
+        assert not (isinstance(result, dict) and result.get("error"))
+        call_args = runner.run_json.call_args[0][0]
+        assert "--keyword-ids" in call_args and ids in call_args
 
 
 class TestBidsSetAuto:

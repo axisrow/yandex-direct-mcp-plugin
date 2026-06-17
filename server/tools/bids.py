@@ -2,7 +2,6 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
 
 
 @mcp.tool(
@@ -22,32 +21,26 @@ def bids_list(
     """List bids.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        keyword_ids: Comma-separated keyword IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (API limit: ≤10).
+        ad_group_ids: Comma-separated ad group IDs (API limit: ≤1000).
+        keyword_ids: Comma-separated keyword IDs (API limit: ≤10000).
         serving_statuses: Comma-separated serving statuses.
         limit: Limit number of results.
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
     args = ["bids", "get", "--format", "json"]
+    # SelectionCriteria array limits on get are enforced by direct-cli 0.4.3
+    # (#555): real per-filter ceilings differ per method, so the plugin no
+    # longer applies a flat max=10 here and proxies the CLI's UsageError (#201).
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
-        batch_error = check_batch_limit(normalized_keyword_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--keyword-ids", normalized_keyword_ids])
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])

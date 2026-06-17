@@ -2,7 +2,6 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit
 
 
 _BIDMOD_LEVELS = ("CAMPAIGN", "AD_GROUP")
@@ -42,8 +41,10 @@ def bidmodifiers_list(
 
     Args:
         ids: Comma-separated bid modifier IDs.
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (per-method API limit,
+            enforced by direct-cli).
+        ad_group_ids: Comma-separated ad group IDs (per-method API limit,
+            enforced by direct-cli).
         types: Comma-separated bid modifier types.
         levels: Level filters — any of "CAMPAIGN" / "AD_GROUP" (the CLI's
             --levels is repeatable; pass a list, e.g. ["CAMPAIGN", "AD_GROUP"]).
@@ -65,17 +66,14 @@ def bidmodifiers_list(
         normalized = ids.strip()
         if normalized:
             args.extend(["--ids", normalized])
+    # SelectionCriteria array limits on get are enforced by direct-cli 0.4.3
+    # (#555); the plugin proxies the CLI's UsageError instead of a flat max=10
+    # (real ceilings are per-method, #201).
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if types is not None:
         args.extend(["--types", types])

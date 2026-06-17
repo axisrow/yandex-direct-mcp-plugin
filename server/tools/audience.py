@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, run_set_bids, run_single_id_batch
+from server.tools.helpers import run_set_bids, run_single_id_batch
 
 
 @mcp.tool(
@@ -24,9 +24,12 @@ def audience_targets_list(
     """List audience targets.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        ids: Comma-separated audience target IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (per-method API limit,
+            enforced by direct-cli).
+        ad_group_ids: Comma-separated ad group IDs (per-method API limit,
+            enforced by direct-cli).
+        ids: Comma-separated audience target IDs (per-method API limit,
+            enforced by direct-cli).
         retargeting_list_ids: Comma-separated retargeting list IDs.
         interest_ids: Comma-separated interest IDs.
         states: Comma-separated states.
@@ -63,24 +66,18 @@ def audience_targets_list(
             ),
         ).__dict__
 
+    # SelectionCriteria array limits on get are enforced by direct-cli 0.4.3
+    # (#555); the plugin proxies the CLI's UsageError instead of a flat max=10
+    # (real ceilings are per-method, #201).
     args = ["audiencetargets", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return batch_error.__dict__
         args.extend(["--ids", normalized_ids])
     if retargeting_list_ids is not None:
         args.extend(["--retargeting-list-ids", retargeting_list_ids])
