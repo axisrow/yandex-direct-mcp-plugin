@@ -82,9 +82,7 @@ def test_v4account_update_day_budget_without_spend_mode_rejected():
     hard CLI error, so the tool rejects it before calling the CLI (#170-28)."""
     runner = mock_runner({"ok": True})
     with patch("server.tools.v4account.get_runner", return_value=runner):
-        result = v4account_update_account(
-            account_id=1, day_budget="1000", dry_run=True
-        )
+        result = v4account_update_account(account_id=1, day_budget="1000", dry_run=True)
     assert result["error"] == "day_budget_spend_mode_pair"
     runner.run_json.assert_not_called()
 
