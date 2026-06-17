@@ -255,6 +255,20 @@
 <dd><p>Decorator that catches CLI errors and returns ToolError dicts.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.tool_error_dict">
+<span class="sig-prename descclassname"><span class="pre">server.tools.</span></span><span class="sig-name descname"><span class="pre">tool_error_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.tool_error_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Return a stable dict representation for MCP error payloads.</p>
+<p>Canonical home is here (next to <code class="docutils literal notranslate"><span class="pre">ToolError</span></code>) so <code class="docutils literal notranslate"><span class="pre">handle_cli_errors</span></code> can
+use it without importing <code class="docutils literal notranslate"><span class="pre">helpers</span></code> (which imports back from this module).
+<code class="docutils literal notranslate"><span class="pre">helpers</span></code> re-exports it for the tool modules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-server.tools.helpers">Shared helpers for MCP tool modules.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="server.tools.helpers.CliOption">
@@ -381,17 +395,6 @@ this).</p>
 <p>Each individual CLI invocation gets the optional –dry-run flag when
 <cite>dry_run=True</cite>. Use this for any <a href="#id1"><span class="problematic" id="id2">*</span></a>_delete / <a href="#id3"><span class="problematic" id="id4">*</span></a>_archive / <a href="#id5"><span class="problematic" id="id6">*</span></a>_unarchive /
 <a href="#id7"><span class="problematic" id="id8">*</span></a>_suspend / <a href="#id9"><span class="problematic" id="id10">*</span></a>_resume / <a href="#id11"><span class="problematic" id="id12">*</span></a>_moderate batch wrapper.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="server.tools.helpers.tool_error_dict">
-<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">tool_error_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.tool_error_dict" title="Link to this definition">¶</a></dt>
-<dd><p>Return a stable dict representation for MCP error payloads.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
@@ -3598,6 +3601,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.ToolError"><code class="docutils literal notranslate"><span class="pre">ToolError</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.get_runner"><code class="docutils literal notranslate"><span class="pre">get_runner()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.handle_cli_errors"><code class="docutils literal notranslate"><span class="pre">handle_cli_errors()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.tool_error_dict"><code class="docutils literal notranslate"><span class="pre">tool_error_dict()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.CliOption"><code class="docutils literal notranslate"><span class="pre">CliOption</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.append_cli_options"><code class="docutils literal notranslate"><span class="pre">append_cli_options()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.check_batch_limit"><code class="docutils literal notranslate"><span class="pre">check_batch_limit()</span></code></a></li>
@@ -3609,7 +3613,6 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_batch_mutation"><code class="docutils literal notranslate"><span class="pre">run_batch_mutation()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_set_bids"><code class="docutils literal notranslate"><span class="pre">run_set_bids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_single_id_batch"><code class="docutils literal notranslate"><span class="pre">run_single_id_batch()</span></code></a></li>
-<li><a class="reference internal" href="#server.tools.helpers.tool_error_dict"><code class="docutils literal notranslate"><span class="pre">tool_error_dict()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_phrase_csv"><code class="docutils literal notranslate"><span class="pre">validate_phrase_csv()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_positive_int"><code class="docutils literal notranslate"><span class="pre">validate_positive_int()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_state"><code class="docutils literal notranslate"><span class="pre">validate_state()</span></code></a></li>
