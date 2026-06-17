@@ -48,13 +48,6 @@ class TestAdgroupsList:
             result = adgroups_list(campaign_ids="12345")
             assert result == []
 
-    def test_adgroups_list_batch_limit(self):
-        """Test batch limit validation."""
-        ids = ",".join(str(i) for i in range(1, 12))
-        result = adgroups_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
 
 class TestAdgroupsAdd:
     """Tests for adgroups_add tool."""

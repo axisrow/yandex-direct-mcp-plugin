@@ -6,7 +6,6 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    check_batch_limit,
     expand_grouped_dicts,
     provided_update_value,
     tool_error_dict,
@@ -592,10 +591,13 @@ def campaigns_list(
 ) -> list[dict] | dict:
     """List advertising campaigns, optionally filtered.
 
+    Limits: Ids≤1000; all other filters unlimited.
+    Enforced by direct-cli 0.4.3 (#571).
+
     Args:
         state: Filter by campaign state ("ON" or "OFF"). If None,
             returns all campaigns. Applied client-side.
-        ids: Comma-separated campaign IDs (optional, max 10).
+        ids: Comma-separated campaign IDs (optional).
         status: Filter by status, e.g. "ACTIVE", "SUSPENDED" (optional).
         types: Filter by types, e.g. "TEXT_CAMPAIGN" (optional).
         fields: Comma-separated common campaign FieldNames (optional).
@@ -625,9 +627,6 @@ def campaigns_list(
     args = ["campaigns", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])

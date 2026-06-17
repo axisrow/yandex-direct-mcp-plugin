@@ -57,12 +57,6 @@ class TestCampaignsList:
             result = campaigns_list()
             assert result == []
 
-    def test_list_campaigns_batch_limit(self):
-        """Test batch limit validation for campaign IDs."""
-        ids = ",".join(str(i) for i in range(1, 12))
-        result = campaigns_list(ids=ids)
-        assert result["error"] == "batch_limit"
-
     def test_list_campaigns_trims_ids_before_cli(self, mock_campaigns):
         """Test campaign IDs are normalized before argv construction."""
         runner = mock_runner(mock_campaigns)

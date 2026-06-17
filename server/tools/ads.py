@@ -5,14 +5,11 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    check_batch_limit,
     expand_grouped_dicts,
     run_batch_mutation,
     tool_error_dict,
     validate_yes_no,
 )
-
-MAX_BATCH_SIZE = 10
 
 # Families of flat extension params are exposed to the model as nested dict
 # params (#220) to shrink the JSON Schema; expand_grouped_dicts unfolds the dict
@@ -124,10 +121,13 @@ def ads_list(
 ) -> list[dict] | dict:
     """List ads.
 
+    Limits: CampaignIds≤10, AdGroupIds≤1000, VCardIds≤10, SitelinkSetIds≤10;
+    Ids and AdExtensionIds unlimited. Enforced by direct-cli 0.4.3 (#571).
+
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ids: Comma-separated ad IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs.
+        ids: Comma-separated ad IDs.
+        ad_group_ids: Comma-separated ad group IDs.
         status: Filter by a single status.
         statuses: Comma-separated statuses.
         states: Comma-separated states.
@@ -146,25 +146,15 @@ def ads_list(
         text_ad_fields: Comma-separated TextAd FieldNames.
     """
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-    if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
-        if batch_error:
-            return tool_error_dict(batch_error)
 
     args = ["ads", "get", "--format", "json"]
     if normalized_campaign_ids:
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids, MAX_BATCH_SIZE)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     if status is not None:
         args.extend(["--status", status])

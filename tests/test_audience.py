@@ -106,13 +106,6 @@ class TestAudienceTargetsList:
         )
         assert result["error"] == "filter_required"
 
-    def test_list_audience_targets_batch_limit(self):
-        """Test batch limit validation for list."""
-        ids = ",".join(str(i) for i in range(1, 12))
-        result = audience_targets_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
 
 class TestAudienceTargetsAdd:
     """Tests for audience_targets_add."""

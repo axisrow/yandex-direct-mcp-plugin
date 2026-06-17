@@ -5,12 +5,9 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    check_batch_limit,
     provided_update_value,
     tool_error_dict,
 )
-
-MAX_BATCH_SIZE = 10
 
 KEYWORD_AUTOTARGETING_OPTIONS = (
     CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
@@ -60,10 +57,13 @@ def keywords_list(
 ) -> list[dict] | dict:
     """List keywords.
 
+    Limits: CampaignIds≤10, AdGroupIds≤1000;
+    Ids unlimited. Enforced by direct-cli 0.4.3 (#571).
+
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ids: Comma-separated keyword IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs.
+        ids: Comma-separated keyword IDs.
+        ad_group_ids: Comma-separated ad group IDs.
         status: Filter by a single status.
         statuses: Comma-separated statuses.
         states: Comma-separated states.
@@ -75,20 +75,16 @@ def keywords_list(
     """
     args = ["keywords", "get", "--format", "json"]
     has_selector = False
-    for value, flag, batch in (
-        (campaign_ids, "--campaign-ids", True),
-        (ids, "--ids", True),
-        (ad_group_ids, "--adgroup-ids", True),
+    for value, flag in (
+        (campaign_ids, "--campaign-ids"),
+        (ids, "--ids"),
+        (ad_group_ids, "--adgroup-ids"),
     ):
         if value is None:
             continue
         normalized = value.strip()
         if not normalized:
             continue
-        if batch:
-            batch_error = check_batch_limit(normalized, MAX_BATCH_SIZE)
-            if batch_error:
-                return tool_error_dict(batch_error)
         args.extend([flag, normalized])
         has_selector = True
 

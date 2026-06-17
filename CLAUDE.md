@@ -535,12 +535,12 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
 
 - **No tool count change.** 146 tools — new parameters, not new tools.
 
-- **Deferred to CLI:** SelectionCriteria array-length limits on the remaining
-  `get` commands (the wrong `check_batch_limit(max=10)`, plugin issue #201) are
-  being moved into direct-cli (`enforce_criteria_array_limits`, issue #571 —
-  follow-up to #555). Live API confirms limits are per-method/per-filter
-  (`ads get` CampaignIds=10 but Ids>10), so the plugin will drop its duplicate
-  once the CLI covers all `get` commands. Not changed in this iteration.
+- **Resolved in direct-cli 0.4.3 (#571/#577):** SelectionCriteria array-length
+  limits on the remaining `get` commands (the wrong `check_batch_limit(max=10)`,
+  plugin issue #201) are now enforced by direct-cli for all 8 commands the
+  plugin previously guarded duplicate-style (`ads`, `adgroups`, `bids`,
+  `bidmodifiers`, `audiencetargets`, `dynamicfeedadtargets`, `campaigns`,
+  `keywords`). The plugin drops its guards in a separate section below.
 
 ## Breaking Changes (CLI 0.4.3 alignment)
 
@@ -627,3 +627,36 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
 
 - **No CLI/API break.** Parameter shape only; move old flat params under the
   matching `*_options` dict.
+
+## Breaking Changes (#201 — drop check_batch_limit guards on read-get tools)
+
+- **`check_batch_limit(max=10)` removed from 8 read-get tools.** The plugin's
+  blanket 10-cap was wrong for most SelectionCriteria filters — too permissive
+  on 1000-cap fields (e.g. `bids get` `AdGroupIds`), too strict on filters that
+  are uncapped (e.g. `ads get` `Ids`) or capped at 2 (e.g. `dynamicfeedadtargets
+  get` `CampaignIds`). direct-cli 0.4.3 (#571/#577) now enforces the real,
+  live-measured per-method/per-filter limits via `enforce_criteria_array_limits`
+  — the plugin no longer duplicates that validation.
+
+  Affected tools: `ads_get`, `adgroups_get`, `bids_get`, `bidmodifiers_get`,
+  `audiencetargets_get`, `dynamicfeedadtargets_get`, `campaigns_get`,
+  `keywords_get`. Each tool's docstring now states the real per-filter limits
+  in one line (e.g. `Limits: CampaignIds≤10, AdGroupIds≤1000; KeywordIds
+  unlimited.`) so the LLM picks valid inputs; the CLI is the source of truth
+  and enforces them at the boundary, per [[cli-plugin-responsibility]].
+
+- **`MIN_DIRECT_VERSION` bumped to (0, 4, 3)** in `server/cli/runner.py` to
+  match `pyproject.toml` / `hooks/setup.sh` / `README.md` (the runtime probe
+  was lagging at (0, 4, 2)). Without the bump, a fresh install on a
+  pre-0.4.3 venv would silently pass the package resolver and then skip the
+  CLI's preflight, regressing to opaque API error 4001 instead of a typed
+  `UsageError`.
+
+- **Out of scope (kept as-is):** the four small read-get tools whose `Ids`
+  array #571 measured as uncapped — `strategies_get`, `sitelinks_get`,
+  `vcards_get`, `adextensions_get` — still carry the plugin's `check_batch_limit`
+  guard for defense-in-depth. `v4tags` (real 2000 / 30 / 10 limits) and
+  `changes_check` (dynamic `limit`) keep their typed guards; `run_single_id_batch`
+  is fan-out protection, not an API limit, and stays.
+
+- **No tool count change (146).** Closes #201.

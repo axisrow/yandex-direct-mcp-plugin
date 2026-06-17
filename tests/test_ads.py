@@ -49,12 +49,20 @@ def test_ads_list_ignores_blank_filters():
         assert "--ids" not in call_args
 
 
-def test_ads_batch_limit():
-    """Test 13: Too many IDs."""
-    ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-    result = ads_list(campaign_ids=ids)
-    assert "error" in result
-    assert result["error"] == "batch_limit"
+def test_ads_list_passes_through_large_id_lists_to_cli():
+    """#201: plugin no longer caps filters at 10 IDs — direct-cli 0.4.3 (#571)
+    enforces the real per-filter API limits (e.g. ads.get CampaignIds≤10 but
+    Ids/AdGroupIds≤1000). The plugin must hand the list to the CLI unchanged
+    so the user gets the CLI's typed error, not a misleading plugin guard.
+    """
+    ids = ",".join(str(i) for i in range(1, 51))  # 50 IDs > old plugin cap of 10
+    runner = mock_runner([])
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_list(ids=ids)
+    assert result == []
+    call_args = runner.run_json.call_args[0][0]
+    assert "--ids" in call_args
+    assert call_args[call_args.index("--ids") + 1] == ids
 
 
 def test_ads_empty():

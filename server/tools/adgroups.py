@@ -5,13 +5,10 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    check_batch_limit,
     provided_update_value,
     run_batch_mutation,
     tool_error_dict,
 )
-
-MAX_BATCH_SIZE = 10
 
 ADGROUP_EXTRA_OPTIONS = (
     CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
@@ -69,9 +66,12 @@ def adgroups_list(
 ) -> list[dict] | dict:
     """List ad groups.
 
+    Limits: CampaignIds≤10, NegativeKeywordSharedSetIds≤10;
+    Ids and TagIds unlimited. Enforced by direct-cli 0.4.3 (#571).
+
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs.
+        ids: Comma-separated ad group IDs.
         status: Filter by a single status.
         statuses: Comma-separated statuses.
         types: Comma-separated ad group types.
@@ -87,15 +87,9 @@ def adgroups_list(
     args = ["adgroups", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids, MAX_BATCH_SIZE)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids, MAX_BATCH_SIZE)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if status is not None:
         args.extend(["--status", status])

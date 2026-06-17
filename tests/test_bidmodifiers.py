@@ -50,13 +50,6 @@ class TestBidModifiersList:
             assert "--campaign-ids" not in call_args
             assert "--adgroup-ids" not in call_args
 
-    def test_bidmodifiers_list_batch_limit(self):
-        """Test batch limit validation for bidmodifiers_list."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bidmodifiers_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
     def test_bidmodifiers_list_with_levels(self):
         """Test listing bid modifiers with a single level filter."""
         runner = mock_runner(SAMPLE_BIDMODIFIERS)

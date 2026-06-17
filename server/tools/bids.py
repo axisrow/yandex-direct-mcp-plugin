@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, tool_error_dict
+from server.tools.helpers import tool_error_dict
 
 
 @mcp.tool(
@@ -21,10 +21,13 @@ def bids_list(
 ) -> list[dict] | dict:
     """List bids.
 
+    Limits: CampaignIds≤10, AdGroupIds≤1000;
+    KeywordIds unlimited. Enforced by direct-cli 0.4.3 (#571).
+
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        keyword_ids: Comma-separated keyword IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs.
+        ad_group_ids: Comma-separated ad group IDs.
+        keyword_ids: Comma-separated keyword IDs.
         serving_statuses: Comma-separated serving statuses.
         limit: Limit number of results.
         fetch_all: Fetch all pages.
@@ -33,21 +36,12 @@ def bids_list(
     args = ["bids", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
     if normalized_keyword_ids:
-        batch_error = check_batch_limit(normalized_keyword_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--keyword-ids", normalized_keyword_ids])
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])

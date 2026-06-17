@@ -3,7 +3,6 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
-    check_batch_limit,
     run_set_bids,
     run_single_id_batch,
     tool_error_dict,
@@ -28,10 +27,13 @@ def audience_targets_list(
 ) -> list[dict] | dict:
     """List audience targets.
 
+    Limits: CampaignIds≤100, AdGroupIds≤1000, RetargetingListIds≤1000,
+    InterestIds≤1000; Ids unlimited. Enforced by direct-cli 0.4.3 (#571).
+
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        ids: Comma-separated audience target IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs.
+        ad_group_ids: Comma-separated ad group IDs.
+        ids: Comma-separated audience target IDs.
         retargeting_list_ids: Comma-separated retargeting list IDs.
         interest_ids: Comma-separated interest IDs.
         states: Comma-separated states.
@@ -41,7 +43,7 @@ def audience_targets_list(
 
     Unlike retargeting_get, AudienceTargets.get requires at least one typed
     filter — a filterless request (even with fetch_all) is rejected. To audit
-    the whole account, list campaigns first and page through batches of <=10
+    the whole account, list campaigns first and page through batches of
     campaign_ids.
     """
     typed_filters = (
@@ -73,21 +75,12 @@ def audience_targets_list(
     args = ["audiencetargets", "get", "--format", "json"]
     normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
     if normalized_campaign_ids:
-        batch_error = check_batch_limit(normalized_campaign_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--campaign-ids", normalized_campaign_ids])
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
-        batch_error = check_batch_limit(normalized_ad_group_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
-        batch_error = check_batch_limit(normalized_ids)
-        if batch_error:
-            return tool_error_dict(batch_error)
         args.extend(["--ids", normalized_ids])
     if retargeting_list_ids is not None:
         args.extend(["--retargeting-list-ids", retargeting_list_ids])

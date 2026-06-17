@@ -41,12 +41,22 @@ class TestDynamicFeedAdTargetsList:
                 ]
             )
 
-    def test_dynamic_feed_ad_targets_list_batch_limit(self):
-        """Test batch limit validation rejects 11 IDs."""
-        ids = ",".join(str(i) for i in range(1, 12))
-        result = dynamic_feed_ad_targets_list(ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
+    def test_dynamic_feed_ad_targets_list_passes_through_unlimited_ids(self):
+        """#201: dynamicfeedadtargets.get Ids has no API cap (only CampaignIds≤2),
+        so the plugin must not enforce a 10-cap; the CLI (direct-cli 0.4.3 #571)
+        is the source of truth. The old 10-cap was a false positive for Ids.
+        """
+        ids = ",".join(str(i) for i in range(1, 21))  # 20 IDs > old plugin cap
+        runner = mock_runner([])
+        with patch(
+            "server.tools.dynamic_feed_ad_targets.get_runner",
+            return_value=runner,
+        ):
+            result = dynamic_feed_ad_targets_list(ids=ids)
+        assert result == []
+        call_args = runner.run_json.call_args[0][0]
+        assert "--ids" in call_args
+        assert call_args[call_args.index("--ids") + 1] == ids
 
 
 class TestDynamicFeedAdTargetsAdd:

@@ -59,13 +59,6 @@ class TestBidsList:
             assert "--adgroup-ids" not in call_args
             assert "--keyword-ids" not in call_args
 
-    def test_bids_list_batch_limit(self):
-        """Test batch limit validation for bids_list."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(campaign_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
 
 class TestBidsSet:
     """Tests for bids_set tool (CLI 0.3.8: --keyword-id only)."""
@@ -86,20 +79,6 @@ class TestBidsSet:
         with patch("server.tools.bids.get_runner", return_value=runner):
             bids_set(keyword_id=99999, bid=15000000, dry_run=True)
             assert "--dry-run" in runner.run_json.call_args[0][0]
-
-    def test_bids_list_ad_group_batch_limit(self):
-        """Test batch limit validation for ad_group_ids."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(ad_group_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
-
-    def test_bids_list_keyword_batch_limit(self):
-        """Test batch limit validation for keyword_ids."""
-        ids = ",".join(str(i) for i in range(1, 12))  # 11 IDs
-        result = bids_list(keyword_ids=ids)
-        assert "error" in result
-        assert result["error"] == "batch_limit"
 
 
 class TestBidsSetAuto:
