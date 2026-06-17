@@ -69,18 +69,42 @@ class TestAudienceTargetsList:
             call_args = runner.run_json.call_args[0][0]
             assert "--ids" in call_args
 
-    def test_list_audience_targets_ignores_blank_ids(self, mock_audience_targets):
-        """Test blank filters behave like no filter."""
-        runner = mock_runner(mock_audience_targets)
+    def test_list_audience_targets_normalizes_blanks_with_real_filter(self):
+        """Blank filters are dropped, but a real filter still goes through."""
+        runner = mock_runner([])
         with patch("server.tools.audience.get_runner", return_value=runner):
-            result = audience_targets_list(
-                campaign_ids="   ", ad_group_ids="   ", ids="   "
-            )
-            assert len(result) == 2
+            audience_targets_list(campaign_ids="12345", ad_group_ids="   ", ids="   ")
             call_args = runner.run_json.call_args[0][0]
-            assert "--campaign-ids" not in call_args
+            assert "--campaign-ids" in call_args
+            assert "12345" in call_args
             assert "--adgroup-ids" not in call_args
             assert "--ids" not in call_args
+
+    def test_list_audience_targets_states_satisfies_filter(self):
+        """States alone is a typed filter (CLI counts it), so the call proceeds."""
+        runner = mock_runner([])
+        with patch("server.tools.audience.get_runner", return_value=runner):
+            audience_targets_list(states="ON")
+            call_args = runner.run_json.call_args[0][0]
+            assert "--states" in call_args
+            assert "ON" in call_args
+
+    def test_list_audience_targets_requires_filter(self):
+        """Filterless request is rejected up front (issue #167)."""
+        result = audience_targets_list()
+        assert result["error"] == "filter_required"
+
+    def test_list_audience_targets_fetch_all_still_requires_filter(self):
+        """fetch_all is not a filter — the exact repro from #167."""
+        result = audience_targets_list(fetch_all=True)
+        assert result["error"] == "filter_required"
+
+    def test_list_audience_targets_blank_only_requires_filter(self):
+        """Whitespace-only filters behave like no filter and are rejected."""
+        result = audience_targets_list(
+            campaign_ids="   ", ad_group_ids="   ", ids="   "
+        )
+        assert result["error"] == "filter_required"
 
     def test_list_audience_targets_batch_limit(self):
         """Test batch limit validation for list."""
