@@ -22,9 +22,9 @@ def bids_list(
     """List bids.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        keyword_ids: Comma-separated keyword IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
+        ad_group_ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
+        keyword_ids: Comma-separated keyword IDs (≤10 per call, plugin cap).
         serving_statuses: Comma-separated serving statuses.
         limit: Limit number of results.
         fetch_all: Fetch all pages.

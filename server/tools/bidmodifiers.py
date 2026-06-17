@@ -42,8 +42,8 @@ def bidmodifiers_list(
 
     Args:
         ids: Comma-separated bid modifier IDs.
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
+        ad_group_ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
         types: Comma-separated bid modifier types.
         levels: Level filters — any of "CAMPAIGN" / "AD_GROUP" (the CLI's
             --levels is repeatable; pass a list, e.g. ["CAMPAIGN", "AD_GROUP"]).

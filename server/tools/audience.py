@@ -29,9 +29,9 @@ def audience_targets_list(
     """List audience targets.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        ids: Comma-separated audience target IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
+        ad_group_ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
+        ids: Comma-separated audience target IDs (≤10 per call, plugin cap).
         retargeting_list_ids: Comma-separated retargeting list IDs.
         interest_ids: Comma-separated interest IDs.
         states: Comma-separated states.

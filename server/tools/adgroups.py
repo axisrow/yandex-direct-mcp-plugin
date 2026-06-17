@@ -70,8 +70,8 @@ def adgroups_list(
     """List ad groups.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
+        ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
         status: Filter by a single status.
         statuses: Comma-separated statuses.
         types: Comma-separated ad group types.

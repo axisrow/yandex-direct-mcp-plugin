@@ -28,9 +28,9 @@ def dynamic_feed_ad_targets_list(
     """List dynamic feed ad targets.
 
     Args:
-        ids: Comma-separated target IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
-        campaign_ids: Comma-separated campaign IDs (max 10).
+        ids: Comma-separated target IDs (≤10 per call, plugin cap).
+        ad_group_ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
         states: Comma-separated states.
         limit: Limit number of results.
         fetch_all: Fetch all pages.

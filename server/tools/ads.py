@@ -96,9 +96,9 @@ def ads_list(
     """List ads.
 
     Args:
-        campaign_ids: Comma-separated campaign IDs (max 10).
-        ids: Comma-separated ad IDs (max 10).
-        ad_group_ids: Comma-separated ad group IDs (max 10).
+        campaign_ids: Comma-separated campaign IDs (≤10 per call, plugin cap).
+        ids: Comma-separated ad IDs (≤10 per call, plugin cap).
+        ad_group_ids: Comma-separated ad group IDs (≤10 per call, plugin cap).
         status: Filter by a single status.
         statuses: Comma-separated statuses.
         states: Comma-separated states.
