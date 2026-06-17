@@ -129,6 +129,17 @@ def test_smart_ad_targets_update_requires_changes():
         runner.run_json.assert_not_called()
 
 
+def test_smart_ad_targets_update_accepts_zero_bid():
+    """average_cpc=0 is a valid provided field; the missing-fields guard must
+    not treat falsy 0 as "no update", and the CLI accepts a 0 bid (#170-22)."""
+    runner = mock_runner({"success": True})
+    with patch("server.tools.smart_ad_targets.get_runner", return_value=runner):
+        result = smart_ad_targets_update(id=100, average_cpc=0)
+    assert "error" not in result
+    argv = runner.run_json.call_args[0][0]
+    assert argv[argv.index("--average-cpc") + 1] == "0"
+
+
 def test_smart_ad_targets_delete():
     mock_result = {"success": True}
     with patch(

@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    provided_update_value,
     run_set_bids,
     run_single_id_batch,
 )
@@ -166,8 +167,12 @@ def smart_ad_targets_update(
         available_items_only: "YES" or "NO".
         dry_run: Show the direct request without sending it.
     """
+    # Use provided_update_value (None-aware) instead of raw truthiness so a
+    # legitimate zero bid (average_cpc=0 / average_cpa=0) is treated as a
+    # provided field; the CLI's MICRO_RUBLES type accepts 0. (#170-22)
     if not any(
-        (
+        provided_update_value(v)
+        for v in (
             name,
             audience,
             conditions,

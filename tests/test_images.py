@@ -118,6 +118,22 @@ class TestAdimagesAdd:
         result = adimages_add(name="x", image_data="d", image_file="/p")
         assert result["error"] == "conflicting_image_source"
 
+    def test_add_image_blank_source_treated_as_absent(self):
+        """Blank image_data alongside a real image_file is one source, matching
+        the CLI's truthy XOR — not a spurious conflict (#170-24)."""
+        runner = mock_runner({"Id": 125})
+        with patch("server.tools.images.get_runner", return_value=runner):
+            result = adimages_add(name="x", image_data="   ", image_file="/p")
+        assert "error" not in result
+        argv = runner.run_json.call_args[0][0]
+        assert "--image-file" in argv
+        assert "--image-data" not in argv  # blank source normalized away
+
+    def test_add_image_only_blank_source_is_missing(self):
+        """image_data='' alone is no real source → missing_image_source."""
+        result = adimages_add(name="x", image_data="")
+        assert result["error"] == "missing_image_source"
+
 
 class TestAdimagesDelete:
     """Tests for adimages_delete tool."""
