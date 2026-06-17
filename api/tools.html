@@ -1706,6 +1706,10 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
+<p>Unlike retargeting_get, AudienceTargets.get requires at least one typed
+filter — a filterless request (even with fetch_all) is rejected. To audit
+the whole account, list campaigns first and page through batches of &lt;=10
+campaign_ids.</p>
 </dd></dl>
 
 <dl class="py function">
