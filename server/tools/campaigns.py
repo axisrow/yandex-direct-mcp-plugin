@@ -7,6 +7,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     check_batch_limit,
+    expand_grouped_dicts,
     provided_update_value,
     tool_error_dict,
 )
@@ -484,6 +485,84 @@ def _expand_strategy_dicts(
     return None
 
 
+# --- Grouped flat (non-strategy) families (#220-B) -----------------------
+# Same dict-grouping technique as the bidding strategies above, applied to the
+# remaining flat families (≥3 params). Members are the original flat option
+# names; helpers.expand_grouped_dicts restores them before append_cli_options,
+# so the generated argv is byte-identical. Families of <3 params
+# (attribution_model, package_strategy_*, dynamic_placement_*) stay flat —
+# grouping them would not pay for the dict's own schema cost.
+_CAMPAIGN_FAMILY_DICT_REGISTRY: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "notification_options",
+        (
+            "notification_email",
+            "notification_check_position_interval",
+            "notification_warning_balance",
+            "notification_send_account_news",
+            "notification_send_warnings",
+        ),
+    ),
+    (
+        "time_targeting_options",
+        (
+            "time_targeting_schedule",
+            "consider_working_weekends",
+            "holidays_suspend_on_holidays",
+            "holidays_bid_percent",
+            "holidays_start_hour",
+            "holidays_end_hour",
+        ),
+    ),
+    (
+        "frequency_cap_options",
+        (
+            "frequency_cap_impressions",
+            "frequency_cap_period_days",
+            "frequency_cap_period_all",
+        ),
+    ),
+    (
+        "relevant_keywords_options",
+        (
+            "relevant_keywords_budget_percent",
+            "relevant_keywords_mode",
+            "relevant_keywords_optimize_goal_id",
+        ),
+    ),
+    (
+        "package_platform_options",
+        (
+            "package_platform_search",
+            "package_platform_search_result",
+            "package_platform_product_gallery",
+            "package_platform_maps",
+            "package_platform_search_organization_list",
+            "package_platform_network",
+            "package_platform_dynamic_places",
+        ),
+    ),
+    ("sms_options", ("sms_events", "sms_time_from", "sms_time_to")),
+    (
+        "search_placement_options",
+        (
+            "search_placement_dynamic_places",
+            "search_placement_product_gallery",
+            "search_placement_search_results",
+        ),
+    ),
+    (
+        "cpm_strategy_options",
+        (
+            "strategy_auto_continue",
+            "strategy_end_date",
+            "strategy_spend_limit",
+            "strategy_start_date",
+        ),
+    ),
+)
+
+
 @mcp.tool(
     name="campaigns_get",
     description="List advertising campaigns, with optional state/status/type/ID filters. Read-only; use campaigns_add to create or campaigns_update to modify. Call tool_help('campaigns_get') for parameters.",
@@ -598,43 +677,16 @@ def campaigns_update(
     dynamic_placement_search_results: str | None = None,
     dynamic_placement_product_gallery: str | None = None,
     priority_goals: str | None = None,
-    relevant_keywords_budget_percent: int | None = None,
-    relevant_keywords_mode: str | None = None,
-    relevant_keywords_optimize_goal_id: int | None = None,
     attribution_model: str | None = None,
     package_strategy_id: int | None = None,
     package_strategy_from_campaign_id: int | None = None,
-    package_platform_search: str | None = None,
-    package_platform_search_result: str | None = None,
-    package_platform_product_gallery: str | None = None,
-    package_platform_maps: str | None = None,
-    package_platform_search_organization_list: str | None = None,
-    package_platform_network: str | None = None,
-    package_platform_dynamic_places: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
-    frequency_cap_impressions: int | None = None,
-    frequency_cap_period_days: int | None = None,
-    frequency_cap_period_all: bool = False,
     video_target: str | None = None,
     client_info: str | None = None,
-    sms_events: str | None = None,
-    sms_time_from: str | None = None,
-    sms_time_to: str | None = None,
-    notification_email: str | None = None,
-    notification_check_position_interval: str | None = None,
-    notification_warning_balance: int | None = None,
-    notification_send_account_news: str | None = None,
-    notification_send_warnings: str | None = None,
     time_zone: str | None = None,
     negative_keywords: str | None = None,
     blocked_ips: str | None = None,
     excluded_sites: str | None = None,
-    time_targeting_schedule: list[str] | None = None,
-    consider_working_weekends: str | None = None,
-    holidays_suspend_on_holidays: str | None = None,
-    holidays_bid_percent: int | None = None,
-    holidays_start_hour: int | None = None,
-    holidays_end_hour: int | None = None,
     campaign_type: str | None = None,
     tracking_params: str | None = None,
     search_strategy: str | None = None,
@@ -643,17 +695,18 @@ def campaigns_update(
     average_cpa: int | None = None,
     crr: int | None = None,
     bid_ceiling: int | None = None,
-    # --- TextCampaign Search PlacementTypes (3 flags) ---
-    search_placement_dynamic_places: str | None = None,
-    search_placement_product_gallery: str | None = None,
-    search_placement_search_results: str | None = None,
-    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    # --- CpmBannerCampaign bidding strategy ---
     average_cpm: int | None = None,
     average_cpv: int | None = None,
-    strategy_auto_continue: str | None = None,
-    strategy_end_date: str | None = None,
-    strategy_spend_limit: int | None = None,
-    strategy_start_date: str | None = None,
+    # --- Grouped flat families (#220-B); keys = original flat option names ---
+    notification_options: dict | None = None,
+    time_targeting_options: dict | None = None,
+    frequency_cap_options: dict | None = None,
+    relevant_keywords_options: dict | None = None,
+    package_platform_options: dict | None = None,
+    sms_options: dict | None = None,
+    search_placement_options: dict | None = None,
+    cpm_strategy_options: dict | None = None,
     # --- Grouped bidding-strategy dicts (replace ~147 flat params) ---
     # Keys = the original flat option names (e.g. text_search_average_cpc).
     # update-only *_budget_type keys also go inside the matching dict.
@@ -744,6 +797,9 @@ def campaigns_update(
     )
     if expansion_error is not None:
         return tool_error_dict(expansion_error)
+    family_error = expand_grouped_dicts(values, _CAMPAIGN_FAMILY_DICT_REGISTRY)
+    if family_error is not None:
+        return tool_error_dict(family_error)
 
     args = ["campaigns", "update", "--id", str(id)]
     if name:
@@ -817,55 +873,29 @@ def campaigns_add(
     bid_ceiling: int | None = None,
     dynamic_placement_search_results: str | None = None,
     dynamic_placement_product_gallery: str | None = None,
-    relevant_keywords_budget_percent: int | None = None,
-    relevant_keywords_mode: str | None = None,
-    relevant_keywords_optimize_goal_id: int | None = None,
     attribution_model: str | None = None,
     package_strategy_id: int | None = None,
     package_strategy_from_campaign_id: int | None = None,
-    package_platform_search: str | None = None,
-    package_platform_search_result: str | None = None,
-    package_platform_product_gallery: str | None = None,
-    package_platform_maps: str | None = None,
-    package_platform_search_organization_list: str | None = None,
-    package_platform_network: str | None = None,
-    package_platform_dynamic_places: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
-    frequency_cap_impressions: int | None = None,
-    frequency_cap_period_days: int | None = None,
-    frequency_cap_period_all: bool = False,
     video_target: str | None = None,
     client_info: str | None = None,
-    sms_events: str | None = None,
-    sms_time_from: str | None = None,
-    sms_time_to: str | None = None,
-    notification_email: str | None = None,
-    notification_check_position_interval: str | None = None,
-    notification_warning_balance: int | None = None,
-    notification_send_account_news: str | None = None,
-    notification_send_warnings: str | None = None,
     time_zone: str | None = None,
     negative_keywords: str | None = None,
     blocked_ips: str | None = None,
     excluded_sites: str | None = None,
-    time_targeting_schedule: list[str] | None = None,
-    consider_working_weekends: str | None = None,
-    holidays_suspend_on_holidays: str | None = None,
-    holidays_bid_percent: int | None = None,
-    holidays_start_hour: int | None = None,
-    holidays_end_hour: int | None = None,
     tracking_params: str | None = None,
-    # --- TextCampaign Search PlacementTypes (3 flags) ---
-    search_placement_dynamic_places: str | None = None,
-    search_placement_product_gallery: str | None = None,
-    search_placement_search_results: str | None = None,
-    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    # --- CpmBannerCampaign bidding strategy ---
     average_cpm: int | None = None,
     average_cpv: int | None = None,
-    strategy_auto_continue: str | None = None,
-    strategy_end_date: str | None = None,
-    strategy_spend_limit: int | None = None,
-    strategy_start_date: str | None = None,
+    # --- Grouped flat families (#220-B); keys = original flat option names ---
+    notification_options: dict | None = None,
+    time_targeting_options: dict | None = None,
+    frequency_cap_options: dict | None = None,
+    relevant_keywords_options: dict | None = None,
+    package_platform_options: dict | None = None,
+    sms_options: dict | None = None,
+    search_placement_options: dict | None = None,
+    cpm_strategy_options: dict | None = None,
     # --- Grouped bidding-strategy dicts (replace ~138 flat params) ---
     # Keys = the original flat option names (e.g. text_search_average_cpc).
     text_search_options: dict | None = None,
@@ -1012,6 +1042,9 @@ def campaigns_add(
     )
     if expansion_error is not None:
         return tool_error_dict(expansion_error)
+    family_error = expand_grouped_dicts(values, _CAMPAIGN_FAMILY_DICT_REGISTRY)
+    if family_error is not None:
+        return tool_error_dict(family_error)
     for already_appended in (
         "search_strategy",
         "network_strategy",

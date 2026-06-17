@@ -600,3 +600,29 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
 
 - **No CLI/API break.** Only the tool's parameter shape changed. A caller that
   passed the old flat params must move them under the matching `*_options` dict.
+
+## Breaking Changes (#220-B — campaigns flat-family grouping)
+
+- **`campaigns_add` / `campaigns_update` remaining flat families are now dict
+  params** (same technique as #154 strategy dicts and #220-A ads dicts; argv
+  byte-identical via `helpers.expand_grouped_dicts`):
+
+  - `notification_options` ← `notification_{email,check_position_interval,warning_balance,send_account_news,send_warnings}`
+  - `time_targeting_options` ← `time_targeting_schedule`, `consider_working_weekends`, `holidays_{suspend_on_holidays,bid_percent,start_hour,end_hour}`
+  - `frequency_cap_options` ← `frequency_cap_{impressions,period_days,period_all}`
+  - `relevant_keywords_options` ← `relevant_keywords_{budget_percent,mode,optimize_goal_id}`
+  - `package_platform_options` ← `package_platform_*` (7)
+  - `sms_options` ← `sms_{events,time_from,time_to}`
+  - `search_placement_options` ← `search_placement_*` (3)
+  - `cpm_strategy_options` ← `strategy_{auto_continue,end_date,spend_limit,start_date}`
+
+  Small families (`attribution_model`, `package_strategy_*`, `dynamic_placement_*`)
+  stay flat. `repeat`/`is_flag` member behavior (`time_targeting_schedule`,
+  `frequency_cap_period_all`) is preserved.
+
+- **Effect** (`measure_tool_tokens`, approx): `campaigns_update` 77→51 params
+  (2337→1567), `campaigns_add` 76→50 (2313→1543); total tool-spec 34,406→32,866.
+  `TOTAL_TOKEN_CEILING` lowered 35,500→33,500. Combined #220 saving ≈ 1,915 tokens.
+
+- **No CLI/API break.** Parameter shape only; move old flat params under the
+  matching `*_options` dict.
