@@ -82,9 +82,11 @@ def test_bundle_does_not_launch_bare_interpreter() -> None:
     assert SERVER_WRAPPER.exists(), "bundle run-server.sh wrapper is missing"
     text = SERVER_WRAPPER.read_text()
     # The wrapper must be self-sufficient (no hooks/setup.sh in the bundle): it
-    # resolves/bootstraps a venv and ultimately execs the server entrypoint.
+    # resolves/bootstraps a venv and ultimately execs the server entrypoint
+    # with the pinned mcp install (no bare system-python bypass — #223).
     assert "server/main.py" in text
-    assert "import mcp" in text
+    assert "pip install" in text
+    assert "mcp==${MCP_VERSION}" in text
     # Install-failure backoff (#214): a failed bootstrap must not silently
     # re-hammer pip on every cold start — it records a throttle marker.
     assert ".bootstrap-failed" in text

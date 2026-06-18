@@ -36,16 +36,10 @@ STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}"
 FAIL_MARKER="$DATA/.bootstrap-failed"
 BACKOFF_SECONDS=120
 
-_can_import_mcp() { "$1" -c "import mcp" 2>/dev/null; }
-
 # Fast path: stamp present ⇒ deps are pinned and installed. Pick the venv
 # python (the only place pip wrote to) and exec without touching pip.
 if [ -f "$STAMP" ] && [ -x "$VENV_PYTHON" ]; then
     PYTHON="$VENV_PYTHON"
-# Dev path: system python can already import mcp (macOS user site-packages),
-# stamp not required.
-elif command -v python3 >/dev/null 2>&1 && _can_import_mcp python3; then
-    PYTHON="python3"
 else
     # Slow path: install pinned deps into the venv, then stamp.
     mkdir -p "$DATA"
