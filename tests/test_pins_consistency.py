@@ -17,7 +17,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PIN_FILE_REPO = REPO_ROOT / "scripts" / "runtime-pins.env"
-PIN_FILE_BUNDLE = REPO_ROOT / "plugins" / "yandex-direct" / "scripts" / "runtime-pins.env"
+PIN_FILE_BUNDLE = (
+    REPO_ROOT / "plugins" / "yandex-direct" / "scripts" / "runtime-pins.env"
+)
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 RUNNER_PY = REPO_ROOT / "server" / "cli" / "runner.py"
 SETUP_SH = REPO_ROOT / "hooks" / "setup.sh"
@@ -80,7 +82,10 @@ def test_pyproject_pins_match(pins: dict[str, str]) -> None:
     """#3 — pyproject.toml pins ``mcp`` and ``direct-cli`` to the same exact versions."""
     pyproject = tomllib.loads(PYPROJECT.read_text())
     deps = pyproject["project"]["dependencies"]
-    expected = {f"mcp=={pins['MCP_VERSION']}", f"direct-cli=={pins['DIRECT_CLI_VERSION']}"}
+    expected = {
+        f"mcp=={pins['MCP_VERSION']}",
+        f"direct-cli=={pins['DIRECT_CLI_VERSION']}",
+    }
     actual = set(deps)
     assert expected == actual, (
         f"pyproject.toml dependencies drifted from runtime-pins.env: "
@@ -119,21 +124,19 @@ def test_shell_scripts_source_pin_file() -> None:
     assert "/scripts/runtime-pins.env" in setup_sh, (
         "hooks/setup.sh does not reference scripts/runtime-pins.env"
     )
-    assert ". \"$PIN_FILE\"" in setup_sh, (
-        "hooks/setup.sh does not source the pin file"
-    )
+    assert '. "$PIN_FILE"' in setup_sh, "hooks/setup.sh does not source the pin file"
 
     assert "/scripts/runtime-pins.env" in run_server_sh, (
         "plugins/yandex-direct/run-server.sh does not reference runtime-pins.env"
     )
-    assert ". \"$PIN_FILE\"" in run_server_sh, (
+    assert '. "$PIN_FILE"' in run_server_sh, (
         "plugins/yandex-direct/run-server.sh does not source the pin file"
     )
 
     assert "/scripts/runtime-pins.env" in hooks_run_server_sh, (
         "hooks/run-server.sh does not reference scripts/runtime-pins.env"
     )
-    assert ". \"$PIN_FILE\"" in hooks_run_server_sh, (
+    assert '. "$PIN_FILE"' in hooks_run_server_sh, (
         "hooks/run-server.sh does not source the pin file"
     )
 
