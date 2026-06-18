@@ -412,7 +412,7 @@ New tools added in v2 (`advideos_*`, `bids_set_auto`, `keywordbids_set_auto`, `r
 - All money parameters (bids, budgets, CPC/CPA, ceilings) are in **micro-units**: 15 RUB = 15,000,000. CLI 0.2.10+ rejects values `0 < x < 100_000` with a "did you mean × 1_000_000?" hint.
 - API batch limit: max 10 IDs per request
 - OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`.
-- CLI binary: `direct` (installed via `pip install direct-cli`). Minimum required: `direct-cli>=0.4.3`.
+- CLI binary: `direct` (installed via `pip install direct-cli`). Runtime pin: `direct-cli==0.4.3` (see `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`).
 - `reports_custom(goal_ids=...)` adds per-goal output columns: `Conversions_<goal_id>_<attribution>` and same for `CostPerConversion`. Default attribution code is `LSC`.
 - Language: project docs in Russian, code identifiers in English
 
@@ -646,6 +646,55 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
 
 - **No CLI/API break.** Parameter shape only; move old flat params under the
   matching `*_options` dict.
+
+## Feature Changes (#223 — supply-chain pinning + stamp-gated bootstrap)
+
+- **Runtime deps are now exact-pinned**, not range-bounded. `pyproject.toml`
+  declares `mcp==1.23.3` and `direct-cli==0.4.3`; the same two values live in
+  `scripts/runtime-pins.env` and a byte-identical copy at
+  `plugins/yandex-direct/scripts/runtime-pins.env` (the Codex bundle resolves
+  `$PLUGIN_ROOT` inside `plugins/yandex-direct/`, so the file ships in two
+  places). PyPI cannot silently push a new `mcp` or `direct-cli` onto user
+  machines.
+
+- **Bootstrap is gated by a stamp file**, not by an `import mcp` probe. Both
+  `hooks/setup.sh` and `plugins/yandex-direct/run-server.sh` source the pin
+  file and check
+  `$CLAUDE_PLUGIN_DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}`.
+  Stamp present ⇒ exit 0 / `exec` server within microseconds, no `pip`, no
+  network, no `import` probe. Stamp absent ⇒ install pinned versions, then
+  `touch` the stamp. Any of the three versions changing invalidates the stamp
+  and triggers a single re-install. The `_has_direct_cli_0403()` Python probe
+  in `hooks/setup.sh` is removed; `server/cli/runner.py::_probe_direct_version`
+  remains as the defence-in-depth check at point of use.
+
+- **Two helper scripts maintain the lockstep:**
+  - `scripts/update-pins.sh MCP_VER DIRECT_CLI_VER` — bumps `MCP_VERSION` /
+    `DIRECT_CLI_VERSION` in both pin-file copies, rewrites `pyproject.toml`
+    pins, and updates `MIN_DIRECT_VERSION` in `server/cli/runner.py`.
+  - `scripts/update-version.sh` (extended) — now also rewrites
+    `PLUGIN_VERSION=` in both pin-file copies alongside its existing 5
+    manifest updates.
+
+- **One new test module** `tests/test_pins_consistency.py` enforces the wiring:
+  three required keys in the pin file, PEP 440 values, byte-identical copies,
+  `pyproject.toml` matches the pins, `MIN_DIRECT_VERSION` matches the (X,Y,Z),
+  both shell scripts source the pin file and use the `${MCP_VERSION}` /
+  `${DIRECT_CLI_VERSION}` literals, `PLUGIN_VERSION` matches pyproject's
+  version. Runs in standard `pytest -v` on the 3.11/3.12/3.13 CI matrix.
+
+- **Escape hatch for a broken venv** (rare; the stamp survives a manual
+  `pip uninstall mcp`): `rm "$CLAUDE_PLUGIN_DATA"/.installed-*` and restart.
+  Documented in README troubleshooting.
+
+- **Out of scope:** `--require-hashes` / lockfiles (`pip-tools`/`uv`), vendored
+  wheels in repo, moving bootstrap into a separate install hook (Codex bundle
+  has no such hook). Discussed in #223 and explicitly deferred.
+
+- **Replaces the previous "4 canonical places to bump for direct-cli floor"**
+  guidance (`pyproject.toml`, `hooks/setup.sh` ×2, `README.md`,
+  `server/cli/runner.py`). Now `update-pins.sh` does the four automated ones,
+  and the consistency test fails CI if anything is missed.
 
 ## Breaking Changes (#201 — drop check_batch_limit guards on read-get tools)
 

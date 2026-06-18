@@ -132,7 +132,13 @@ def _require_direct_cli_0312() -> None:
 
 
 def test_runtime_and_package_require_direct_cli_0312_or_newer() -> None:
-    """Issue #128: runtime and install contract must not regress below 0.3.12."""
+    """Issue #128: runtime and install contract must not regress below 0.3.12.
+
+    Adapted for #223: pyproject.toml now exact-pins (``direct-cli==X.Y.Z``)
+    instead of using a floor (``>=X.Y.Z``); the assertion still ensures the
+    pinned version is ≥ both the historical 0.3.12 floor and the runtime
+    probe in ``server/cli/runner.py``.
+    """
     assert MIN_DIRECT_VERSION >= (0, 3, 12)
 
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
@@ -141,12 +147,14 @@ def test_runtime_and_package_require_direct_cli_0312_or_newer() -> None:
         dep for dep in dependencies if dep.startswith("direct-cli")
     )
 
-    match = re.search(r">=\s*(\d+)\.(\d+)\.(\d+)", direct_dependency)
-    assert match is not None
-    pyproject_floor = tuple(map(int, match.groups()))
-    assert pyproject_floor >= (0, 3, 12)
-    assert pyproject_floor >= MIN_DIRECT_VERSION, (
-        f"pyproject.toml floor {pyproject_floor} is below the runtime probe "
+    match = re.search(r"==\s*(\d+)\.(\d+)\.(\d+)", direct_dependency)
+    assert match is not None, (
+        f"direct-cli dependency must be exact-pinned (==X.Y.Z); got {direct_dependency!r}"
+    )
+    pyproject_pin = tuple(map(int, match.groups()))
+    assert pyproject_pin >= (0, 3, 12)
+    assert pyproject_pin >= MIN_DIRECT_VERSION, (
+        f"pyproject.toml pin {pyproject_pin} is below the runtime probe "
         f"{MIN_DIRECT_VERSION}; a fresh install could satisfy the package "
         "constraint and still be rejected by the runtime version probe."
     )

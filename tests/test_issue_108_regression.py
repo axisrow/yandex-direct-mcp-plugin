@@ -39,25 +39,49 @@ def test_runtime_code_does_not_reintroduce_freeform_json_transport() -> None:
 
 
 def test_setup_hook_installs_supported_direct_cli_version() -> None:
+    """Issue #108: setup.sh must install a supported direct-cli.
+
+    Adapted for #223: the install command now uses ``direct-cli==${DIRECT_CLI_VERSION}``
+    sourced from ``scripts/runtime-pins.env`` instead of a hand-typed
+    ``direct-cli>=0.4.3``. Any old version range left over from a stale edit
+    fails here.
+    """
     setup = (REPO_ROOT / "hooks" / "setup.sh").read_text()
-    assert "direct-cli>=0.4.3" in setup
-    assert "direct-cli>=0.4.2" not in setup
-    assert "direct-cli>=0.4.1" not in setup
-    assert "direct-cli>=0.3.11" not in setup
-    assert "direct-cli>=0.3.4" not in setup
-    assert "direct-cli>=0.3.10" not in setup
-    assert "_has_direct_cli_0403" in setup
-    assert "_has_direct_cli_0402" not in setup
-    assert "_has_direct_cli_0311" not in setup
-    assert "_has_direct_cli_0310" not in setup
+    assert "direct-cli==${DIRECT_CLI_VERSION}" in setup
+    # No stale floor ranges anywhere.
+    for stale in (
+        "direct-cli>=0.4.3",
+        "direct-cli>=0.4.2",
+        "direct-cli>=0.4.1",
+        "direct-cli>=0.3.11",
+        "direct-cli>=0.3.10",
+        "direct-cli>=0.3.4",
+    ):
+        assert stale not in setup, f"stale floor {stale!r} still in setup.sh"
+    # #223: the version-probe helper was removed; the stamp file replaces it.
+    for stale_probe in (
+        "_has_direct_cli_0403",
+        "_has_direct_cli_0402",
+        "_has_direct_cli_0311",
+        "_has_direct_cli_0310",
+    ):
+        assert stale_probe not in setup, (
+            f"version-probe helper {stale_probe!r} should have been removed in #223"
+        )
 
 
 def test_claude_notes_use_supported_direct_cli_version() -> None:
+    """Issue #108: CLAUDE.md must reflect the supported direct-cli version.
+
+    Adapted for #223: the canonical mention now reads "Runtime pin:
+    direct-cli==X.Y.Z" instead of "Minimum required: direct-cli>=X.Y.Z".
+    Historical 0.4.x alignment sections from older breaking-changes notes
+    are not the canonical mention and stay as history.
+    """
     notes = (REPO_ROOT / "CLAUDE.md").read_text()
-    assert "Minimum required: `direct-cli>=0.4.3`" in notes
-    assert "Minimum required: `direct-cli>=0.4.2`" not in notes
-    assert "Minimum required: `direct-cli>=0.4.1`" not in notes
-    assert "Minimum required: `direct-cli>=0.4.0`" not in notes
+    assert "Runtime pin: `direct-cli==0.4.3`" in notes
+    # Catch the old canonical mention if it ever returns.
+    assert "Minimum required: `direct-cli>=" not in notes
 
 
 def test_v4account_runtime_does_not_accept_finance_or_master_tokens() -> None:

@@ -9,6 +9,8 @@ PYPROJECT="${PLUGIN_DIR}/pyproject.toml"
 PLUGIN_JSON="${PLUGIN_DIR}/.claude-plugin/plugin.json"
 LOCAL_MARKETPLACE_JSON="${PLUGIN_DIR}/.agents/plugins/marketplace.json"
 BUNDLE_PLUGIN_JSON="${PLUGIN_DIR}/plugins/yandex-direct/.codex-plugin/plugin.json"
+PIN_FILE_REPO="${PLUGIN_DIR}/scripts/runtime-pins.env"
+PIN_FILE_BUNDLE="${PLUGIN_DIR}/plugins/yandex-direct/scripts/runtime-pins.env"
 MARKETPLACE_JSON="${MARKETPLACE_DIR}/.claude-plugin/marketplace.json"
 
 usage() {
@@ -27,6 +29,8 @@ command -v perl >/dev/null || { echo "error: perl is required" >&2; exit 1; }
 [[ -f "$PLUGIN_JSON" ]] || { echo "error: $PLUGIN_JSON not found" >&2; exit 1; }
 [[ -f "$LOCAL_MARKETPLACE_JSON" ]] || { echo "error: $LOCAL_MARKETPLACE_JSON not found" >&2; exit 1; }
 [[ -f "$BUNDLE_PLUGIN_JSON" ]] || { echo "error: $BUNDLE_PLUGIN_JSON not found" >&2; exit 1; }
+[[ -f "$PIN_FILE_REPO" ]] || { echo "error: $PIN_FILE_REPO not found" >&2; exit 1; }
+[[ -f "$PIN_FILE_BUNDLE" ]] || { echo "error: $PIN_FILE_BUNDLE not found" >&2; exit 1; }
 [[ -f "$MARKETPLACE_JSON" ]] || { echo "error: $MARKETPLACE_JSON not found" >&2; exit 1; }
 
 new_version="$1"
@@ -49,6 +53,9 @@ update_json_version() {
 echo "Syncing ${PLUGIN_NAME} version to ${new_version}"
 
 perl -0pi -e 's/^version\s*=\s*"[^"]+"/version = "'"$new_version"'"/m' "$PYPROJECT"
+
+perl -i -pe 's/^PLUGIN_VERSION=.*$/PLUGIN_VERSION='"$new_version"'/' "$PIN_FILE_REPO"
+perl -i -pe 's/^PLUGIN_VERSION=.*$/PLUGIN_VERSION='"$new_version"'/' "$PIN_FILE_BUNDLE"
 
 update_json_version "$PLUGIN_JSON" '.version = $v'
 update_json_version "$BUNDLE_PLUGIN_JSON" '.version = $v'
