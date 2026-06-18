@@ -202,3 +202,12 @@ def test_claude_channel_launcher_is_strict() -> None:
     assert '[ ! -x "$VENV_PYTHON" ]' in text, (
         "hooks/run-server.sh does not gate on venv-python presence"
     )
+
+    # Positive anchor — the ONLY allowed exec line. Catches alternative
+    # bypass spellings the negative anchors would miss, e.g. PYTHON='python3'
+    # (single quotes), PYTHON=python3 (unquoted), or exec python3 ... — all
+    # of which would pass the literal-string `not in` checks above.
+    assert 'exec "$VENV_PYTHON" "$PLUGIN_ROOT/server/main.py"' in text, (
+        "hooks/run-server.sh does not exec the venv-python directly; "
+        "the only allowed exec target is $VENV_PYTHON"
+    )

@@ -84,8 +84,12 @@ and triggers a single re-install.
 
 `.mcp.json` therefore does **not** launch the server with a bare `python3`
 (the system interpreter would not see the venv on Linux). Instead it runs
-`hooks/run-server.sh`, which prefers the venv interpreter and falls back to
-system `python3`:
+`hooks/run-server.sh`, which is the **strict consumer** of the bootstrap
+stamp + venv: if either is missing it exits with an error and asks the user
+to restart Claude Code so the SessionStart hook (`hooks/setup.sh`) can
+install the pinned versions. It does **not** fall back to a bare system
+`python3` — any random `mcp` in user site-packages would defeat the
+supply-chain pin (#223).
 
 ```jsonc
 // .mcp.json
