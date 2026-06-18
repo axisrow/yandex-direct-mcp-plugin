@@ -22,6 +22,7 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 RUNNER_PY = REPO_ROOT / "server" / "cli" / "runner.py"
 SETUP_SH = REPO_ROOT / "hooks" / "setup.sh"
 RUN_SERVER_SH = REPO_ROOT / "plugins" / "yandex-direct" / "run-server.sh"
+HOOKS_RUN_SERVER_SH = REPO_ROOT / "hooks" / "run-server.sh"
 
 REQUIRED_KEYS = ("PLUGIN_VERSION", "MCP_VERSION", "DIRECT_CLI_VERSION")
 PEP440_LITE_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-+a-zA-Z0-9]*)?$")
@@ -106,9 +107,14 @@ def test_runner_min_direct_version_matches(pins: dict[str, str]) -> None:
 
 
 def test_shell_scripts_source_pin_file() -> None:
-    """#5 — both bootstrap scripts source runtime-pins.env."""
+    """#5 — every shell script that depends on the pinned versions sources
+    runtime-pins.env. Includes the Claude-channel launcher hooks/run-server.sh
+    because it reads ${PLUGIN_VERSION}/${MCP_VERSION}/${DIRECT_CLI_VERSION} to
+    compute the stamp filename (refuse-to-launch on stamp miss, #223 cycle 2).
+    """
     setup_sh = SETUP_SH.read_text()
     run_server_sh = RUN_SERVER_SH.read_text()
+    hooks_run_server_sh = HOOKS_RUN_SERVER_SH.read_text()
 
     assert "/scripts/runtime-pins.env" in setup_sh, (
         "hooks/setup.sh does not reference scripts/runtime-pins.env"
@@ -122,6 +128,13 @@ def test_shell_scripts_source_pin_file() -> None:
     )
     assert ". \"$PIN_FILE\"" in run_server_sh, (
         "plugins/yandex-direct/run-server.sh does not source the pin file"
+    )
+
+    assert "/scripts/runtime-pins.env" in hooks_run_server_sh, (
+        "hooks/run-server.sh does not reference scripts/runtime-pins.env"
+    )
+    assert ". \"$PIN_FILE\"" in hooks_run_server_sh, (
+        "hooks/run-server.sh does not source the pin file"
     )
 
 
@@ -151,4 +164,41 @@ def test_plugin_version_matches_pyproject(pins: dict[str, str]) -> None:
     assert pins["PLUGIN_VERSION"] == pyproject["project"]["version"], (
         f"PLUGIN_VERSION={pins['PLUGIN_VERSION']!r} does not match "
         f"pyproject.toml version={pyproject['project']['version']!r}"
+    )
+
+
+def test_claude_channel_launcher_is_strict() -> None:
+    """#8 — hooks/run-server.sh refuses to launch unless the venv + stamp pair
+    exists. Regression guard for the #223 cycle-2 finding: the launcher used to
+    fall back to bare ``PYTHON="python3"`` on stamp miss, defeating the
+    supply-chain pin guarantee. It must NOT bootstrap (that is hooks/setup.sh's
+    SessionStart job) and must NOT probe the system interpreter.
+    """
+    text = HOOKS_RUN_SERVER_SH.read_text()
+
+    # Negative anchors — the exact patterns the cycle-2 fix removed.
+    assert 'PYTHON="python3"' not in text, (
+        "hooks/run-server.sh has a bare-python fallback; "
+        "supply-chain pinning is moot if any system mcp can be used"
+    )
+    assert "_can_import_mcp" not in text, (
+        "hooks/run-server.sh probes the system interpreter for `import mcp`; "
+        "this is the same bypass cycle 1 removed from the Codex launcher"
+    )
+
+    # Launcher is launch-only — bootstrap lives in hooks/setup.sh.
+    assert "pip install" not in text, (
+        "hooks/run-server.sh tries to install deps; "
+        "that is hooks/setup.sh's SessionStart job"
+    )
+
+    # Strict stamp gate — full 3-part triple + explicit refuse-to-launch checks.
+    assert "${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}" in text, (
+        "hooks/run-server.sh does not compute the 3-part stamp filename"
+    )
+    assert '[ ! -f "$STAMP" ]' in text, (
+        "hooks/run-server.sh does not gate on stamp presence"
+    )
+    assert '[ ! -x "$VENV_PYTHON" ]' in text, (
+        "hooks/run-server.sh does not gate on venv-python presence"
     )

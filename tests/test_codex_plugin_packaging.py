@@ -90,6 +90,10 @@ def test_bundle_does_not_launch_bare_interpreter() -> None:
     # Install-failure backoff (#214): a failed bootstrap must not silently
     # re-hammer pip on every cold start — it records a throttle marker.
     assert ".bootstrap-failed" in text
+    # Negative anchors (#223): supply-chain pin is moot if the wrapper can
+    # ever fall back to a bare system python that "happens to have mcp".
+    assert "_can_import_mcp" not in text
+    assert 'PYTHON="python3"' not in text
 
 
 def test_plugin_entrypoint_imports_same_tools_as_repo_entrypoint() -> None:
