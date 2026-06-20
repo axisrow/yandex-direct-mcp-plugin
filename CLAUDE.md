@@ -199,8 +199,6 @@ yandex-direct-mcp-plugin/
 │       ├── smart_ad_targets.py  # smartadtargets_get/add/update/delete/suspend/resume/set_bids
 │       ├── turbo_pages.py       # turbopages_get
 │       └── vcards.py            # vcards_get/add/delete
-│   # Orphaned (not imported — kept for git history):
-│   #   dynamic_targets.py, smart_targets.py, negative_keywords.py
 ├── skills/
 │   ├── yandex-direct/SKILL.md   # Campaign management skill
 │   ├── direct-ads/SKILL.md      # Ad copywriting skill
@@ -223,7 +221,7 @@ The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (128)
+### Direct API tools (139)
 
 | Tool | Purpose |
 |---|---|
@@ -347,6 +345,7 @@ WSDL/reports spec wins when there is drift.
 | `v4account_invoice` | Issue invoice payments via AccountManagement Invoice. Same env-only token policy as deposit. |
 | `v4account_transfer_money` | Transfer funds between shared accounts via AccountManagement TransferMoney. Same env-only token policy. |
 | `v4account_enable_shared_account` | Enable v4 Live shared account in dry-run or sandbox |
+| `balance_get` | Read account money balance (v4 Live AccountManagement, read-only) |
 | `v4events_get_events_log` | Get v4 Live events log entries |
 | `v4forecast_create` | Create v4 Live budget forecast |
 | `v4forecast_list` | List v4 Live budget forecasts |
@@ -356,9 +355,15 @@ WSDL/reports spec wins when there is drift.
 | `v4wordstat_list_reports` | List v4 Live Wordstat reports |
 | `v4wordstat_get_report` | Get a ready v4 Live Wordstat report |
 | `v4wordstat_delete_report` | Delete v4 Live Wordstat report |
+| `v4goals_get_stat_goals` | Get Metrica stat goals available for campaigns (v4 Live) |
+| `v4goals_get_retargeting_goals` | Get retargeting goals for campaigns (v4 Live) |
 | `v4keywords_get_suggestion` | Get related keyword suggestions (up to 20 phrases; spends API points) |
 | `v4adimage_get` | Read ad-image associations (AdImageAssociation Get) |
 | `v4adimage_set` | Link/unlink ad images (AdImageAssociation Set) |
+| `v4tags_get_campaigns` | Get campaign tags (v4 Live GetCampaignsTags) |
+| `v4tags_get_banners` | Get banner tag IDs (v4 Live GetBannersTags) |
+| `v4tags_update_campaigns` | Replace campaign tags (v4 Live UpdateCampaignsTags) |
+| `v4tags_update_banners` | Replace banner tag assignments (v4 Live UpdateBannersTags) |
 
 ### CLI helper tools (3)
 
