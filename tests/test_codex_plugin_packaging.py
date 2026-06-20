@@ -96,14 +96,6 @@ def test_bundle_does_not_launch_bare_interpreter() -> None:
     assert 'PYTHON="python3"' not in text
 
 
-def test_plugin_entrypoint_imports_same_tools_as_repo_entrypoint() -> None:
-    def tool_imports(path: Path) -> set[str]:
-        return {
-            line.strip()
-            for line in path.read_text().splitlines()
-            if line.startswith("import server.tools.")
-        }
-
-    assert tool_imports(SERVER_ENTRYPOINT) == tool_imports(
-        REPO_ROOT / "server" / "main.py"
-    )
+# Bundle ⇆ repo entrypoint parity is now owned, in full, by the byte-for-byte
+# mirror guard in tests/test_codex_bundle_sync.py — which strictly subsumes the
+# old import-line-only comparison this module used to carry (#236).
