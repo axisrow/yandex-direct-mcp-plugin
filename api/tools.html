@@ -288,6 +288,23 @@ use it without importing <code class="docutils literal notranslate"><span class=
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.append_id_filters">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">append_id_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.append_id_filters" title="Link to this definition">¶</a></dt>
+<dd><p>Append comma-separated ID filters, stripping and skipping empty values.</p>
+<p>Unifies the <code class="docutils literal notranslate"><span class="pre">.strip()</span></code>-and-skip-empty ID-filter shape that the list tools
+re-implement in three syntactic variants: an empty or whitespace-only value
+is dropped rather than forwarded as <code class="docutils literal notranslate"><span class="pre">--flag</span> <span class="pre">''</span></code> (which the CLI rejects).
+Each filter is <code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">flag)</span></code> and is emitted in the given order, so the
+generated argv is byte-identical to the inline form. Centralizing it keeps
+the empty-string contract consistent as new list tools are added.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.append_pagination">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">append_pagination</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.append_pagination" title="Link to this definition">¶</a></dt>
 <dd><p>Append the standard <code class="docutils literal notranslate"><span class="pre">--limit</span></code> / <code class="docutils literal notranslate"><span class="pre">--fetch-all</span></code> / <code class="docutils literal notranslate"><span class="pre">--fields</span></code> paging tail.</p>
@@ -3700,6 +3717,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.tool_error_dict"><code class="docutils literal notranslate"><span class="pre">tool_error_dict()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.CliOption"><code class="docutils literal notranslate"><span class="pre">CliOption</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.append_cli_options"><code class="docutils literal notranslate"><span class="pre">append_cli_options()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.append_id_filters"><code class="docutils literal notranslate"><span class="pre">append_id_filters()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.append_pagination"><code class="docutils literal notranslate"><span class="pre">append_pagination()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.check_batch_limit"><code class="docutils literal notranslate"><span class="pre">check_batch_limit()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.expand_grouped_dicts"><code class="docutils literal notranslate"><span class="pre">expand_grouped_dicts()</span></code></a></li>
