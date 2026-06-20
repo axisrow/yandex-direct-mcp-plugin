@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     append_pagination,
     normalize_optional_str,
+    require_non_empty_csv,
     tool_error_dict,
 )
 
@@ -30,14 +31,9 @@ def advideos_get(
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    normalized_ids = ids.strip()
-    if not normalized_ids:
-        return tool_error_dict(
-            ToolError(
-                error="missing_ids",
-                message="Provide at least one video ID.",
-            )
-        )
+    normalized_ids = require_non_empty_csv(ids, error="missing_ids", noun="video ID")
+    if isinstance(normalized_ids, ToolError):
+        return tool_error_dict(normalized_ids)
 
     args = ["advideos", "get", "--format", "json", "--ids", normalized_ids]
     append_pagination(args, limit, fetch_all, fields)
