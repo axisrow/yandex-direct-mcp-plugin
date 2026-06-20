@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     run_single_id_batch,
     tool_error_dict,
+    validate_enum,
 )
 
 _LIST_TYPES = ("RETARGETING", "AUDIENCE")
@@ -80,13 +81,11 @@ def retargeting_add(
             ``--rule``.
         dry_run: Show the direct request without sending it.
     """
-    if list_type not in _LIST_TYPES:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_list_type",
-                message=f"list_type must be one of {_LIST_TYPES}; got '{list_type}'",
-            )
-        )
+    list_type_error = validate_enum(
+        list_type, _LIST_TYPES, field="list_type", error="invalid_list_type"
+    )
+    if list_type_error:
+        return tool_error_dict(list_type_error)
     args = [
         "retargeting",
         "add",

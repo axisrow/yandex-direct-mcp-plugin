@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict
+from server.tools.helpers import tool_error_dict, validate_enum
 
 
 _BIDMOD_LEVELS = ("CAMPAIGN", "AD_GROUP")
@@ -178,15 +178,14 @@ def bidmodifiers_add(
         income_grade: Income grade adjustment value.
         dry_run: Show the direct request without sending it.
     """
-    if modifier_type not in _BIDMOD_TYPES:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_modifier_type",
-                message=(
-                    f"modifier_type must be one of {_BIDMOD_TYPES}; got '{modifier_type}'"
-                ),
-            )
-        )
+    modifier_type_error = validate_enum(
+        modifier_type,
+        _BIDMOD_TYPES,
+        field="modifier_type",
+        error="invalid_modifier_type",
+    )
+    if modifier_type_error:
+        return tool_error_dict(modifier_type_error)
     if campaign_id is None and ad_group_id is None:
         return tool_error_dict(
             ToolError(

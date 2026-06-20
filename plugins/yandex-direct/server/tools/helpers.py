@@ -227,12 +227,36 @@ def validate_phrase_csv(
     return normalized
 
 
-def validate_state(state: str, allowed: tuple[str, ...]) -> ToolError | None:
-    """Validate state value against allowed options."""
-    if state not in allowed:
+def require_non_empty_list(
+    values: list[str] | None, *, error: str, noun: str
+) -> list[str] | ToolError:
+    """Normalize a string list and require at least one entry (list analogue of
+    ``validate_phrase_csv``).
+
+    Strips blanks via ``normalize_str_list`` and returns the normalized list, or
+    a ToolError with the call site's existing payload when empty: the message is
+    exactly ``f"Provide at least one {noun}."``.
+    """
+    normalized = normalize_str_list(values)
+    if not normalized:
+        return ToolError(error=error, message=f"Provide at least one {noun}.")
+    return normalized
+
+
+def validate_enum(
+    value: object, allowed: tuple[str, ...], *, field: str, error: str
+) -> ToolError | None:
+    """Validate a scalar against an allowed set, returning a ToolError | None.
+
+    Generalizes the inline ``if value not in (...)`` guards repeated across
+    tools. ``field``/``error`` preserve each call site's existing payload so the
+    wire contract is unchanged: the message is exactly
+    ``f"{field} must be one of {allowed}; got '{value}'"``.
+    """
+    if value not in allowed:
         return ToolError(
-            error="invalid_state",
-            message=f"State must be one of {allowed}. Got: '{state}'",
+            error=error,
+            message=f"{field} must be one of {allowed}; got '{value}'",
         )
     return None
 
@@ -250,20 +274,6 @@ def validate_yes_no(value: str, *, field: str, error: str) -> ToolError | None:
             message=f"{field} must be YES or NO; got '{value}'",
         )
     return None
-
-
-def validate_positive_int(value: str, field_name: str) -> int | ToolError:
-    """Validate and convert string to positive integer. Returns int or ToolError."""
-    try:
-        result = int(value)
-        if result <= 0:
-            raise ValueError(f"{field_name} must be positive")
-        return result
-    except (ValueError, TypeError):
-        return ToolError(
-            error="invalid_value",
-            message=f"{field_name} must be a positive integer. Got: '{value}'",
-        )
 
 
 def run_single_id_batch(

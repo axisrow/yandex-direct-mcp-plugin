@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import normalize_str_list, tool_error_dict
+from server.tools.helpers import require_non_empty_list, tool_error_dict
 
 
 @mcp.tool(
@@ -19,14 +19,11 @@ def v4keywords_get_suggestion(keywords: list[str]) -> dict | list[dict]:
     Args:
         keywords: Source phrases to expand. At least one is required.
     """
-    normalized = normalize_str_list(keywords)
-    if not normalized:
-        return tool_error_dict(
-            ToolError(
-                error="missing_keywords",
-                message="Provide at least one keyword.",
-            )
-        )
+    normalized = require_non_empty_list(
+        keywords, error="missing_keywords", noun="keyword"
+    )
+    if isinstance(normalized, ToolError):
+        return tool_error_dict(normalized)
 
     args = ["v4keywords", "get-suggestion"]
     for keyword in normalized:

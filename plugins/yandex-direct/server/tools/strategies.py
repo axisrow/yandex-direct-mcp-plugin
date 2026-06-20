@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, tool_error_dict
+from server.tools.helpers import check_batch_limit, tool_error_dict, validate_enum
 
 IS_ARCHIVED_VALUES = ("YES", "NO")
 STRATEGY_TYPES = (
@@ -49,15 +49,15 @@ def strategies_list(
         fetch_all: Fetch all pages.
         fields: Comma-separated field names.
     """
-    if is_archived is not None and is_archived not in IS_ARCHIVED_VALUES:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_is_archived",
-                message=(
-                    f"is_archived must be one of {IS_ARCHIVED_VALUES}; got '{is_archived}'"
-                ),
-            )
+    if is_archived is not None:
+        enum_error = validate_enum(
+            is_archived,
+            IS_ARCHIVED_VALUES,
+            field="is_archived",
+            error="invalid_is_archived",
         )
+        if enum_error:
+            return tool_error_dict(enum_error)
 
     args = ["strategies", "get", "--format", "json"]
     normalized_ids = ids.strip() if ids is not None else None
@@ -138,23 +138,18 @@ def strategies_add(
             CROSSTDEVICE.
         dry_run: Show the direct request without sending it.
     """
-    if type not in STRATEGY_TYPES:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_type",
-                message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
-            )
+    type_error = validate_enum(type, STRATEGY_TYPES, field="type", error="invalid_type")
+    if type_error:
+        return tool_error_dict(type_error)
+    if attribution_model is not None:
+        attribution_error = validate_enum(
+            attribution_model,
+            ATTRIBUTION_MODELS,
+            field="attribution_model",
+            error="invalid_attribution_model",
         )
-    if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_attribution_model",
-                message=(
-                    f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
-                    f"got '{attribution_model}'"
-                ),
-            )
-        )
+        if attribution_error:
+            return tool_error_dict(attribution_error)
     args = ["strategies", "add", "--name", name, "--type", type]
     if average_cpc is not None:
         args.extend(["--average-cpc", str(average_cpc)])
@@ -275,23 +270,21 @@ def strategies_update(
                 ),
             )
         )
-    if type is not None and type not in STRATEGY_TYPES:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_type",
-                message=f"type must be one of {STRATEGY_TYPES}; got '{type}'",
-            )
+    if type is not None:
+        type_error = validate_enum(
+            type, STRATEGY_TYPES, field="type", error="invalid_type"
         )
-    if attribution_model is not None and attribution_model not in ATTRIBUTION_MODELS:
-        return tool_error_dict(
-            ToolError(
-                error="invalid_attribution_model",
-                message=(
-                    f"attribution_model must be one of {ATTRIBUTION_MODELS}; "
-                    f"got '{attribution_model}'"
-                ),
-            )
+        if type_error:
+            return tool_error_dict(type_error)
+    if attribution_model is not None:
+        attribution_error = validate_enum(
+            attribution_model,
+            ATTRIBUTION_MODELS,
+            field="attribution_model",
+            error="invalid_attribution_model",
         )
+        if attribution_error:
+            return tool_error_dict(attribution_error)
 
     args = ["strategies", "update", "--id", str(id)]
     if name is not None:

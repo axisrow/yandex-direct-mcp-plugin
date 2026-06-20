@@ -6,6 +6,7 @@ from server.tools.helpers import (
     finalize_json_args,
     normalize_optional_str,
     normalize_str_list,
+    require_non_empty_list,
     tool_error_dict,
 )
 
@@ -87,14 +88,13 @@ def v4adimage_set(
             ``AD_ID=HASH`` to link an image. At least one is required.
         dry_run: Show the direct request without sending it.
     """
-    normalized = normalize_str_list(associations)
-    if not normalized:
-        return tool_error_dict(
-            ToolError(
-                error="missing_associations",
-                message="Provide at least one association (AD_ID or AD_ID=HASH).",
-            )
-        )
+    normalized = require_non_empty_list(
+        associations,
+        error="missing_associations",
+        noun="association (AD_ID or AD_ID=HASH)",
+    )
+    if isinstance(normalized, ToolError):
+        return tool_error_dict(normalized)
 
     args = ["v4adimage", "set"]
     for item in normalized:

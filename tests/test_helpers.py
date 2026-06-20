@@ -4,9 +4,9 @@ from server.tools import ToolError
 from server.tools.helpers import (
     check_batch_limit,
     parse_ids,
+    require_non_empty_list,
     run_single_id_batch,
-    validate_positive_int,
-    validate_state,
+    validate_enum,
 )
 
 
@@ -87,42 +87,43 @@ def test_run_single_id_batch_batches_multiple_ids():
     ]
 
 
-# --- validate_state ---
+# --- validate_enum ---
 
 
-def test_validate_state_valid():
-    assert validate_state("ON", ("ON", "OFF")) is None
+def test_validate_enum_valid():
+    assert (
+        validate_enum("ON", ("ON", "OFF"), field="state", error="invalid_state") is None
+    )
 
 
-def test_validate_state_invalid():
-    result = validate_state("MAYBE", ("ON", "OFF"))
+def test_validate_enum_invalid_preserves_payload():
+    result = validate_enum("MAYBE", ("ON", "OFF"), field="state", error="invalid_state")
     assert isinstance(result, ToolError)
     assert result.error == "invalid_state"
+    # Message format is part of the wire contract folded onto this helper.
+    assert result.message == "state must be one of ('ON', 'OFF'); got 'MAYBE'"
 
 
-# --- validate_positive_int ---
+# --- require_non_empty_list ---
 
 
-def test_validate_positive_int_valid():
-    assert validate_positive_int("42", "bid") == 42
+def test_require_non_empty_list_returns_normalized():
+    assert require_non_empty_list([" a ", "", "b"], error="missing_ids", noun="ID") == [
+        "a",
+        "b",
+    ]
 
 
-def test_validate_positive_int_zero():
-    result = validate_positive_int("0", "bid")
+def test_require_non_empty_list_empty_returns_error():
+    result = require_non_empty_list([], error="missing_ids", noun="video ID")
     assert isinstance(result, ToolError)
-    assert result.error == "invalid_value"
+    assert result.error == "missing_ids"
+    assert result.message == "Provide at least one video ID."
 
 
-def test_validate_positive_int_negative():
-    result = validate_positive_int("-5", "bid")
+def test_require_non_empty_list_blanks_only_returns_error():
+    result = require_non_empty_list(
+        ["  ", ""], error="missing_keywords", noun="keyword"
+    )
     assert isinstance(result, ToolError)
-
-
-def test_validate_positive_int_non_numeric():
-    result = validate_positive_int("abc", "bid")
-    assert isinstance(result, ToolError)
-
-
-def test_validate_positive_int_float_string():
-    result = validate_positive_int("3.14", "bid")
-    assert isinstance(result, ToolError)
+    assert result.error == "missing_keywords"
