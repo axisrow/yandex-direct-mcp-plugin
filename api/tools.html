@@ -391,6 +391,28 @@ exactly <code class="docutils literal notranslate"><span class="pre">f&quot;Prov
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.require_update_fields">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">require_update_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.require_update_fields" title="Link to this definition">¶</a></dt>
+<dd><p>Require at least one provided update field, returning a ToolError | None.</p>
+<p>The typed <code class="docutils literal notranslate"><span class="pre">*_update</span></code> tools all enforce “pass at least one field to update”.
+This centralizes that guard (mirroring the <code class="docutils literal notranslate"><span class="pre">run_set_bids</span></code> equivalent for
+set-bids tools) on <code class="docutils literal notranslate"><span class="pre">provided_update_value</span></code> semantics: <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">False</span></code>/
+empty collections never count as provided.</p>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">locals()</span></code> as <code class="docutils literal notranslate"><span class="pre">values</span></code>; <code class="docutils literal notranslate"><span class="pre">exclude</span></code> names the non-field parameters
+(the selector <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">dry_run</span></code>, a <code class="docutils literal notranslate"><span class="pre">type</span></code> discriminator, batch inputs
+like <code class="docutils literal notranslate"><span class="pre">from_file</span></code>/<code class="docutils literal notranslate"><span class="pre">*_json</span></code>, …). Listing the small, stable set of
+<em>non-fields</em> — rather than every field by hand — means a newly added field
+is counted automatically, closing the “new field silently exempt” gap.
+The <code class="docutils literal notranslate"><span class="pre">missing_update_fields</span></code> error key is the wire contract; <code class="docutils literal notranslate"><span class="pre">message</span></code> is
+the call site’s existing text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.run_batch_mutation">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">run_batch_mutation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_arg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_id_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.run_batch_mutation" title="Link to this definition">¶</a></dt>
 <dd><p>Dispatch the batch path of an add/update tool.</p>
@@ -3671,6 +3693,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.parse_ids"><code class="docutils literal notranslate"><span class="pre">parse_ids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.provided_update_value"><code class="docutils literal notranslate"><span class="pre">provided_update_value()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.require_non_empty_list"><code class="docutils literal notranslate"><span class="pre">require_non_empty_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.require_update_fields"><code class="docutils literal notranslate"><span class="pre">require_update_fields()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_batch_mutation"><code class="docutils literal notranslate"><span class="pre">run_batch_mutation()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_set_bids"><code class="docutils literal notranslate"><span class="pre">run_set_bids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_single_id_batch"><code class="docutils literal notranslate"><span class="pre">run_single_id_batch()</span></code></a></li>
