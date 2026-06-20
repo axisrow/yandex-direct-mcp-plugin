@@ -446,10 +446,6 @@ _FINANCIAL_REASON = (
     "surfaced in MCP — financial operations require manual review and master "
     "token issuance through the Direct UI."
 )
-_PENDING_TYPED_REASON = (
-    "Exposed by direct-cli 0.3.7+ as a typed command, but not yet wrapped "
-    "as an MCP tool — separate scoping needed before public exposure."
-)
 _NO_CLI_REASON = (
     "direct-cli does not expose a typed subcommand for this v4 Live method."
 )
