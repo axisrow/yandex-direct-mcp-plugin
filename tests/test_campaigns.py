@@ -324,6 +324,11 @@ class TestCampaignsCrudOperations:
                 ],
             )
             assert result["Id"] == 99999
+            # Post-#240: the flat strategy/settings params are emitted by the
+            # shared CAMPAIGN_MUTATION_OPTIONS table (same as campaigns_update),
+            # not a manual append-then-null-out. The table emits --setting before
+            # --search-strategy/--network-strategy; the `direct` CLI is argparse-
+            # based so flag order is irrelevant, but pin the exact emission here.
             runner.run_json.assert_called_once_with(
                 [
                     "campaigns",
@@ -338,14 +343,14 @@ class TestCampaignsCrudOperations:
                     "5000",
                     "--end-date",
                     "2026-12-31",
-                    "--search-strategy",
-                    "HIGHEST_POSITION",
-                    "--network-strategy",
-                    "MAXIMUM_COVERAGE",
                     "--setting",
                     "EnableEmailNotification=YES",
                     "--setting",
                     "RequireServicing=NO",
+                    "--search-strategy",
+                    "HIGHEST_POSITION",
+                    "--network-strategy",
+                    "MAXIMUM_COVERAGE",
                 ]
             )
 
