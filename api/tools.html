@@ -408,6 +408,21 @@ dict-key spelling must match the registry exactly.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.require_non_empty_csv">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">require_non_empty_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noun</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.require_non_empty_csv" title="Link to this definition">¶</a></dt>
+<dd><p>Strip a comma-separated string and require it to be non-empty.</p>
+<p>The CSV-string analogue of <code class="docutils literal notranslate"><span class="pre">require_non_empty_list</span></code> for tools whose ID
+filter is a single comma-separated <code class="docutils literal notranslate"><span class="pre">str</span></code> (not a <code class="docutils literal notranslate"><span class="pre">list</span></code>). Returns the
+stripped value, or a ToolError with the call site’s existing payload when
+blank: the message is exactly <code class="docutils literal notranslate"><span class="pre">f&quot;Provide</span> <span class="pre">at</span> <span class="pre">least</span> <span class="pre">one</span> <span class="pre">{noun}.&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.require_non_empty_list">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">require_non_empty_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noun</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.require_non_empty_list" title="Link to this definition">¶</a></dt>
 <dd><p>Normalize a string list and require at least one entry (list analogue of
@@ -3726,6 +3741,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.normalize_str_list"><code class="docutils literal notranslate"><span class="pre">normalize_str_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.parse_ids"><code class="docutils literal notranslate"><span class="pre">parse_ids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.provided_update_value"><code class="docutils literal notranslate"><span class="pre">provided_update_value()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.require_non_empty_csv"><code class="docutils literal notranslate"><span class="pre">require_non_empty_csv()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.require_non_empty_list"><code class="docutils literal notranslate"><span class="pre">require_non_empty_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.require_update_fields"><code class="docutils literal notranslate"><span class="pre">require_update_fields()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_batch_mutation"><code class="docutils literal notranslate"><span class="pre">run_batch_mutation()</span></code></a></li>
