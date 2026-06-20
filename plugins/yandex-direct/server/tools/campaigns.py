@@ -38,6 +38,13 @@ CAMPAIGN_GET_SELECTOR_FLAGS = (
     ),
 )
 
+CAMPAIGN_GET_OPTIONS = (
+    CliOption("status", "--status"),
+    CliOption("statuses", "--statuses"),
+    CliOption("states", "--states"),
+    CliOption("types", "--types"),
+    CliOption("payment_statuses", "--payment-statuses"),
+)
 CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("settings", "--setting", repeat=True),
     CliOption("search_strategy", "--search-strategy"),
@@ -630,16 +637,7 @@ def campaigns_list(
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
-    if status is not None:
-        args.extend(["--status", status])
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-    if states is not None:
-        args.extend(["--states", states])
-    if types is not None:
-        args.extend(["--types", types])
-    if payment_statuses is not None:
-        args.extend(["--payment-statuses", payment_statuses])
+    append_cli_options(args, locals(), CAMPAIGN_GET_OPTIONS)
     append_pagination(args, limit, fetch_all, fields)
     local_values = locals()
     for option_name, cli_flag in CAMPAIGN_GET_SELECTOR_FLAGS:

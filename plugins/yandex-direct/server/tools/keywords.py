@@ -11,6 +11,13 @@ from server.tools.helpers import (
     tool_error_dict,
 )
 
+KEYWORD_GET_OPTIONS = (
+    CliOption("status", "--status"),
+    CliOption("statuses", "--statuses"),
+    CliOption("states", "--states"),
+    CliOption("modified_since", "--modified-since"),
+    CliOption("serving_statuses", "--serving-statuses"),
+)
 KEYWORD_AUTOTARGETING_OPTIONS = (
     CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
     CliOption(
@@ -100,16 +107,7 @@ def keywords_list(
                 ),
             )
         )
-    if status is not None:
-        args.extend(["--status", status])
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-    if states is not None:
-        args.extend(["--states", states])
-    if modified_since is not None:
-        args.extend(["--modified-since", modified_since])
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
+    append_cli_options(args, locals(), KEYWORD_GET_OPTIONS)
     append_pagination(args, limit, fetch_all, fields)
 
     return get_runner().run_json(args)

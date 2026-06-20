@@ -42,6 +42,20 @@ ADS_UPDATE_DICT_REGISTRY: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("text_source_options", _TEXT_SOURCE_MEMBERS),
 )
 
+ADS_GET_OPTIONS = (
+    CliOption("status", "--status"),
+    CliOption("statuses", "--statuses"),
+    CliOption("states", "--states"),
+    CliOption("types", "--types"),
+    CliOption("mobile", "--mobile"),
+    CliOption("vcard_ids", "--vcard-ids"),
+    CliOption("sitelink_set_ids", "--sitelink-set-ids"),
+    CliOption("image_hashes", "--image-hashes"),
+    CliOption("vcard_moderation_statuses", "--vcard-moderation-statuses"),
+    CliOption("sitelinks_moderation_statuses", "--sitelinks-moderation-statuses"),
+    CliOption("image_moderation_statuses", "--image-moderation-statuses"),
+    CliOption("adextension_ids", "--adextension-ids"),
+)
 ADS_ADD_EXTRA_OPTIONS = (
     CliOption("titles", "--titles"),
     CliOption("texts", "--texts"),
@@ -159,33 +173,11 @@ def ads_list(
     normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
     if normalized_ad_group_ids:
         args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    if status is not None:
-        args.extend(["--status", status])
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-    if states is not None:
-        args.extend(["--states", states])
-    if types is not None:
-        args.extend(["--types", types])
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:
             return tool_error_dict(err)
-        args.extend(["--mobile", mobile])
-    if vcard_ids is not None:
-        args.extend(["--vcard-ids", vcard_ids])
-    if sitelink_set_ids is not None:
-        args.extend(["--sitelink-set-ids", sitelink_set_ids])
-    if image_hashes is not None:
-        args.extend(["--image-hashes", image_hashes])
-    if vcard_moderation_statuses is not None:
-        args.extend(["--vcard-moderation-statuses", vcard_moderation_statuses])
-    if sitelinks_moderation_statuses is not None:
-        args.extend(["--sitelinks-moderation-statuses", sitelinks_moderation_statuses])
-    if image_moderation_statuses is not None:
-        args.extend(["--image-moderation-statuses", image_moderation_statuses])
-    if adextension_ids is not None:
-        args.extend(["--adextension-ids", adextension_ids])
+    append_cli_options(args, locals(), ADS_GET_OPTIONS)
     append_pagination(args, limit, fetch_all, fields)
     if text_ad_fields is not None:
         args.extend(["--text-ad-field-names", text_ad_fields])

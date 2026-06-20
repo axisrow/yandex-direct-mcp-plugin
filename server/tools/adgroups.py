@@ -12,6 +12,16 @@ from server.tools.helpers import (
     tool_error_dict,
 )
 
+ADGROUP_GET_OPTIONS = (
+    CliOption("status", "--status"),
+    CliOption("statuses", "--statuses"),
+    CliOption("types", "--types"),
+    CliOption("tag_ids", "--tag-ids"),
+    CliOption("tags", "--tags"),
+    CliOption("app_icon_statuses", "--app-icon-statuses"),
+    CliOption("serving_statuses", "--serving-statuses"),
+    CliOption("negative_keyword_shared_set_ids", "--negative-keyword-shared-set-ids"),
+)
 ADGROUP_EXTRA_OPTIONS = (
     CliOption("autotargeting_categories", "--autotargeting-category", repeat=True),
     CliOption("autotargeting_settings_exact", "--autotargeting-settings-exact"),
@@ -93,24 +103,7 @@ def adgroups_list(
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
-    if status is not None:
-        args.extend(["--status", status])
-    if statuses is not None:
-        args.extend(["--statuses", statuses])
-    if types is not None:
-        args.extend(["--types", types])
-    if tag_ids is not None:
-        args.extend(["--tag-ids", tag_ids])
-    if tags is not None:
-        args.extend(["--tags", tags])
-    if app_icon_statuses is not None:
-        args.extend(["--app-icon-statuses", app_icon_statuses])
-    if serving_statuses is not None:
-        args.extend(["--serving-statuses", serving_statuses])
-    if negative_keyword_shared_set_ids is not None:
-        args.extend(
-            ["--negative-keyword-shared-set-ids", negative_keyword_shared_set_ids]
-        )
+    append_cli_options(args, locals(), ADGROUP_GET_OPTIONS)
     append_pagination(args, limit, fetch_all, fields)
 
     runner = get_runner()

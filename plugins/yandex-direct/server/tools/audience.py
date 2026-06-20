@@ -3,10 +3,18 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
     append_pagination,
     run_set_bids,
     run_single_id_batch,
     tool_error_dict,
+)
+
+AUDIENCE_GET_OPTIONS = (
+    CliOption("retargeting_list_ids", "--retargeting-list-ids"),
+    CliOption("interest_ids", "--interest-ids"),
+    CliOption("states", "--states"),
 )
 
 
@@ -83,12 +91,7 @@ def audience_targets_list(
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         args.extend(["--ids", normalized_ids])
-    if retargeting_list_ids is not None:
-        args.extend(["--retargeting-list-ids", retargeting_list_ids])
-    if interest_ids is not None:
-        args.extend(["--interest-ids", interest_ids])
-    if states is not None:
-        args.extend(["--states", states])
+    append_cli_options(args, locals(), AUDIENCE_GET_OPTIONS)
     append_pagination(args, limit, fetch_all, fields)
 
     runner = get_runner()

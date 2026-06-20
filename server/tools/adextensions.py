@@ -3,10 +3,18 @@
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
     append_pagination,
     check_batch_limit,
     run_single_id_batch,
     tool_error_dict,
+)
+
+ADEXTENSION_GET_OPTIONS = (
+    CliOption("states", "--states"),
+    CliOption("statuses", "--statuses"),
+    CliOption("modified_since", "--modified-since"),
 )
 
 
@@ -49,12 +57,7 @@ def adextensions_list(
     normalized_types = types.strip() if types is not None else None
     if normalized_types:
         cmd.extend(["--types", normalized_types])
-    if states is not None:
-        cmd.extend(["--states", states])
-    if statuses is not None:
-        cmd.extend(["--statuses", statuses])
-    if modified_since is not None:
-        cmd.extend(["--modified-since", modified_since])
+    append_cli_options(cmd, locals(), ADEXTENSION_GET_OPTIONS)
     append_pagination(cmd, limit, fetch_all, fields)
     if callout_field_names is not None:
         cmd.extend(["--callout-field-names", callout_field_names])
