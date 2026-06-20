@@ -376,6 +376,21 @@ dict-key spelling must match the registry exactly.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.require_non_empty_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">require_non_empty_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noun</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.require_non_empty_list" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize a string list and require at least one entry (list analogue of
+<code class="docutils literal notranslate"><span class="pre">validate_phrase_csv</span></code>).</p>
+<p>Strips blanks via <code class="docutils literal notranslate"><span class="pre">normalize_str_list</span></code> and returns the normalized list, or
+a ToolError with the call site’s existing payload when empty: the message is
+exactly <code class="docutils literal notranslate"><span class="pre">f&quot;Provide</span> <span class="pre">at</span> <span class="pre">least</span> <span class="pre">one</span> <span class="pre">{noun}.&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.run_batch_mutation">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">run_batch_mutation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_arg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_id_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.run_batch_mutation" title="Link to this definition">¶</a></dt>
 <dd><p>Dispatch the batch path of an add/update tool.</p>
@@ -425,6 +440,21 @@ this).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.validate_enum">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">validate_enum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.validate_enum" title="Link to this definition">¶</a></dt>
+<dd><p>Validate a scalar against an allowed set, returning a ToolError | None.</p>
+<p>Generalizes the inline <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">value</span> <span class="pre">not</span> <span class="pre">in</span> <span class="pre">(...)</span></code> guards repeated across
+tools. <code class="docutils literal notranslate"><span class="pre">field</span></code>/<code class="docutils literal notranslate"><span class="pre">error</span></code> preserve each call site’s existing payload so the
+wire contract is unchanged: the message is exactly
+<code class="docutils literal notranslate"><span class="pre">f&quot;{field}</span> <span class="pre">must</span> <span class="pre">be</span> <span class="pre">one</span> <span class="pre">of</span> <span class="pre">{allowed};</span> <span class="pre">got</span> <span class="pre">'{value}'&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.helpers.validate_phrase_csv">
 <span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">validate_phrase_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phrases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_count</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.validate_phrase_csv" title="Link to this definition">¶</a></dt>
 <dd><p>Validate a comma-separated phrase list against a max-count limit.</p>
@@ -436,28 +466,6 @@ Got: {n}”) when over the limit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="server.tools.helpers.validate_positive_int">
-<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">validate_positive_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.validate_positive_int" title="Link to this definition">¶</a></dt>
-<dd><p>Validate and convert string to positive integer. Returns int or ToolError.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a></span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="server.tools.helpers.validate_state">
-<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">validate_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.validate_state" title="Link to this definition">¶</a></dt>
-<dd><p>Validate state value against allowed options.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#server.tools.ToolError" title="server.tools.ToolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToolError</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3662,12 +3670,12 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.normalize_str_list"><code class="docutils literal notranslate"><span class="pre">normalize_str_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.parse_ids"><code class="docutils literal notranslate"><span class="pre">parse_ids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.provided_update_value"><code class="docutils literal notranslate"><span class="pre">provided_update_value()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.require_non_empty_list"><code class="docutils literal notranslate"><span class="pre">require_non_empty_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_batch_mutation"><code class="docutils literal notranslate"><span class="pre">run_batch_mutation()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_set_bids"><code class="docutils literal notranslate"><span class="pre">run_set_bids()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.run_single_id_batch"><code class="docutils literal notranslate"><span class="pre">run_single_id_batch()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.validate_enum"><code class="docutils literal notranslate"><span class="pre">validate_enum()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_phrase_csv"><code class="docutils literal notranslate"><span class="pre">validate_phrase_csv()</span></code></a></li>
-<li><a class="reference internal" href="#server.tools.helpers.validate_positive_int"><code class="docutils literal notranslate"><span class="pre">validate_positive_int()</span></code></a></li>
-<li><a class="reference internal" href="#server.tools.helpers.validate_state"><code class="docutils literal notranslate"><span class="pre">validate_state()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_yes_no"><code class="docutils literal notranslate"><span class="pre">validate_yes_no()</span></code></a></li>
 </ul>
 </li>
