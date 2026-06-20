@@ -5,7 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    provided_update_value,
+    require_update_fields,
     tool_error_dict,
 )
 
@@ -187,17 +187,13 @@ def keywords_update(
         )
 
     values = locals()
-    if not any(
-        provided_update_value(value)
-        for key, value in values.items()
-        if key not in {"id", "dry_run"}
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message="Provide at least one typed keyword field to update.",
-            )
-        )
+    fields_error = require_update_fields(
+        values,
+        message="Provide at least one typed keyword field to update.",
+        exclude={"id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     runner = get_runner()
     args = ["keywords", "update", "--id", str(id)]

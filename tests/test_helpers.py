@@ -5,6 +5,7 @@ from server.tools.helpers import (
     check_batch_limit,
     parse_ids,
     require_non_empty_list,
+    require_update_fields,
     run_single_id_batch,
     validate_enum,
 )
@@ -127,3 +128,50 @@ def test_require_non_empty_list_blanks_only_returns_error():
     )
     assert isinstance(result, ToolError)
     assert result.error == "missing_keywords"
+
+
+# --- require_update_fields ---
+
+
+def test_require_update_fields_none_provided_returns_error():
+    values = {"id": 5, "dry_run": False, "name": None, "budget": None}
+    result = require_update_fields(
+        values, message="Provide at least one field.", exclude={"id", "dry_run"}
+    )
+    assert isinstance(result, ToolError)
+    assert result.error == "missing_update_fields"
+    assert result.message == "Provide at least one field."
+
+
+def test_require_update_fields_one_provided_returns_none():
+    values = {"id": 5, "dry_run": False, "name": "x", "budget": None}
+    assert require_update_fields(values, message="m", exclude={"id", "dry_run"}) is None
+
+
+def test_require_update_fields_excluded_value_does_not_count():
+    # Only the excluded `type` is set — that must NOT satisfy the guard.
+    values = {"id": 5, "type": "TEXT_AD", "title": None}
+    result = require_update_fields(
+        values, message="m", exclude={"id", "dry_run", "type"}
+    )
+    assert isinstance(result, ToolError)
+
+
+def test_require_update_fields_uses_provided_update_value_semantics():
+    # False / empty collections do not count as provided.
+    values = {"id": 5, "flag": False, "items": [], "blob": {}}
+    result = require_update_fields(values, message="m", exclude={"id"})
+    assert isinstance(result, ToolError)
+
+
+def test_require_update_fields_empty_string_and_zero_count_as_provided():
+    # The standardization for the former raw-truthiness sites (ads/agency/
+    # negative_keyword_shared_sets/retargeting): an empty string or integer 0 is
+    # a *provided* field (provided_update_value semantics), unlike raw any().
+    assert (
+        require_update_fields({"id": 1, "name": ""}, message="m", exclude={"id"})
+        is None
+    )
+    assert (
+        require_update_fields({"id": 1, "bid": 0}, message="m", exclude={"id"}) is None
+    )

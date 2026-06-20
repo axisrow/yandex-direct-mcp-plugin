@@ -6,6 +6,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     expand_grouped_dicts,
+    require_update_fields,
     run_batch_mutation,
     tool_error_dict,
     validate_yes_no,
@@ -535,55 +536,25 @@ def ads_update(
             )
         )
 
-    if not any(
-        (
-            title,
-            text,
-            titles,
-            texts,
-            href,
-            image_hash,
-            clear_image_hash,
-            image_hashes,
-            tracking_url,
-            action,
-            age_label,
-            mobile_app_features,
-            title2,
-            display_url_path,
-            mobile,
-            vcard_id,
-            sitelink_set_id,
-            turbo_page_id,
-            ad_extensions,
-            callouts_options,
-            video_extension_options,
-            price_extension_options,
-            business_id,
-            prefer_vcard_over_business,
-            erir_ad_description,
-            logo_extension_hash,
-            creative_options,
-            final_url,
-            tracking_pixels,
-            feed_filter_conditions,
-            text_source_options,
-        )
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message=(
-                    "Provide at least one typed update field, for example: title, "
-                    "text, href, image_hash, clear_image_hash, tracking_url, "
-                    "action, age_label, title2, display_url_path, mobile, vcard_id, "
-                    "sitelink_set_id, turbo_page_id, ad_extensions, business_id, "
-                    "final_url, tracking_pixels, feed_filter_conditions, or one of "
-                    "the grouped dicts: callouts_options, video_extension_options, "
-                    "price_extension_options, creative_options, text_source_options."
-                ),
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message=(
+            "Provide at least one typed update field, for example: title, "
+            "text, href, image_hash, clear_image_hash, tracking_url, "
+            "action, age_label, title2, display_url_path, mobile, vcard_id, "
+            "sitelink_set_id, turbo_page_id, ad_extensions, business_id, "
+            "final_url, tracking_pixels, feed_filter_conditions, or one of "
+            "the grouped dicts: callouts_options, video_extension_options, "
+            "price_extension_options, creative_options, text_source_options."
+        ),
+        # `result` is the run_batch_mutation local still in scope here; it is
+        # always None at this point (a non-None value returned above), so this
+        # entry is defensive against a future refactor, not load-bearing today.
+        # The rest are selectors/discriminators/batch inputs, not update fields.
+        exclude={"id", "type", "status", "from_file", "ads_json", "dry_run", "result"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:

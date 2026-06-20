@@ -5,7 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    provided_update_value,
+    require_update_fields,
     run_batch_mutation,
     tool_error_dict,
 )
@@ -344,18 +344,13 @@ def adgroups_update(
         )
 
     values = locals()
-    if not any(
-        provided_update_value(value)
-        for key, value in values.items()
-        if key
-        not in {"id", "dry_run", "from_file", "adgroups_json", "handled", "result"}
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message="Provide at least one typed ad group field to update.",
-            )
-        )
+    fields_error = require_update_fields(
+        values,
+        message="Provide at least one typed ad group field to update.",
+        exclude={"id", "dry_run", "from_file", "adgroups_json"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     args = ["adgroups", "update", "--id", str(id)]
     if name is not None:

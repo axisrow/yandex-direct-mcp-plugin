@@ -118,6 +118,34 @@ def provided_update_value(value: object) -> bool:
     return True
 
 
+def require_update_fields(
+    values: Mapping[str, object], *, message: str, exclude: Iterable[str] = ()
+) -> ToolError | None:
+    """Require at least one provided update field, returning a ToolError | None.
+
+    The typed ``*_update`` tools all enforce "pass at least one field to update".
+    This centralizes that guard (mirroring the ``run_set_bids`` equivalent for
+    set-bids tools) on ``provided_update_value`` semantics: ``None``/``False``/
+    empty collections never count as provided.
+
+    Pass ``locals()`` as ``values``; ``exclude`` names the non-field parameters
+    (the selector ``id``, ``dry_run``, a ``type`` discriminator, batch inputs
+    like ``from_file``/``*_json``, ...). Listing the small, stable set of
+    *non-fields* — rather than every field by hand — means a newly added field
+    is counted automatically, closing the "new field silently exempt" gap.
+    The ``missing_update_fields`` error key is the wire contract; ``message`` is
+    the call site's existing text.
+    """
+    skip = frozenset(exclude)
+    if not any(
+        provided_update_value(value)
+        for name, value in values.items()
+        if name not in skip
+    ):
+        return ToolError(error="missing_update_fields", message=message)
+    return None
+
+
 def normalize_optional_str(value: str | None) -> str | None:
     """Strip an optional string and collapse blanks to None."""
     if value is None:

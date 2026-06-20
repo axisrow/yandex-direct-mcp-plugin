@@ -1,10 +1,11 @@
 """MCP tools for retargeting list management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    require_update_fields,
     run_single_id_batch,
     tool_error_dict,
     validate_enum,
@@ -151,16 +152,16 @@ def retargeting_update(
             ``--rule``.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, description, rules, rule)):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message=(
-                    "Provide at least one of: name, description, "
-                    "rule, rules. Use rule for one spec or rules for repeated specs."
-                ),
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message=(
+            "Provide at least one of: name, description, "
+            "rule, rules. Use rule for one spec or rules for repeated specs."
+        ),
+        exclude={"id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     args = ["retargeting", "update", "--id", str(id)]
     if name is not None:
