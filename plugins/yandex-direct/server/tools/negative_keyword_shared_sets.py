@@ -1,8 +1,8 @@
 """MCP tools for negative keyword shared sets management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict
+from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import require_update_fields, tool_error_dict
 
 
 @mcp.tool(
@@ -86,13 +86,13 @@ def negative_keyword_shared_sets_update(
         keywords: New comma-separated negative keywords.
         dry_run: Show the direct request without sending it.
     """
-    if not any((name, keywords)):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message="Provide at least one of: name, keywords",
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message="Provide at least one of: name, keywords",
+        exclude={"id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     args = ["negativekeywordsharedsets", "update", "--id", str(id)]
     if name is not None:

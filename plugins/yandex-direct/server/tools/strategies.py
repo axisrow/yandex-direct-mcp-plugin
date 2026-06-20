@@ -1,8 +1,13 @@
 """MCP tools for bidding strategy management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import check_batch_limit, tool_error_dict, validate_enum
+from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import (
+    check_batch_limit,
+    require_update_fields,
+    tool_error_dict,
+    validate_enum,
+)
 
 IS_ARCHIVED_VALUES = ("YES", "NO")
 STRATEGY_TYPES = (
@@ -235,41 +240,18 @@ def strategies_update(
         attribution_model: Attribution model code.
         dry_run: Show the direct request without sending it.
     """
-    if (
-        all(
-            v is None
-            for v in (
-                name,
-                type,
-                average_cpc,
-                average_cpa,
-                average_crr,
-                goal_id,
-                spend_limit,
-                weekly_spend_limit,
-                bid_ceiling,
-                custom_period_spend_limit,
-                custom_period_start_date,
-                custom_period_end_date,
-                custom_period_auto_continue,
-                minimum_exploration_budget,
-                counter_ids,
-                attribution_model,
-            )
-        )
-        and not priority_goals
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message=(
-                    "Provide at least one of: name, type, average_cpc, average_cpa, "
-                    "average_crr, goal_id, spend_limit, weekly_spend_limit, "
-                    "bid_ceiling, custom_period_*, minimum_exploration_budget, "
-                    "counter_ids, priority_goals, attribution_model"
-                ),
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message=(
+            "Provide at least one of: name, type, average_cpc, average_cpa, "
+            "average_crr, goal_id, spend_limit, weekly_spend_limit, "
+            "bid_ceiling, custom_period_*, minimum_exploration_budget, "
+            "counter_ids, priority_goals, attribution_model"
+        ),
+        exclude={"id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
     if type is not None:
         type_error = validate_enum(
             type, STRATEGY_TYPES, field="type", error="invalid_type"

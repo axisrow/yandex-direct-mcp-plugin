@@ -1,11 +1,11 @@
 """MCP tools for client management."""
 
 from server.main import mcp
-from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
-    provided_update_value,
+    require_update_fields,
     tool_error_dict,
 )
 
@@ -131,17 +131,13 @@ def clients_update(
         dry_run: Show the direct request without sending it.
     """
     values = locals()
-    if not any(
-        provided_update_value(value)
-        for key, value in values.items()
-        if key not in {"dry_run"}
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message="Provide at least one typed client field to update.",
-            )
-        )
+    fields_error = require_update_fields(
+        values,
+        message="Provide at least one typed client field to update.",
+        exclude={"dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     args = ["clients", "update"]
     if client_info is not None:

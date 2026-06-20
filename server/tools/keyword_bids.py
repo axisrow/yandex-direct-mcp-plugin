@@ -2,7 +2,7 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict
+from server.tools.helpers import require_update_fields, tool_error_dict
 
 
 @mcp.tool(
@@ -83,21 +83,16 @@ def keyword_bids_set(
                 message="Provide at least one of: keyword_id, campaign_id, ad_group_id",
             )
         )
-    if (
-        search_bid is None
-        and network_bid is None
-        and autotargeting_search_bid_is_auto is None
-        and priority is None
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message=(
-                    "Provide at least one of: search_bid, network_bid, "
-                    "autotargeting_search_bid_is_auto, priority"
-                ),
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message=(
+            "Provide at least one of: search_bid, network_bid, "
+            "autotargeting_search_bid_is_auto, priority"
+        ),
+        exclude={"keyword_id", "campaign_id", "ad_group_id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     args = ["keywordbids", "set"]
     if campaign_id is not None:

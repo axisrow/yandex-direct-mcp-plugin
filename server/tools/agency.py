@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict, validate_yes_no
+from server.tools.helpers import (
+    require_update_fields,
+    tool_error_dict,
+    validate_yes_no,
+)
 
 
 @mcp.tool(
@@ -167,30 +171,17 @@ def agency_clients_update(
         clear_grants: Whether to clear all grants. Mutually exclusive with grants.
         dry_run: Show the direct request without sending it.
     """
-    if not any(
-        (
-            client_info,
-            phone,
-            notification_email,
-            notification_lang,
-            email_subscriptions,
-            settings,
-            tin_type,
-            tin,
-            grants,
-            clear_grants,
-        )
-    ):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message=(
-                    "Provide at least one of: client_info, phone, notification_email, "
-                    "notification_lang, email_subscriptions, settings, tin_type, tin, "
-                    "grants, clear_grants"
-                ),
-            )
-        )
+    fields_error = require_update_fields(
+        locals(),
+        message=(
+            "Provide at least one of: client_info, phone, notification_email, "
+            "notification_lang, email_subscriptions, settings, tin_type, tin, "
+            "grants, clear_grants"
+        ),
+        exclude={"client_id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
     if grants and clear_grants:
         return tool_error_dict(
             ToolError(

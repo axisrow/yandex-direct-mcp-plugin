@@ -7,7 +7,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     expand_grouped_dicts,
-    provided_update_value,
+    require_update_fields,
     tool_error_dict,
 )
 
@@ -774,16 +774,13 @@ def campaigns_update(
         dry_run: Show the direct request without sending it.
     """
     values = locals()
-    optional_values = [
-        value for key, value in values.items() if key not in {"id", "dry_run"}
-    ]
-    if not any(provided_update_value(value) for value in optional_values):
-        return tool_error_dict(
-            ToolError(
-                error="missing_update_fields",
-                message="Provide at least one typed campaign field to update.",
-            )
-        )
+    fields_error = require_update_fields(
+        values,
+        message="Provide at least one typed campaign field to update.",
+        exclude={"id", "dry_run"},
+    )
+    if fields_error:
+        return tool_error_dict(fields_error)
 
     # Expand grouped strategy dicts into the flat option names append_cli_options
     # expects. Runs after the guard (a non-empty dict already satisfies it) and
