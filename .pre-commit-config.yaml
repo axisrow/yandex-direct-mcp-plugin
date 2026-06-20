@@ -20,3 +20,10 @@ repos:
         language: system
         files: ^tests/recordings/.*\.json$
         pass_filenames: false
+
+      - id: sync-codex-bundle
+        name: Sync Codex bundle server/ mirror (#236)
+        entry: bash scripts/sync-codex-bundle.sh
+        language: system
+        files: ^server/
+        pass_filenames: false

@@ -55,5 +55,27 @@ import server.tools.v4tags  # noqa: E402, F401
 import server.tools.v4wordstat  # noqa: E402, F401
 import server.tools.vcards  # noqa: E402, F401
 
+# Apply the configured tool surface (#149): with no YANDEX_DIRECT_TOOL_* env the
+# default is the full 146-tool surface, so this is a no-op unless a profile or
+# enable/disable rules are set.
+import os  # noqa: E402
+
+from server.config import (  # noqa: E402
+    apply_tool_surface,
+    config_from_env,
+    env_config_warnings,
+)
+
+_TOOL_SURFACE = config_from_env(os.environ)
+for _warning in env_config_warnings(os.environ, _TOOL_SURFACE):
+    print(f"[yandex-direct-mcp] tool-surface config: {_warning}", file=sys.stderr)
+_REMOVED_TOOLS = apply_tool_surface(mcp, _TOOL_SURFACE)
+if _REMOVED_TOOLS:
+    print(
+        f"[yandex-direct-mcp] tool surface: {len(_REMOVED_TOOLS)} tool(s) disabled "
+        f"by config; {len(_TOOL_SURFACE.enabled_tool_names())} enabled.",
+        file=sys.stderr,
+    )
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
