@@ -7,6 +7,7 @@ from server.tools.helpers import (
     finalize_json_args,
     normalize_optional_str,
     normalize_str_list,
+    require_non_empty_csv,
     tool_error_dict,
 )
 
@@ -22,14 +23,11 @@ def v4tags_get_campaigns(campaign_ids: str) -> dict | list[dict]:
     Args:
         campaign_ids: Comma-separated campaign IDs.
     """
-    normalized_ids = campaign_ids.strip()
-    if not normalized_ids:
-        return tool_error_dict(
-            ToolError(
-                error="missing_campaign_ids",
-                message="Provide at least one campaign ID.",
-            )
-        )
+    normalized_ids = require_non_empty_csv(
+        campaign_ids, error="missing_campaign_ids", noun="campaign ID"
+    )
+    if isinstance(normalized_ids, ToolError):
+        return tool_error_dict(normalized_ids)
 
     return get_runner().run_json(
         [
@@ -156,14 +154,11 @@ def v4tags_update_banners(
         clear_tags: Remove all banner tags.
         dry_run: Show the direct request without sending it.
     """
-    normalized_banner_ids = banner_ids.strip()
-    if not normalized_banner_ids:
-        return tool_error_dict(
-            ToolError(
-                error="missing_banner_ids",
-                message="Provide at least one banner ID.",
-            )
-        )
+    normalized_banner_ids = require_non_empty_csv(
+        banner_ids, error="missing_banner_ids", noun="banner ID"
+    )
+    if isinstance(normalized_banner_ids, ToolError):
+        return tool_error_dict(normalized_banner_ids)
 
     normalized_tag_ids = normalize_optional_str(tag_ids)
     if normalized_tag_ids and clear_tags:

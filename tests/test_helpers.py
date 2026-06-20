@@ -6,6 +6,7 @@ from server.tools.helpers import (
     append_pagination,
     check_batch_limit,
     parse_ids,
+    require_non_empty_csv,
     require_non_empty_list,
     require_update_fields,
     run_single_id_batch,
@@ -224,3 +225,17 @@ def test_append_id_filters_drops_empty_and_whitespace():
     args = ["x", "get"]
     append_id_filters(args, [("", "--campaign-ids"), ("   ", "--ids")])
     assert args == ["x", "get"]
+
+
+# --- require_non_empty_csv ---
+
+
+def test_require_non_empty_csv_returns_stripped():
+    assert require_non_empty_csv(" 1,2 ", error="missing_ids", noun="ID") == "1,2"
+
+
+def test_require_non_empty_csv_blank_returns_error():
+    result = require_non_empty_csv("   ", error="missing_ids", noun="video ID")
+    assert isinstance(result, ToolError)
+    assert result.error == "missing_ids"
+    assert result.message == "Provide at least one video ID."

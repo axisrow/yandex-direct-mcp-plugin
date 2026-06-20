@@ -309,6 +309,20 @@ def require_non_empty_list(
     return normalized
 
 
+def require_non_empty_csv(value: str, *, error: str, noun: str) -> str | ToolError:
+    """Strip a comma-separated string and require it to be non-empty.
+
+    The CSV-string analogue of ``require_non_empty_list`` for tools whose ID
+    filter is a single comma-separated ``str`` (not a ``list``). Returns the
+    stripped value, or a ToolError with the call site's existing payload when
+    blank: the message is exactly ``f"Provide at least one {noun}."``.
+    """
+    normalized = value.strip()
+    if not normalized:
+        return ToolError(error=error, message=f"Provide at least one {noun}.")
+    return normalized
+
+
 def validate_enum(
     value: object, allowed: tuple[str, ...], *, field: str, error: str
 ) -> ToolError | None:
