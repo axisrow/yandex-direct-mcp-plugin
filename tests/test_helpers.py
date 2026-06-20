@@ -2,6 +2,7 @@
 
 from server.tools import ToolError
 from server.tools.helpers import (
+    append_pagination,
     check_batch_limit,
     parse_ids,
     require_non_empty_list,
@@ -175,3 +176,31 @@ def test_require_update_fields_empty_string_and_zero_count_as_provided():
     assert (
         require_update_fields({"id": 1, "bid": 0}, message="m", exclude={"id"}) is None
     )
+
+
+# --- append_pagination ---
+
+
+def test_append_pagination_all_set():
+    args = ["x", "get"]
+    append_pagination(args, 50, True, "Id,Name")
+    assert args == ["x", "get", "--limit", "50", "--fetch-all", "--fields", "Id,Name"]
+
+
+def test_append_pagination_omits_unset():
+    args = ["x", "get"]
+    append_pagination(args, None, False, None)
+    assert args == ["x", "get"]
+
+
+def test_append_pagination_order_limit_then_fetchall_then_fields():
+    args = []
+    append_pagination(args, 1, True, "Id")
+    assert args == ["--limit", "1", "--fetch-all", "--fields", "Id"]
+
+
+def test_append_pagination_zero_limit_is_emitted():
+    # limit=0 is a valid limit (is-not-None guard), not silently dropped.
+    args = ["x", "get"]
+    append_pagination(args, 0, False, None)
+    assert args == ["x", "get", "--limit", "0"]

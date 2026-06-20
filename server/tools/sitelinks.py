@@ -5,6 +5,7 @@ import json
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_pagination,
     check_batch_limit,
     run_single_id_batch,
     tool_error_dict,
@@ -44,12 +45,7 @@ def sitelinks_list(
         if batch_error:
             return tool_error_dict(batch_error)
         cmd.extend(["--ids", normalized_ids])
-    if limit is not None:
-        cmd.extend(["--limit", str(limit)])
-    if fetch_all:
-        cmd.append("--fetch-all")
-    if fields is not None:
-        cmd.extend(["--fields", fields])
+    append_pagination(cmd, limit, fetch_all, fields)
     return get_runner().run_json(cmd)
 
 

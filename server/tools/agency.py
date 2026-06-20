@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_pagination,
     require_update_fields,
     tool_error_dict,
     validate_yes_no,
@@ -45,12 +46,7 @@ def agency_clients_list(
         cmd.extend(["--logins", normalized_logins])
     if archived is not None:
         cmd.extend(["--archived", archived])
-    if limit is not None:
-        cmd.extend(["--limit", str(limit)])
-    if fetch_all:
-        cmd.append("--fetch-all")
-    if fields is not None:
-        cmd.extend(["--fields", fields])
+    append_pagination(cmd, limit, fetch_all, fields)
 
     return runner.run_json(cmd)
 

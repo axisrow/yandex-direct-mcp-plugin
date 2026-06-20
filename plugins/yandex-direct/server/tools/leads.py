@@ -2,7 +2,10 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict
+from server.tools.helpers import (
+    append_pagination,
+    tool_error_dict,
+)
 
 
 @mcp.tool(
@@ -52,10 +55,5 @@ def leads_list(
         args.extend(["--datetime-from", datetime_from])
     if datetime_to is not None:
         args.extend(["--datetime-to", datetime_to])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     return get_runner().run_json(args)

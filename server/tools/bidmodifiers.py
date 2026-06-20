@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_pagination,
     run_single_id_batch,
     tool_error_dict,
     validate_enum,
@@ -85,12 +86,7 @@ def bidmodifiers_list(
     for lv in levels or []:
         # --levels is multiple=True in the CLI: emit one flag per value.
         args.extend(["--levels", lv])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
 
     runner = get_runner()
     return runner.run_json(args)

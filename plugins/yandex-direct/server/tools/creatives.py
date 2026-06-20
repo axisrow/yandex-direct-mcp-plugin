@@ -2,6 +2,7 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
+from server.tools.helpers import append_pagination
 
 
 @mcp.tool(
@@ -34,12 +35,7 @@ def creatives_list(
         args.extend(["--ids", normalized_ids])
     if types is not None:
         args.extend(["--types", types])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     runner = get_runner()
     return runner.run_json(args)
 

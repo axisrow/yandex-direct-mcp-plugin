@@ -107,6 +107,24 @@ def check_batch_limit(ids_str: str, max_size: int = MAX_BATCH_SIZE) -> ToolError
     return None
 
 
+def append_pagination(
+    args: list[str], limit: int | None, fetch_all: bool, fields: str | None
+) -> None:
+    """Append the standard ``--limit`` / ``--fetch-all`` / ``--fields`` paging tail.
+
+    Centralizes the three-flag tail copy-pasted at the end of ~25 ``*_get`` tools,
+    in the exact emission order they used (limit, then fetch-all, then fields) so
+    the emitted argv is byte-identical. Per-command field-selector flags
+    (``--*-field-names``) stay at their call site after this tail.
+    """
+    if limit is not None:
+        args.extend(["--limit", str(limit)])
+    if fetch_all:
+        args.append("--fetch-all")
+    if fields is not None:
+        args.extend(["--fields", fields])
+
+
 def provided_update_value(value: object) -> bool:
     """Return whether an optional update value should satisfy update guards."""
     if value is None:

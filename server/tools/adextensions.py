@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_pagination,
     check_batch_limit,
     run_single_id_batch,
     tool_error_dict,
@@ -54,12 +55,7 @@ def adextensions_list(
         cmd.extend(["--statuses", statuses])
     if modified_since is not None:
         cmd.extend(["--modified-since", modified_since])
-    if limit is not None:
-        cmd.extend(["--limit", str(limit)])
-    if fetch_all:
-        cmd.append("--fetch-all")
-    if fields is not None:
-        cmd.extend(["--fields", fields])
+    append_pagination(cmd, limit, fetch_all, fields)
     if callout_field_names is not None:
         cmd.extend(["--callout-field-names", callout_field_names])
     return get_runner().run_json(cmd)

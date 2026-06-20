@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    append_pagination,
     expand_grouped_dicts,
     require_update_fields,
     run_batch_mutation,
@@ -185,12 +186,7 @@ def ads_list(
         args.extend(["--image-moderation-statuses", image_moderation_statuses])
     if adextension_ids is not None:
         args.extend(["--adextension-ids", adextension_ids])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     if text_ad_fields is not None:
         args.extend(["--text-ad-field-names", text_ad_fields])
 

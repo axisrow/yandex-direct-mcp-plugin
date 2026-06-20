@@ -5,6 +5,7 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    append_pagination,
     require_update_fields,
     tool_error_dict,
 )
@@ -60,12 +61,7 @@ def clients_get(
     normalized_ids = ids.strip() if ids is not None else None
     if normalized_ids:
         cmd.extend(["--ids", normalized_ids])
-    if limit is not None:
-        cmd.extend(["--limit", str(limit)])
-    if fetch_all:
-        cmd.append("--fetch-all")
-    if fields is not None:
-        cmd.extend(["--fields", fields])
+    append_pagination(cmd, limit, fetch_all, fields)
     return get_runner().run_json(cmd)
 
 

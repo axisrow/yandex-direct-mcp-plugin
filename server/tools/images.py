@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_pagination,
     normalize_optional_str,
     tool_error_dict,
     validate_yes_no,
@@ -47,12 +48,7 @@ def adimages_list(
         cmd.extend(["--image-hashes", image_hashes])
     if associated is not None:
         cmd.extend(["--associated", associated])
-    if limit is not None:
-        cmd.extend(["--limit", str(limit)])
-    if fetch_all:
-        cmd.append("--fetch-all")
-    if fields is not None:
-        cmd.extend(["--fields", fields])
+    append_pagination(cmd, limit, fetch_all, fields)
     return get_runner().run_json(cmd)
 
 

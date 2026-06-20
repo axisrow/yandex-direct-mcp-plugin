@@ -6,6 +6,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    append_pagination,
     expand_grouped_dicts,
     require_update_fields,
     run_single_id_batch,
@@ -639,12 +640,7 @@ def campaigns_list(
         args.extend(["--types", types])
     if payment_statuses is not None:
         args.extend(["--payment-statuses", payment_statuses])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     local_values = locals()
     for option_name, cli_flag in CAMPAIGN_GET_SELECTOR_FLAGS:
         value = local_values[option_name]

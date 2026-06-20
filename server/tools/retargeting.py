@@ -5,6 +5,7 @@ from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    append_pagination,
     require_update_fields,
     run_single_id_batch,
     tool_error_dict,
@@ -43,12 +44,7 @@ def retargeting_list(
     normalized_types = types.strip() if types is not None else None
     if normalized_types:
         args.extend(["--types", normalized_types])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     return get_runner().run_json(args)
 
 

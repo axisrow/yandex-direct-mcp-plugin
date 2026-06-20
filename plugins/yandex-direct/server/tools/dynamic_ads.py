@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
-from server.tools.helpers import run_set_bids, run_single_id_batch
+from server.tools.helpers import (
+    append_pagination,
+    run_set_bids,
+    run_single_id_batch,
+)
 
 
 @mcp.tool(
@@ -45,12 +49,7 @@ def dynamic_ads_list(
             args.extend(["--campaign-ids", normalized])
     if states is not None:
         args.extend(["--states", states])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
     return get_runner().run_json(args)
 
 

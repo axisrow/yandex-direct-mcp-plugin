@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import require_update_fields, tool_error_dict
+from server.tools.helpers import (
+    append_pagination,
+    require_update_fields,
+    tool_error_dict,
+)
 
 
 @mcp.tool(
@@ -45,12 +49,7 @@ def bids_list(
         args.extend(["--keyword-ids", normalized_keyword_ids])
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])
-    if limit is not None:
-        args.extend(["--limit", str(limit)])
-    if fetch_all:
-        args.append("--fetch-all")
-    if fields is not None:
-        args.extend(["--fields", fields])
+    append_pagination(args, limit, fetch_all, fields)
 
     runner = get_runner()
     return runner.run_json(args)
