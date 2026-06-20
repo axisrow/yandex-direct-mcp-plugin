@@ -6,6 +6,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     require_update_fields,
+    run_single_id_batch,
     tool_error_dict,
 )
 
@@ -353,8 +354,6 @@ def keywords_delete(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "keywords", "delete", ids, dry_run=dry_run)
 
 
@@ -368,8 +367,6 @@ def keywords_suspend(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "keywords", "suspend", ids, dry_run=dry_run
     )
@@ -385,6 +382,4 @@ def keywords_resume(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated keyword IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "keywords", "resume", ids, dry_run=dry_run)

@@ -8,6 +8,7 @@ from server.tools.helpers import (
     append_cli_options,
     expand_grouped_dicts,
     require_update_fields,
+    run_single_id_batch,
     tool_error_dict,
 )
 
@@ -1072,8 +1073,6 @@ def campaigns_delete(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "campaigns", "delete", ids, dry_run=dry_run
     )
@@ -1089,8 +1088,6 @@ def campaigns_archive(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "campaigns", "archive", ids, dry_run=dry_run
     )
@@ -1106,8 +1103,6 @@ def campaigns_unarchive(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "campaigns", "unarchive", ids, dry_run=dry_run
     )
@@ -1123,8 +1118,6 @@ def campaigns_suspend(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "campaigns", "suspend", ids, dry_run=dry_run
     )
@@ -1140,8 +1133,6 @@ def campaigns_resume(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated campaign IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "campaigns", "resume", ids, dry_run=dry_run
     )

@@ -8,6 +8,7 @@ from server.tools.helpers import (
     expand_grouped_dicts,
     require_update_fields,
     run_batch_mutation,
+    run_single_id_batch,
     tool_error_dict,
     validate_yes_no,
 )
@@ -614,8 +615,6 @@ def ads_delete(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "delete", ids, dry_run=dry_run)
 
 
@@ -629,8 +628,6 @@ def ads_moderate(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "moderate", ids, dry_run=dry_run)
 
 
@@ -644,8 +641,6 @@ def ads_suspend(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "suspend", ids, dry_run=dry_run)
 
 
@@ -659,8 +654,6 @@ def ads_resume(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "resume", ids, dry_run=dry_run)
 
 
@@ -674,8 +667,6 @@ def ads_archive(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "archive", ids, dry_run=dry_run)
 
 
@@ -689,6 +680,4 @@ def ads_unarchive(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated ad IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "ads", "unarchive", ids, dry_run=dry_run)

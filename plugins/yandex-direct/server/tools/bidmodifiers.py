@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import tool_error_dict, validate_enum
+from server.tools.helpers import (
+    run_single_id_batch,
+    tool_error_dict,
+    validate_enum,
+)
 
 
 _BIDMOD_LEVELS = ("CAMPAIGN", "AD_GROUP")
@@ -137,8 +141,6 @@ def bidmodifiers_delete(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated modifier IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(
         get_runner(), "bidmodifiers", "delete", ids, dry_run=dry_run
     )

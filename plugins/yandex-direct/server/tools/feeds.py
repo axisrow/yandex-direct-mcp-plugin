@@ -6,6 +6,7 @@ from server.tools.helpers import (
     CliOption,
     append_cli_options,
     require_update_fields,
+    run_single_id_batch,
     tool_error_dict,
 )
 
@@ -174,6 +175,4 @@ def feeds_delete(ids: str, dry_run: bool = False) -> dict:
     Args:
         ids: Comma-separated feed IDs (max 10).
     """
-    from server.tools.helpers import run_single_id_batch
-
     return run_single_id_batch(get_runner(), "feeds", "delete", ids, dry_run=dry_run)
