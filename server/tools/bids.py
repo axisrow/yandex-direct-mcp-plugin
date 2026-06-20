@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_id_filters,
     append_pagination,
     require_update_fields,
     tool_error_dict,
@@ -38,15 +39,14 @@ def bids_list(
         fields: Comma-separated field names.
     """
     args = ["bids", "get", "--format", "json"]
-    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-    if normalized_campaign_ids:
-        args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
-    if normalized_ad_group_ids:
-        args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
-    if normalized_keyword_ids:
-        args.extend(["--keyword-ids", normalized_keyword_ids])
+    append_id_filters(
+        args,
+        [
+            (campaign_ids, "--campaign-ids"),
+            (ad_group_ids, "--adgroup-ids"),
+            (keyword_ids, "--keyword-ids"),
+        ],
+    )
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])
     append_pagination(args, limit, fetch_all, fields)

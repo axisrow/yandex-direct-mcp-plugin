@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_id_filters,
     append_pagination,
     run_set_bids,
     run_single_id_batch,
@@ -40,15 +41,14 @@ def dynamic_feed_ad_targets_list(
         fields: Comma-separated field names.
     """
     args = ["dynamicfeedadtargets", "get", "--format", "json"]
-    normalized_ids = ids.strip() if ids is not None else None
-    if normalized_ids:
-        args.extend(["--ids", normalized_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
-    if normalized_ad_group_ids:
-        args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-    if normalized_campaign_ids:
-        args.extend(["--campaign-ids", normalized_campaign_ids])
+    append_id_filters(
+        args,
+        [
+            (ids, "--ids"),
+            (ad_group_ids, "--adgroup-ids"),
+            (campaign_ids, "--campaign-ids"),
+        ],
+    )
     if states is not None:
         args.extend(["--states", states])
     append_pagination(args, limit, fetch_all, fields)

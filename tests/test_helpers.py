@@ -2,6 +2,7 @@
 
 from server.tools import ToolError
 from server.tools.helpers import (
+    append_id_filters,
     append_pagination,
     check_batch_limit,
     parse_ids,
@@ -204,3 +205,22 @@ def test_append_pagination_zero_limit_is_emitted():
     args = ["x", "get"]
     append_pagination(args, 0, False, None)
     assert args == ["x", "get", "--limit", "0"]
+
+
+# --- append_id_filters ---
+
+
+def test_append_id_filters_emits_in_order_and_strips():
+    args = ["x", "get"]
+    append_id_filters(
+        args,
+        [(" 1,2 ", "--campaign-ids"), ("3", "--ids"), (None, "--adgroup-ids")],
+    )
+    assert args == ["x", "get", "--campaign-ids", "1,2", "--ids", "3"]
+
+
+def test_append_id_filters_drops_empty_and_whitespace():
+    # Empty / whitespace-only values are dropped, never forwarded as `--flag ''`.
+    args = ["x", "get"]
+    append_id_filters(args, [("", "--campaign-ids"), ("   ", "--ids")])
+    assert args == ["x", "get"]

@@ -107,6 +107,26 @@ def check_batch_limit(ids_str: str, max_size: int = MAX_BATCH_SIZE) -> ToolError
     return None
 
 
+def append_id_filters(
+    args: list[str], filters: Sequence[tuple[str | None, str]]
+) -> None:
+    """Append comma-separated ID filters, stripping and skipping empty values.
+
+    Unifies the ``.strip()``-and-skip-empty ID-filter shape that the list tools
+    re-implement in three syntactic variants: an empty or whitespace-only value
+    is dropped rather than forwarded as ``--flag ''`` (which the CLI rejects).
+    Each filter is ``(value, flag)`` and is emitted in the given order, so the
+    generated argv is byte-identical to the inline form. Centralizing it keeps
+    the empty-string contract consistent as new list tools are added.
+    """
+    for value, flag in filters:
+        if value is None:
+            continue
+        normalized = value.strip()
+        if normalized:
+            args.extend([flag, normalized])
+
+
 def append_pagination(
     args: list[str], limit: int | None, fetch_all: bool, fields: str | None
 ) -> None:

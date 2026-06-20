@@ -5,6 +5,7 @@ from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    append_id_filters,
     append_pagination,
     expand_grouped_dicts,
     require_update_fields,
@@ -162,17 +163,15 @@ def ads_list(
         fields: Comma-separated top-level FieldNames.
         text_ad_fields: Comma-separated TextAd FieldNames.
     """
-    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-
     args = ["ads", "get", "--format", "json"]
-    if normalized_campaign_ids:
-        args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ids = ids.strip() if ids is not None else None
-    if normalized_ids:
-        args.extend(["--ids", normalized_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
-    if normalized_ad_group_ids:
-        args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    append_id_filters(
+        args,
+        [
+            (campaign_ids, "--campaign-ids"),
+            (ids, "--ids"),
+            (ad_group_ids, "--adgroup-ids"),
+        ],
+    )
     if mobile is not None:
         err = validate_yes_no(mobile, field="mobile", error="invalid_mobile")
         if err is not None:

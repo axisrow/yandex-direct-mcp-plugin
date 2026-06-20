@@ -2,7 +2,11 @@
 
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
-from server.tools.helpers import require_update_fields, tool_error_dict
+from server.tools.helpers import (
+    append_id_filters,
+    require_update_fields,
+    tool_error_dict,
+)
 
 
 @mcp.tool(
@@ -29,15 +33,14 @@ def keyword_bids_list(
         fetch_all: Fetch all pages.
     """
     args = ["keywordbids", "get", "--format", "json"]
-    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-    if normalized_campaign_ids:
-        args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
-    if normalized_ad_group_ids:
-        args.extend(["--adgroup-ids", normalized_ad_group_ids])
-    normalized_keyword_ids = keyword_ids.strip() if keyword_ids is not None else None
-    if normalized_keyword_ids:
-        args.extend(["--keyword-ids", normalized_keyword_ids])
+    append_id_filters(
+        args,
+        [
+            (campaign_ids, "--campaign-ids"),
+            (ad_group_ids, "--adgroup-ids"),
+            (keyword_ids, "--keyword-ids"),
+        ],
+    )
     if serving_statuses is not None:
         args.extend(["--serving-statuses", serving_statuses])
     if limit is not None:

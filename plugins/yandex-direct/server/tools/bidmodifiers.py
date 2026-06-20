@@ -3,6 +3,7 @@
 from server.main import mcp
 from server.tools import ToolError, get_runner, handle_cli_errors
 from server.tools.helpers import (
+    append_id_filters,
     append_pagination,
     run_single_id_batch,
     tool_error_dict,
@@ -71,16 +72,14 @@ def bidmodifiers_list(
             )
 
     args = ["bidmodifiers", "get", "--format", "json"]
-    if ids is not None:
-        normalized = ids.strip()
-        if normalized:
-            args.extend(["--ids", normalized])
-    normalized_campaign_ids = campaign_ids.strip() if campaign_ids is not None else None
-    if normalized_campaign_ids:
-        args.extend(["--campaign-ids", normalized_campaign_ids])
-    normalized_ad_group_ids = ad_group_ids.strip() if ad_group_ids is not None else None
-    if normalized_ad_group_ids:
-        args.extend(["--adgroup-ids", normalized_ad_group_ids])
+    append_id_filters(
+        args,
+        [
+            (ids, "--ids"),
+            (campaign_ids, "--campaign-ids"),
+            (ad_group_ids, "--adgroup-ids"),
+        ],
+    )
     if types is not None:
         args.extend(["--types", types])
     for lv in levels or []:
