@@ -1000,37 +1000,17 @@ def campaigns_add(
         dry_run: Show the direct request without sending it.
     """
     args = ["campaigns", "add", "--name", name, "--start-date", start_date]
+    # Only campaign_type/budget/end_date are emitted manually here (they are not
+    # in CAMPAIGN_MUTATION_OPTIONS); every other flat param is driven by the
+    # shared option table below — same as campaigns_update.
     if campaign_type:
         args.extend(["--type", campaign_type])
     if budget is not None:
         args.extend(["--budget", str(budget)])
     if end_date:
         args.extend(["--end-date", end_date])
-    if search_strategy:
-        args.extend(["--search-strategy", search_strategy])
-    if network_strategy:
-        args.extend(["--network-strategy", network_strategy])
-    if settings:
-        for setting in settings:
-            args.extend(["--setting", setting])
-    if filter_average_cpc is not None:
-        args.extend(["--filter-average-cpc", str(filter_average_cpc)])
-    if counter_id is not None:
-        args.extend(["--counter-id", str(counter_id)])
-    if counter_ids:
-        args.extend(["--counter-ids", counter_ids])
-    if goal_id is not None:
-        args.extend(["--goal-id", str(goal_id)])
-    if priority_goals:
-        args.extend(["--priority-goals", priority_goals])
-    if average_cpa is not None:
-        args.extend(["--average-cpa", str(average_cpa)])
-    if crr is not None:
-        args.extend(["--crr", str(crr)])
-    if bid_ceiling is not None:
-        args.extend(["--bid-ceiling", str(bid_ceiling)])
     values = locals()
-    # Expand grouped strategy dicts into flat option names (argv stays identical).
+    # Expand grouped strategy/family dicts into their flat option names.
     # *_budget_type keys are update-only; include_budget_types=False ignores them.
     expansion_error = _expand_strategy_dicts(
         values,
@@ -1042,20 +1022,6 @@ def campaigns_add(
     family_error = expand_grouped_dicts(values, _CAMPAIGN_FAMILY_DICT_REGISTRY)
     if family_error is not None:
         return tool_error_dict(family_error)
-    for already_appended in (
-        "search_strategy",
-        "network_strategy",
-        "settings",
-        "filter_average_cpc",
-        "counter_id",
-        "counter_ids",
-        "goal_id",
-        "priority_goals",
-        "average_cpa",
-        "crr",
-        "bid_ceiling",
-    ):
-        values[already_appended] = None
     append_cli_options(args, values, CAMPAIGN_MUTATION_OPTIONS)
     if dry_run:
         args.append("--dry-run")

@@ -3,6 +3,8 @@
 from server.main import mcp
 from server.tools import get_runner, handle_cli_errors
 from server.tools.helpers import (
+    CliOption,
+    append_cli_options,
     check_batch_limit,
     require_update_fields,
     tool_error_dict,
@@ -10,6 +12,27 @@ from server.tools.helpers import (
 )
 
 IS_ARCHIVED_VALUES = ("YES", "NO")
+# Shared money/period fields for strategies add+update, in the exact emission
+# order both functions used before — so the emitted argv stays byte-identical.
+# name/type are handled explicitly per function (required in add, optional in
+# update) and are NOT in this table.
+STRATEGY_MUTATION_OPTIONS = (
+    CliOption("average_cpc", "--average-cpc"),
+    CliOption("average_cpa", "--average-cpa"),
+    CliOption("average_crr", "--average-crr"),
+    CliOption("goal_id", "--goal-id"),
+    CliOption("spend_limit", "--spend-limit"),
+    CliOption("weekly_spend_limit", "--weekly-spend-limit"),
+    CliOption("bid_ceiling", "--bid-ceiling"),
+    CliOption("custom_period_spend_limit", "--custom-period-spend-limit"),
+    CliOption("custom_period_start_date", "--custom-period-start-date"),
+    CliOption("custom_period_end_date", "--custom-period-end-date"),
+    CliOption("custom_period_auto_continue", "--custom-period-auto-continue"),
+    CliOption("minimum_exploration_budget", "--minimum-exploration-budget"),
+    CliOption("counter_ids", "--counter-ids"),
+    CliOption("priority_goals", "--priority-goal", repeat=True),
+    CliOption("attribution_model", "--attribution-model"),
+)
 STRATEGY_TYPES = (
     "WbMaximumClicks",
     "WbMaximumConversionRate",
@@ -156,37 +179,7 @@ def strategies_add(
         if attribution_error:
             return tool_error_dict(attribution_error)
     args = ["strategies", "add", "--name", name, "--type", type]
-    if average_cpc is not None:
-        args.extend(["--average-cpc", str(average_cpc)])
-    if average_cpa is not None:
-        args.extend(["--average-cpa", str(average_cpa)])
-    if average_crr is not None:
-        args.extend(["--average-crr", str(average_crr)])
-    if goal_id is not None:
-        args.extend(["--goal-id", str(goal_id)])
-    if spend_limit is not None:
-        args.extend(["--spend-limit", str(spend_limit)])
-    if weekly_spend_limit is not None:
-        args.extend(["--weekly-spend-limit", str(weekly_spend_limit)])
-    if bid_ceiling is not None:
-        args.extend(["--bid-ceiling", str(bid_ceiling)])
-    if custom_period_spend_limit is not None:
-        args.extend(["--custom-period-spend-limit", str(custom_period_spend_limit)])
-    if custom_period_start_date is not None:
-        args.extend(["--custom-period-start-date", custom_period_start_date])
-    if custom_period_end_date is not None:
-        args.extend(["--custom-period-end-date", custom_period_end_date])
-    if custom_period_auto_continue is not None:
-        args.extend(["--custom-period-auto-continue", custom_period_auto_continue])
-    if minimum_exploration_budget is not None:
-        args.extend(["--minimum-exploration-budget", str(minimum_exploration_budget)])
-    if counter_ids is not None:
-        args.extend(["--counter-ids", counter_ids])
-    if priority_goals:
-        for spec in priority_goals:
-            args.extend(["--priority-goal", spec])
-    if attribution_model is not None:
-        args.extend(["--attribution-model", attribution_model])
+    append_cli_options(args, locals(), STRATEGY_MUTATION_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
@@ -235,6 +228,11 @@ def strategies_update(
         spend_limit: Spend limit in micro-units.
         weekly_spend_limit: Weekly spend limit in micro-units.
         bid_ceiling: Bid ceiling in micro-units.
+        custom_period_spend_limit: Custom period spend limit in micro-units.
+        custom_period_start_date: Custom period start date.
+        custom_period_end_date: Custom period end date.
+        custom_period_auto_continue: Custom period auto-continue flag.
+        minimum_exploration_budget: Minimum exploration budget in micro-units.
         counter_ids: Comma-separated Metrica counter IDs.
         priority_goals: List of "GOAL_ID:VALUE" specs.
         attribution_model: Attribution model code.
@@ -273,37 +271,7 @@ def strategies_update(
         args.extend(["--name", name])
     if type is not None:
         args.extend(["--type", type])
-    if average_cpc is not None:
-        args.extend(["--average-cpc", str(average_cpc)])
-    if average_cpa is not None:
-        args.extend(["--average-cpa", str(average_cpa)])
-    if average_crr is not None:
-        args.extend(["--average-crr", str(average_crr)])
-    if goal_id is not None:
-        args.extend(["--goal-id", str(goal_id)])
-    if spend_limit is not None:
-        args.extend(["--spend-limit", str(spend_limit)])
-    if weekly_spend_limit is not None:
-        args.extend(["--weekly-spend-limit", str(weekly_spend_limit)])
-    if bid_ceiling is not None:
-        args.extend(["--bid-ceiling", str(bid_ceiling)])
-    if custom_period_spend_limit is not None:
-        args.extend(["--custom-period-spend-limit", str(custom_period_spend_limit)])
-    if custom_period_start_date is not None:
-        args.extend(["--custom-period-start-date", custom_period_start_date])
-    if custom_period_end_date is not None:
-        args.extend(["--custom-period-end-date", custom_period_end_date])
-    if custom_period_auto_continue is not None:
-        args.extend(["--custom-period-auto-continue", custom_period_auto_continue])
-    if minimum_exploration_budget is not None:
-        args.extend(["--minimum-exploration-budget", str(minimum_exploration_budget)])
-    if counter_ids is not None:
-        args.extend(["--counter-ids", counter_ids])
-    if priority_goals:
-        for spec in priority_goals:
-            args.extend(["--priority-goal", spec])
-    if attribution_model is not None:
-        args.extend(["--attribution-model", attribution_model])
+    append_cli_options(args, locals(), STRATEGY_MUTATION_OPTIONS)
     if dry_run:
         args.append("--dry-run")
     runner = get_runner()
