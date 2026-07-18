@@ -134,7 +134,7 @@ def agency_clients_delete(id: int) -> dict:
 )
 @handle_cli_errors
 def agency_clients_update(
-    client_id: int,
+    client_id: str,
     client_info: str | None = None,
     phone: str | None = None,
     notification_email: str | None = None,

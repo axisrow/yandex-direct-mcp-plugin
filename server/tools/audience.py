@@ -104,9 +104,9 @@ def audience_targets_list(
 )
 @handle_cli_errors
 def audience_targets_add(
-    ad_group_id: int,
-    retargeting_list_id: int | None = None,
-    interest_id: int | None = None,
+    ad_group_id: str,
+    retargeting_list_id: str | None = None,
+    interest_id: str | None = None,
     bid: int | None = None,
     priority: str | None = None,
     dry_run: bool = False,
@@ -213,9 +213,9 @@ def audience_targets_resume(ids: str, dry_run: bool = False) -> dict:
 )
 @handle_cli_errors
 def audience_targets_set_bids(
-    id: int | None = None,
-    ad_group_id: int | None = None,
-    campaign_id: int | None = None,
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
     context_bid: int | None = None,
     priority: str | None = None,
     dry_run: bool = False,

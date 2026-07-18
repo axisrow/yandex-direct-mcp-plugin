@@ -351,15 +351,17 @@ def _attach_cli_warnings(
 
     When ``residual_stderr`` is empty (the common case — Direct warnings live in
     the stdout JSON, not stderr), the parsed payload is returned unchanged so the
-    wire contract and shape (list stays a list) are identical to before. Only
-    when the CLI writes something to stderr on an exit-0 run is it attached:
+    wire contract and shape are identical to before. When the CLI writes
+    something to stderr on an exit-0 run:
 
     - dict payload → a ``_cli_warnings`` key is added (non-destructive; the CLI
       response never uses that reserved key).
-    - list payload → wrapped as ``{"result": [...], "_cli_warnings": ...}`` so
-      the diagnostic is not lost. This reshaping only happens when stderr is
-      non-empty, so callers that index ``result[0]`` on the (empty-stderr)
-      happy path are unaffected.
+    - list payload → the shape is preserved (a ``*_get`` result stays a bare
+      array the LLM can iterate). Wrapping it in a dict would silently change
+      the response contract, so the diagnostic is written to the server's stderr
+      instead of reshaping the payload (issue #256, review Finding 3). In
+      practice ``direct`` writes nothing to stderr on success, so this branch is
+      a defensive backstop, not a routine path.
     """
     if not residual_stderr:
         return parsed
@@ -367,7 +369,10 @@ def _attach_cli_warnings(
         # Do not clobber a real API field named _cli_warnings (there is none).
         parsed.setdefault("_cli_warnings", residual_stderr)
         return parsed
-    return {"result": parsed, "_cli_warnings": residual_stderr}
+    # List payload: never reshape it into a dict — preserve the array contract
+    # and surface the stray diagnostic out-of-band.
+    sys.stderr.write(f"direct emitted stderr on a successful run: {residual_stderr}\n")
+    return parsed
 
 
 def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:

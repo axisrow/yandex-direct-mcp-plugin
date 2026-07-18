@@ -57,6 +57,7 @@ def _tool_schema(name: str) -> dict:
 # --------------------------------------------------------------------------- #
 
 ID_PARAMS = [
+    # ads / adgroups / keywords (first wave)
     ("ads_update", "id"),
     ("ads_update", "vcard_id"),
     ("ads_update", "sitelink_set_id"),
@@ -75,6 +76,54 @@ ID_PARAMS = [
     ("adgroups_update", "feed_id"),
     ("keywords_add", "ad_group_id"),
     ("keywords_update", "id"),
+    # remaining v5 object-ID params (review Finding 1 — full v5 coverage)
+    ("audiencetargets_add", "ad_group_id"),
+    ("audiencetargets_add", "retargeting_list_id"),
+    ("audiencetargets_add", "interest_id"),
+    ("audiencetargets_set_bids", "id"),
+    ("audiencetargets_set_bids", "ad_group_id"),
+    ("audiencetargets_set_bids", "campaign_id"),
+    ("bidmodifiers_set", "id"),
+    ("bidmodifiers_add", "campaign_id"),
+    ("bidmodifiers_add", "ad_group_id"),
+    ("bidmodifiers_add", "retargeting_condition_id"),
+    ("bids_set", "campaign_id"),
+    ("bids_set", "ad_group_id"),
+    ("bids_set", "keyword_id"),
+    ("bids_set_auto", "campaign_id"),
+    ("bids_set_auto", "ad_group_id"),
+    ("bids_set_auto", "keyword_id"),
+    ("keywordbids_set", "campaign_id"),
+    ("keywordbids_set", "ad_group_id"),
+    ("keywordbids_set", "keyword_id"),
+    ("keywordbids_set_auto", "campaign_id"),
+    ("keywordbids_set_auto", "ad_group_id"),
+    ("keywordbids_set_auto", "keyword_id"),
+    ("campaigns_update", "id"),
+    ("campaigns_update", "package_strategy_id"),
+    ("campaigns_update", "package_strategy_from_campaign_id"),
+    ("dynamicads_set_bids", "id"),
+    ("dynamicads_set_bids", "ad_group_id"),
+    ("dynamicads_set_bids", "campaign_id"),
+    ("dynamicads_add", "ad_group_id"),
+    ("dynamicfeedadtargets_set_bids", "id"),
+    ("dynamicfeedadtargets_set_bids", "ad_group_id"),
+    ("dynamicfeedadtargets_set_bids", "campaign_id"),
+    ("dynamicfeedadtargets_add", "ad_group_id"),
+    ("feeds_update", "id"),
+    ("retargeting_update", "id"),
+    ("smartadtargets_update", "id"),
+    ("smartadtargets_add", "ad_group_id"),
+    ("smartadtargets_set_bids", "id"),
+    ("smartadtargets_set_bids", "ad_group_id"),
+    ("smartadtargets_set_bids", "campaign_id"),
+    ("strategies_update", "id"),
+    ("strategies_archive", "id"),
+    ("strategies_unarchive", "id"),
+    ("negativekeywordsharedsets_update", "id"),
+    ("vcards_add", "campaign_id"),
+    ("v4tags_update_campaigns", "campaign_id"),
+    ("agencyclients_update", "client_id"),
 ]
 
 
@@ -93,9 +142,46 @@ def test_id_params_are_strings_not_integers(tool_name, param):
     )
 
 
-def test_big_int64_id_reaches_argv_without_rounding():
-    """A precise int64 ad ID passed as a string reaches the CLI argv intact —
-    the last three digits are not zeroed (#256-1)."""
+# Non-object numeric params that must STAY integer — the migration must not
+# over-reach into money (micro-units), counter/goal dictionary IDs, or
+# percentages, which are not int64 object IDs and are validated as numbers.
+NON_ID_INT_PARAMS = [
+    ("campaigns_update", "budget"),
+    ("campaigns_update", "counter_id"),
+    ("campaigns_update", "goal_id"),
+    ("campaigns_update", "bid_ceiling"),
+    ("bids_set", "bid"),
+    ("bids_set", "context_bid"),
+    ("bidmodifiers_set", "value"),
+    ("bidmodifiers_add", "region_id"),
+    ("smartadtargets_set_bids", "average_cpc"),
+    ("strategies_update", "goal_id"),
+    ("keywordbids_set", "search_bid"),
+    ("vcards_add", "metro_station_id"),
+]
+
+
+@pytest.mark.parametrize("tool_name,param", NON_ID_INT_PARAMS)
+def test_non_object_id_params_stay_integer(tool_name, param):
+    """Guard against over-migration: money/counter/goal/percent/region params
+    are NOT int64 object IDs and must keep their integer schema type (#256-1)."""
+    schema = _tool_schema(tool_name)
+    props = schema.get("properties", {})
+    assert param in props, f"{tool_name} lost param {param}"
+    types = _schema_types(props[param])
+    assert "integer" in types, (
+        f"{tool_name}.{param} should stay an integer (not an object ID) — the "
+        f"int→str migration must not touch it. Types: {types}"
+    )
+
+
+def test_big_int64_id_reaches_argv_intact_as_string():
+    """A string big-int ID flows through the tool body to the CLI argv unchanged.
+
+    Note: the *real* precision guard is the schema-level test above — once the
+    param is typed string, the JS host can no longer round it. This test only
+    confirms the tool body forwards the string verbatim (does not int-cast or
+    reformat it) into ``str(id)`` (#256-1)."""
     runner = mock_runner({"success": True})
     with patch("server.tools.ads.get_runner", return_value=runner):
         from server.tools.ads import ads_update
@@ -103,13 +189,11 @@ def test_big_int64_id_reaches_argv_without_rounding():
         ads_update(id=BIG_AD_ID_STR, type="TEXT_AD", title="new title")
     argv = runner.run_json.call_args[0][0]
     assert BIG_AD_ID_STR in argv
-    # The rounded form a float64 round-trip would produce must NOT appear.
-    assert "1915883588174806000" not in argv
 
 
 def test_big_int64_id_survives_dispatch_layer():
     """Through the real FastMCP dispatch layer, a string big-int ID is forwarded
-    verbatim — this is the layer that used to round integers (#256-1)."""
+    verbatim — this is the layer that used to round bare integers (#256-1)."""
     runner = mock_runner({"success": True})
     with patch("server.tools.ads.get_runner", return_value=runner):
         asyncio.run(
@@ -257,9 +341,10 @@ def test_stdout_warnings_with_details_pass_through():
     assert result[0]["Warnings"][0]["Details"] == "Title2 was merged into Title"
 
 
-def test_success_residual_stderr_is_surfaced_not_dropped():
-    """If the CLI writes a diagnostic to stderr on an exit-0 run, run_json
-    surfaces it as _cli_warnings instead of silently dropping it (#256-3)."""
+def test_success_residual_stderr_on_dict_is_surfaced_as_cli_warnings():
+    """If the CLI writes a diagnostic to stderr on an exit-0 run and the payload
+    is a dict, run_json attaches it as _cli_warnings instead of dropping it,
+    without changing the dict shape (#256-3)."""
     runner = DirectCliRunner()
     with patch.object(
         runner, "run", return_value=_completed('{"Id": 1}', stderr="⚠ heads up")
@@ -267,6 +352,22 @@ def test_success_residual_stderr_is_surfaced_not_dropped():
         result = runner.run_json(["ads", "add"])
     assert result["Id"] == 1
     assert "heads up" in result["_cli_warnings"]
+
+
+def test_success_residual_stderr_on_list_preserves_array_shape(capsys):
+    """A list payload must NOT be reshaped into a dict even when stderr is
+    non-empty — a *_get result stays a bare array the LLM can iterate (review
+    Finding 3). The stray diagnostic is written to the server's stderr instead."""
+    payload = [{"Id": 1}, {"Id": 2}]
+    runner = DirectCliRunner()
+    with patch.object(
+        runner, "run", return_value=_completed(json.dumps(payload), stderr="⚠ heads up")
+    ):
+        result = runner.run_json(["ads", "get"])
+    assert result == payload  # still a list, never wrapped in {"result": ...}
+    assert not isinstance(result, dict)
+    captured = capsys.readouterr()
+    assert "heads up" in captured.err  # surfaced out-of-band, not swallowed
 
 
 def test_success_empty_stderr_leaves_list_shape_intact():

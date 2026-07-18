@@ -58,7 +58,7 @@ def vcards_list(
 )
 @handle_cli_errors
 def vcards_add(
-    campaign_id: int,
+    campaign_id: str,
     country: str,
     city: str,
     company_name: str,
