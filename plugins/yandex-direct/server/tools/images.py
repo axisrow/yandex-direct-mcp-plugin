@@ -9,6 +9,12 @@ from server.tools.helpers import (
     validate_yes_no,
 )
 
+# adimages_add uploads a base64-encoded JPEG/PNG (real assets run 440–570 KB);
+# the DirectCliRunner default of 30 s intermittently expires mid-upload before
+# Yandex responds (issue #256). Give the upload a wider window, mirroring the
+# reports_custom timeout-override pattern. The CLI still owns the actual request.
+ADIMAGES_ADD_TIMEOUT_SECONDS = 120
+
 
 @mcp.tool(
     name="adimages_get",
@@ -104,7 +110,7 @@ def adimages_add(
         args.extend(["--type", type])
     if dry_run:
         args.append("--dry-run")
-    return get_runner().run_json(args)
+    return get_runner().run_json(args, timeout=ADIMAGES_ADD_TIMEOUT_SECONDS)
 
 
 @mcp.tool(

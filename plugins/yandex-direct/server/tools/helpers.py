@@ -1,5 +1,6 @@
 """Shared helpers for MCP tool modules."""
 
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
@@ -207,16 +208,41 @@ def finalize_json_args(args: list[str], dry_run: bool) -> list[str]:
     return args
 
 
+def normalize_json_arg(json_arg: "list | dict | str | None") -> str | None:
+    """Normalize an inline-JSON batch param into the string the CLI expects.
+
+    MCP hosts routinely pre-parse a JSON-array argument into a Python ``list``
+    (or a single object into a ``dict``) before it reaches the tool, so a param
+    typed ``str`` fails pydantic validation with ``string_type`` even though the
+    caller passed valid JSON (issue #256, ``keywords_json`` / ``ads_json`` /
+    ``adgroups_json``). Accepting ``list | str`` and re-serializing a list/dict
+    back to a JSON string here makes the ``--*-json`` batch path work whether the
+    host forwards the raw string or the parsed structure.
+
+    Returns ``None`` for ``None``/empty, the stripped string for a string input
+    (unchanged wire form), or ``json.dumps(...)`` for a list/dict.
+    """
+    if json_arg is None:
+        return None
+    if isinstance(json_arg, str):
+        stripped = json_arg.strip()
+        return stripped or None
+    # list / dict from a pre-parsing MCP host — re-serialize to the JSON string
+    # the CLI's --*-json flag consumes. ensure_ascii=False keeps Cyrillic
+    # keywords readable in the argv (the CLI parses UTF-8 JSON either way).
+    return json.dumps(json_arg, ensure_ascii=False)
+
+
 def run_batch_mutation(
     runner,
     resource: str,
     action: str,
     *,
     from_file: str | None,
-    json_arg: str | None,
+    json_arg: "list | dict | str | None",
     json_flag: str,
     default_id_flag: str | None = None,
-    default_id: int | None = None,
+    default_id: object = None,
     dry_run: bool = False,
 ) -> dict | None:
     """Dispatch the batch path of an add/update tool.
@@ -228,6 +254,10 @@ def run_batch_mutation(
     - an error dict — both batch inputs given (mutually exclusive).
     - the CLI result dict — the CLI was invoked for the batch.
 
+    ``json_arg`` may be the raw JSON string OR a list/dict a pre-parsing MCP host
+    already decoded (see :func:`normalize_json_arg`); it is normalized to the
+    string the ``--*-json`` flag consumes.
+
     ``default_id``/``default_id_flag`` forward an optional batch-default scope
     (e.g. ``--adgroup-id`` for ads, ``--campaign-id`` for ad groups) that rows
     may override. Single-item content fields the caller may also have received
@@ -235,6 +265,7 @@ def run_batch_mutation(
     truth, so any stray single-item field is ignored (callers should document
     this).
     """
+    json_arg = normalize_json_arg(json_arg)
     if not from_file and not json_arg:
         return None
     if from_file and json_arg:

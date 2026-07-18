@@ -190,7 +190,7 @@ def ads_list(
 )
 @handle_cli_errors
 def ads_add(
-    ad_group_id: int | None = None,
+    ad_group_id: str | None = None,
     ad_type: str | None = None,
     title: str | None = None,
     text: str | None = None,
@@ -206,24 +206,24 @@ def ads_add(
     title2: str | None = None,
     display_url_path: str | None = None,
     mobile: str | None = None,
-    vcard_id: int | None = None,
-    sitelink_set_id: int | None = None,
-    turbo_page_id: int | None = None,
+    vcard_id: str | None = None,
+    sitelink_set_id: str | None = None,
+    turbo_page_id: str | None = None,
     ad_extensions: str | None = None,
     final_url: str | None = None,
     price_extension_options: dict | None = None,
     video_extension_options: dict | None = None,
-    business_id: int | None = None,
+    business_id: str | None = None,
     prefer_vcard_over_business: str | None = None,
     erir_ad_description: str | None = None,
-    creative_id: int | None = None,
+    creative_id: str | None = None,
     tracking_pixels: str | None = None,
     logo_extension_hash: str | None = None,
-    feed_id: int | None = None,
+    feed_id: str | None = None,
     feed_filter_conditions: list[str] | None = None,
     text_source_options: dict | None = None,
     from_file: str | None = None,
-    ads_json: str | None = None,
+    ads_json: list | str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create one or many ads.
@@ -239,6 +239,14 @@ def ads_add(
 
     In batch mode the rows are the source of truth; any single-item content
     field passed alongside from_file/ads_json is ignored.
+
+    Title2 note (Yandex 2026 behavior): for TEXT_AD the API now concatenates
+    title + title2 into a single Title (combined limit 56 chars) and drops the
+    separate Title2 — the add succeeds but returns Warning 10165 ("Parameter
+    will not be applied") whose Details name the dropped field. This is upstream
+    Yandex behavior, not a plugin transformation; the warning (with Details) is
+    passed through in the response. A later ads_update of Title/Title2 on such an
+    ad is a silent no-op. Keep the combined headline within 56 chars.
 
     CLI 0.3.9 enforces strict WSDL parity — invalid field/type combinations
     (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
@@ -358,7 +366,7 @@ def ads_add(
 )
 @handle_cli_errors
 def ads_update(
-    id: int | None = None,
+    id: str | None = None,
     type: str | None = None,
     status: str | None = None,
     title: str | None = None,
@@ -376,14 +384,14 @@ def ads_update(
     title2: str | None = None,
     display_url_path: str | None = None,
     mobile: str | None = None,
-    vcard_id: int | None = None,
-    sitelink_set_id: int | None = None,
-    turbo_page_id: int | None = None,
+    vcard_id: str | None = None,
+    sitelink_set_id: str | None = None,
+    turbo_page_id: str | None = None,
     ad_extensions: str | None = None,
     callouts_options: dict | None = None,
     video_extension_options: dict | None = None,
     price_extension_options: dict | None = None,
-    business_id: int | None = None,
+    business_id: str | None = None,
     prefer_vcard_over_business: str | None = None,
     erir_ad_description: str | None = None,
     logo_extension_hash: str | None = None,
@@ -393,7 +401,7 @@ def ads_update(
     feed_filter_conditions: list[str] | None = None,
     text_source_options: dict | None = None,
     from_file: str | None = None,
-    ads_json: str | None = None,
+    ads_json: list | str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update one or many ads.

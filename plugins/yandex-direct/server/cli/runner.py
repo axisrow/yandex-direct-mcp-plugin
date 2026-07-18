@@ -316,12 +316,23 @@ class DirectCliRunner:
 
         Raises:
             CliError: On CLI execution failures.
+
+        Note on warnings: Yandex Direct per-action Warnings (with their
+        ``Details``) travel *inside* the JSON payload the CLI prints to stdout
+        — e.g. each ``AddResults`` element carries its own ``Warnings`` list —
+        so they are already returned to the caller verbatim and are never
+        truncated here. Should the CLI additionally emit a diagnostic to stderr
+        on a *successful* (exit 0) run, it would otherwise be dropped silently;
+        that residual stderr is surfaced as ``_cli_warnings`` rather than
+        swallowed (issue #256). Empty stderr leaves the payload untouched.
         """
         result = self.run_checked(args, timeout=timeout)
 
         output = result.stdout.strip()
+        residual_stderr = _strip_ansi(result.stderr).strip()
+
         if not output:
-            return []
+            return _attach_cli_warnings([], residual_stderr)
 
         try:
             parsed = json.loads(output)
@@ -329,8 +340,34 @@ class DirectCliRunner:
             raise CliError(f"Failed to parse CLI output as JSON: {e}") from e
 
         if isinstance(parsed, (dict, list)):
-            return parsed
-        return {"result": parsed}
+            return _attach_cli_warnings(parsed, residual_stderr)
+        return _attach_cli_warnings({"result": parsed}, residual_stderr)
+
+
+def _attach_cli_warnings(
+    parsed: list[dict] | dict, residual_stderr: str
+) -> list[dict] | dict:
+    """Surface a successful run's residual stderr instead of dropping it.
+
+    When ``residual_stderr`` is empty (the common case — Direct warnings live in
+    the stdout JSON, not stderr), the parsed payload is returned unchanged so the
+    wire contract and shape (list stays a list) are identical to before. Only
+    when the CLI writes something to stderr on an exit-0 run is it attached:
+
+    - dict payload → a ``_cli_warnings`` key is added (non-destructive; the CLI
+      response never uses that reserved key).
+    - list payload → wrapped as ``{"result": [...], "_cli_warnings": ...}`` so
+      the diagnostic is not lost. This reshaping only happens when stderr is
+      non-empty, so callers that index ``result[0]`` on the (empty-stderr)
+      happy path are unaffected.
+    """
+    if not residual_stderr:
+        return parsed
+    if isinstance(parsed, dict):
+        # Do not clobber a real API field named _cli_warnings (there is none).
+        parsed.setdefault("_cli_warnings", residual_stderr)
+        return parsed
+    return {"result": parsed, "_cli_warnings": residual_stderr}
 
 
 def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:

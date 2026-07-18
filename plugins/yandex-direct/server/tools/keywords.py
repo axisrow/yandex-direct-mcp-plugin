@@ -7,6 +7,7 @@ from server.tools.helpers import (
     append_cli_options,
     append_pagination,
     require_update_fields,
+    run_batch_mutation,
     run_single_id_batch,
     tool_error_dict,
 )
@@ -118,7 +119,7 @@ def keywords_list(
 )
 @handle_cli_errors
 def keywords_update(
-    id: int,
+    id: str,
     keyword: str | None = None,
     user_param_1: str | None = None,
     user_param_2: str | None = None,
@@ -224,7 +225,7 @@ def keywords_update(
 )
 @handle_cli_errors
 def keywords_add(
-    ad_group_id: int | None = None,
+    ad_group_id: str | None = None,
     keyword: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
@@ -243,7 +244,7 @@ def keywords_add(
     user_param_1: str | None = None,
     user_param_2: str | None = None,
     from_file: str | None = None,
-    keywords_json: str | None = None,
+    keywords_json: list | str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Add one or many keywords to an ad group.
@@ -282,9 +283,36 @@ def keywords_add(
         keywords_json: Inline JSON array of keyword objects (batch mode).
         dry_run: Show the direct request without sending it.
     """
-    modes = (bool(keyword), bool(from_file), bool(keywords_json))
-    mode_count = sum(modes)
-    if mode_count == 0:
+    # Single-item content passed alongside a batch input is contradictory:
+    # in batch mode the file/JSON rows are the source of truth. Reject the
+    # ambiguous combination before dispatching (mirrors ads_update/adgroups).
+    if (from_file or keywords_json) and keyword:
+        return tool_error_dict(
+            ToolError(
+                error="conflicting_modes",
+                message=(
+                    "keyword is for single mode; in batch mode the file/JSON rows "
+                    "carry each keyword. Pass keyword OR from_file/keywords_json, "
+                    "not both."
+                ),
+            )
+        )
+
+    result = run_batch_mutation(
+        get_runner(),
+        "keywords",
+        "add",
+        from_file=from_file,
+        json_arg=keywords_json,
+        json_flag="--keywords-json",
+        default_id_flag="--adgroup-id",
+        default_id=ad_group_id,
+        dry_run=dry_run,
+    )
+    if result is not None:
+        return result
+
+    if not keyword:
         return tool_error_dict(
             ToolError(
                 error="missing_mode",
@@ -294,26 +322,12 @@ def keywords_add(
                 ),
             )
         )
-    if mode_count > 1:
-        return tool_error_dict(
-            ToolError(
-                error="conflicting_modes",
-                message=(
-                    "keyword, from_file and keywords_json are mutually exclusive — "
-                    "pass exactly one."
-                ),
-            )
-        )
 
     args = ["keywords", "add"]
     if ad_group_id is not None:
         args.extend(["--adgroup-id", str(ad_group_id)])
     if keyword:
         args.extend(["--keyword", keyword])
-    if from_file:
-        args.extend(["--from-file", from_file])
-    if keywords_json:
-        args.extend(["--keywords-json", keywords_json])
     if bid is not None:
         args.extend(["--bid", str(bid)])
     if context_bid is not None:
