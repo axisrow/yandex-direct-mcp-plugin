@@ -10,7 +10,6 @@ from server.tools.helpers import (
     validate_enum,
 )
 
-
 _BIDMOD_LEVELS = ("CAMPAIGN", "AD_GROUP")
 _BIDMOD_TYPES = (
     "AD_GROUP_ADJUSTMENT",

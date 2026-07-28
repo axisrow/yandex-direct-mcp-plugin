@@ -3,14 +3,13 @@
 from unittest.mock import patch
 
 from server.tools.agency import (
-    agency_clients_list,
     agency_clients_add,
     agency_clients_add_passport_organization,
     agency_clients_add_passport_organization_member,
     agency_clients_delete,
+    agency_clients_list,
     agency_clients_update,
 )
-
 from tests.helpers import mock_runner
 
 

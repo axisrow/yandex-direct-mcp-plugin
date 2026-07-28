@@ -3,15 +3,14 @@
 from unittest.mock import patch
 
 from server.tools.smart_ad_targets import (
-    smart_ad_targets_list,
     smart_ad_targets_add,
-    smart_ad_targets_update,
     smart_ad_targets_delete,
+    smart_ad_targets_list,
     smart_ad_targets_resume,
     smart_ad_targets_set_bids,
     smart_ad_targets_suspend,
+    smart_ad_targets_update,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_TARGETS = [

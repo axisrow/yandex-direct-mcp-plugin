@@ -19,7 +19,6 @@ Ceilings are snapshots with headroom, not exact values. A legitimate increase
 from __future__ import annotations
 
 import asyncio
-
 from unittest.mock import patch
 
 import tests.measure_tool_tokens as mtt

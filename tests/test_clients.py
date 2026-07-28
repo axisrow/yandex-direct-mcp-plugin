@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.clients import clients_get, clients_update
-
 from tests.helpers import mock_runner
 
 

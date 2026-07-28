@@ -10,7 +10,6 @@ from server.cli.runner import (
     CliTimeoutError,
 )
 
-
 _FILTER_TOKEN_RE = re.compile(r"\bfilter\b", re.IGNORECASE)
 
 # Yandex error_detail for an invalid enum spells out the allowed values, e.g.

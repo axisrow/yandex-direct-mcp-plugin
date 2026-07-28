@@ -13,16 +13,16 @@ import http.client
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 from xml.etree import ElementTree as ET
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from server.contract import PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS  # noqa: E402
+from server.contract import PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS
 
 # Canonical list of WSDL services straight from the upstream ``direct-cli``
 # package — the authoritative source-of-truth for the live v5 surface. Used
@@ -31,10 +31,10 @@ from server.contract import PUBLIC_CONTRACT, TRANSPORT_BLOCKED_OPERATIONS  # noq
 # older ``direct-cli`` builds may not ship ``wsdl_coverage``; the audit then
 # degrades gracefully to contract-only coverage and prints a warning.
 try:
-    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]  # noqa: E402
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]
         CANONICAL_API_SERVICES as _CANONICAL_API_SERVICES_RAW,
     )
-    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]  # noqa: E402
+    from direct_cli.wsdl_coverage import (  # type: ignore[import-not-found, import-untyped]
         NON_WSDL_SERVICES as _NON_WSDL_SERVICES_RAW,
     )
 except Exception:  # pragma: no cover — old direct-cli without wsdl_coverage
@@ -289,9 +289,11 @@ def compare_wsdl_to_contract(
             continue
         service_declared = declared.get(operation.service, frozenset())
         service_wsdl = wsdl_methods.get(operation.service)
-        if operation.method in service_declared:
-            stale_blocked.add(public_name)
-        elif service_wsdl is not None and operation.method not in service_wsdl:
+        if (
+            operation.method in service_declared
+            or service_wsdl is not None
+            and operation.method not in service_wsdl
+        ):
             stale_blocked.add(public_name)
 
     return AuditResult(
@@ -405,10 +407,12 @@ def format_report(result: AuditResult) -> str:
         lines.extend(
             [
                 "",
-                "WARNING: ``direct_cli.wsdl_coverage`` is unavailable in this "
-                "environment, so the audit cannot discover services outside "
-                "PUBLIC_CONTRACT. Upgrade ``direct-cli`` to restore full "
-                "missing-service detection (issue #85).",
+                (
+                    "WARNING: ``direct_cli.wsdl_coverage`` is unavailable in this "
+                    "environment, so the audit cannot discover services outside "
+                    "PUBLIC_CONTRACT. Upgrade ``direct-cli`` to restore full "
+                    "missing-service detection (issue #85)."
+                ),
             ]
         )
 

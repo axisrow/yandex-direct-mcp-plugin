@@ -7,7 +7,6 @@ from server.tools.keyword_bids import (
     keyword_bids_set,
     keyword_bids_set_auto,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_BIDS = [

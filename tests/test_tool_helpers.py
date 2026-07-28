@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-import server.tools as tools
+from server import tools
 from server.cli.runner import (
     CliAuthError,
     CliNotFoundError,

@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from functools import lru_cache
+from functools import cache, lru_cache
 
 from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
 
@@ -160,7 +160,7 @@ def tool_names() -> frozenset[str]:
     return frozenset(_tool_records())
 
 
-@lru_cache(maxsize=None)
+@cache
 def groups_for_tool(name: str) -> frozenset[str]:
     """Service group + action group + area group (if any) for one tool."""
     service, cli_method = _tool_records().get(name, (None, None))

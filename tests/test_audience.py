@@ -12,7 +12,6 @@ from server.tools.audience import (
     audience_targets_set_bids,
     audience_targets_suspend,
 )
-
 from tests.helpers import mock_runner
 
 

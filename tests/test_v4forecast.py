@@ -9,7 +9,6 @@ from server.tools.v4forecast import (
     v4forecast_get,
     v4forecast_list,
 )
-
 from tests.helpers import completed, mock_runner
 
 

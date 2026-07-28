@@ -57,7 +57,6 @@ TEST_AD_GROUP_ID = os.environ.get("TEST_AD_GROUP_ID", "")
 TEST_AD_ID = os.environ.get("TEST_AD_ID", "")
 
 
-
 # ── Ads mutating cassette tests ───────────────────────────────────────────
 
 

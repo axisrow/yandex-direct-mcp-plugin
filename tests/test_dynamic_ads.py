@@ -1,16 +1,15 @@
 """Tests for dynamic_ads MCP tools."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from server.tools.dynamic_ads import (
-    dynamic_ads_list,
     dynamic_ads_add,
     dynamic_ads_delete,
+    dynamic_ads_list,
     dynamic_ads_resume,
     dynamic_ads_set_bids,
     dynamic_ads_suspend,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_TARGETS = [

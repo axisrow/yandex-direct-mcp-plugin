@@ -7,7 +7,6 @@ from server.tools.dictionaries import (
     dictionaries_get_geo_regions,
     dictionaries_list_names,
 )
-
 from tests.helpers import mock_runner
 
 

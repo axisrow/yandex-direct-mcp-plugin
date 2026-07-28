@@ -3,12 +3,11 @@
 from unittest.mock import patch
 
 from server.tools.adgroups import (
-    adgroups_list,
     adgroups_add,
-    adgroups_update,
     adgroups_delete,
+    adgroups_list,
+    adgroups_update,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_ADGROUPS = [

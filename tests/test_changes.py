@@ -2,13 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
+from server.contract import EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS
 from server.tools.changes import (
     changes_check,
     changes_checkcamp,
     changes_checkdict,
 )
-from server.contract import EXPLICIT_TIMEZONE_TIMESTAMP_TOOLS
-
 from tests.helpers import mock_runner
 
 

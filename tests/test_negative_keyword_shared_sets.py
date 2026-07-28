@@ -3,12 +3,11 @@
 from unittest.mock import patch
 
 from server.tools.negative_keyword_shared_sets import (
-    negative_keyword_shared_sets_list,
     negative_keyword_shared_sets_add,
-    negative_keyword_shared_sets_update,
     negative_keyword_shared_sets_delete,
+    negative_keyword_shared_sets_list,
+    negative_keyword_shared_sets_update,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_SETS = [

@@ -698,14 +698,21 @@ class CliRecorder:
     def record(self, command: str, args: list[str]) -> dict:
         """Вызывает реальный CLI, сохраняет {args, stdout, stderr, returncode}"""
         result = subprocess.run([command, *args], capture_output=True, text=True)
-        cassette = {"args": args, "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
+        cassette = {
+            "args": args,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+        }
         self._save(cassette)
         return cassette
 
     def replay(self, command: str, args: list[str]) -> subprocess.CompletedProcess:
         """По args находит кассету, возвращает сохранённый stdout"""
         cassette = self._find(args)
-        return subprocess.CompletedProcess(args, cassette["returncode"], cassette["stdout"], cassette["stderr"])
+        return subprocess.CompletedProcess(
+            args, cassette["returncode"], cassette["stdout"], cassette["stderr"]
+        )
 ```
 
 Кассета выглядит так:
@@ -777,21 +784,22 @@ from pathlib import Path
 
 SANITIZE_RULES = [
     # Секреты — полная замена
-    (r'"access_token"\s*:\s*"[^"]+"',    '"access_token": "ACCESS_TOKEN_REDACTED"'),
-    (r'"refresh_token"\s*:\s*"[^"]+"',   '"refresh_token": "REFRESH_TOKEN_REDACTED"'),
-    (r'Bearer [A-Za-z0-9_-]+',           'Bearer ACCESS_TOKEN_REDACTED'),
-    (r'"client_secret"\s*:\s*"[^"]+"',   '"client_secret": "CLIENT_SECRET_REDACTED"'),
-    (r'"client_id"\s*:\s*"[^"]+"',       '"client_id": "CLIENT_ID_REDACTED"'),
+    (r'"access_token"\s*:\s*"[^"]+"', '"access_token": "ACCESS_TOKEN_REDACTED"'),
+    (r'"refresh_token"\s*:\s*"[^"]+"', '"refresh_token": "REFRESH_TOKEN_REDACTED"'),
+    (r"Bearer [A-Za-z0-9_-]+", "Bearer ACCESS_TOKEN_REDACTED"),
+    (r'"client_secret"\s*:\s*"[^"]+"', '"client_secret": "CLIENT_SECRET_REDACTED"'),
+    (r'"client_id"\s*:\s*"[^"]+"', '"client_id": "CLIENT_ID_REDACTED"'),
     # Коммерческие данные — подмена на заглушки
-    (r'"Name"\s*:\s*"[^"]+"',            '"Name": "Campaign_XXXXX"'),
-    (r'"Title"\s*:\s*"[^"]+"',           '"Title": "Ad title placeholder"'),
-    (r'"Title2"\s*:\s*"[^"]+"',          '"Title2": "Ad title2 placeholder"'),
-    (r'"Keyword"\s*:\s*"[^"]+"',         '"Keyword": "keyword_XXXXX"'),
-    (r'"Login"\s*:\s*"[^"]+"',           '"Login": "test_account"'),
-    (r'"Cost"\s*:\s*[\d.]+',             '"Cost": 1000.00'),
-    (r'"Href"\s*:\s*"https?://[^"]+"',   '"Href": "https://example.com"'),
-    (r'\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}', '+7 (000) 000-00-00'),
+    (r'"Name"\s*:\s*"[^"]+"', '"Name": "Campaign_XXXXX"'),
+    (r'"Title"\s*:\s*"[^"]+"', '"Title": "Ad title placeholder"'),
+    (r'"Title2"\s*:\s*"[^"]+"', '"Title2": "Ad title2 placeholder"'),
+    (r'"Keyword"\s*:\s*"[^"]+"', '"Keyword": "keyword_XXXXX"'),
+    (r'"Login"\s*:\s*"[^"]+"', '"Login": "test_account"'),
+    (r'"Cost"\s*:\s*[\d.]+', '"Cost": 1000.00'),
+    (r'"Href"\s*:\s*"https?://[^"]+"', '"Href": "https://example.com"'),
+    (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "+7 (000) 000-00-00"),
 ]
+
 
 def sanitize(recordings_dir: Path):
     for cassette in recordings_dir.rglob("*.json"):
@@ -843,18 +851,19 @@ import re, json, sys
 from pathlib import Path
 
 CRITICAL_PATTERNS = [
-    (r"AQAAAA[A-Za-z0-9_-]{20,}",              "OAuth token"),
-    (r"Bearer\s+[A-Za-z0-9_-]{20,}",           "Bearer token"),
-    (r"\d+:[A-Za-z0-9_-]{10,}:",               "Refresh token"),
-    (r'"client_secret"\s*:\s*"[^"]{6,}"',       "Client secret"),
-    (r"Basic\s+[A-Za-z0-9+/=]{20,}",           "Base64 credentials"),
+    (r"AQAAAA[A-Za-z0-9_-]{20,}", "OAuth token"),
+    (r"Bearer\s+[A-Za-z0-9_-]{20,}", "Bearer token"),
+    (r"\d+:[A-Za-z0-9_-]{10,}:", "Refresh token"),
+    (r'"client_secret"\s*:\s*"[^"]{6,}"', "Client secret"),
+    (r"Basic\s+[A-Za-z0-9+/=]{20,}", "Base64 credentials"),
 ]
 
 WARNING_PATTERNS = [
-    (r'https?://(?!example\.com)[a-z0-9.-]+\.[a-z]{2,}', "Real domain"),
-    (r'\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}', "Phone number"),
-    (r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', "Email address"),
+    (r"https?://(?!example\.com)[a-z0-9.-]+\.[a-z]{2,}", "Real domain"),
+    (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "Phone number"),
+    (r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "Email address"),
 ]
+
 
 def audit(recordings_dir: Path) -> int:
     critical, warnings = 0, 0
@@ -881,7 +890,7 @@ def audit(recordings_dir: Path) -> int:
         for pattern, label in WARNING_PATTERNS:
             match = re.search(pattern, text)
             if match:
-                print(f"  {rel}  ⚠️  WARNING: {label} \"{match.group()[:40]}\" found")
+                print(f'  {rel}  ⚠️  WARNING: {label} "{match.group()[:40]}" found')
                 warnings += 1
 
         if not critical and not warnings:
@@ -895,6 +904,7 @@ def audit(recordings_dir: Path) -> int:
         print("⚠️  Commit blocked. Run: python -m tests.sanitize")
         return 1
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(audit(Path("tests/recordings")))

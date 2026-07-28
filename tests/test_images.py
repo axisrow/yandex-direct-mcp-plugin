@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from server.tools.images import adimages_list, adimages_add, adimages_delete
-
+from server.tools.images import adimages_add, adimages_delete, adimages_list
 from tests.helpers import mock_runner
 
 

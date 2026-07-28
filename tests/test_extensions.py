@@ -5,11 +5,10 @@ from unittest.mock import patch
 import pytest
 
 from server.tools.adextensions import (
-    adextensions_list,
     adextensions_add,
     adextensions_delete,
+    adextensions_list,
 )
-
 from tests.helpers import mock_runner
 
 

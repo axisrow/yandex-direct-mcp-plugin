@@ -2,7 +2,6 @@ import json
 import tomllib
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "yandex-direct"

@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.leads import leads_list
-
 from tests.helpers import mock_runner
 
 

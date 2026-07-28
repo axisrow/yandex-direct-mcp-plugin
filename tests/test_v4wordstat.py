@@ -9,7 +9,6 @@ from server.tools.v4wordstat import (
     v4wordstat_get_report,
     v4wordstat_list_reports,
 )
-
 from tests.helpers import completed, mock_runner
 
 

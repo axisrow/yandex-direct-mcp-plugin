@@ -10,7 +10,6 @@ from server.contract import (
     V4_LIVE_BLOCKED_METHODS,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

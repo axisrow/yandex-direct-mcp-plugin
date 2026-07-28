@@ -4,18 +4,17 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from server.tools.campaigns import (
-    campaigns_list,
-    campaigns_update,
-    campaigns_add,
-    campaigns_delete,
-    campaigns_archive,
-    campaigns_unarchive,
-    campaigns_suspend,
-    campaigns_resume,
-)
 from server.cli.runner import CliAuthError, CliError
-
+from server.tools.campaigns import (
+    campaigns_add,
+    campaigns_archive,
+    campaigns_delete,
+    campaigns_list,
+    campaigns_resume,
+    campaigns_suspend,
+    campaigns_unarchive,
+    campaigns_update,
+)
 from tests.helpers import mock_runner
 
 
@@ -690,8 +689,8 @@ class TestCampaignsFamilyDictGrouping:
     def test_registry_members_are_real_cli_options(self):
         """Every grouped member name must be an actual CAMPAIGN_MUTATION_OPTIONS flag."""
         from server.tools.campaigns import (
-            CAMPAIGN_MUTATION_OPTIONS,
             _CAMPAIGN_FAMILY_DICT_REGISTRY,
+            CAMPAIGN_MUTATION_OPTIONS,
         )
 
         known = {opt.name for opt in CAMPAIGN_MUTATION_OPTIONS}

@@ -23,7 +23,6 @@ from server.tools.v4tags import (
     v4tags_update_banners,
     v4tags_update_campaigns,
 )
-
 from tests.helpers import completed, mock_runner
 
 

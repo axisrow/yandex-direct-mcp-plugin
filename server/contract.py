@@ -658,43 +658,41 @@ def _tool_name(service: str, method: str) -> str:
     return f"{service}_{method}"
 
 
-PUBLIC_CONTRACT: tuple[ContractTool, ...] = tuple(
-    [
-        *(
-            ContractTool(
-                public_name=_tool_name(service, method),
-                cli_service=service,
-                cli_method=method,
-                authority="reports-spec" if service == "reports" else "wsdl",
-                classification="direct_api",
-            )
-            for service, methods in DIRECT_API_SERVICE_METHODS.items()
-            for method in methods
-        ),
-        *(
-            ContractTool(
-                public_name=_tool_name(service, method),
-                cli_service=service,
-                cli_method=method,
-                authority="cli-extra",
-                classification="cli_helper",
-            )
-            for service, methods in CLI_HELPER_SERVICE_METHODS.items()
-            for method in methods
-        ),
-        *REPORTS_SPEC_EXTRA_TOOLS,
-        *V4_LIVE_CLI_TOOLS,
-        *(
-            ContractTool(
-                public_name=name,
-                cli_service=None,
-                cli_method=None,
-                authority="plugin",
-                classification="plugin",
-            )
-            for name in PLUGIN_TOOL_NAMES
-        ),
-    ]
+PUBLIC_CONTRACT: tuple[ContractTool, ...] = (
+    *(
+        ContractTool(
+            public_name=_tool_name(service, method),
+            cli_service=service,
+            cli_method=method,
+            authority="reports-spec" if service == "reports" else "wsdl",
+            classification="direct_api",
+        )
+        for service, methods in DIRECT_API_SERVICE_METHODS.items()
+        for method in methods
+    ),
+    *(
+        ContractTool(
+            public_name=_tool_name(service, method),
+            cli_service=service,
+            cli_method=method,
+            authority="cli-extra",
+            classification="cli_helper",
+        )
+        for service, methods in CLI_HELPER_SERVICE_METHODS.items()
+        for method in methods
+    ),
+    *REPORTS_SPEC_EXTRA_TOOLS,
+    *V4_LIVE_CLI_TOOLS,
+    *(
+        ContractTool(
+            public_name=name,
+            cli_service=None,
+            cli_method=None,
+            authority="plugin",
+            classification="plugin",
+        )
+        for name in PLUGIN_TOOL_NAMES
+    ),
 )
 
 PUBLIC_TOOL_NAMES = frozenset(tool.public_name for tool in PUBLIC_CONTRACT)

@@ -2,8 +2,7 @@
 
 from unittest.mock import patch
 
-from server.tools.research import keywords_has_volume, keywords_deduplicate
-
+from server.tools.research import keywords_deduplicate, keywords_has_volume
 from tests.helpers import mock_runner
 
 
