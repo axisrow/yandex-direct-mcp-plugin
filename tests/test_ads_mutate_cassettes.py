@@ -1,19 +1,33 @@
 """Cassette-based tests for ads mutating tools (issue #261, Phase 1 harness).
 
 Phase 1 (this file): test harness with skip-on-missing-cassette.
-Phase 2 (after .env.test): record cassettes via ``pytest --record``.
+Phase 2 (after .env.test): record cassettes.
 
-Recording protocol (per #126 conventions):
-    1. Fill .env.test with YANDEX_OAUTH_TOKEN
-    2. pytest tests/test_ads_mutate_cassettes.py --record
+WARNING — SAFETY (review #264): these tests mutate a real Yandex.Direct
+account when run live, so the suite carries ``pytest.mark.live_unsafe``
+and is gated behind ``--run-live-unsafe`` (same contract as
+tests/test_live_unsafe.py). Setting ``TEST_*_ID`` without the flag does
+NOT run them — they stay skipped. Do NOT remove the marker.
+
+WARNING — RECORD MODE IS NOT WIRE-READY (review #264, Codex): the
+``cli_recorder`` fixture's ``--record`` path (tests/conftest.py) currently
+lets real subprocess calls through WITHOUT capturing them, so
+``pytest --record`` would mutate the account and write NO cassettes.
+Before Phase 2 recording, either (a) call ``recorder.record(...)`` per
+test, or (b) patch the fixture's record branch to intercept
+``subprocess.run`` and save each call. Until then, do NOT run ``--record``
+expecting cassettes — track in #261 Phase 2.
+
+Phase 2 target workflow (after the record-mode fix above):
+    1. Fill .env.test with YANDEX_OAUTH_TOKEN + TEST_*_ID
+    2. pytest tests/test_ads_mutate_cassettes.py --run-live-unsafe --record
+       (add/verify/rollback per test, disposable resources, finally-cleanup)
     3. python -m tests.sanitize
     4. python -m tests.audit   # exit 0
-    5. unset YANDEX_OAUTH_TOKEN && pytest tests/  # green
+    5. unset YANDEX_OAUTH_TOKEN && pytest tests/  # green (replay)
 
-Each mutating test follows the add→verify→rollback pattern on a test
-account.  The cassette captures the CLI subprocess call; replay mode
-patches subprocess.run to return the saved response, so no token is
-needed for CI.
+In replay mode (default) the fixture patches subprocess.run to return the
+saved cassette, so no token and no mutation occur — CI is safe.
 
 Why ads/adgroups first (#261 rationale):
     These tools had the most format-drift precedents:
@@ -48,6 +62,16 @@ from server.tools.ads import (
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────
+
+# SAFETY: when run live (`--record` with TEST_*_ID set), these tests mutate a
+# real Yandex.Direct account (overwrite ad fields, suspend/archive/moderate,
+# add ads/ad groups). They MUST stay behind the `--run-live-unsafe` gate so a
+# contributor who sets the IDs cannot accidentally run them against a live
+# account, exactly like tests/test_live_unsafe.py. The replay path (default,
+# cassettes present) is still gated — replay needs neither the gate nor a
+# token, but the marker is harmless there and keeps the safety contract
+# uniform. See #261 Phase 2 conventions (#126).
+pytestmark = [pytest.mark.integration, pytest.mark.live_unsafe]
 
 # IDs used during recording.  These come from the test account — the
 # cassette stores the full CLI response so the actual IDs are baked in.
