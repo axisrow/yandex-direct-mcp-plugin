@@ -97,7 +97,7 @@ def v4tags_get_banners(
 )
 @handle_cli_errors
 def v4tags_update_campaigns(
-    campaign_id: int,
+    campaign_id: str,
     tags: list[str] | None = None,
     clear_tags: bool = False,
     dry_run: bool = False,

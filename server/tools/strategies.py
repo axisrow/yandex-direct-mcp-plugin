@@ -188,7 +188,7 @@ def strategies_add(
 )
 @handle_cli_errors
 def strategies_update(
-    id: int,
+    id: str,
     name: str | None = None,
     type: str | None = None,
     average_cpc: int | None = None,
@@ -279,7 +279,7 @@ def strategies_update(
     description="Archive a bidding strategy by ID. Call tool_help('strategies_archive') for parameters.",
 )
 @handle_cli_errors
-def strategies_archive(id: int, dry_run: bool = False) -> dict:
+def strategies_archive(id: str, dry_run: bool = False) -> dict:
     """Archive a bidding strategy.
 
     Args:
@@ -297,7 +297,7 @@ def strategies_archive(id: int, dry_run: bool = False) -> dict:
     description="Unarchive a bidding strategy by ID. Call tool_help('strategies_unarchive') for parameters.",
 )
 @handle_cli_errors
-def strategies_unarchive(id: int, dry_run: bool = False) -> dict:
+def strategies_unarchive(id: str, dry_run: bool = False) -> dict:
     """Unarchive a bidding strategy.
 
     Args:

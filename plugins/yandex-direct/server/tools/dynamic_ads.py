@@ -56,7 +56,7 @@ def dynamic_ads_list(
 )
 @handle_cli_errors
 def dynamic_ads_add(
-    ad_group_id: int,
+    ad_group_id: str,
     name: str,
     condition: str | None = None,
     bid: int | None = None,
@@ -148,9 +148,9 @@ def dynamic_ads_resume(ids: str, dry_run: bool = False) -> dict:
 )
 @handle_cli_errors
 def dynamic_ads_set_bids(
-    id: int | None = None,
-    ad_group_id: int | None = None,
-    campaign_id: int | None = None,
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
     priority: str | None = None,

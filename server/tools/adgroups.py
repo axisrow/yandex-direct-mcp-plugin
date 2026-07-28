@@ -115,12 +115,12 @@ def adgroups_list(
 )
 @handle_cli_errors
 def adgroups_add(
-    campaign_id: int | None = None,
+    campaign_id: str | None = None,
     name: str | None = None,
     type: str | None = None,
     region_ids: str | None = None,
     domain_url: str | None = None,
-    feed_id: int | None = None,
+    feed_id: str | None = None,
     feed_category_ids: str | None = None,
     ad_title_source: str | None = None,
     ad_body_source: str | None = None,
@@ -142,7 +142,7 @@ def adgroups_add(
     negative_keyword_shared_set_ids: str | None = None,
     tracking_params: str | None = None,
     from_file: str | None = None,
-    adgroups_json: str | None = None,
+    adgroups_json: list | str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Create one or many ad groups.
@@ -244,7 +244,7 @@ def adgroups_add(
 )
 @handle_cli_errors
 def adgroups_update(
-    id: int | None = None,
+    id: str | None = None,
     name: str | None = None,
     status: str | None = None,
     region_ids: str | None = None,
@@ -253,7 +253,7 @@ def adgroups_update(
     negative_keywords: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
     tracking_params: str | None = None,
-    feed_id: int | None = None,
+    feed_id: str | None = None,
     feed_category_ids: str | None = None,
     ad_title_source: str | None = None,
     ad_body_source: str | None = None,
@@ -271,7 +271,7 @@ def adgroups_update(
     autotargeting_settings_with_advertiser_brand: str | None = None,
     autotargeting_settings_with_competitors_brand: str | None = None,
     from_file: str | None = None,
-    adgroups_json: str | None = None,
+    adgroups_json: list | str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Update one or many ad groups.
