@@ -240,7 +240,7 @@
 <span id="shared-infrastructure"></span><h2>Shared Infrastructure<a class="headerlink" href="#module-server.tools" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="server.tools.ToolError">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.tools.</span></span><span class="sig-name descname"><span class="pre">ToolError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.ToolError" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.tools.</span></span><span class="sig-name descname"><span class="pre">ToolError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.ToolError" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -262,6 +262,9 @@
 <p>Canonical home is here (next to <code class="docutils literal notranslate"><span class="pre">ToolError</span></code>) so <code class="docutils literal notranslate"><span class="pre">handle_cli_errors</span></code> can
 use it without importing <code class="docutils literal notranslate"><span class="pre">helpers</span></code> (which imports back from this module).
 <code class="docutils literal notranslate"><span class="pre">helpers</span></code> re-exports it for the tool modules.</p>
+<p><code class="docutils literal notranslate"><span class="pre">details</span></code> is omitted from the payload when unset so existing error dicts
+are byte-identical; it only appears when a CliError carried extra diagnostic
+text (issue #256).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
@@ -359,6 +362,26 @@ dict-key spelling must match the registry exactly.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.helpers.normalize_json_arg">
+<span class="sig-prename descclassname"><span class="pre">server.tools.helpers.</span></span><span class="sig-name descname"><span class="pre">normalize_json_arg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_arg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.helpers.normalize_json_arg" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize an inline-JSON batch param into the string the CLI expects.</p>
+<p>MCP hosts routinely pre-parse a JSON-array argument into a Python <code class="docutils literal notranslate"><span class="pre">list</span></code>
+(or a single object into a <code class="docutils literal notranslate"><span class="pre">dict</span></code>) before it reaches the tool, so a param
+typed <code class="docutils literal notranslate"><span class="pre">str</span></code> fails pydantic validation with <code class="docutils literal notranslate"><span class="pre">string_type</span></code> even though the
+caller passed valid JSON (issue #256, <code class="docutils literal notranslate"><span class="pre">keywords_json</span></code> / <code class="docutils literal notranslate"><span class="pre">ads_json</span></code> /
+<code class="docutils literal notranslate"><span class="pre">adgroups_json</span></code>). Accepting <code class="docutils literal notranslate"><span class="pre">list</span> <span class="pre">|</span> <span class="pre">str</span></code> and re-serializing a list/dict
+back to a JSON string here makes the <code class="docutils literal notranslate"><span class="pre">--*-json</span></code> batch path work whether the
+host forwards the raw string or the parsed structure.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">None</span></code>/empty, the stripped string for a string input
+(unchanged wire form), or <code class="docutils literal notranslate"><span class="pre">json.dumps(...)</span></code> for a list/dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -470,6 +493,9 @@ the call site’s existing text.</p>
 <li><p>an error dict — both batch inputs given (mutually exclusive).</p></li>
 <li><p>the CLI result dict — the CLI was invoked for the batch.</p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">json_arg</span></code> may be the raw JSON string OR a list/dict a pre-parsing MCP host
+already decoded (see <a class="reference internal" href="#server.tools.helpers.normalize_json_arg" title="server.tools.helpers.normalize_json_arg"><code class="xref py py-func docutils literal notranslate"><span class="pre">normalize_json_arg()</span></code></a>); it is normalized to the
+string the <code class="docutils literal notranslate"><span class="pre">--*-json</span></code> flag consumes.</p>
 <p><code class="docutils literal notranslate"><span class="pre">default_id</span></code>/<code class="docutils literal notranslate"><span class="pre">default_id_flag</span></code> forward an optional batch-default scope
 (e.g. <code class="docutils literal notranslate"><span class="pre">--adgroup-id</span></code> for ads, <code class="docutils literal notranslate"><span class="pre">--campaign-id</span></code> for ad groups) that rows
 may override. Single-item content fields the caller may also have received
@@ -810,7 +836,7 @@ Pass these as-is — do NOT multiply by 1_000_000.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Campaign ID to update.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID to update.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new campaign name.</p></li>
 <li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new campaign status.</p></li>
 <li><p><strong>budget</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new daily budget in micro-units (RUB × 1_000_000).</p></li>
@@ -862,13 +888,13 @@ below are accepted. CLI #564 chunks the batch at 100 (API ceiling 1000).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID. Required in single mode; optional default in
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID. Required in single mode; optional default in
 batch modes (each row’s campaign-id wins).</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group name (single mode).</p></li>
 <li><p><strong>type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group type (TEXT_AD_GROUP, DYNAMIC_TEXT_AD_GROUP, etc.).</p></li>
 <li><p><strong>region_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Comma-separated region IDs for targeting.</p></li>
 <li><p><strong>domain_url</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Domain URL for DYNAMIC_TEXT_AD_GROUP.</p></li>
-<li><p><strong>feed_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Feed ID for SMART_AD_GROUP.</p></li>
+<li><p><strong>feed_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Feed ID for SMART_AD_GROUP.</p></li>
 <li><p><strong>feed_category_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Comma-separated feed category IDs.</p></li>
 <li><p><strong>ad_title_source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Title source for SMART_AD_GROUP.</p></li>
 <li><p><strong>ad_body_source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Body source for SMART_AD_GROUP.</p></li>
@@ -883,7 +909,7 @@ batch modes (each row’s campaign-id wins).</p></li>
 <li><p><strong>negative_keyword_shared_set_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Negative keyword shared set IDs.</p></li>
 <li><p><strong>tracking_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Tracking parameter specs.</p></li>
 <li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Path to a JSONL file with ad-group objects (batch mode).</p></li>
-<li><p><strong>adgroups_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-group objects (batch mode).</p></li>
+<li><p><strong>adgroups_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-group objects (batch mode).</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -956,12 +982,12 @@ below are accepted. CLI #565 chunks the batch at 100 (API ceiling 1000).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID to update (single mode).</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID to update (single mode).</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New name for the ad group.</p></li>
 <li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New status.</p></li>
 <li><p><strong>region_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Comma-separated region IDs for targeting.</p></li>
 <li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Path to a JSONL file with ad-group-update objects (batch mode).</p></li>
-<li><p><strong>adgroups_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-group-update objects (batch mode).</p></li>
+<li><p><strong>adgroups_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-group-update objects (batch mode).</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -987,6 +1013,13 @@ the batch default for rows that omit “adgroup-id”.</p></li>
 </ol>
 <p>In batch mode the rows are the source of truth; any single-item content
 field passed alongside from_file/ads_json is ignored.</p>
+<p>Title2 note (Yandex 2026 behavior): for TEXT_AD the API now concatenates
+title + title2 into a single Title (combined limit 56 chars) and drops the
+separate Title2 — the add succeeds but returns Warning 10165 (“Parameter
+will not be applied”) whose Details name the dropped field. This is upstream
+Yandex behavior, not a plugin transformation; the warning (with Details) is
+passed through in the response. A later ads_update of Title/Title2 on such an
+ad is a silent no-op. Keep the combined headline within 56 chars.</p>
 <p>CLI 0.3.9 enforces strict WSDL parity — invalid field/type combinations
 (e.g. TEXT_IMAGE_AD + title, MOBILE_APP_AD + href) are rejected by the CLI,
 not by this tool. Field/type compatibility:</p>
@@ -1001,7 +1034,7 @@ API ceiling 1000 per call) with partial-success reporting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID. Required in single mode; optional default in
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID. Required in single mode; optional default in
 batch modes (each row’s adgroup-id wins).</p></li>
 <li><p><strong>ad_type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad type (TEXT_AD | TEXT_IMAGE_AD | MOBILE_APP_AD).</p></li>
 <li><p><strong>title</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad title (TEXT_AD / MOBILE_APP_AD).</p></li>
@@ -1014,9 +1047,9 @@ batch modes (each row’s adgroup-id wins).</p></li>
 <li><p><strong>title2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Second headline (TEXT_AD).</p></li>
 <li><p><strong>display_url_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Display URL path (TEXT_AD).</p></li>
 <li><p><strong>mobile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – “YES” or “NO” — mobile-only ad flag (TEXT_AD).</p></li>
-<li><p><strong>vcard_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – VCard ID (TEXT_AD).</p></li>
-<li><p><strong>sitelink_set_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Sitelink set ID (TEXT_AD).</p></li>
-<li><p><strong>turbo_page_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).</p></li>
+<li><p><strong>vcard_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – VCard ID (TEXT_AD).</p></li>
+<li><p><strong>sitelink_set_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Sitelink set ID (TEXT_AD).</p></li>
+<li><p><strong>turbo_page_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).</p></li>
 <li><p><strong>ad_extensions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Comma-separated ad extension IDs (TEXT_AD).</p></li>
 <li><p><strong>price_extension_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Price extension dict — keys: price_extension_price,
 price_extension_old_price, price_extension_price_qualifier,
@@ -1026,7 +1059,7 @@ video_extension_creative_id, video_extension_ids.</p></li>
 <li><p><strong>text_source_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Smart/ad-builder text sources dict — keys:
 title_sources, text_sources, default_texts.</p></li>
 <li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Path to a JSONL file with ad objects (batch mode).</p></li>
-<li><p><strong>ads_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad objects (batch mode).</p></li>
+<li><p><strong>ads_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad objects (batch mode).</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -1185,7 +1218,7 @@ sitelink_set_id, turbo_page_id, ad_extensions, image_hash.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad ID to update (single mode).</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad ID to update (single mode).</p></li>
 <li><p><strong>type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad subtype (TEXT_AD, TEXT_IMAGE_AD, MOBILE_APP_AD, and newer
 0.3.12 subtype families). Required by the CLI in single mode — it
 picks the typed payload branch; omit it and the CLI rejects the call.</p></li>
@@ -1208,9 +1241,9 @@ MOBILE_APP_AD; the CLI rejects it for image-ad subtypes (error 8000).</p></li>
 <li><p><strong>title2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional second headline (TEXT_AD).</p></li>
 <li><p><strong>display_url_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional display URL path (TEXT_AD).</p></li>
 <li><p><strong>mobile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional “YES”/”NO” mobile-only ad flag (TEXT_AD).</p></li>
-<li><p><strong>vcard_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional VCard ID (TEXT_AD).</p></li>
-<li><p><strong>sitelink_set_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional sitelink set ID (TEXT_AD).</p></li>
-<li><p><strong>turbo_page_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).</p></li>
+<li><p><strong>vcard_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional VCard ID (TEXT_AD).</p></li>
+<li><p><strong>sitelink_set_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional sitelink set ID (TEXT_AD).</p></li>
+<li><p><strong>turbo_page_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional Turbo page ID (TEXT_AD / TEXT_IMAGE_AD).</p></li>
 <li><p><strong>ad_extensions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional comma-separated ad extension IDs (TEXT_AD).</p></li>
 <li><p><strong>callouts_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Callout update dict — keys: callouts_add,
 callouts_remove, callouts_set.</p></li>
@@ -1229,7 +1262,7 @@ creative_erir_ad_description.</p></li>
 <li><p><strong>text_source_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Smart/ad-builder text sources dict — keys:
 title_sources, text_sources, default_texts.</p></li>
 <li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Path to a JSONL file with ad-update objects (batch mode).</p></li>
-<li><p><strong>ads_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-update objects (batch mode).</p></li>
+<li><p><strong>ads_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of ad-update objects (batch mode).</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -1266,7 +1299,7 @@ auto-strategy / RSYA (РСЯ) JSONL or inline JSON inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID. Required in single mode; optional default
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID. Required in single mode; optional default
 in batch modes (each row’s AdGroupId wins).</p></li>
 <li><p><strong>keyword</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Keyword text (single mode only).</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
@@ -1275,7 +1308,7 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 <li><p><strong>user_param_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional user parameter 1.</p></li>
 <li><p><strong>user_param_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional user parameter 2.</p></li>
 <li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Path to a JSONL file with keyword objects (batch mode).</p></li>
-<li><p><strong>keywords_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of keyword objects (batch mode).</p></li>
+<li><p><strong>keywords_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Inline JSON array of keyword objects (batch mode).</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -1367,7 +1400,7 @@ parameters below are kept only to return a clear redirect error if passed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Keyword ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Keyword ID.</p></li>
 <li><p><strong>keyword</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new keyword text.</p></li>
 <li><p><strong>user_param_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional user parameter 1.</p></li>
 <li><p><strong>user_param_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional user parameter 2.</p></li>
@@ -1423,9 +1456,9 @@ with typed search/context bid, autotargeting, and priority fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Keyword ID selector.</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID selector.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID selector.</p></li>
+<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Keyword ID selector.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID selector.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID selector.</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Bid in micro-units (RUB × 1,000,000); CLI 0.2.10+ rejects values
 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>context_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Context bid in micro-units.</p></li>
@@ -1447,9 +1480,9 @@ with typed search/context bid, autotargeting, and priority fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
-<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Keyword ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Keyword ID.</p></li>
 <li><p><strong>max_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional maximum bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>position</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Strategy position.</p></li>
@@ -1476,11 +1509,11 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>modifier_type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Bid modifier type (MOBILE_ADJUSTMENT, DEMOGRAPHICS_ADJUSTMENT, …).</p></li>
 <li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Bid modifier percentage (0–1300).</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID (mutually exclusive with ad_group_id).</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID (mutually exclusive with campaign_id).</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID (mutually exclusive with ad_group_id).</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID (mutually exclusive with campaign_id).</p></li>
 <li><p><strong>gender</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Demographics adjustment gender.</p></li>
 <li><p><strong>age</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Demographics adjustment age value.</p></li>
-<li><p><strong>retargeting_condition_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Retargeting condition ID.</p></li>
+<li><p><strong>retargeting_condition_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Retargeting condition ID.</p></li>
 <li><p><strong>region_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Regional adjustment region ID.</p></li>
 <li><p><strong>serp_layout</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – SERP layout adjustment value.</p></li>
 <li><p><strong>income_grade</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Income grade adjustment value.</p></li>
@@ -1542,7 +1575,7 @@ CLI default when omitted: both levels.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Existing BidModifier ID returned by <cite>bidmodifiers_add</cite>.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Existing BidModifier ID returned by <cite>bidmodifiers_add</cite>.</p></li>
 <li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Modifier percentage integer (0–1300, e.g. 150 for +50%).
 Not money/micro-units.</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
@@ -1631,7 +1664,7 @@ forwarded as <code class="docutils literal notranslate"><span class="pre">--site
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>country</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Country.</p></li>
 <li><p><strong>city</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – City.</p></li>
 <li><p><strong>company_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Company name.</p></li>
@@ -1828,9 +1861,9 @@ interest_id (CLI rejects both at once).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Ad group ID to add the target to.</p></li>
-<li><p><strong>retargeting_list_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Retargeting list ID to target.</p></li>
-<li><p><strong>interest_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Interest ID to target.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Ad group ID to add the target to.</p></li>
+<li><p><strong>retargeting_list_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Retargeting list ID to target.</p></li>
+<li><p><strong>interest_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Interest ID to target.</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Context bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>priority</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Strategy priority.</p></li>
@@ -1908,9 +1941,9 @@ campaign_ids.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Audience target ID.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Audience target ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>context_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Context bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>priority</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Strategy priority.</p></li>
@@ -2010,7 +2043,7 @@ no <code class="docutils literal notranslate"><span class="pre">list_type</span>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Retargeting list ID to update.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Retargeting list ID to update.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New name for the list.</p></li>
 <li><p><strong>description</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New list description.</p></li>
 <li><p><strong>rule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Single new rule spec in CLI DSL form.</p></li>
@@ -2036,7 +2069,7 @@ semantic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Ad group ID.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target name.</p></li>
 <li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Condition spec (OPERAND:OPERATOR:ARG1|ARG2).</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Search bid in micro-units (RUB × 1,000,000).</p></li>
@@ -2108,9 +2141,9 @@ semantic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>context_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional context bid in micro-units (same rules as <cite>bid</cite>).</p></li>
@@ -2142,7 +2175,7 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Ad group ID.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target name.</p></li>
 <li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Single condition spec (e.g. “OPERAND:OPERATOR:ARG1|ARG2”).</p></li>
 <li><p><strong>conditions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Additional condition specs; each item is forwarded as
@@ -2223,9 +2256,9 @@ Ids unlimited. Enforced by direct-cli 0.4.3 (#571).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>context_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional context bid in micro-units (same rules as <cite>bid</cite>).</p></li>
@@ -2261,7 +2294,7 @@ audience, condition). Mirrors WSDL SmartAdTargetAddItem.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Ad group ID.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target name.</p></li>
 <li><p><strong>audience</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Audience value.</p></li>
 <li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Single condition spec (OPERAND:OPERATOR:ARG1|ARG2).</p></li>
@@ -2338,9 +2371,9 @@ are targeted.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
-<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Target ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Ad group ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>average_cpc</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional average CPC in micro-units (RUB × 1,000,000); CLI 0.2.10+
 rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
 <li><p><strong>average_cpa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional average CPA in micro-units (same rules as <cite>average_cpc</cite>).</p></li>
@@ -2372,7 +2405,7 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Target ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target ID.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New target name.</p></li>
 <li><p><strong>audience</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New audience value.</p></li>
 <li><p><strong>condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Single new condition spec.</p></li>
@@ -2454,7 +2487,7 @@ repeated <code class="docutils literal notranslate"><span class="pre">--conditio
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Set ID.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Set ID.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New set name.</p></li>
 <li><p><strong>keywords</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – New comma-separated negative keywords.</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
@@ -2739,7 +2772,7 @@ WSDL ClientUpdateItem. Note: the previous tool exposed a non-existent
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>client_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Client ID.</p></li>
+<li><p><strong>client_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Client ID.</p></li>
 <li><p><strong>client_info</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Free-form client information / display name.</p></li>
 <li><p><strong>phone</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Client phone.</p></li>
 <li><p><strong>notification_email</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Notification email.</p></li>
@@ -2891,7 +2924,7 @@ AUTOMOBILES, FLIGHTS, OTHER.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Feed ID to update.</p></li>
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Feed ID to update.</p></li>
 <li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new feed name.</p></li>
 <li><p><strong>url</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional new feed URL.</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
@@ -3452,7 +3485,7 @@ does not require dry_run or sandbox.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
 <li><p><strong>tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Campaign tags in TAG_ID=TEXT form. Use 0 for a new tag.</p></li>
 <li><p><strong>clear_tags</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Remove all campaign tags.</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
@@ -3737,6 +3770,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.check_batch_limit"><code class="docutils literal notranslate"><span class="pre">check_batch_limit()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.expand_grouped_dicts"><code class="docutils literal notranslate"><span class="pre">expand_grouped_dicts()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.finalize_json_args"><code class="docutils literal notranslate"><span class="pre">finalize_json_args()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.helpers.normalize_json_arg"><code class="docutils literal notranslate"><span class="pre">normalize_json_arg()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.normalize_optional_str"><code class="docutils literal notranslate"><span class="pre">normalize_optional_str()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.normalize_str_list"><code class="docutils literal notranslate"><span class="pre">normalize_str_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.parse_ids"><code class="docutils literal notranslate"><span class="pre">parse_ids()</span></code></a></li>

@@ -373,6 +373,14 @@ CLI emits TSV/CSV/table or writes the payload directly to a file.</p>
 <dd class="field-odd"><p><a class="reference internal" href="#server.cli.runner.CliError" title="server.cli.runner.CliError"><strong>CliError</strong></a> – On CLI execution failures.</p>
 </dd>
 </dl>
+<p>Note on warnings: Yandex Direct per-action Warnings (with their
+<code class="docutils literal notranslate"><span class="pre">Details</span></code>) travel <em>inside</em> the JSON payload the CLI prints to stdout
+— e.g. each <code class="docutils literal notranslate"><span class="pre">AddResults</span></code> element carries its own <code class="docutils literal notranslate"><span class="pre">Warnings</span></code> list —
+so they are already returned to the caller verbatim and are never
+truncated here. Should the CLI additionally emit a diagnostic to stderr
+on a <em>successful</em> (exit 0) run, it would otherwise be dropped silently;
+that residual stderr is surfaced as <code class="docutils literal notranslate"><span class="pre">_cli_warnings</span></code> rather than
+swallowed (issue #256). Empty stderr leaves the payload untouched.</p>
 </dd></dl>
 
 </dd></dl>
