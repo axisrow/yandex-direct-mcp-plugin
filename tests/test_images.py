@@ -4,7 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
-from server.tools.images import adimages_add, adimages_delete, adimages_list
+from server.tools.images import (
+    ADIMAGES_ADD_TIMEOUT_SECONDS,
+    adimages_add,
+    adimages_delete,
+    adimages_list,
+)
 from tests.helpers import mock_runner
 
 
@@ -96,7 +101,8 @@ class TestAdimagesAdd:
                     "new_image.jpg",
                     "--image-data",
                     "base64data",
-                ]
+                ],
+                timeout=ADIMAGES_ADD_TIMEOUT_SECONDS,
             )
 
     def test_add_image_with_file(self):

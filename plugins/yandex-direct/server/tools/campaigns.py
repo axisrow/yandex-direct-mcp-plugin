@@ -659,7 +659,7 @@ def campaigns_list(
 )
 @handle_cli_errors
 def campaigns_update(
-    id: int,
+    id: str,
     name: str | None = None,
     status: str | None = None,
     budget: int | None = None,
@@ -672,8 +672,8 @@ def campaigns_update(
     dynamic_placement_product_gallery: str | None = None,
     priority_goals: str | None = None,
     attribution_model: str | None = None,
-    package_strategy_id: int | None = None,
-    package_strategy_from_campaign_id: int | None = None,
+    package_strategy_id: str | None = None,
+    package_strategy_from_campaign_id: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
     video_target: str | None = None,
     client_info: str | None = None,
@@ -865,8 +865,8 @@ def campaigns_add(
     dynamic_placement_search_results: str | None = None,
     dynamic_placement_product_gallery: str | None = None,
     attribution_model: str | None = None,
-    package_strategy_id: int | None = None,
-    package_strategy_from_campaign_id: int | None = None,
+    package_strategy_id: str | None = None,
+    package_strategy_from_campaign_id: str | None = None,
     negative_keyword_shared_set_ids: str | None = None,
     video_target: str | None = None,
     client_info: str | None = None,

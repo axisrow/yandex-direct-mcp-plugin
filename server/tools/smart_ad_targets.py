@@ -63,7 +63,7 @@ def smart_ad_targets_list(
 )
 @handle_cli_errors
 def smart_ad_targets_add(
-    ad_group_id: int,
+    ad_group_id: str,
     name: str,
     audience: str,
     conditions: list[str] | None = None,
@@ -132,7 +132,7 @@ def smart_ad_targets_add(
 )
 @handle_cli_errors
 def smart_ad_targets_update(
-    id: int,
+    id: str,
     name: str | None = None,
     audience: str | None = None,
     conditions: list[str] | None = None,
@@ -250,9 +250,9 @@ def smart_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
 )
 @handle_cli_errors
 def smart_ad_targets_set_bids(
-    id: int | None = None,
-    ad_group_id: int | None = None,
-    campaign_id: int | None = None,
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
     average_cpc: int | None = None,
     average_cpa: int | None = None,
     priority: str | None = None,

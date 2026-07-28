@@ -70,7 +70,7 @@ def negative_keyword_shared_sets_add(
 )
 @handle_cli_errors
 def negative_keyword_shared_sets_update(
-    id: int,
+    id: str,
     name: str | None = None,
     keywords: str | None = None,
     dry_run: bool = False,

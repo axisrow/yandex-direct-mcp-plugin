@@ -96,7 +96,7 @@ def bidmodifiers_list(
 )
 @handle_cli_errors
 def bidmodifiers_set(
-    id: int,
+    id: str,
     value: int,
     dry_run: bool = False,
 ) -> dict:
@@ -148,11 +148,11 @@ def bidmodifiers_delete(ids: str, dry_run: bool = False) -> dict:
 def bidmodifiers_add(
     modifier_type: str,
     value: int,
-    campaign_id: int | None = None,
-    ad_group_id: int | None = None,
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
     gender: str | None = None,
     age: str | None = None,
-    retargeting_condition_id: int | None = None,
+    retargeting_condition_id: str | None = None,
     region_id: int | None = None,
     serp_layout: str | None = None,
     income_grade: str | None = None,

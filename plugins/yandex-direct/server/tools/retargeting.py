@@ -123,7 +123,7 @@ def retargeting_delete(ids: str, dry_run: bool = False) -> dict:
 )
 @handle_cli_errors
 def retargeting_update(
-    id: int,
+    id: str,
     name: str | None = None,
     description: str | None = None,
     rules: list[str] | None = None,

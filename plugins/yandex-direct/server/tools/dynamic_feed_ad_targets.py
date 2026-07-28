@@ -62,7 +62,7 @@ def dynamic_feed_ad_targets_list(
 )
 @handle_cli_errors
 def dynamic_feed_ad_targets_add(
-    ad_group_id: int,
+    ad_group_id: str,
     name: str,
     conditions: list[str] | None = None,
     condition: str | None = None,
@@ -174,9 +174,9 @@ def dynamic_feed_ad_targets_resume(ids: str, dry_run: bool = False) -> dict:
 )
 @handle_cli_errors
 def dynamic_feed_ad_targets_set_bids(
-    id: int | None = None,
-    ad_group_id: int | None = None,
-    campaign_id: int | None = None,
+    id: str | None = None,
+    ad_group_id: str | None = None,
+    campaign_id: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
     dry_run: bool = False,

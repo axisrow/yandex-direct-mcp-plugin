@@ -114,7 +114,7 @@ def feeds_add(
 )
 @handle_cli_errors
 def feeds_update(
-    id: int,
+    id: str,
     name: str | None = None,
     url: str | None = None,
     file_feed_path: str | None = None,

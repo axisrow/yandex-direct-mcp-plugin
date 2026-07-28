@@ -61,9 +61,9 @@ def bids_list(
 )
 @handle_cli_errors
 def bids_set(
-    keyword_id: int | None = None,
-    campaign_id: int | None = None,
-    ad_group_id: int | None = None,
+    keyword_id: str | None = None,
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
     bid: int | None = None,
     context_bid: int | None = None,
     autotargeting_search_bid_is_auto: str | None = None,
@@ -136,9 +136,9 @@ def bids_set(
 )
 @handle_cli_errors
 def bids_set_auto(
-    campaign_id: int | None = None,
-    ad_group_id: int | None = None,
-    keyword_id: int | None = None,
+    campaign_id: str | None = None,
+    ad_group_id: str | None = None,
+    keyword_id: str | None = None,
     max_bid: int | None = None,
     position: str | None = None,
     increase_percent: int | None = None,

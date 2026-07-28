@@ -733,3 +733,70 @@ yet forward. **Additive only** — existing single-item calls are unchanged.
   is fan-out protection, not an API limit, and stays.
 
 - **No tool count change (146).** Closes #201.
+
+## Breaking Changes (#256 — int64-ID params → string)
+
+Fixes four independent bugs from a live TEXT_AD batch upload. The one with a
+parameter-shape (schema) impact:
+
+- **Every int64 *object* ID parameter is now typed `str`, not `int`.** New
+  "combinatorial" Yandex objects get IDs like `1915883588174806058` (> 2^53,
+  the float64 exact-integer limit). When a param was typed `int`, FastMCP
+  published `{"type":"integer"}`, and a JavaScript MCP host rounds such an ID
+  through float64 **before** Python ever sees it (`ads_update(id=…)` →
+  `Error 8800 Ad not found`). Typing these params `str` makes the schema
+  publish `{"type":"string"}` so the digits survive. Tool bodies already did
+  `str(id)`, so the generated `direct` argv is **byte-for-byte identical** and
+  callers that passed an `int` at the Python layer are unaffected (only the
+  broadcast schema changed).
+
+  Migrated object-ID params (v5 surface), across both channels (`server/` and
+  the Codex bundle `plugins/yandex-direct/server/`):
+
+  - `ads_*`: `id`, `ad_group_id`, `vcard_id`, `sitelink_set_id`,
+    `turbo_page_id`, `business_id`, `creative_id`, `feed_id`
+  - `adgroups_*`: `id`, `campaign_id`, `feed_id`
+  - `keywords_*`: `id`, `ad_group_id`
+  - `audiencetargets_*`: `id`, `ad_group_id`, `campaign_id`,
+    `retargeting_list_id`, `interest_id`
+  - `bidmodifiers_*`: `id`, `campaign_id`, `ad_group_id`,
+    `retargeting_condition_id`
+  - `bids_*` / `keywordbids_*`: `campaign_id`, `ad_group_id`, `keyword_id`
+  - `campaigns_update`: `id`, `package_strategy_id`,
+    `package_strategy_from_campaign_id`
+  - `dynamicads_*` / `dynamicfeedadtargets_*`: `id`, `ad_group_id`, `campaign_id`
+  - `smartadtargets_*`: `id`, `ad_group_id`, `campaign_id`
+  - `strategies_*`: `id` (update/archive/unarchive)
+  - `feeds_update`, `retargeting_update`, `negativekeywordsharedsets_update`: `id`
+  - `vcards_add`: `campaign_id`; `v4tags_update_campaigns`: `campaign_id`
+  - `agencyclients_update`: `client_id` (int64 Passport ClientID)
+  - shared helper `helpers.run_set_bids`: `id`/`ad_group_id`/`campaign_id`
+
+- **NOT migrated (stay `int`):** money/micro-unit fields (`bid`, `context_bid`,
+  `budget`, `bid_ceiling`, `average_cpa/cpc/cpm/cpv`, `crr`, `spend_limit`, …),
+  dictionary/config IDs that are small by construction (`counter_id`, `goal_id`,
+  `region_id`, `metro_station_id`), and percentages/counts (`value`,
+  `*_percent`, `target_*`, `limit`, `offset`). These are not int64 object IDs.
+
+- **Output-path note (unchanged in this PR):** big-int IDs *inside* the JSON
+  response body (e.g. `ads_get` → `Id` as a number) come straight from
+  `direct`'s stdout, not from the plugin's param schema. Verified against
+  direct-cli 0.4.3 that the CLI itself does not lose precision (it parses with
+  `orjson` and re-emits with stdlib `json`, both exact). If a JS host rounds
+  those numbers when displaying the raw response, that is a host concern, not a
+  CLI/plugin bug; rewriting response-body IDs to strings would change the data
+  shape the LLM sees and is intentionally out of scope here.
+
+- **Companion (non-schema) fixes in the same change:** `keywords_json` /
+  `ads_json` / `adgroups_json` accept `list | str` (a pre-parsing MCP host
+  sends a decoded array; `helpers.normalize_json_arg` re-serializes it) and
+  `keywords_add` is unified onto `run_batch_mutation`; a successful run's
+  residual stderr is surfaced (dict → `_cli_warnings`; list → written to the
+  server's stderr, never reshaped) and `CliError` `Details:` is extracted into
+  the new `ToolError.details`; `adimages_add` uses a 120 s timeout
+  (`ADIMAGES_ADD_TIMEOUT_SECONDS`).
+
+- **No tool count change (146).** Follow-up: int64-ID precision in the v4-Live
+  tools (`v4account`, `v4wordstat`, `v4forecast`) is tracked in #258 — that is a
+  distinct money/dry-run channel and is out of scope for this v5 report.
+  Closes #256.

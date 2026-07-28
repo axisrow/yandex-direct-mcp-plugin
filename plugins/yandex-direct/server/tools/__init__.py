@@ -33,12 +33,31 @@ def _extract_expected_values(stderr: str | None) -> str | None:
     return values or None
 
 
+# direct-cli renders per-action errors as "... Details: <detail>" (output.py
+# _format_api_result_error). Surface that <detail> as a structured field so the
+# agent sees *which* parameter Yandex rejected — the info that made issue #256's
+# diagnosis take ~30 minutes when it was only embedded mid-message.
+_DETAILS_RE = re.compile(r"Details:\s*(?P<details>.+?)\s*$", re.IGNORECASE | re.DOTALL)
+
+
+def _extract_details(stderr: str | None) -> str | None:
+    """Pull the 'Details: ...' tail from a CLI error message, if present."""
+    if not stderr:
+        return None
+    match = _DETAILS_RE.search(stderr)
+    if not match:
+        return None
+    details = match.group("details").strip()
+    return details or None
+
+
 @dataclass
 class ToolError:
     error: str
     message: str
     auth_url: str | None = None
     hint: str | None = None
+    details: str | None = None
 
 
 def tool_error_dict(error: ToolError) -> dict:
@@ -47,8 +66,15 @@ def tool_error_dict(error: ToolError) -> dict:
     Canonical home is here (next to ``ToolError``) so ``handle_cli_errors`` can
     use it without importing ``helpers`` (which imports back from this module).
     ``helpers`` re-exports it for the tool modules.
+
+    ``details`` is omitted from the payload when unset so existing error dicts
+    are byte-identical; it only appears when a CliError carried extra diagnostic
+    text (issue #256).
     """
-    return asdict(error)
+    payload = asdict(error)
+    if payload.get("details") is None:
+        payload.pop("details", None)
+    return payload
 
 
 _INVALID_REQUEST_HINT_GENERIC = (
@@ -212,7 +238,12 @@ def handle_cli_errors(func):
             else:
                 error_kind = "unknown"
             return tool_error_dict(
-                ToolError(error=error_kind, message=str(e), hint=hint)
+                ToolError(
+                    error=error_kind,
+                    message=str(e),
+                    hint=hint,
+                    details=_extract_details(e.stderr),
+                )
             )
         except Exception as e:
             return tool_error_dict(ToolError(error="unknown", message=str(e)))
