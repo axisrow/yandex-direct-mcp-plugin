@@ -9,7 +9,7 @@ requires-python = ">=3.11"
 dependencies = ["mcp==1.23.3", "direct-cli==0.4.3"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff", "mypy", "pre-commit"]
+dev = ["pytest>=8.0", "ruff==0.16.0", "mypy", "pre-commit"]
 docs = ["sphinx", "sphinx-autodoc-typehints", "furo"]
 
 [build-system]
@@ -21,6 +21,26 @@ include = ["server*"]
 [tool.mypy]
 python_version = "3.11"
 exclude = ["^plugins/"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+# ruff version is pinned to 0.16.0 in [project.optional-dependencies].dev so the
+# default rule set is deterministic across local, pre-commit, and CI runs (this
+# repo previously relied on unpinned ruff, which made main go red when 0.16.0
+# tightened the defaults). We extend the default rule set and ignore a small set
+# of rules that conflict with the CLI-wrapper architecture:
+#   BLE001  blind `except Exception` — handle_cli_errors catches everything on
+#           purpose to return a structured ToolError; narrowing would leak CLI
+#           exceptions to the MCP host.
+#   PLW1510 `subprocess.run` without `check` — DirectCliRunner parses
+#           returncode/stderr itself; check=True would raise on non-zero exits
+#           that the runner intentionally surfaces as CliError.
+#   DTZ011  `date.today()` — naive dates are intentional for report date args.
+#   SIM117  nested `with` — only fires in tests for clarity of setup.
+#   EXE001  shebang without +x — audit_wsdl.py is `python -m`-style, not +x.
+ignore = ["BLE001", "PLW1510", "DTZ011", "SIM117", "EXE001"]
 
 [tool.pytest.ini_options]
 markers = [
