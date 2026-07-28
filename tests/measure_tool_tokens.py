@@ -54,8 +54,7 @@ def _module_by_name(mcp) -> dict[str, str]:
     for name, tool in registry.items():
         fn = getattr(tool, "fn", None)
         module = getattr(fn, "__module__", "") or ""
-        if module.startswith("server.tools."):
-            module = module[len("server.tools.") :]
+        module = module.removeprefix("server.tools.")
         mapping[name] = module or "(unknown)"
     return mapping
 

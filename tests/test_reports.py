@@ -2,7 +2,7 @@
 
 import json
 from datetime import date, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from server.tools.reports import (
     CUSTOM_REPORT_TIMEOUT_SECONDS,
@@ -13,7 +13,6 @@ from server.tools.reports import (
     reports_get,
     reports_list_types,
 )
-
 from tests.helpers import completed, mock_runner
 
 SAMPLE_REPORTS = [
@@ -180,7 +179,7 @@ def test_reports_get_invalid_date_format():
 
 def _custom_args(call):
     """Extract the positional args list from runner.run_json mock call."""
-    args, kwargs = call
+    args, _kwargs = call
     return args[0]
 
 

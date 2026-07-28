@@ -10,7 +10,6 @@ from server.tools.v4account import (
     v4account_transfer_money,
     v4account_update_account,
 )
-
 from tests.helpers import mock_runner
 
 _FINANCE_TOKEN_FLAGS = ("--finance-token", "--master-token", "--finance-login")

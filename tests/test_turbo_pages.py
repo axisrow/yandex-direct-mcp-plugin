@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.turbo_pages import turbo_pages_list
-
 from tests.helpers import mock_runner
 
 

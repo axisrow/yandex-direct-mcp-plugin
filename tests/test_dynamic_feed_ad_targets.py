@@ -10,7 +10,6 @@ from server.tools.dynamic_feed_ad_targets import (
     dynamic_feed_ad_targets_set_bids,
     dynamic_feed_ad_targets_suspend,
 )
-
 from tests.helpers import mock_runner
 
 

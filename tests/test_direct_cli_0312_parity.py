@@ -10,8 +10,8 @@ from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 import direct_cli  # type: ignore[import-not-found, import-untyped]
+import pytest
 from direct_cli.cli import cli  # type: ignore[import-not-found, import-untyped]
 
 from server.cli.runner import MIN_DIRECT_VERSION
@@ -30,7 +30,6 @@ from server.tools.retargeting import retargeting_add, retargeting_update
 from server.tools.smart_ad_targets import smart_ad_targets_add, smart_ad_targets_update
 from server.tools.strategies import strategies_add, strategies_update
 from server.tools.vcards import vcards_add
-
 from tests.helpers import mock_runner
 
 TARGET_COMMANDS: tuple[tuple[str, str, str, str], ...] = (
@@ -169,9 +168,9 @@ def _campaign_strategy_dict_param_names() -> set[str]:
     keys, not flat signature params — so the parity guard treats them as exposed.
     """
     from server.tools.campaigns import (
-        CAMPAIGN_UPDATE_ONLY_OPTIONS,
         _CAMPAIGN_FAMILY_DICT_REGISTRY,
         _STRATEGY_DICT_REGISTRY,
+        CAMPAIGN_UPDATE_ONLY_OPTIONS,
     )
 
     names = {opt.name for _, opts in _STRATEGY_DICT_REGISTRY for opt in opts}

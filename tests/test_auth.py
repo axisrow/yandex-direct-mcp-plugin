@@ -16,7 +16,6 @@ from server.tools.auth_tools import (
     auth_status,
     oauth_login_prompt,
 )
-
 from tests.helpers import completed
 
 

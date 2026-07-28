@@ -419,22 +419,14 @@ class CliError(Exception):
 class CliNotFoundError(CliError):
     """The `direct` binary is not installed."""
 
-    pass
-
 
 class CliTimeoutError(CliError):
     """The CLI command timed out."""
-
-    pass
 
 
 class CliAuthError(CliError):
     """Authentication error (401)."""
 
-    pass
-
 
 class CliRegistrationError(CliError):
     """Application not registered in Yandex.Direct (error 58)."""
-
-    pass

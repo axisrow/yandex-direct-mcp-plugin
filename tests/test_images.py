@@ -6,11 +6,10 @@ import pytest
 
 from server.tools.images import (
     ADIMAGES_ADD_TIMEOUT_SECONDS,
-    adimages_list,
     adimages_add,
     adimages_delete,
+    adimages_list,
 )
-
 from tests.helpers import mock_runner
 
 

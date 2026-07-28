@@ -2,8 +2,7 @@
 
 from unittest.mock import patch
 
-from server.tools.feeds import feeds_list, feeds_add, feeds_update, feeds_delete
-
+from server.tools.feeds import feeds_add, feeds_delete, feeds_list, feeds_update
 from tests.helpers import mock_runner
 
 

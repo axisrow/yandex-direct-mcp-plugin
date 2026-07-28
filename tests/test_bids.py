@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.bids import bids_list, bids_set, bids_set_auto
-
 from tests.helpers import mock_runner
 
 SAMPLE_BIDS = [

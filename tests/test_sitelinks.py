@@ -5,8 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from server.tools.sitelinks import sitelinks_list, sitelinks_add, sitelinks_delete
-
+from server.tools.sitelinks import sitelinks_add, sitelinks_delete, sitelinks_list
 from tests.helpers import mock_runner
 
 

@@ -5,14 +5,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from server.cli.runner import CliAuthError
 from server.tools.retargeting import (
     retargeting_add,
     retargeting_delete,
     retargeting_list,
     retargeting_update,
 )
-from server.cli.runner import CliAuthError
-
 from tests.helpers import mock_runner
 
 

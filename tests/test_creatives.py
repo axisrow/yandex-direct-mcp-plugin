@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.creatives import creatives_add, creatives_list
-
 from tests.helpers import mock_runner
 
 

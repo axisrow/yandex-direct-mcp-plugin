@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.v4events import v4events_get_events_log
-
 from tests.helpers import mock_runner
 
 

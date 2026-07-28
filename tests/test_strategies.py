@@ -9,7 +9,6 @@ from server.tools.strategies import (
     strategies_unarchive,
     strategies_update,
 )
-
 from tests.helpers import mock_runner
 
 

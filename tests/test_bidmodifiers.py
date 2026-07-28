@@ -4,11 +4,10 @@ from unittest.mock import patch
 
 from server.tools.bidmodifiers import (
     bidmodifiers_add,
+    bidmodifiers_delete,
     bidmodifiers_list,
     bidmodifiers_set,
-    bidmodifiers_delete,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_BIDMODIFIERS = [

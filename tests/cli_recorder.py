@@ -18,8 +18,6 @@ from typing import Any
 class CassetteNotFoundError(Exception):
     """Raised when no matching cassette is found for replay."""
 
-    pass
-
 
 class CliRecorder:
     """Records and replays CLI subprocess calls as JSON cassettes."""

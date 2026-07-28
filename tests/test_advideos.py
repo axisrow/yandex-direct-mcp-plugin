@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.advideos import advideos_add, advideos_get
-
 from tests.helpers import mock_runner
 
 

@@ -3,14 +3,13 @@
 from unittest.mock import call, patch
 
 from server.tools.keywords import (
-    keywords_list,
-    keywords_update,
     keywords_add,
     keywords_delete,
-    keywords_suspend,
+    keywords_list,
     keywords_resume,
+    keywords_suspend,
+    keywords_update,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_KEYWORDS = [

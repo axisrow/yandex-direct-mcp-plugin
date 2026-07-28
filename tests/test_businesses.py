@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 from server.tools.businesses import businesses_list
-
 from tests.helpers import mock_runner
 
 SAMPLE_BUSINESSES = [

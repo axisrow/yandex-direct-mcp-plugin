@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from server.tools.vcards import vcards_list, vcards_add, vcards_delete
-
+from server.tools.vcards import vcards_add, vcards_delete, vcards_list
 from tests.helpers import mock_runner
 
 

@@ -1,22 +1,20 @@
 """Tests for ads MCP tool."""
 
 import asyncio
-
 from unittest.mock import call, patch
 
 from server.main import mcp
 from server.tools.ads import (
-    ads_list,
     ads_add,
-    ads_update,
-    ads_delete,
-    ads_moderate,
-    ads_suspend,
-    ads_resume,
     ads_archive,
+    ads_delete,
+    ads_list,
+    ads_moderate,
+    ads_resume,
+    ads_suspend,
     ads_unarchive,
+    ads_update,
 )
-
 from tests.helpers import mock_runner
 
 SAMPLE_ADS = [
