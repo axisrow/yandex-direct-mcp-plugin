@@ -1,7 +1,7 @@
-"""CLAUDE.md is the declared canonical source of truth for tool names, but it has
-no guard against drifting from the live contract (issue #242). This cross-checks
-the doc tables against ``server.contract`` so a newly registered tool (or a
-renamed/removed one) cannot silently go undocumented.
+"""docs/TOOLS.md is the declared canonical source of truth for tool names, but it
+has no guard against drifting from the live contract (issue #242). This
+cross-checks the doc tables against ``server.contract`` so a newly registered
+tool (or a renamed/removed one) cannot silently go undocumented.
 """
 
 import re
@@ -15,6 +15,7 @@ from server.contract import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+TOOLS_MD = REPO_ROOT / "docs" / "TOOLS.md"
 CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 
 # Files that CLAUDE.md once listed as orphaned modules in server/tools/ but which
@@ -27,7 +28,7 @@ _REMOVED_ORPHAN_FILES = (
 
 
 def _section(text: str, heading: str) -> str:
-    assert heading in text, f"CLAUDE.md is missing the heading: {heading!r}"
+    assert heading in text, f"docs/TOOLS.md is missing the heading: {heading!r}"
     start = text.index(heading)
     nxt = text.find("\n### ", start + len(heading))
     return text[start : nxt if nxt != -1 else len(text)]
@@ -61,7 +62,7 @@ def _row_names(section: str) -> list[str]:
 
 
 def _check(heading: str, contract_names: frozenset[str]) -> None:
-    section = _section(CLAUDE_MD.read_text(), heading)
+    section = _section(TOOLS_MD.read_text(), heading)
     rows = _row_names(section)
     documented = set(rows)
 
@@ -94,9 +95,9 @@ def test_plugin_table_matches_contract() -> None:
 def test_mcp_tools_headline_total_matches_contract() -> None:
     """The most-read count — ``## MCP Tools (N total)`` — must track the contract
     so the hardcoded total (the only one not under any test) cannot go stale."""
-    text = CLAUDE_MD.read_text()
+    text = TOOLS_MD.read_text()
     match = re.search(r"^## MCP Tools \((\d+) total\)", text, re.MULTILINE)
-    assert match, "CLAUDE.md is missing the '## MCP Tools (N total)' headline"
+    assert match, "docs/TOOLS.md is missing the '## MCP Tools (N total)' headline"
     assert int(match.group(1)) == len(PUBLIC_TOOL_NAMES), (
         f"headline total {match.group(1)} != {len(PUBLIC_TOOL_NAMES)} contract tools"
     )
