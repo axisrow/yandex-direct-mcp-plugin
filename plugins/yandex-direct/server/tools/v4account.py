@@ -194,7 +194,7 @@ def v4account_get_accounts(
 )
 @handle_cli_errors
 def v4account_update_account(
-    account_id: int,
+    account_id: str,
     day_budget: str | None = None,
     spend_mode: str | None = None,
     money_in_sms: str | None = None,
@@ -380,8 +380,8 @@ def v4account_invoice(
 )
 @handle_cli_errors
 def v4account_transfer_money(
-    from_account_id: int,
-    to_account_id: int,
+    from_account_id: str,
+    to_account_id: str,
     amount: str,
     currency: str,
     operation_num: int | None = None,
