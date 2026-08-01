@@ -167,17 +167,17 @@ def _campaign_strategy_dict_param_names() -> set[str]:
     to cut tool-spec tokens (#154). They are still 1:1 reachable — just as dict
     keys, not flat signature params — so the parity guard treats them as exposed.
     """
-    from server.tools.campaigns import (
-        _CAMPAIGN_FAMILY_DICT_REGISTRY,
-        _STRATEGY_DICT_REGISTRY,
+    from server.tools.campaigns_options import (
+        CAMPAIGN_FAMILY_DICT_REGISTRY,
         CAMPAIGN_UPDATE_ONLY_OPTIONS,
+        STRATEGY_DICT_REGISTRY,
     )
 
-    names = {opt.name for _, opts in _STRATEGY_DICT_REGISTRY for opt in opts}
+    names = {opt.name for _, opts in STRATEGY_DICT_REGISTRY for opt in opts}
     names |= {opt.name for opt in CAMPAIGN_UPDATE_ONLY_OPTIONS}
     # #220-B grouped the remaining flat families into dicts too; their member
     # names live on as dict keys, so they are still exposed.
-    names |= {m for _, members in _CAMPAIGN_FAMILY_DICT_REGISTRY for m in members}
+    names |= {m for _, members in CAMPAIGN_FAMILY_DICT_REGISTRY for m in members}
     return names
 
 
