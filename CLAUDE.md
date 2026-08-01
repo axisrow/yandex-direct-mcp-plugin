@@ -38,7 +38,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 
 ## Tools
 
-146 tools total (139 Direct API + 3 CLI helpers + 4 plugin) + the `oauth_login` prompt. **Canonical list: `server/contract.py`** — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists all.
+146 tools total (139 Direct API + 3 CLI helpers + 4 plugin) + the `oauth_login` prompt. **Canonical list: `server/contract.py`**; full tables in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists all.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -56,7 +56,7 @@ Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, n
 
 - **Money is micro-units**: 15 RUB = 15_000_000. CLI 0.2.10+ rejects `0 < x < 100_000` with a "× 1_000_000?" hint.
 - **API batch limit: 10 IDs per request.** Some SelectionCriteria filters are stricter (dynamicads/smartadtargets `CampaignIds`=2, keywordbids=10); dry-run does not surface these.
-- Runtime pins in `scripts/runtime-pins.env` (currently `direct-cli==0.4.3`); bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace).
+- Runtime pin: `direct-cli==0.4.3` in `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace).
 - `reports_custom(goal_ids=...)` adds `Conversions_<goal>_<attr>` / `CostPerConversion_<goal>_<attr>` columns; default attribution `LSC`.
 - Docs in Russian, code identifiers in English.
 
