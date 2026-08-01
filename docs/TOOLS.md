@@ -1,5 +1,3 @@
-# MCP Tools
-
 ## MCP Tools (146 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
