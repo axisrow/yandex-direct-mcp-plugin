@@ -606,10 +606,10 @@ Do not point these at production entities. Unsafe tests assume the campaign star
 ┌─────────────────────────────────────────────────────────────────┐
 │  ЗАПИСЬ (один раз, разработчик)                                 │
 │                                                                 │
-│  python -m tests.setup                                          │
+│  python -m tests.setup  (→ direct auth login)                   │
 │       │                                                         │
 │       ▼                                                         │
-│  .env.test ← живой OAuth-токен          ⛔ gitignored           │
+│  ~/.direct-cli/auth.json ← живой OAuth-токен    ⛔ вне репо      │
 │       │                                                         │
 │       ▼                                                         │
 │  pytest --record                                                │
@@ -821,7 +821,6 @@ def sanitize(recordings_dir: Path):
 | Bearer-токен | `Bearer\s+[A-Za-z0-9_-]{20,}` | `Bearer AQAAAACy1C6Z...` |
 | Refresh-токен | `\d+:[A-Za-z0-9_-]{10,}:` | `1:GN686QVt0mmak...` |
 | Client secret | `"client_secret"\s*:\s*"[^"]{6,}"` | `"client_secret": "a1b2c3"` |
-| Client ID (реальный) | Сверка с `YANDEX_CLIENT_ID` из `.env.test.example` | Совпадение → утечка |
 | Base64 credentials | `Basic\s+[A-Za-z0-9+/=]{20,}` | `Basic YWJjMTIz...` |
 
 #### 2. Коммерческие данные (WARNING — блокирует коммит)
@@ -832,7 +831,6 @@ def sanitize(recordings_dir: Path):
 | Телефоны | `\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}` | `+7 (495) 123-45-67` |
 | Email-адреса | `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}` | `manager@company.ru` |
 | ИНН | `"\bInn\b".*\b\d{10,12}\b` | `"Inn": "7707083893"` |
-| Логин аккаунта | Сверка с `YANDEX_LOGIN` из `.env.test.example` | `ksamatadirect` |
 
 #### 3. Структурная валидация (INFO)
 

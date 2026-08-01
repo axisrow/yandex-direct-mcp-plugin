@@ -21,7 +21,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 | All tests (cassettes, no token) | `pytest` |
 | Single test | `pytest tests/test_campaigns.py::test_campaigns_list -v` |
 | Mock edge-case tests | `pytest -m mocks` |
-| Integration tests (needs `.env.test`) | `pytest -m integration` |
+| Integration tests (needs `.env` + a `direct` auth profile) | `pytest -m integration` |
 | Record cassettes | `pytest --record` |
 | Sanitize / audit cassettes | `python -m tests.sanitize` · `python -m tests.audit` |
 | Lint / format | `ruff check .` · `ruff format .` |
@@ -51,6 +51,8 @@ Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCK
 ## Testing
 
 Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, no network), **mocks** (`-m mocks`, patch `subprocess.run` for unreproducible edges), **integration** (`-m integration`, live token). Cassette lifecycle: record → sanitize (strip secrets/PII) → audit → commit → replay. Some v2 tools (`advideos_*`, `*_set_auto`, `retargeting_update`) are mock-only pending cassette recording.
+
+**Two cassette layers, two owners.** The plugin's `tests/recordings/` cassettes capture `direct` subprocess output (stdout/returncode) — that's this repo's responsibility, recorded via `pytest --record` against a live `direct` auth profile. HTTP-level API cassettes (VCR/yaml against Yandex.Direct itself) belong to `axisrow/direct-cli` (`tests/cassettes/`, recorded upstream) — the plugin never calls the live API to produce or refresh them, per the CLI-as-transport-boundary rule above. A tool with no plugin-level cassette but full CLI-level coverage is not blocked on this repo; gaps get filed upstream in `direct-cli`. There is no `.env.test` in this repo — local secrets live in `.env`, and live-mode auth resolves through `direct` profiles (`~/.direct-cli/auth.json`).
 
 ## Key Conventions
 
