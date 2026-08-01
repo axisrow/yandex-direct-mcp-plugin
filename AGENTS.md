@@ -16,7 +16,7 @@ The default test flow replays JSON cassettes instead of calling the API. Record 
 Recent history follows Conventional Commit style, for example `fix: ...`, `refactor(auth): ...`, and issue-linked subjects such as `(#40)`. Keep commits focused and imperative. PRs should describe user-visible behavior, note auth or cassette changes, link the issue when applicable, and include command results for `pytest`, `ruff`, and `mypy`. Add screenshots only when updating docs or plugin UX text that benefits from visual context.
 
 ## Security & Configuration Tips
-Keep local secrets in `.env` or generated test files such as `.env.test`, and never commit them. OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`; tests should isolate `HOME` or the auth store path via `tmp_path` when they inspect profile state.
+Keep local secrets in `.env`, and never commit them. OAuth tokens are stored as direct auth profiles, normally in `~/.direct-cli/auth.json`; tests should isolate `HOME` or the auth store path via `tmp_path` when they inspect profile state.
 
 ## Publishing to the Marketplace
 Run `./scripts/update-version.sh VERSION` to update all plugin version fields (`pyproject.toml`, `.claude-plugin/plugin.json`, `.agents/plugins/marketplace.json`, and the bundled Codex plugin manifest), then propagate that version into `~/Projects/plugin-marketplace/.claude-plugin/marketplace.json`, commit, and push the marketplace repo. The version argument is required.

@@ -1,7 +1,8 @@
 """Cassette-based tests for ads mutating tools (issue #261, Phase 1 harness).
 
 Phase 1 (this file): test harness with skip-on-missing-cassette.
-Phase 2 (after .env.test): record cassettes.
+Phase 2: record cassettes against a live `direct` auth profile (`.env` +
+`~/.direct-cli/auth.json`) — no `.env.test` involved.
 
 WARNING — SAFETY (review #264): these tests mutate a real Yandex.Direct
 account when run live, so the suite carries ``pytest.mark.live_unsafe``
@@ -19,7 +20,8 @@ test, or (b) patch the fixture's record branch to intercept
 expecting cassettes — track in #261 Phase 2.
 
 Phase 2 target workflow (after the record-mode fix above):
-    1. Fill .env.test with YANDEX_OAUTH_TOKEN + TEST_*_ID
+    1. Set up a live `direct` auth profile (`.env` + `direct auth login`)
+       and export TEST_*_ID
     2. pytest tests/test_ads_mutate_cassettes.py --run-live-unsafe --record
        (add/verify/rollback per test, disposable resources, finally-cleanup)
     3. python -m tests.sanitize

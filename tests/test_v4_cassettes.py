@@ -3,7 +3,14 @@
 Phase 1 (this file): test harness with skip-on-missing-cassette, mirrors the
 ads/adgroups mutate harness from #261 Phase 1 (tests/test_ads_mutate_cassettes.py,
 merged in #264).
-Phase 2 (after .env.test / a live OAuth token is available): record cassettes.
+
+Cassettes here are subprocess-level (`direct` stdout/returncode), recorded
+by this repo. That's a different layer from `direct-cli`'s own HTTP-level
+VCR cassettes (`axisrow/direct-cli` tests/cassettes/) — the CLI already has
+readonly coverage for some v4 methods there (v4tags_get_campaigns,
+v4events_get_events_log, v4goals_get_stat_goals, v4forecast_list,
+v4wordstat_list_reports). Gaps in that upstream layer are tracked in
+direct-cli, not here (see #260).
 
 Only READONLY v4 Live tools are covered here. Mutating tools
 (v4forecast_create/delete, v4wordstat_create/delete_report, v4adimage_set,
@@ -12,7 +19,7 @@ v4tags_update_campaigns/update_banners) and financial tools
 see tests/test_v4_mocks.py (or equivalent) for those.
 
 Phase 2 target workflow:
-    1. Fill .env.test with YANDEX_OAUTH_TOKEN (+ any TEST_*_ID needed)
+    1. Set up a live `direct` auth profile (`.env` + `direct auth login`)
     2. pytest tests/test_v4_cassettes.py --record
        (each test call hits the live API and cli_recorder saves a cassette)
     3. python -m tests.sanitize
