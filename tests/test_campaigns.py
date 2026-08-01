@@ -688,13 +688,13 @@ class TestCampaignsFamilyDictGrouping:
 
     def test_registry_members_are_real_cli_options(self):
         """Every grouped member name must be an actual CAMPAIGN_MUTATION_OPTIONS flag."""
-        from server.tools.campaigns import (
-            _CAMPAIGN_FAMILY_DICT_REGISTRY,
+        from server.tools.campaigns_options import (
+            CAMPAIGN_FAMILY_DICT_REGISTRY,
             CAMPAIGN_MUTATION_OPTIONS,
         )
 
         known = {opt.name for opt in CAMPAIGN_MUTATION_OPTIONS}
-        for _, members in _CAMPAIGN_FAMILY_DICT_REGISTRY:
+        for _, members in CAMPAIGN_FAMILY_DICT_REGISTRY:
             for member in members:
                 assert member in known, member
 
