@@ -60,7 +60,7 @@ def v4forecast_list() -> dict | list[dict]:
     description="Get a ready v4 Live budget forecast by ID via GetForecast. Call tool_help('v4forecast_get') for parameters.",
 )
 @handle_cli_errors
-def v4forecast_get(forecast_id: int) -> dict | list[dict]:
+def v4forecast_get(forecast_id: str) -> dict | list[dict]:
     """Get a ready v4 Live budget forecast via GetForecast.
 
     Args:
@@ -83,7 +83,7 @@ def v4forecast_get(forecast_id: int) -> dict | list[dict]:
     description="Delete a v4 Live budget forecast by ID via DeleteForecastReport. Call tool_help('v4forecast_delete') for parameters.",
 )
 @handle_cli_errors
-def v4forecast_delete(forecast_id: int, dry_run: bool = False) -> dict | list[dict]:
+def v4forecast_delete(forecast_id: str, dry_run: bool = False) -> dict | list[dict]:
     """Delete a v4 Live budget forecast via DeleteForecastReport.
 
     Args:

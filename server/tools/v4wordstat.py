@@ -58,7 +58,7 @@ def v4wordstat_list_reports(dry_run: bool = False) -> dict | list[dict]:
     description="Get a ready v4 Live Wordstat report by ID via GetWordstatReport. Call tool_help('v4wordstat_get_report') for parameters.",
 )
 @handle_cli_errors
-def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[dict]:
+def v4wordstat_get_report(report_id: str, dry_run: bool = False) -> dict | list[dict]:
     """Get a ready v4 Live Wordstat report via GetWordstatReport.
 
     Args:
@@ -75,7 +75,7 @@ def v4wordstat_get_report(report_id: int, dry_run: bool = False) -> dict | list[
 )
 @handle_cli_errors
 def v4wordstat_delete_report(
-    report_id: int, dry_run: bool = False
+    report_id: str, dry_run: bool = False
 ) -> dict | list[dict]:
     """Delete a v4 Live Wordstat report via DeleteWordstatReport.
 
