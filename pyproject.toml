@@ -42,6 +42,19 @@ line-length = 88
 #   EXE001  shebang without +x — audit_wsdl.py is `python -m`-style, not +x.
 ignore = ["BLE001", "PLW1510", "DTZ011", "SIM117", "EXE001"]
 
+[tool.ruff.lint.per-file-ignores]
+# E402 (import not at top of file) is intentional in these three entrypoints:
+# each needs `sys.path.insert(...)` to run before importing the local package
+# (dual-import guard in the two main.py, script-path bootstrap in audit_wsdl.py),
+# and the two main.py additionally register ~40 `import server.tools.*` after
+# `mcp = FastMCP(...)` — those imports register tools via side effect and
+# require the already-constructed `mcp` instance to exist first. Reordering
+# would break the server at import time; see CLAUDE.md's dual-channel-layout
+# note for why the two main.py copies both need this (they must stay in sync).
+"server/main.py" = ["E402"]
+"plugins/yandex-direct/server/main.py" = ["E402"]
+"scripts/audit_wsdl.py" = ["E402"]
+
 [tool.pytest.ini_options]
 markers = [
     "mocks: tests using unittest.mock instead of cassettes",
