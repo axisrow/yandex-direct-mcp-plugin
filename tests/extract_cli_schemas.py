@@ -195,7 +195,12 @@ def extract(cassettes: Path, out: Path, stub_dir: Path) -> int:
     for cassette_id, argv in sorted(READ_CASES.items()):
         cassette = cassettes / f"test_read_command[{cassette_id}].yaml"
         if not cassette.exists():
-            print(f"SKIP {cassette_id}: кассета не найдена ({cassette})")
+            # Не SKIP: пропавшая (переименованная выше по течению) кассета
+            # оставила бы на диске эталон от прошлого прогона, а тест считает
+            # эталоны истиной и подгонять их запрещено. Протухший эталон —
+            # худший режим отказа, поэтому это ошибка, а не пропуск.
+            print(f"FAIL {cassette_id}: кассета не найдена ({cassette})")
+            failures += 1
             continue
 
         env = dict(

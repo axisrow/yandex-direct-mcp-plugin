@@ -71,12 +71,12 @@ TOOL_TO_CASSETTE: dict[str, str] = {
     "feeds_list": "feeds_get",
     "leads_list": "leads_get",
     "businesses_list": "businesses_get",
-    "turbopages_list": "turbopages_get",
-    "keywordbids_list": "keywordbids_get",
-    "negativekeywordsharedsets_list": "negativekeywordsharedsets_get",
-    "smartadtargets_list": "smartadtargets_get",
-    "dynamicads_list": "dynamicads_get",
-    "audiencetargets_list": "audiencetargets_get",
+    "turbo_pages_list": "turbopages_get",
+    "keyword_bids_list": "keywordbids_get",
+    "negative_keyword_shared_sets_list": "negativekeywordsharedsets_get",
+    "smart_ad_targets_list": "smartadtargets_get",
+    "dynamic_ads_list": "dynamicads_get",
+    "audience_targets_list": "audiencetargets_get",
     "adextensions_list": "adextensions_get",
     "adimages_list": "adimages_get",
     "creatives_list": "creatives_get",
@@ -260,6 +260,64 @@ def test_every_mapped_tool_has_a_schema() -> None:
         if not (SCHEMAS_DIR / f"{cassette_id}.json").exists()
     )
     assert not missing, f"нет эталонных схем: {missing}"
+
+
+# Тулы, у которых нет ни одной литеральной мок-фикстуры: их тесты передают
+# в mock_runner() модульную константу (SAMPLE_KEYWORDS, mock_sitelinks, ...),
+# а её AST статически не развернуть. Это осознанный пропуск, а не дыра.
+TOOLS_WITHOUT_LITERAL_MOCKS = {
+    "keywords_list",
+    "sitelinks_list",
+    "vcards_list",
+    "adextensions_list",
+    "adimages_list",
+    "creatives_list",
+    "strategies_list",
+    "v4forecast_list",
+    "changes_check",
+    "changes_checkdict",
+}
+
+
+def test_no_orphan_schemas() -> None:
+    """Каждый закоммиченный эталон соответствует кейсу снятия.
+
+    Осиротевший файл — признак, что кассету выше по течению переименовали
+    или удалили, а эталон остался протухшим. Тест считает эталоны истиной,
+    поэтому такой файл должен обнаруживаться, а не тихо переживать прогоны.
+    """
+    from tests.extract_cli_schemas import READ_CASES
+
+    orphans = sorted(
+        path.stem for path in SCHEMAS_DIR.glob("*.json") if path.stem not in READ_CASES
+    )
+    assert not orphans, (
+        f"эталоны без кейса в READ_CASES: {orphans}. "
+        "Кассету переименовали/удалили выше по течению? Пересними схемы."
+    )
+
+
+def test_every_mapped_tool_name_is_real() -> None:
+    """Каждый ключ карты — имя существующего тула, реально дающее сайты.
+
+    Эта проверка появилась из-за конкретного бага: шесть ключей были
+    выведены из cassette_id (``turbopages_list``) вместо чтения
+    ``server/tools`` (``turbo_pages_list``). Такие ключи не совпадают ни с
+    одним вызовом, поэтому молча покрывают ноль сайтов — тест зелёный, а
+    покрытия нет. Именно так осталось незамеченным расхождение
+    ``{"turboPages": []}`` в ``tests/test_turbo_pages.py``.
+    """
+    covered = {tool for tool, _, _, _ in MOCK_SITES}
+    dead = sorted(
+        tool
+        for tool in TOOL_TO_CASSETTE
+        if tool not in covered and tool not in TOOLS_WITHOUT_LITERAL_MOCKS
+    )
+    assert not dead, (
+        f"ключи карты не дали ни одного сайта: {dead}. "
+        "Либо имя тула написано неверно (сверь с server/tools/), либо у тула "
+        "нет литеральных моков — тогда внеси его в TOOLS_WITHOUT_LITERAL_MOCKS."
+    )
 
 
 # ── Мутации ────────────────────────────────────────────────────────────────
