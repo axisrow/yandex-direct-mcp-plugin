@@ -7,11 +7,11 @@ from tests.helpers import mock_runner
 
 
 def test_advideos_get():
-    runner = mock_runner({"Videos": []})
+    runner = mock_runner([])
     with patch("server.tools.advideos.get_runner", return_value=runner):
         result = advideos_get(ids="1,2")
 
-    assert result == {"Videos": []}
+    assert result == []
     runner.run_json.assert_called_once_with(
         ["advideos", "get", "--format", "json", "--ids", "1,2"]
     )

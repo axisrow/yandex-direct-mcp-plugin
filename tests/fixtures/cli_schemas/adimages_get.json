@@ -1,0 +1,8 @@
+{
+  "cassette_id": "adimages_get",
+  "argv": [
+    "adimages",
+    "get"
+  ],
+  "schema": []
+}

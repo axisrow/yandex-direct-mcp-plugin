@@ -1,0 +1,8 @@
+{
+  "cassette_id": "feeds_get",
+  "argv": [
+    "feeds",
+    "get"
+  ],
+  "schema": []
+}

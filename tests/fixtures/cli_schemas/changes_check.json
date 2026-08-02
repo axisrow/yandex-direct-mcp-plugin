@@ -1,0 +1,22 @@
+{
+  "cassette_id": "changes_check",
+  "argv": [
+    "changes",
+    "check",
+    "--campaign-ids",
+    "700012672",
+    "--timestamp",
+    "2026-05-29T00:00:00Z"
+  ],
+  "schema": {
+    "result": {
+      "Modified": {},
+      "NotFound": {
+        "CampaignIds": [
+          "int"
+        ]
+      },
+      "Timestamp": "str"
+    }
+  }
+}

@@ -39,7 +39,7 @@ class TestClientsGet:
 
     def test_get_client_trims_ids(self):
         """Test client IDs are normalized before argv construction."""
-        runner = mock_runner({"Clients": []})
+        runner = mock_runner([])
 
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_get(ids=" 123 ")
@@ -50,7 +50,7 @@ class TestClientsGet:
 
     def test_get_empty_clients(self):
         """Test with no clients."""
-        mock_result = {"Clients": []}
+        mock_result = []
         with patch(
             "server.tools.clients.get_runner",
             return_value=mock_runner(mock_result),
@@ -120,7 +120,7 @@ class TestClientsUpdate:
 
     def test_get_client_ignores_blank_ids(self):
         """Test blank ids behave like no filter."""
-        runner = mock_runner({"Clients": []})
+        runner = mock_runner([])
         with patch("server.tools.clients.get_runner", return_value=runner):
             clients_get(ids="   ")
             call_args = runner.run_json.call_args[0][0]

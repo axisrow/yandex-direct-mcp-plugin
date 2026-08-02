@@ -1,0 +1,32 @@
+{
+  "cassette_id": "dictionaries_get",
+  "argv": [
+    "dictionaries",
+    "get",
+    "--names",
+    "Currencies,GeoRegions"
+  ],
+  "schema": {
+    "result": {
+      "Currencies": [
+        {
+          "Currency": "str",
+          "Properties": [
+            {
+              "Name": "str",
+              "Value": "str"
+            }
+          ]
+        }
+      ],
+      "GeoRegions": [
+        {
+          "GeoRegionId": "int",
+          "GeoRegionName": "str",
+          "GeoRegionType": "str",
+          "ParentId": "int"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "cassette_id": "advideos_get",
+  "argv": [
+    "advideos",
+    "get",
+    "--ids",
+    "1122065647"
+  ],
+  "schema": []
+}

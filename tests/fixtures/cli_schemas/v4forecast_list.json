@@ -1,0 +1,8 @@
+{
+  "cassette_id": "v4forecast_list",
+  "argv": [
+    "v4forecast",
+    "list"
+  ],
+  "schema": []
+}

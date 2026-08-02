@@ -1,0 +1,10 @@
+{
+  "cassette_id": "dynamicfeedadtargets_get",
+  "argv": [
+    "dynamicfeedadtargets",
+    "get",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": []
+}

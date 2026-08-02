@@ -1,0 +1,10 @@
+{
+  "cassette_id": "creatives_get",
+  "argv": [
+    "creatives",
+    "get",
+    "--ids",
+    "1"
+  ],
+  "schema": []
+}

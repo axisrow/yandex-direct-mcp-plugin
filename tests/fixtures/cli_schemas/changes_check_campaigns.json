@@ -1,0 +1,14 @@
+{
+  "cassette_id": "changes_check_campaigns",
+  "argv": [
+    "changes",
+    "check-campaigns",
+    "--timestamp",
+    "2026-05-29T00:00:00Z"
+  ],
+  "schema": {
+    "result": {
+      "Timestamp": "str"
+    }
+  }
+}

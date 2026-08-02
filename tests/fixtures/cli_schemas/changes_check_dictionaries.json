@@ -1,0 +1,12 @@
+{
+  "cassette_id": "changes_check_dictionaries",
+  "argv": [
+    "changes",
+    "check-dictionaries"
+  ],
+  "schema": {
+    "result": {
+      "Timestamp": "str"
+    }
+  }
+}

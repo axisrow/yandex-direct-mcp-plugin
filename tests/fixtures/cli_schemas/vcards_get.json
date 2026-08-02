@@ -1,0 +1,16 @@
+{
+  "cassette_id": "vcards_get",
+  "argv": [
+    "vcards",
+    "get"
+  ],
+  "schema": [
+    {
+      "CampaignId": "int",
+      "City": "str",
+      "CompanyName": "str",
+      "Country": "str",
+      "Id": "int"
+    }
+  ]
+}
