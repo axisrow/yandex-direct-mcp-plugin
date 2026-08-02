@@ -61,6 +61,8 @@ TOOL_TO_CASSETTE: dict[str, str] = {
     "campaigns_list": "campaigns_get",
     "adgroups_list": "adgroups_get",
     "ads_list": "ads_get",
+    "bids_list": "bids_get",
+    "dynamic_feed_ad_targets_list": "dynamicfeedadtargets_get",
     "keywords_list": "keywords_get",
     "clients_get": "clients_get",
     "advideos_get": "advideos_get",
@@ -294,6 +296,69 @@ def test_no_orphan_schemas() -> None:
     assert not orphans, (
         f"эталоны без кейса в READ_CASES: {orphans}. "
         "Кассету переименовали/удалили выше по течению? Пересними схемы."
+    )
+
+
+# Эталоны, снятые впрок: команда есть в direct-cli, а тула-потребителя в
+# плагине пока нет. Держим схему (пригодится, когда тул появится), но явно
+# помечаем — иначе «схема есть, а сверять нечем» выглядит как покрытие.
+# Сейчас пусто: на каждый снятый эталон в карте есть тул.
+SCHEMAS_WITHOUT_TOOLS: set[str] = set()
+
+
+def test_no_unused_schemas() -> None:
+    """Каждый эталон либо используется картой, либо явно помечен как запасной.
+
+    Codex-ревью поймало ровно этот разрыв: ``bids_get`` и
+    ``dynamicfeedadtargets_get`` были сняты и закоммичены, но ни один ключ
+    карты на них не ссылался — схемы лежали мёртвым грузом и ничего не
+    проверяли, хотя выглядели как покрытие.
+    """
+    used = set(TOOL_TO_CASSETTE.values()) | SCHEMAS_WITHOUT_TOOLS
+    unused = sorted(
+        path.stem for path in SCHEMAS_DIR.glob("*.json") if path.stem not in used
+    )
+    assert not unused, (
+        f"эталоны, на которые никто не ссылается: {unused}. "
+        "Добавь тул в TOOL_TO_CASSETTE или внеси схему в SCHEMAS_WITHOUT_TOOLS."
+    )
+
+
+def _real_tool_names() -> set[str]:
+    """Публичные имена, реально экспортируемые модулями ``server.tools``."""
+    import importlib
+    import pkgutil
+
+    import server.tools as tools_pkg
+
+    names: set[str] = set()
+    for module in pkgutil.iter_modules(tools_pkg.__path__):
+        imported = importlib.import_module(f"server.tools.{module.name}")
+        names |= {name for name in dir(imported) if not name.startswith("_")}
+    return names
+
+
+def test_mapped_names_exist_in_server_tools() -> None:
+    """Имена в карте и в allowlist существуют в ``server.tools``.
+
+    Прямой оракул вместо косвенного. ``test_every_mapped_tool_name_is_real``
+    ловит опечатку по факту «ключ не дал сайтов», но его же сообщение об
+    ошибке предлагает лекарство — внести имя в ``TOOLS_WITHOUT_LITERAL_MOCKS``.
+    Без этой проверки опечатку можно замести туда, и guard замолчит: мутация
+    (``turbopagez_list`` в обоих местах) проходила все тесты зелёными, снова
+    спрятав расхождение ``turbo_pages``. Импорт — оракул, который так обойти
+    нельзя.
+    """
+    real = _real_tool_names()
+    unknown = sorted(
+        name
+        for name in set(TOOL_TO_CASSETTE) | TOOLS_WITHOUT_LITERAL_MOCKS
+        if name not in real
+    )
+    assert not unknown, (
+        f"имена, которых нет в server.tools: {unknown}. "
+        "Сверь написание с server/tools/ — имена тулов в snake_case "
+        "(turbo_pages_list, а не turbopages_list)."
     )
 
 
