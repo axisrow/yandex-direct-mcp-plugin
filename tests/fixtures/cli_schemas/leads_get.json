@@ -1,0 +1,10 @@
+{
+  "cassette_id": "leads_get",
+  "argv": [
+    "leads",
+    "get",
+    "--turbo-page-ids",
+    "1"
+  ],
+  "schema": []
+}

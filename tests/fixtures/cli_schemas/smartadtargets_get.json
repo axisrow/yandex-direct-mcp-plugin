@@ -1,0 +1,10 @@
+{
+  "cassette_id": "smartadtargets_get",
+  "argv": [
+    "smartadtargets",
+    "get",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": []
+}

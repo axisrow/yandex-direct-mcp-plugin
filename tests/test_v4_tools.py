@@ -59,11 +59,11 @@ def test_balance_get_passes_email_shaped_logins_to_direct_unchanged():
 
 
 def test_v4goals_get_stat_goals():
-    runner = mock_runner({"Goals": []})
+    runner = mock_runner([])
     with patch("server.tools.v4goals.get_runner", return_value=runner):
         result = v4goals_get_stat_goals(campaign_ids=" 123,456 ")
 
-    assert result == {"Goals": []}
+    assert result == []
     runner.run_json.assert_called_once_with(
         [
             "v4goals",
@@ -105,11 +105,11 @@ def test_v4goals_retargeting_requires_campaign_ids():
 
 
 def test_v4tags_get_campaigns():
-    runner = mock_runner({"Campaigns": []})
+    runner = mock_runner([{"CampaignID": 123, "Tags": []}])
     with patch("server.tools.v4tags.get_runner", return_value=runner):
         result = v4tags_get_campaigns(campaign_ids=" 123,456 ")
 
-    assert result == {"Campaigns": []}
+    assert result == [{"CampaignID": 123, "Tags": []}]
     runner.run_json.assert_called_once_with(
         [
             "v4tags",

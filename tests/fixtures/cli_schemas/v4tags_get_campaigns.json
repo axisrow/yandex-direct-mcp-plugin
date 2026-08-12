@@ -1,0 +1,15 @@
+{
+  "cassette_id": "v4tags_get_campaigns",
+  "argv": [
+    "v4tags",
+    "get-campaigns",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": [
+    {
+      "CampaignID": "int",
+      "Tags": []
+    }
+  ]
+}

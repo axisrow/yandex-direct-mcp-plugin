@@ -1,0 +1,10 @@
+{
+  "cassette_id": "v4goals_get_stat_goals",
+  "argv": [
+    "v4goals",
+    "get-stat-goals",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": []
+}

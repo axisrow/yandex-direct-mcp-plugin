@@ -1,0 +1,10 @@
+{
+  "cassette_id": "strategies_get",
+  "argv": [
+    "strategies",
+    "get",
+    "--ids",
+    "1"
+  ],
+  "schema": []
+}

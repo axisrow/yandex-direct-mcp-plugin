@@ -20,7 +20,7 @@ class TestLeadsList:
             )
 
     def test_leads_list_trims_ids(self):
-        runner = mock_runner({"leads": []})
+        runner = mock_runner([])
         with patch("server.tools.leads.get_runner", return_value=runner):
             leads_list(turbo_page_ids=" 1,2 ")
         runner.run_json.assert_called_once_with(
@@ -32,7 +32,7 @@ class TestLeadsList:
         assert result["error"] == "missing_turbo_page_ids"
 
     def test_leads_list_full_argv(self):
-        runner = mock_runner({"leads": []})
+        runner = mock_runner([])
         with patch("server.tools.leads.get_runner", return_value=runner):
             leads_list(
                 turbo_page_ids="42",

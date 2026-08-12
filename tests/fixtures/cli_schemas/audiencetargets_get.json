@@ -1,0 +1,10 @@
+{
+  "cassette_id": "audiencetargets_get",
+  "argv": [
+    "audiencetargets",
+    "get",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": []
+}

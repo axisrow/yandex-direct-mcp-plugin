@@ -1,0 +1,8 @@
+{
+  "cassette_id": "v4wordstat_list_reports",
+  "argv": [
+    "v4wordstat",
+    "list-reports"
+  ],
+  "schema": []
+}

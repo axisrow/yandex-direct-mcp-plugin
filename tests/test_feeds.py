@@ -21,7 +21,7 @@ class TestFeedsList:
 
     def test_feeds_list_trims_ids_before_cli(self):
         """Test feed IDs are normalized before argv construction."""
-        runner = mock_runner({"feeds": []})
+        runner = mock_runner([])
 
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_list(ids=" 1 ")
@@ -32,7 +32,7 @@ class TestFeedsList:
 
     def test_feeds_list_no_ids(self):
         """Test listing all feeds without IDs."""
-        runner = mock_runner({"feeds": []})
+        runner = mock_runner([])
 
         with patch("server.tools.feeds.get_runner", return_value=runner):
             feeds_list()

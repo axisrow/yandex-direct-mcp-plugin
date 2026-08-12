@@ -1,0 +1,20 @@
+{
+  "cassette_id": "campaigns_get",
+  "argv": [
+    "campaigns",
+    "get"
+  ],
+  "schema": [
+    {
+      "ClientInfo": "str",
+      "DailyBudget": "null",
+      "EndDate": "null",
+      "Id": "int",
+      "Name": "str",
+      "StartDate": "str",
+      "State": "str",
+      "Status": "str",
+      "Type": "str"
+    }
+  ]
+}

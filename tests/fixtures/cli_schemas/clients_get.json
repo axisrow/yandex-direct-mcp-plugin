@@ -1,0 +1,15 @@
+{
+  "cassette_id": "clients_get",
+  "argv": [
+    "clients",
+    "get"
+  ],
+  "schema": [
+    {
+      "ClientId": "int",
+      "CountryId": "int",
+      "Currency": "str",
+      "Login": "str"
+    }
+  ]
+}

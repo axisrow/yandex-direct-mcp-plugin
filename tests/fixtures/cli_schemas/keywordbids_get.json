@@ -1,0 +1,10 @@
+{
+  "cassette_id": "keywordbids_get",
+  "argv": [
+    "keywordbids",
+    "get",
+    "--campaign-ids",
+    "700012672"
+  ],
+  "schema": []
+}
