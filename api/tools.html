@@ -644,8 +644,9 @@ AVERAGE_CPA_MULTIPLE_GOALS / PAY_FOR_CONVERSION_MULTIPLE_GOALS
 <li><p><strong>crr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional cost-revenue-ratio percentage for PAY_FOR_CONVERSION_CRR.</p></li>
 <li><p><strong>bid_ceiling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional bid ceiling in micro-units for the chosen
 CPA strategy.</p></li>
-<li><p><strong>/</strong> (<em>search_placement_search_results / search_placement_product_gallery</em>) – strategy_end_date / strategy_auto_continue: CpmBannerCampaign bidding
-strategy flags (money in micro-units).</p></li>
+<li><p><strong>/</strong> (<em>search_placement_search_results / search_placement_product_gallery</em>) – strategy_weekly_spend_limit / strategy_start_date / strategy_end_date /
+strategy_auto_continue: CpmBannerCampaign bidding strategy flags
+(money in micro-units).</p></li>
 <li><p><strong>/</strong> – dyn_network_options / smart_search_options / smart_network_options /
 unified_search_options / unified_network_options /
 mobile_search_options / mobile_network_options: Optional dicts
@@ -816,7 +817,8 @@ UnifiedCampaignPackageBiddingStrategyPlatformsFieldNames (optional).</p></li>
 *_cpm, *_cpv, *_pay_cpa, *_bid_ceiling, *_exploration_budget,
 *_exploration_min, *_exploration_min_budget, *_filter_average_cpa,
 *_filter_average_cpc, plus top-level budget, average_cpa, bid_ceiling,
-average_cpm, average_cpv, strategy_spend_limit) are in **micro-units*</em>:
+average_cpm, average_cpv, strategy_spend_limit, strategy_weekly_spend_limit)
+are in **micro-units*</em>:
 15 RUB = 15_000_000. The agent must convert user-supplied rubles before
 calling this tool — never ask the user to multiply by 1_000_000. CLI
 rejects 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p>
@@ -833,6 +835,12 @@ rejects 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p>
 <cite>dyn_network_profitability</cite>, <cite>dyn_network_roi_coef</cite> (these dyn_* four
 are plain integers per CLI, unlike their text_*/smart_* siblings).
 Pass these as-is — do NOT multiply by 1_000_000.</p>
+<p>CLI enforces strict WSDL parity: strategy-detail flags on the wrong
+campaign type are rejected with <cite>UsageError</cite> before any API call — the
+plugin does not duplicate these checks. In particular, <cite>cpm_strategy_options</cite>
+requires both <cite>campaign_type=”CPM_BANNER_CAMPAIGN”</cite> and
+<cite>network_strategy=”MANUAL_CPM”</cite> on the same call; CLI rejects the
+strategy-detail flags otherwise.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
