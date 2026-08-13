@@ -320,6 +320,13 @@ def campaigns_update(
     are plain integers per CLI, unlike their text_*/smart_* siblings).
     Pass these as-is — do NOT multiply by 1_000_000.
 
+    CLI enforces strict WSDL parity: strategy-detail flags on the wrong
+    campaign type are rejected with `UsageError` before any API call — the
+    plugin does not duplicate these checks. In particular, `cpm_strategy_options`
+    requires both `campaign_type="CPM_BANNER_CAMPAIGN"` and
+    `network_strategy="MANUAL_CPM"` on the same call; CLI rejects the
+    strategy-detail flags otherwise.
+
     Args:
         id: Campaign ID to update.
         name: Optional new campaign name.
