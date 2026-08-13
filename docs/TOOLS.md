@@ -1,10 +1,10 @@
-## MCP Tools (146 total) + 1 Prompt
+## MCP Tools (148 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
 WSDL/reports spec wins when there is drift.
 
-### Direct API tools (139)
+### Direct API tools (141)
 
 | Tool | Purpose |
 |---|---|
@@ -20,6 +20,8 @@ WSDL/reports spec wins when there is drift.
 | `adgroups_add` | Create ad group (single, or batch via `from_file`/`adgroups_json`) |
 | `adgroups_update` | Update ad group (single by id, or batch via `from_file`/`adgroups_json`) |
 | `adgroups_delete` | Delete ad groups |
+| `adgroups_suspend` | Suspend ad groups |
+| `adgroups_resume` | Resume suspended ad groups |
 | `ads_get` | List ads by campaign IDs |
 | `ads_add` | Create ad (single, or batch via `from_file`/`ads_json`) |
 | `ads_update` | Update ad (single by id, or batch via `from_file`/`ads_json`); `clear_image_hash` resets AdImageHash |

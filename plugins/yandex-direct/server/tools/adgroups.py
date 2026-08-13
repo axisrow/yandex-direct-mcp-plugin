@@ -379,3 +379,31 @@ def adgroups_delete(ids: str, dry_run: bool = False) -> dict:
         ids: Comma-separated ad group IDs (max 10).
     """
     return run_single_id_batch(get_runner(), "adgroups", "delete", ids, dry_run=dry_run)
+
+
+@mcp.tool(
+    description="Suspend (pause) serving ad groups by ID (max 10); reverse with adgroups_resume. Call tool_help('adgroups_suspend') for parameters.",
+)
+@handle_cli_errors
+def adgroups_suspend(ids: str, dry_run: bool = False) -> dict:
+    """Suspend ad groups.
+
+    Args:
+        ids: Comma-separated ad group IDs (max 10).
+    """
+    return run_single_id_batch(
+        get_runner(), "adgroups", "suspend", ids, dry_run=dry_run
+    )
+
+
+@mcp.tool(
+    description="Resume previously suspended ad groups by ID (max 10). Call tool_help('adgroups_resume') for parameters.",
+)
+@handle_cli_errors
+def adgroups_resume(ids: str, dry_run: bool = False) -> dict:
+    """Resume suspended ad groups.
+
+    Args:
+        ids: Comma-separated ad group IDs (max 10).
+    """
+    return run_single_id_batch(get_runner(), "adgroups", "resume", ids, dry_run=dry_run)
