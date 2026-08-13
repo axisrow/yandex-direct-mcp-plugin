@@ -58,7 +58,7 @@ Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, n
 
 - **Money is micro-units**: 15 RUB = 15_000_000. CLI 0.2.10+ rejects `0 < x < 100_000` with a "× 1_000_000?" hint.
 - **API batch limit: 10 IDs per request.** Some SelectionCriteria filters are stricter (dynamicads/smartadtargets `CampaignIds`=2, keywordbids=10); dry-run does not surface these.
-- Runtime pin: `direct-cli==0.4.3` in `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace).
+- Runtime pin: `direct-cli==0.5.2` in `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace).
 - `reports_custom(goal_ids=...)` adds `Conversions_<goal>_<attr>` / `CostPerConversion_<goal>_<attr>` columns; default attribution `LSC`.
 - Docs in Russian, code identifiers in English.
 

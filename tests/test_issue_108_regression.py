@@ -78,7 +78,7 @@ def test_claude_notes_use_supported_direct_cli_version() -> None:
     are not the canonical mention and stay as history.
     """
     notes = (REPO_ROOT / "CLAUDE.md").read_text()
-    assert "Runtime pin: `direct-cli==0.4.3`" in notes
+    assert "Runtime pin: `direct-cli==0.5.2`" in notes
     # Catch the old canonical mention if it ever returns.
     assert "Minimum required: `direct-cli>=" not in notes
 

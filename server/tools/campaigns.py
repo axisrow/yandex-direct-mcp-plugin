@@ -299,7 +299,8 @@ def campaigns_update(
     *_cpm, *_cpv, *_pay_cpa, *_bid_ceiling, *_exploration_budget,
     *_exploration_min, *_exploration_min_budget, *_filter_average_cpa,
     *_filter_average_cpc, plus top-level budget, average_cpa, bid_ceiling,
-    average_cpm, average_cpv, strategy_spend_limit) are in **micro-units**:
+    average_cpm, average_cpv, strategy_spend_limit, strategy_weekly_spend_limit)
+    are in **micro-units**:
     15 RUB = 15_000_000. The agent must convert user-supplied rubles before
     calling this tool — never ask the user to multiply by 1_000_000. CLI
     rejects 0 < x < 100_000 with a "did you mean × 1_000_000" hint.
@@ -518,9 +519,10 @@ def campaigns_add(
         crr: Optional cost-revenue-ratio percentage for PAY_FOR_CONVERSION_CRR.
         bid_ceiling: Optional bid ceiling in micro-units for the chosen
             CPA strategy.
-        average_cpm / average_cpv / strategy_spend_limit / strategy_start_date /
-            strategy_end_date / strategy_auto_continue: CpmBannerCampaign bidding
-            strategy flags (money in micro-units).
+        average_cpm / average_cpv / strategy_spend_limit /
+            strategy_weekly_spend_limit / strategy_start_date / strategy_end_date /
+            strategy_auto_continue: CpmBannerCampaign bidding strategy flags
+            (money in micro-units).
         text_search_options / text_network_options / dyn_search_options /
             dyn_network_options / smart_search_options / smart_network_options /
             unified_search_options / unified_network_options /

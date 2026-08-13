@@ -711,6 +711,33 @@ class TestCampaignsFamilyDictGrouping:
         assert argv[argv.index("--strategy-spend-limit") + 1] == "100000000"
         assert "notification_options" not in argv
 
+    def test_cpm_strategy_weekly_spend_limit_reaches_cli_for_add_and_update(self):
+        for fn, kwargs in (
+            (
+                campaigns_add,
+                {
+                    "name": "c",
+                    "start_date": "2026-01-01",
+                    "campaign_type": "CPM_BANNER_CAMPAIGN",
+                    "network_strategy": "MANUAL_CPM",
+                },
+            ),
+            (
+                campaigns_update,
+                {"id": 1},
+            ),
+        ):
+            runner = mock_runner({"Id": 1})
+            with patch("server.tools.campaigns.get_runner", return_value=runner):
+                fn(
+                    **kwargs,
+                    cpm_strategy_options={"strategy_weekly_spend_limit": 100_000_000},
+                )
+            argv = runner.run_json.call_args[0][0]
+            assert argv[argv.index("--strategy-weekly-spend-limit") + 1] == (
+                "100000000"
+            )
+
     def test_repeat_and_flag_members_preserved(self):
         argv = self._argv(
             campaigns_update,
