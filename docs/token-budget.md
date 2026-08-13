@@ -38,7 +38,7 @@ python -m tests.measure_tool_tokens --json   # полный JSON по всем �
 
 | Метрика | Значение |
 |---|---:|
-| Инструментов | 146 |
+| Инструментов | 147 |
 | **Суммарно токенов (спецификация)** | **40 792** |
 | из них descriptions | 4 522 (11%) |
 | из них JSON Schema параметров | 34 549 (85%) |
@@ -99,11 +99,11 @@ FastMCP генерирует `anyOf: [..., {"type":"null"}]` 200+ раз.
 
 Реализован управляемый tool surface ([#189](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/189)/[#190](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/190)/[#191](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/191)):
 можно включать/выключать группы инструментов и выбирать preset-профиль через
-переменные окружения. Дефолт — `full` (все 146 тулов, обратная совместимость).
+переменные окружения. Дефолт — `full` (все 147 тулов, обратная совместимость).
 
 | Профиль | Tools | Бюджет (approx `len/4`) | ~% от full |
 |---|--:|--:|--:|
-| `full` | 146 | 34 744 | 100% |
+| `full` | 147 | 34 744 | 100% |
 | `core` (read-only кампаний + auth) | 10 | 2 566 | 7% |
 | `analytics` (отчёты/справочники/прогнозы; без destructive/lifecycle — delete отчётов не выставляется) | 26 | ~3 600 | ~10% |
 | `campaign-editor` (read+mutate кампаний/групп/объявлений/ключей/ставок, без destructive, lifecycle и финансового движения денег) | 36 | ~16 300 | ~49% |

@@ -133,6 +133,9 @@ def test_reports_only_date_from():
 
 
 def test_reports_list_types():
+    # `reports list-types` is a reference command, but unlike the local
+    # `trackingparams`/`dictionaries list-names` commands it still emits JSON
+    # unconditionally and does not accept --format (direct-cli #578).
     expected_types = [
         "CAMPAIGN_PERFORMANCE_REPORT",
         "ADGROUP_PERFORMANCE_REPORT",

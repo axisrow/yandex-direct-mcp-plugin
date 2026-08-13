@@ -753,6 +753,20 @@ class TestRunJson:
             assert len(result) == 1
             assert result[0]["Id"] == 12345
 
+    def test_json_parse_reference_reports_list_types_without_format(self, runner):
+        """The reports reference command remains JSON-only after #578."""
+        mock_result = MagicMock()
+        mock_result.stdout = '["CAMPAIGN_PERFORMANCE_REPORT"]'
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            result = runner.run_json(["reports", "list-types"])
+            assert result == ["CAMPAIGN_PERFORMANCE_REPORT"]
+
     def test_scalar_json_response_is_wrapped(self, runner):
         mock_result = MagicMock()
         mock_result.stdout = "1"

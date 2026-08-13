@@ -11,7 +11,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - **MCP never calls Yandex.Direct directly** — always through `direct`, even to work around a missing/broken CLI feature. No `urllib`, raw HTTP, or `tapi-yandex-direct` imports. File upstream issues in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary. WSDL/Reports spec wins when CLI convenience names drift.
 - Machine-readable parity source: `server/contract.py` (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
-- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 146 tools across 41 modules, one module per service. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
+- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 147 tools across 42 modules, one module per service. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
 
 ## Commands
 
@@ -34,11 +34,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Python ≥ 3.11, no Node.js. Deps: `mcp`, `direct-cli`. Build config: `pyproject.toml` (PEP 621).
 - Auth (simplest first): set `YANDEX_DIRECT_TOKEN` in `~/.claude/settings.json` env, or run `auth_login`/`auth_setup` (saved to `~/.direct-cli/auth.json`). `direct-cli` resolves explicit env creds before the active profile.
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
-- Tool-surface selection (`server/config.py`, default = all 146): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 147): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-146 tools total (139 Direct API + 3 CLI helpers + 4 plugin) + the `oauth_login` prompt. **Canonical list: `server/contract.py`**; full tables in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists all.
+147 tools total (139 Direct API + 4 CLI helpers + 4 plugin) + the `oauth_login` prompt. **Canonical list: `server/contract.py`**; full tables in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists all.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 

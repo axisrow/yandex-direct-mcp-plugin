@@ -27,7 +27,7 @@ import tests.measure_tool_tokens as mtt
 _APPROX_COUNTER = ((lambda s: (len(s or "") + 3) // 4), "approx(len/4)")
 
 # Snapshot under approx(len/4) as of 2026-06-17 (see docs/token-budget.md):
-#   total ≈ 32,866 · descriptions ≈ 5,193 · 146 tools.
+#   total ≈ 32,866 · descriptions ≈ 5,193 · 147 tools.
 # Lowered 38,000 → 35,500 (#220-A, ads dicts) → 33,500 (#220-B, campaigns dicts).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).

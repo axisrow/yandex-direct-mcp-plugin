@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (146 tools)
+## Доступный MCP-контракт (147 tools)
 
 Контракт теперь следует иерархии:
 
@@ -64,6 +64,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 - `agencyclients_delete`
 - `dictionaries_list_names`
 - `reports_list_types`
+- `trackingparams`
 
 ### Plugin-only auth tools
 
