@@ -6,8 +6,7 @@ requires-python = ">=3.11"
 # changes (mcp is third-party; direct-cli is ours). Versions are kept in lockstep
 # with scripts/runtime-pins.env (single source of truth) by scripts/update-pins.sh;
 # tests/test_pins_consistency.py enforces alignment. Bump via the script, not by hand.
-dependencies = ["mcp==1.23.3", "direct-cli==0.5.1"]
-
+dependencies = ["mcp==1.23.3", "direct-cli==0.5.2"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff==0.16.0", "mypy", "pre-commit"]
 docs = ["sphinx", "sphinx-autodoc-typehints", "furo"]
