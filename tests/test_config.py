@@ -18,7 +18,7 @@ from server.contract import PUBLIC_CONTRACT
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 146
+    assert len(tool_names()) == 148
 
 
 def test_every_tool_has_exactly_one_action_group():

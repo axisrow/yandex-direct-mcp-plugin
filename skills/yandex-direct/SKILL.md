@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (146 tools)
+## Доступный MCP-контракт (148 tools)
 
 Контракт теперь следует иерархии:
 
@@ -48,7 +48,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Семейство | Канонические tools |
 |---|---|
 | Кампании | `campaigns_get/add/update/delete/archive/unarchive/suspend/resume` |
-| Группы / объявления / ключи | `adgroups_get/add/update/delete`, `ads_get/add/update/delete/moderate/suspend/resume/archive/unarchive`, `keywords_get/add/update/delete/suspend/resume/archive/unarchive` |
+| Группы / объявления / ключи | `adgroups_get/add/update/delete/suspend/resume`, `ads_get/add/update/delete/moderate/suspend/resume/archive/unarchive`, `keywords_get/add/update/delete/suspend/resume/archive/unarchive` |
 | Ставки | `keywordbids_get/set/set_auto`, `bids_get/set/set_auto`, `bidmodifiers_get/add/set/delete` |
 | Таргетинг | `audiencetargets_get/add/delete/suspend/resume/set_bids`, `retargeting_get/add/update/delete`, `dynamicads_get/add/delete/suspend/resume/set_bids`, `dynamicfeedadtargets_get/add/delete/suspend/resume/set_bids`, `smartadtargets_get/add/update/delete/suspend/resume/set_bids` |
 | Стратегии | `strategies_get/add/update/archive/unarchive` |

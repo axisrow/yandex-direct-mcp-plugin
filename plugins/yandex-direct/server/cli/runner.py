@@ -34,7 +34,6 @@ _VERSION_RE = re.compile(
 
 MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 5, 2)
 
-
 def _strip_ansi(text: str) -> str:
     """Remove ANSI color/style escape sequences from CLI output."""
     return _ANSI_ESCAPE_RE.sub("", text)
