@@ -109,13 +109,14 @@ CAMPAIGN_MUTATION_OPTIONS = (
     CliOption("search_placement_dynamic_places", "--search-placement-dynamic-places"),
     CliOption("search_placement_product_gallery", "--search-placement-product-gallery"),
     CliOption("search_placement_search_results", "--search-placement-search-results"),
-    # --- CpmBannerCampaign bidding strategy (6 flags) ---
+    # --- CpmBannerCampaign bidding strategy (7 flags) ---
     CliOption("average_cpm", "--average-cpm"),
     CliOption("average_cpv", "--average-cpv"),
     CliOption("strategy_auto_continue", "--strategy-auto-continue"),
     CliOption("strategy_end_date", "--strategy-end-date"),
     CliOption("strategy_spend_limit", "--strategy-spend-limit"),
     CliOption("strategy_start_date", "--strategy-start-date"),
+    CliOption("strategy_weekly_spend_limit", "--strategy-weekly-spend-limit"),
     # --- TextCampaign.BiddingStrategy.Search (13 flags) ---
     CliOption("text_search_average_cpc", "--text-search-average-cpc"),
     CliOption("text_search_clicks_per_week", "--text-search-clicks-per-week"),
@@ -518,6 +519,7 @@ CAMPAIGN_FAMILY_DICT_REGISTRY: tuple[tuple[str, tuple[str, ...]], ...] = (
             "strategy_end_date",
             "strategy_spend_limit",
             "strategy_start_date",
+            "strategy_weekly_spend_limit",
         ),
     ),
 )
