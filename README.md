@@ -8,13 +8,19 @@ Open-source · бесплатно · работает локально
 
 ## Быстрый старт
 
-**1. Установите плагин** в Claude Code:
+**1. Подключите маркетплейс** (один раз):
 
 ```
-/install axisrow/yandex-direct-mcp-plugin
+/plugin marketplace add etopro/plugin-marketplace
 ```
 
-**2. Авторизуйтесь** в Яндексе:
+**2. Установите плагин:**
+
+```
+/plugin install yandex-direct@plugin-marketplace
+```
+
+**3. Авторизуйтесь** в Яндексе:
 
 ```
 auth_login()
@@ -22,7 +28,7 @@ auth_login()
 
 Откроется браузер → войдите в Яндекс → токен сохранится автоматически.
 
-**3. Готово.** Пишите промпт:
+**4. Готово.** Пишите промпт:
 
 ```
 Покажи кампании за последнюю неделю, отключи объявления,
@@ -75,7 +81,7 @@ auth_login()
 
 | Платформа | Как подключить |
 |---|---|
-| **Claude Code** | `/install axisrow/yandex-direct-mcp-plugin` |
+| **Claude Code** | `/plugin marketplace add etopro/plugin-marketplace` → `/plugin install yandex-direct@plugin-marketplace` |
 | **Codex** | Маркетплейс-манифест: `.agents/plugins/marketplace.json` |
 | **ChatGPT / локальные LLM** | Любой MCP-клиент → `python -m server.main` (stdio) |
 | **Разработка** | `git clone` + `pip install -e ".[dev]"` |
