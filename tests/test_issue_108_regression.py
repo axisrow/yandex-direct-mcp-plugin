@@ -76,9 +76,21 @@ def test_claude_notes_use_supported_direct_cli_version() -> None:
     direct-cli==X.Y.Z" instead of "Minimum required: direct-cli>=X.Y.Z".
     Historical 0.4.x alignment sections from older breaking-changes notes
     are not the canonical mention and stay as history.
+
+    The expected version is read from scripts/runtime-pins.env (the single
+    source of truth per #223) rather than hardcoded, so this test tracks
+    scripts/update-pins.sh bumps instead of going stale.
     """
+    pin_file = (REPO_ROOT / "scripts" / "runtime-pins.env").read_text()
+    match = None
+    for line in pin_file.splitlines():
+        if line.startswith("DIRECT_CLI_VERSION="):
+            match = line.split("=", 1)[1]
+            break
+    assert match, "DIRECT_CLI_VERSION not found in scripts/runtime-pins.env"
+
     notes = (REPO_ROOT / "CLAUDE.md").read_text()
-    assert "Runtime pin: `direct-cli==0.4.3`" in notes
+    assert f"Runtime pin: `direct-cli=={match}`" in notes
     # Catch the old canonical mention if it ever returns.
     assert "Minimum required: `direct-cli>=" not in notes
 
