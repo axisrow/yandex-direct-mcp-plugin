@@ -379,3 +379,38 @@ def adgroups_delete(ids: str, dry_run: bool = False) -> dict:
         ids: Comma-separated ad group IDs (max 10).
     """
     return run_single_id_batch(get_runner(), "adgroups", "delete", ids, dry_run=dry_run)
+
+
+@mcp.tool(
+    description="Suspend (pause) serving ad groups by ID (max 10); reverse with adgroups_resume. Call tool_help('adgroups_suspend') for parameters.",
+)
+@handle_cli_errors
+def adgroups_suspend(ids: str, dry_run: bool = False) -> dict:
+    """Suspend ad groups.
+
+    Args:
+        ids: Comma-separated ad group IDs (max 10).
+    """
+    return run_single_id_batch(
+        get_runner(), "adgroups", "suspend", ids, dry_run=dry_run
+    )
+
+
+@mcp.tool(
+    description="Resume previously suspended ad groups by ID (max 10). WARNING: resumes ALL ads currently in each group, including ones suspended by hand — not just ones paused by adgroups_suspend. Call tool_help('adgroups_resume') for parameters.",
+)
+@handle_cli_errors
+def adgroups_resume(ids: str, dry_run: bool = False) -> dict:
+    """Resume suspended ad groups.
+
+    AdGroups has no resume method in the Yandex Direct API, so the CLI
+    emulates it via ads.get + ads.resume on every ad currently in the group
+    (direct-cli issue #573). This resumes ALL ads in the group, including
+    ones an operator suspended by hand before this call — the CLI does not
+    track which ads adgroups_suspend itself paused, so a mixed-status group
+    loses its manual suspensions.
+
+    Args:
+        ids: Comma-separated ad group IDs (max 10).
+    """
+    return run_single_id_batch(get_runner(), "adgroups", "resume", ids, dry_run=dry_run)
