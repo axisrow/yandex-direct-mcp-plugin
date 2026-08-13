@@ -2,9 +2,9 @@
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
-- CLI helper tools:   3
+- CLI helper tools:   4
 - Plugin tools:       4
-Total:              148
+Total:              149
 """
 
 from __future__ import annotations
@@ -195,6 +195,16 @@ CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "dictionaries": ("list_names",),
     "reports": ("list_types",),
 }
+
+CLI_HELPER_EXTRA_TOOLS: tuple[ContractTool, ...] = (
+    ContractTool(
+        public_name="trackingparams",
+        cli_service="trackingparams",
+        cli_method=None,
+        authority="cli-extra",
+        classification="cli_helper",
+    ),
+)
 
 # Reports-spec tools that share the same CLI subcommand (`direct reports get`)
 # but expose a different MCP-side parameter shape. These cannot live in
@@ -681,6 +691,7 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = (
         for service, methods in CLI_HELPER_SERVICE_METHODS.items()
         for method in methods
     ),
+    *CLI_HELPER_EXTRA_TOOLS,
     *REPORTS_SPEC_EXTRA_TOOLS,
     *V4_LIVE_CLI_TOOLS,
     *(
