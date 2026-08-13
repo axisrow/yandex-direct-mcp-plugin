@@ -1,10 +1,10 @@
 """Public MCP contract metadata aligned to the `direct` CLI surface.
 
 Tool count (derived from the structures below):
-- Direct API tools: 139
+- Direct API tools: 141
 - CLI helper tools:   4
 - Plugin tools:       4
-Total:              147
+Total:              149
 """
 
 from __future__ import annotations
@@ -112,7 +112,7 @@ class BlockedV4Method:
 
 DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "adextensions": ("get", "add", "delete"),
-    "adgroups": ("get", "add", "update", "delete"),
+    "adgroups": ("get", "add", "update", "delete", "suspend", "resume"),
     "adimages": ("get", "add", "delete"),
     "ads": (
         "get",

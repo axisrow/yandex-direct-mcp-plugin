@@ -14,7 +14,7 @@ mcp = FastMCP("yandex-direct-mcp", json_response=True)
 
 # Tool registration happens via imports
 # Apply the configured tool surface (#149): with no YANDEX_DIRECT_TOOL_* env the
-# default is the full 147-tool surface, so this is a no-op unless a profile or
+# default is the full tool surface, so this is a no-op unless a profile or
 # enable/disable rules are set.
 import os
 

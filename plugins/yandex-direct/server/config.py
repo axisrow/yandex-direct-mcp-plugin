@@ -227,7 +227,7 @@ class ToolSurfaceConfig:
 
 
 # --- preset profiles --------------------------------------------------------
-# "full" is the default 147-tool surface (backward compatible). The scenario
+# "full" is the default tool surface (backward compatible). The scenario
 # profiles are allow-list configs (default_enabled=False). Auth / tool_help are
 # always included as tool-level enables so any profile can still authenticate
 # and look up docs (tool-level beats group-level, so they survive a disabled
@@ -346,7 +346,7 @@ def apply_tool_surface(mcp, config: ToolSurfaceConfig) -> list[str]:
     """Remove disabled tools from a FastMCP instance; return removed names.
 
     Uses the public ``remove_tool``. A ``full`` config removes nothing, so the
-    default 147-tool surface is untouched.
+    default tool surface is untouched.
 
     Fail-safe: if the config would remove *every* registered tool — almost
     always a typo in an allow-list env var (e.g. ``YANDEX_DIRECT_ENABLED_GROUPS``

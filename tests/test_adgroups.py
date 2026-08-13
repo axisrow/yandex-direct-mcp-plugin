@@ -1,11 +1,13 @@
 """Tests for ad group MCP tools."""
 
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from server.tools.adgroups import (
     adgroups_add,
     adgroups_delete,
     adgroups_list,
+    adgroups_resume,
+    adgroups_suspend,
     adgroups_update,
 )
 from tests.helpers import mock_runner
@@ -246,4 +248,42 @@ class TestAdgroupsDelete:
         ids = ",".join(str(i) for i in range(1, 12))
         result = adgroups_delete(ids=ids)
         assert "error" in result
+        assert result["error"] == "batch_limit"
+
+
+class TestAdgroupsLifecycleOperations:
+    """Tests for suspending and resuming ad groups."""
+
+    def test_adgroups_suspend_success(self):
+        runner = mock_runner({"success": True})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_suspend(ids="111,222")
+            assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["adgroups", "suspend", "--id", "111"]),
+                    call(["adgroups", "suspend", "--id", "222"]),
+                ]
+            )
+
+    def test_adgroups_suspend_batch_limit(self):
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = adgroups_suspend(ids=ids)
+        assert result["error"] == "batch_limit"
+
+    def test_adgroups_resume_success(self):
+        runner = mock_runner({"success": True})
+        with patch("server.tools.adgroups.get_runner", return_value=runner):
+            result = adgroups_resume(ids="111,222")
+            assert result["success"] is True
+            runner.run_json.assert_has_calls(
+                [
+                    call(["adgroups", "resume", "--id", "111"]),
+                    call(["adgroups", "resume", "--id", "222"]),
+                ]
+            )
+
+    def test_adgroups_resume_batch_limit(self):
+        ids = ",".join(str(i) for i in range(1, 12))
+        result = adgroups_resume(ids=ids)
         assert result["error"] == "batch_limit"
