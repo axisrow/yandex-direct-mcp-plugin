@@ -123,7 +123,7 @@ def dynamic_feed_ad_targets_add(
     description="Delete a dynamic feed ad target by ID. Call tool_help('dynamicfeedadtargets_delete') for parameters.",
 )
 @handle_cli_errors
-def dynamic_feed_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
+def dynamic_feed_ad_targets_delete(id: str, dry_run: bool = False) -> dict:
     """Delete a dynamic feed ad target.
 
     Args:

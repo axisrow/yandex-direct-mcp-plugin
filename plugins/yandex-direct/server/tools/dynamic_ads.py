@@ -105,7 +105,7 @@ def dynamic_ads_add(
     description="Delete a dynamic ad target (webpage filter) by ID. Call tool_help('dynamicads_delete') for parameters.",
 )
 @handle_cli_errors
-def dynamic_ads_delete(id: int, dry_run: bool = False) -> dict:
+def dynamic_ads_delete(id: str, dry_run: bool = False) -> dict:
     """Delete a dynamic ad target (webpage).
 
     Args:

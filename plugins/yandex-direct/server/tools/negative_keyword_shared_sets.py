@@ -108,7 +108,7 @@ def negative_keyword_shared_sets_update(
     description="Delete a shared negative keyword set by ID. Call tool_help('negativekeywordsharedsets_delete') for parameters.",
 )
 @handle_cli_errors
-def negative_keyword_shared_sets_delete(id: int, dry_run: bool = False) -> dict:
+def negative_keyword_shared_sets_delete(id: str, dry_run: bool = False) -> dict:
     """Delete a negative keyword shared set.
 
     Args:

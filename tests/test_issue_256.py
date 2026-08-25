@@ -121,9 +121,14 @@ ID_PARAMS = [
     ("strategies_archive", "id"),
     ("strategies_unarchive", "id"),
     ("negativekeywordsharedsets_update", "id"),
+    ("negativekeywordsharedsets_delete", "id"),
     ("vcards_add", "campaign_id"),
     ("v4tags_update_campaigns", "campaign_id"),
     ("agencyclients_update", "client_id"),
+    ("agencyclients_delete", "id"),
+    ("dynamicads_delete", "id"),
+    ("dynamicfeedadtargets_delete", "id"),
+    ("smartadtargets_delete", "id"),
 ]
 
 
@@ -158,6 +163,9 @@ NON_ID_INT_PARAMS = [
     ("strategies_update", "goal_id"),
     ("keywordbids_set", "search_bid"),
     ("vcards_add", "metro_station_id"),
+    ("campaigns_add", "counter_id"),
+    ("campaigns_add", "goal_id"),
+    ("strategies_add", "goal_id"),
 ]
 
 
@@ -172,6 +180,30 @@ def test_non_object_id_params_stay_integer(tool_name, param):
     assert "integer" in types, (
         f"{tool_name}.{param} should stay an integer (not an object ID) — the "
         f"int→str migration must not touch it. Types: {types}"
+    )
+
+
+def test_no_unclassified_scalar_id_param_is_integer():
+    """Audit every current scalar ``id``/``*_id`` input, not just a hand-picked list.
+
+    Dictionary IDs and bounded numeric selectors below intentionally remain
+    numeric. Every other object ID must cross an MCP host as a string.
+    """
+    allowed_numeric_ids = set(NON_ID_INT_PARAMS)
+    violations = []
+    for tool in asyncio.run(mcp.list_tools()):
+        for param, schema in tool.inputSchema.get("properties", {}).items():
+            if param != "id" and not param.endswith("_id"):
+                continue
+            if "integer" not in _schema_types(schema):
+                continue
+            key = (tool.name, param)
+            if key not in allowed_numeric_ids:
+                violations.append(key)
+
+    assert violations == [], (
+        "Unclassified integer ID params can be rounded by JavaScript MCP hosts: "
+        f"{violations}"
     )
 
 
@@ -337,7 +369,8 @@ def test_stdout_warnings_with_details_pass_through():
     runner = DirectCliRunner()
     with patch.object(runner, "run", return_value=_completed(json.dumps(payload))):
         result = runner.run_json(["ads", "add"])
-    assert result == payload
+    assert result[0]["Id"] == BIG_AD_ID_STR
+    assert result[0]["Warnings"] == payload[0]["Warnings"]
     assert result[0]["Warnings"][0]["Details"] == "Title2 was merged into Title"
 
 

@@ -114,7 +114,7 @@ def agency_clients_add(
     description="Remove a client from the agency (no real Direct API backing; kept for completeness). Call tool_help('agencyclients_delete') for parameters.",
 )
 @handle_cli_errors
-def agency_clients_delete(id: int) -> dict:
+def agency_clients_delete(id: str) -> dict:
     """Remove a client from an agency.
 
     Note: The Yandex Direct API does not actually support deleting
