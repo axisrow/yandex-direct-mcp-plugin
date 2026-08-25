@@ -12,10 +12,13 @@ commands. Profiles are stored separately from browser sessions in
 Masters browser authentication
 ------------------------------
 
-Campaign Wizard (Masters) has no Management API. Consequently,
-``masters_get`` and ``masters_targetactions_get`` use a Playwright browser
-session and are **not** authenticated by the API OAuth token, ``auth_login``,
-``auth_setup``, ``YANDEX_DIRECT_TOKEN``, or ``YANDEX_DIRECT_LOGIN``.
+Campaign Wizard (Masters) has no Management API. In plugin releases that expose
+``masters_get`` and ``masters_targetactions_get``, those tools therefore use a
+Playwright browser session and are **not** authenticated by the API OAuth token,
+``auth_login``, ``auth_setup``, ``YANDEX_DIRECT_TOKEN``, or
+``YANDEX_DIRECT_LOGIN``. Check ``tool_help()`` in the installed plugin first; if
+the names are absent, update to a release with read-only Masters support before
+following this setup.
 
 Set up the recommended browser session manually from an interactive terminal,
 outside the MCP stdio process::
