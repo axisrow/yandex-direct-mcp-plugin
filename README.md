@@ -156,18 +156,24 @@ direct masters login
 этом не используются. Запускайте команду от того же пользователя и с тем же
 `HOME`, под которым работает MCP-сервер.
 
-Для `direct masters login` нужны установленный browser extra `direct-cli` и
-Chromium для Playwright. Если они ещё не установлены:
+Для `direct masters login` нужны browser extra `direct-cli` и Chromium для
+Playwright. Установите их **в то же окружение и для той же закреплённой версии
+CLI, которую выбирает MCP-сервер**. Для установки из Claude marketplace по
+умолчанию:
 
 ```bash
-python -m pip install "direct-cli[browser]"
-playwright install chromium
+DIRECT_BIN="${YANDEX_DIRECT_CLI_PATH:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}/venv/bin/direct}"
+DIRECT_PY="$(dirname "$DIRECT_BIN")/python3"
+DIRECT_VERSION="$("$DIRECT_PY" -c 'import importlib.metadata as m; print(m.version("direct-cli"))')"
+"$DIRECT_PY" -m pip install "direct-cli[browser]==$DIRECT_VERSION"
+"$DIRECT_PY" -m playwright install chromium
+"$DIRECT_BIN" masters login
 ```
 
-Browser extra должен быть установлен для того экземпляра `direct`, который
-вызывает MCP-сервер. Если вы установили отдельный системный CLI, укажите путь
-из `command -v direct` в `YANDEX_DIRECT_CLI_PATH` в настройках MCP-клиента и
-перезапустите его.
+Если используется другой MCP-клиент или собственный `YANDEX_DIRECT_CLI_PATH`,
+задайте `DIRECT_BIN` и `DIRECT_PY` путями из одного и того же окружения. Не
+направляйте MCP на случайную или незакреплённую системную версию `direct-cli`:
+она станет транспортом для всех инструментов плагина, а не только Masters.
 
 Интерактивный вход нельзя выполнить из MCP tool-call, headless-сессии,
 удалённого процесса без GUI/TTY или CI. После ручной настройки сами

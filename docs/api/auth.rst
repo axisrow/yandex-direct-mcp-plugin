@@ -30,9 +30,10 @@ login and stores a CLI-owned persistent profile under
 ``~/.direct-cli/chrome-profile/``. It does not read the user's normal Chrome
 profile or macOS Keychain. Run it as the same OS user, with the same ``HOME``,
 that will run the MCP server. The ``direct-cli[browser]`` extra and Playwright
-Chromium must be installed for the ``direct`` executable selected by the MCP
-server. If a separate system CLI provides the browser extra, set
-``YANDEX_DIRECT_CLI_PATH`` to that executable and restart the MCP client.
+Chromium must be installed into the environment of the exact ``direct``
+executable selected by the MCP server, using the same installed ``direct-cli``
+version. Do not redirect the server to an arbitrary unpinned system CLI: that
+executable is the transport for every plugin tool, not only Masters.
 
 The login command requires a TTY, a visible GUI session, and human input. It
 cannot be completed from an MCP tool call, a headless or remote process without

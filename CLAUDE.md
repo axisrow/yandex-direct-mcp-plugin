@@ -63,9 +63,10 @@ Provision Masters authentication manually, outside the stdio MCP process:
 
 1. From an interactive terminal running as the same OS user/`HOME` as the MCP
    server, install the `direct-cli[browser]` extra and Playwright Chromium if
-   needed. The browser extra must belong to the `direct` executable selected by
-   the MCP server; set `YANDEX_DIRECT_CLI_PATH` to that executable when using a
-   separate system installation.
+   needed. Install the extra into the environment of the exact `direct`
+   executable selected by the MCP server, pinned to that executable's currently
+   installed `direct-cli` version. Do not redirect the server to an arbitrary
+   unpinned system CLI; it is the transport for every plugin tool.
 2. Run `direct masters login` and complete Yandex Passport login in the visible
    Chromium window. This creates the CLI-owned persistent profile at
    `~/.direct-cli/chrome-profile/`; it does not read the user's real Chrome
