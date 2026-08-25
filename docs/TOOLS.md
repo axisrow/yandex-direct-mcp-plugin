@@ -1,4 +1,4 @@
-## MCP Tools (149 total) + 1 Prompt
+## MCP Tools (151 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -150,7 +150,7 @@ WSDL/reports spec wins when there is drift.
 | `v4tags_update_campaigns` | Replace campaign tags (v4 Live UpdateCampaignsTags) |
 | `v4tags_update_banners` | Replace banner tag assignments (v4 Live UpdateBannersTags) |
 
-### CLI helper tools (4)
+### CLI helper tools (6)
 
 These are public but explicitly not 1:1 Direct API methods.
 
@@ -158,6 +158,8 @@ These are public but explicitly not 1:1 Direct API methods.
 |---|---|
 | `agencyclients_delete` | Remove client from agency (no API backing) |
 | `dictionaries_list_names` | List available dictionary names |
+| `masters_get` | Get Campaign Wizard campaigns by ID through the browser-only Direct UI; optionally include rejected moderation elements |
+| `masters_targetactions_get` | Get a Campaign Wizard campaign's current target-action goals through the browser-only Direct UI |
 | `reports_list_types` | List available report types |
 | `trackingparams` | List dynamic tracking parameters for UTM templates |
 

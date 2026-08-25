@@ -2,9 +2,9 @@
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
-- CLI helper tools:   4
+- CLI helper tools:   6
 - Plugin tools:       4
-Total:              149
+Total:              151
 """
 
 from __future__ import annotations
@@ -193,10 +193,20 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "agencyclients": ("delete",),
     "dictionaries": ("list_names",),
+    "masters": ("get",),
     "reports": ("list_types",),
 }
 
 CLI_HELPER_EXTRA_TOOLS: tuple[ContractTool, ...] = (
+    # Nested CLI path: ``direct masters targetactions get``. It cannot live in
+    # CLI_HELPER_SERVICE_METHODS because that mapping models one subcommand.
+    ContractTool(
+        public_name="masters_targetactions_get",
+        cli_service="masters",
+        cli_method=None,
+        authority="cli-extra",
+        classification="cli_helper",
+    ),
     ContractTool(
         public_name="trackingparams",
         cli_service="trackingparams",

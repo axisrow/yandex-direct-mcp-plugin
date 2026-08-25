@@ -9,6 +9,7 @@ import pytest
 from server.cli.runner import (
     MIN_DIRECT_VERSION,
     CliAuthError,
+    CliError,
     CliNotFoundError,
     CliRegistrationError,
     CliTimeoutError,
@@ -752,6 +753,38 @@ class TestRunJson:
             result = runner.run_json(["campaigns", "get", "--format", "json"])
             assert len(result) == 1
             assert result[0]["Id"] == 12345
+
+    def test_json_parse_after_leading_cli_info(self, runner):
+        """Browser-backed reads may emit an info tip before valid JSON."""
+        mock_result = MagicMock()
+        mock_result.stdout = (
+            "ℹ Tip: run `direct masters login` to save this session.\n"
+            '{"CampaignId": 123}'
+        )
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            result = runner.run_json(["masters", "get", "123", "--format", "json"])
+
+        assert result["CampaignId"] == 123
+        assert "direct masters login" in result["_cli_warnings"]
+
+    def test_non_info_prefix_before_json_remains_parse_error(self, runner):
+        mock_result = MagicMock()
+        mock_result.stdout = 'unexpected banner\n{"CampaignId": 123}'
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            with pytest.raises(CliError, match="Failed to parse CLI output as JSON"):
+                runner.run_json(["masters", "get", "123", "--format", "json"])
 
     def test_json_parse_reference_reports_list_types_without_format(self, runner):
         """The reports reference command remains JSON-only after #578."""

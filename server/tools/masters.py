@@ -1,64 +1,73 @@
-"""Read-only ``direct masters`` tools (issue #255).
+"""Read-only MCP tools for browser-backed Campaign Wizard campaigns."""
 
-Wraps ``direct masters get`` and ``direct masters targetactions get`` — the
-read-only slice of the Playwright-based Masters campaign cluster. The full
-mutation surface is deliberately excluded; the underlying browser automation
-is fragile and mutations need a separate auth-model review.
+from server.main import mcp
+from server.tools import ToolError, get_runner, handle_cli_errors
+from server.tools.helpers import require_non_empty_csv, tool_error_dict
 
-Both tools override the default 30 s runner timeout to 60 s to match
-direct-cli's internal timeouts for masters operations.
-"""
-
-from __future__ import annotations
-
-from server.cli.runner import DirectCliRunner
-from server.tools import handle_cli_errors
+# Masters reads launch Playwright and may legitimately wait for direct-cli's
+# 60-second SPA hydration bounds. Leave headroom for browser startup and, for
+# ``--moderation-statuses``, the additional edit-page navigation.
+MASTERS_READ_TIMEOUT_SECONDS = 120
 
 
+@mcp.tool(
+    name="masters_get",
+    description="Get one or more Campaign Wizard (Master) campaigns by ID through the browser-only Direct UI. Read-only; optionally includes rejected moderation elements. Call tool_help('masters_get') for parameters.",
+)
 @handle_cli_errors
 def masters_get(
-    *,
-    moderation_statuses: list[str] | None = None,
-) -> dict:
-    """List campaigns managed by the Masters interface.
+    campaign_ids: str,
+    moderation_statuses: bool = False,
+) -> list[dict] | dict:
+    """Get Campaign Wizard (Master) campaigns by ID.
 
-    Read-only wrapper around ``direct masters get``. Masters campaigns are
-    browser-only (no v5 API endpoint), so this tool uses direct-cli's Playwright
-    automation.
+    This wraps ``direct masters get``. Campaign Wizard campaigns have no
+    Management API representation, so direct-cli reads the logged-in user's
+    Direct UI with Playwright. This tool does not expose any Masters mutation.
 
     Args:
-        moderation_statuses: Optional filter by moderation status. Omit to
-            show all campaigns.
-
-    Returns:
-        dict: JSON output from direct-cli.
+        campaign_ids: Comma-separated Campaign Wizard campaign IDs.
+        moderation_statuses: Also read individually rejected ad elements from
+            each campaign's edit page (``--moderation-statuses``). This adds
+            ``RejectedElements``, ``RejectedCount``, and ``UnsupportedTypes``
+            to each result.
     """
-    runner = DirectCliRunner()
-    args: list[str] = ["masters", "get"]
+    normalized_ids = require_non_empty_csv(
+        campaign_ids, error="missing_campaign_ids", noun="campaign ID"
+    )
+    if isinstance(normalized_ids, ToolError):
+        return tool_error_dict(normalized_ids)
+
+    args = ["masters", "get", normalized_ids]
     if moderation_statuses:
-        for status in moderation_statuses:
-            args.extend(["--moderation-statuses", status])
-    return runner.run(args, timeout=60)
+        args.append("--moderation-statuses")
+    args.extend(["--format", "json"])
+    return get_runner().run_json(args, timeout=MASTERS_READ_TIMEOUT_SECONDS)
 
 
+@mcp.tool(
+    name="masters_targetactions_get",
+    description="Get the current target-action (CPA) goals for one Campaign Wizard campaign through the browser-only Direct UI. Read-only. Call tool_help('masters_targetactions_get') for parameters.",
+)
 @handle_cli_errors
-def masters_targetactions_get(
-    *,
-    moderation_statuses: list[str] | None = None,
-) -> dict:
-    """List target actions for Masters campaigns.
+def masters_targetactions_get(campaign_id: int) -> list[dict] | dict:
+    """Get a Campaign Wizard campaign's current target-action goals.
 
-    Read-only wrapper around ``direct masters targetactions get``.
+    This wraps ``direct masters targetactions get``. An empty ``TargetActions``
+    list is a valid result when the campaign does not use max-conversions or
+    has no configured goal.
 
     Args:
-        moderation_statuses: Optional filter by moderation status.
-
-    Returns:
-        dict: JSON output from direct-cli.
+        campaign_id: Campaign Wizard campaign ID.
     """
-    runner = DirectCliRunner()
-    args: list[str] = ["masters", "targetactions", "get"]
-    if moderation_statuses:
-        for status in moderation_statuses:
-            args.extend(["--moderation-statuses", status])
-    return runner.run(args, timeout=60)
+    return get_runner().run_json(
+        [
+            "masters",
+            "targetactions",
+            "get",
+            str(campaign_id),
+            "--format",
+            "json",
+        ],
+        timeout=MASTERS_READ_TIMEOUT_SECONDS,
+    )

@@ -18,7 +18,7 @@ from server.contract import PUBLIC_CONTRACT
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 149
+    assert len(tool_names()) == 151
 
 
 def test_every_tool_has_exactly_one_action_group():
@@ -45,6 +45,10 @@ def test_group_membership_examples():
     assert groups_for_tool("reports_get") == frozenset({"reports", "analytics", "read"})
     assert groups_for_tool("trackingparams") == frozenset(
         {"trackingparams", "analytics", "read"}
+    )
+    assert groups_for_tool("masters_get") == frozenset({"masters", "read"})
+    assert groups_for_tool("masters_targetactions_get") == frozenset(
+        {"masters", "read"}
     )
     # Money movement keeps its mutate action and additionally carries the
     # financial risk group (#205-B).

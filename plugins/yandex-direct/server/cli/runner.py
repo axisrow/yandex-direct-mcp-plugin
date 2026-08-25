@@ -331,8 +331,18 @@ class DirectCliRunner:
         output = result.stdout.strip()
         residual_stderr = _strip_ansi(result.stderr).strip()
 
+        # Browser-backed commands can print informational lines before their
+        # JSON payload. In particular, ``direct masters`` emits a login-session
+        # tip on stdout after a successful zero-config Chrome fallback. Strip
+        # only the CLI's explicit info prefix; any other non-JSON prefix stays
+        # a hard parse failure instead of being silently discarded.
+        output, leading_info = _split_leading_cli_info(output)
+        diagnostics = "\n".join(
+            part for part in (leading_info, residual_stderr) if part
+        )
+
         if not output:
-            return _attach_cli_warnings([], residual_stderr)
+            return _attach_cli_warnings([], diagnostics)
 
         try:
             parsed = json.loads(output)
@@ -340,8 +350,17 @@ class DirectCliRunner:
             raise CliError(f"Failed to parse CLI output as JSON: {e}") from e
 
         if isinstance(parsed, (dict, list)):
-            return _attach_cli_warnings(parsed, residual_stderr)
-        return _attach_cli_warnings({"result": parsed}, residual_stderr)
+            return _attach_cli_warnings(parsed, diagnostics)
+        return _attach_cli_warnings({"result": parsed}, diagnostics)
+
+
+def _split_leading_cli_info(output: str) -> tuple[str, str]:
+    """Separate leading ``direct`` informational lines from a JSON payload."""
+    lines = output.splitlines()
+    info: list[str] = []
+    while lines and lines[0].startswith("ℹ "):
+        info.append(lines.pop(0))
+    return "\n".join(lines).strip(), "\n".join(info)
 
 
 def _attach_cli_warnings(
