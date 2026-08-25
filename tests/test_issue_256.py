@@ -318,6 +318,35 @@ def test_ads_json_list_via_dispatch_reaches_cli():
     assert json.loads(argv[argv.index("--ads-json") + 1]) == parsed
 
 
+def test_ads_update_batch_rejects_unsafe_numeric_id_after_host_parsing():
+    """Fail closed when a host may already have rounded a nested batch ID."""
+    from server.tools.ads import ads_update
+
+    runner = mock_runner({"success": True})
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_update(
+            ads_json=[{"id": BIG_AD_ID, "type": "TEXT_AD", "title": "x"}]
+        )
+
+    assert result["error"] == "unsafe_json_integer"
+    assert "$[0].id" in result["message"]
+    assert "encode object IDs as JSON strings" in result["message"]
+    runner.run_json.assert_not_called()
+
+
+def test_ads_update_batch_accepts_big_id_encoded_as_string():
+    """A nested string ID remains exact in the re-serialized CLI payload."""
+    from server.tools.ads import ads_update
+
+    runner = mock_runner({"success": True})
+    parsed = [{"id": BIG_AD_ID_STR, "type": "TEXT_AD", "title": "x"}]
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        ads_update(ads_json=parsed)
+
+    argv = runner.run_json.call_args[0][0]
+    assert json.loads(argv[argv.index("--ads-json") + 1]) == parsed
+
+
 def test_keywords_add_conflicting_single_and_batch():
     """keyword + keywords_json is contradictory and rejected before dispatch."""
     runner = mock_runner({"success": True})
