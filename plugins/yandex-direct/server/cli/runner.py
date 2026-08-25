@@ -15,6 +15,21 @@ _DIRECT_INSTALL_HINT = (
 )
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+# JavaScript MCP hosts cannot represent integers outside this range exactly.
+# Keep the original JSON token as a string before the parsed CLI response
+# crosses the MCP boundary; smaller counters and monetary values stay numeric.
+_MAX_SAFE_JSON_INTEGER = 2**53 - 1
+
+
+def _parse_json_integer(value: str) -> int | str:
+    """Parse safe JSON integers normally and preserve larger ones as strings."""
+    parsed = int(value)
+    if -_MAX_SAFE_JSON_INTEGER <= parsed <= _MAX_SAFE_JSON_INTEGER:
+        return parsed
+    return value
+
+
 # direct-cli surfaces errors two ways: top-level HTTP API errors as
 # "error_code=<N>" and per-action result errors as "Error <N>: <message>"
 # (output.py _format_api_result_error). Match both so action-level codes
@@ -335,7 +350,7 @@ class DirectCliRunner:
             return _attach_cli_warnings([], residual_stderr)
 
         try:
-            parsed = json.loads(output)
+            parsed = json.loads(output, parse_int=_parse_json_integer)
         except json.JSONDecodeError as e:
             raise CliError(f"Failed to parse CLI output as JSON: {e}") from e
 

@@ -753,6 +753,31 @@ class TestRunJson:
             assert len(result) == 1
             assert result[0]["Id"] == 12345
 
+    def test_json_parse_preserves_unsafe_integer_as_string(self, runner):
+        """A CLI int64 ID must not become an imprecise MCP JSON number (#286)."""
+        mock_result = MagicMock()
+        mock_result.stdout = (
+            '[{"Id": 1918459304756685779, "CampaignId": 12345, '
+            '"Nested": {"Ids": [1918459304756685779]}, "Bid": 15000000}]'
+        )
+        mock_result.stderr = ""
+        mock_result.returncode = 0
+
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", return_value=mock_result),
+        ):
+            result = runner.run_json(["ads", "get", "--format", "json"])
+
+        assert result == [
+            {
+                "Id": "1918459304756685779",
+                "CampaignId": 12345,
+                "Nested": {"Ids": ["1918459304756685779"]},
+                "Bid": 15000000,
+            }
+        ]
+
     def test_json_parse_reference_reports_list_types_without_format(self, runner):
         """The reports reference command remains JSON-only after #578."""
         mock_result = MagicMock()

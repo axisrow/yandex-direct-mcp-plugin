@@ -121,9 +121,14 @@ ID_PARAMS = [
     ("strategies_archive", "id"),
     ("strategies_unarchive", "id"),
     ("negativekeywordsharedsets_update", "id"),
+    ("negativekeywordsharedsets_delete", "id"),
     ("vcards_add", "campaign_id"),
     ("v4tags_update_campaigns", "campaign_id"),
     ("agencyclients_update", "client_id"),
+    ("agencyclients_delete", "id"),
+    ("dynamicads_delete", "id"),
+    ("dynamicfeedadtargets_delete", "id"),
+    ("smartadtargets_delete", "id"),
 ]
 
 
@@ -158,6 +163,9 @@ NON_ID_INT_PARAMS = [
     ("strategies_update", "goal_id"),
     ("keywordbids_set", "search_bid"),
     ("vcards_add", "metro_station_id"),
+    ("campaigns_add", "counter_id"),
+    ("campaigns_add", "goal_id"),
+    ("strategies_add", "goal_id"),
 ]
 
 
@@ -172,6 +180,30 @@ def test_non_object_id_params_stay_integer(tool_name, param):
     assert "integer" in types, (
         f"{tool_name}.{param} should stay an integer (not an object ID) — the "
         f"int→str migration must not touch it. Types: {types}"
+    )
+
+
+def test_no_unclassified_scalar_id_param_is_integer():
+    """Audit every current scalar ``id``/``*_id`` input, not just a hand-picked list.
+
+    Dictionary IDs and bounded numeric selectors below intentionally remain
+    numeric. Every other object ID must cross an MCP host as a string.
+    """
+    allowed_numeric_ids = set(NON_ID_INT_PARAMS)
+    violations = []
+    for tool in asyncio.run(mcp.list_tools()):
+        for param, schema in tool.inputSchema.get("properties", {}).items():
+            if param != "id" and not param.endswith("_id"):
+                continue
+            if "integer" not in _schema_types(schema):
+                continue
+            key = (tool.name, param)
+            if key not in allowed_numeric_ids:
+                violations.append(key)
+
+    assert violations == [], (
+        "Unclassified integer ID params can be rounded by JavaScript MCP hosts: "
+        f"{violations}"
     )
 
 
@@ -286,6 +318,35 @@ def test_ads_json_list_via_dispatch_reaches_cli():
     assert json.loads(argv[argv.index("--ads-json") + 1]) == parsed
 
 
+def test_ads_update_batch_rejects_unsafe_numeric_id_after_host_parsing():
+    """Fail closed when a host may already have rounded a nested batch ID."""
+    from server.tools.ads import ads_update
+
+    runner = mock_runner({"success": True})
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        result = ads_update(
+            ads_json=[{"id": BIG_AD_ID, "type": "TEXT_AD", "title": "x"}]
+        )
+
+    assert result["error"] == "unsafe_json_integer"
+    assert "$[0].id" in result["message"]
+    assert "encode object IDs as JSON strings" in result["message"]
+    runner.run_json.assert_not_called()
+
+
+def test_ads_update_batch_accepts_big_id_encoded_as_string():
+    """A nested string ID remains exact in the re-serialized CLI payload."""
+    from server.tools.ads import ads_update
+
+    runner = mock_runner({"success": True})
+    parsed = [{"id": BIG_AD_ID_STR, "type": "TEXT_AD", "title": "x"}]
+    with patch("server.tools.ads.get_runner", return_value=runner):
+        ads_update(ads_json=parsed)
+
+    argv = runner.run_json.call_args[0][0]
+    assert json.loads(argv[argv.index("--ads-json") + 1]) == parsed
+
+
 def test_keywords_add_conflicting_single_and_batch():
     """keyword + keywords_json is contradictory and rejected before dispatch."""
     runner = mock_runner({"success": True})
@@ -337,7 +398,8 @@ def test_stdout_warnings_with_details_pass_through():
     runner = DirectCliRunner()
     with patch.object(runner, "run", return_value=_completed(json.dumps(payload))):
         result = runner.run_json(["ads", "add"])
-    assert result == payload
+    assert result[0]["Id"] == BIG_AD_ID_STR
+    assert result[0]["Warnings"] == payload[0]["Warnings"]
     assert result[0]["Warnings"][0]["Details"] == "Title2 was merged into Title"
 
 

@@ -207,7 +207,7 @@ def smart_ad_targets_update(
     description="Delete a smart ad target by ID. Call tool_help('smartadtargets_delete') for parameters.",
 )
 @handle_cli_errors
-def smart_ad_targets_delete(id: int, dry_run: bool = False) -> dict:
+def smart_ad_targets_delete(id: str, dry_run: bool = False) -> dict:
     """Delete a smart ad target.
 
     Args:

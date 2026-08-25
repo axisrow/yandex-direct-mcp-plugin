@@ -14,6 +14,7 @@ from server.cli.runner import (
 from server.tools import ToolError, _hint_for_cli_error, tool_error_dict
 
 MAX_BATCH_SIZE = 10
+_MAX_SAFE_JSON_INTEGER = 2**53 - 1
 
 
 @dataclass(frozen=True)
@@ -233,6 +234,25 @@ def normalize_json_arg(json_arg: "list | dict | str | None") -> str | None:
     return json.dumps(json_arg, ensure_ascii=False)
 
 
+def _find_unsafe_json_integer(value: object, path: str = "$") -> str | None:
+    """Return the path of an integer a JavaScript MCP host cannot preserve."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        if not -_MAX_SAFE_JSON_INTEGER <= value <= _MAX_SAFE_JSON_INTEGER:
+            return path
+        return None
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            if found := _find_unsafe_json_integer(item, f"{path}[{index}]"):
+                return found
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if found := _find_unsafe_json_integer(item, f"{path}.{key}"):
+                return found
+    return None
+
+
 def run_batch_mutation(
     runner,
     resource: str,
@@ -265,6 +285,20 @@ def run_batch_mutation(
     truth, so any stray single-item field is ignored (callers should document
     this).
     """
+    if not isinstance(json_arg, str):
+        unsafe_path = _find_unsafe_json_integer(json_arg)
+        if unsafe_path is not None:
+            return tool_error_dict(
+                ToolError(
+                    error="unsafe_json_integer",
+                    message=(
+                        f"{json_flag.lstrip('-').replace('-', '_')} contains an "
+                        "integer outside JavaScript's exact range at "
+                        f"{unsafe_path}. An MCP host may already have rounded it; "
+                        "encode object IDs as JSON strings."
+                    ),
+                )
+            )
     json_arg = normalize_json_arg(json_arg)
     if not from_file and not json_arg:
         return None
