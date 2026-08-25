@@ -236,8 +236,54 @@
         <article role="main" id="furo-main-content">
           <section id="authentication">
 <h1>Authentication<a class="headerlink" href="#authentication" title="Link to this heading">¶</a></h1>
-<p>Authentication is delegated to <code class="docutils literal notranslate"><span class="pre">direct</span></code> auth profiles. The MCP auth tools are
-thin wrappers around <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">auth</span></code> commands.</p>
+<section id="api-authentication">
+<h2>API authentication<a class="headerlink" href="#api-authentication" title="Link to this heading">¶</a></h2>
+<p>Authentication for ordinary Yandex.Direct API tools is delegated to <code class="docutils literal notranslate"><span class="pre">direct</span></code>
+OAuth profiles. The MCP auth tools are thin wrappers around <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">auth</span></code>
+commands. Profiles are stored separately from browser sessions in
+<code class="docutils literal notranslate"><span class="pre">~/.direct-cli/auth.json</span></code>.</p>
+</section>
+<section id="masters-browser-authentication">
+<h2>Masters browser authentication<a class="headerlink" href="#masters-browser-authentication" title="Link to this heading">¶</a></h2>
+<p>Campaign Wizard (Masters) has no Management API. In plugin releases that expose
+<code class="docutils literal notranslate"><span class="pre">masters_get</span></code> and <code class="docutils literal notranslate"><span class="pre">masters_targetactions_get</span></code>, those tools therefore use a
+Playwright browser session and are <strong>not</strong> authenticated by the API OAuth token,
+<code class="docutils literal notranslate"><span class="pre">auth_login</span></code>, <code class="docutils literal notranslate"><span class="pre">auth_setup</span></code>, <code class="docutils literal notranslate"><span class="pre">YANDEX_DIRECT_TOKEN</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">YANDEX_DIRECT_LOGIN</span></code>. Check <code class="docutils literal notranslate"><span class="pre">tool_help()</span></code> in the installed plugin first; if
+the names are absent, update to a release with read-only Masters support before
+following this setup.</p>
+<p>Set up the recommended browser session manually from an interactive terminal,
+outside the MCP stdio process:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">direct</span> <span class="n">masters</span> <span class="n">login</span>
+</pre></div>
+</div>
+<p>This command opens a visible Chromium window for a manual Yandex Passport
+login and stores a CLI-owned persistent profile under
+<code class="docutils literal notranslate"><span class="pre">~/.direct-cli/chrome-profile/</span></code>. It does not read the user’s normal Chrome
+profile or macOS Keychain. Run it as the same OS user, with the same <code class="docutils literal notranslate"><span class="pre">HOME</span></code>,
+that will run the MCP server. The <code class="docutils literal notranslate"><span class="pre">direct-cli[browser]</span></code> extra and Playwright
+Chromium must be installed into the environment of the exact <code class="docutils literal notranslate"><span class="pre">direct</span></code>
+executable selected by the MCP server, using the same installed <code class="docutils literal notranslate"><span class="pre">direct-cli</span></code>
+version. Do not redirect the server to an arbitrary unpinned system CLI: that
+executable is the transport for every plugin tool, not only Masters.</p>
+<p>The login command requires a TTY, a visible GUI session, and human input. It
+cannot be completed from an MCP tool call, a headless or remote process without
+a GUI, CI, or an ephemeral sandbox. After setup, the read-only tools may run
+headlessly provided the same persistent home directory and Playwright Chromium
+are available.</p>
+<section id="chrome-cookie-import-alternative">
+<h3>Chrome cookie import (alternative)<a class="headerlink" href="#chrome-cookie-import-alternative" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">playwright</span> <span class="pre">login</span></code> is a separate non-OAuth alternative. It imports
+only Yandex cookies from an existing Chrome profile and saves a reusable
+Playwright state at <code class="docutils literal notranslate"><span class="pre">~/.direct-cli/playwright/session.json</span></code>. On macOS,
+decrypting those cookies requires access to the <code class="docutils literal notranslate"><span class="pre">Chrome</span> <span class="pre">Safe</span> <span class="pre">Storage</span></code> key in
+the login Keychain. <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">playwright</span> <span class="pre">doctor</span></code> checks this pipeline without
+logging in or writing files.</p>
+<p>When both stores exist, <code class="docutils literal notranslate"><span class="pre">direct</span></code> prefers the persistent profile created by
+<code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">masters</span> <span class="pre">login</span></code>. Both stores contain a live Yandex session and must be
+protected as credentials. <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">masters</span> <span class="pre">logout</span></code> removes the CLI-owned
+persistent profile. Masters commands always use the account logged in to the
+browser session; API profile and <code class="docutils literal notranslate"><span class="pre">YANDEX_DIRECT_LOGIN</span></code> selection do not apply.</p>
 <p id="module-server.tools.auth_tools">MCP tools and prompts for direct auth profiles.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="server.tools.auth_tools.AuthCredential">
@@ -312,6 +358,8 @@ without manually changing CLI auth configuration.</p></li>
 </dd></dl>
 
 </section>
+</section>
+</section>
 
         </article>
       </div>
@@ -369,6 +417,9 @@ without manually changing CLI auth configuration.</p></li>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Authentication</a><ul>
+<li><a class="reference internal" href="#api-authentication">API authentication</a></li>
+<li><a class="reference internal" href="#masters-browser-authentication">Masters browser authentication</a><ul>
+<li><a class="reference internal" href="#chrome-cookie-import-alternative">Chrome cookie import (alternative)</a><ul>
 <li><a class="reference internal" href="#server.tools.auth_tools.AuthCredential"><code class="docutils literal notranslate"><span class="pre">AuthCredential</span></code></a><ul>
 <li><a class="reference internal" href="#server.tools.auth_tools.AuthCredential.model_config"><code class="docutils literal notranslate"><span class="pre">AuthCredential.model_config</span></code></a></li>
 </ul>
@@ -377,6 +428,10 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_setup"><code class="docutils literal notranslate"><span class="pre">auth_setup()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_status"><code class="docutils literal notranslate"><span class="pre">auth_status()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.oauth_login_prompt"><code class="docutils literal notranslate"><span class="pre">oauth_login_prompt()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
