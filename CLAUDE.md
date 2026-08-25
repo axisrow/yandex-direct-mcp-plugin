@@ -48,6 +48,46 @@ Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCK
 | `negativekeywords_*` | not a CLI service; use AdGroups payload or `negativekeywordsharedsets_*` |
 | `bidmodifiers_toggle` | removed in CLI 0.2.8; API op deprecated 2025-11-13 |
 
+## Masters browser authentication
+
+When present in `PUBLIC_CONTRACT`, Masters tools do not use the API OAuth path
+described under Environment. Campaign Wizard has no Management API, so the
+read-only `masters_get` and `masters_targetactions_get` tools invoke Playwright
+against the Direct web UI. Check the installed build's `tool_help()` output
+before assuming they are available. The browser's logged-in account is
+authoritative; `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, and the finance
+`YANDEX_DIRECT_MASTER_TOKEN` do not authenticate or select an account for these
+tools.
+
+Provision Masters authentication manually, outside the stdio MCP process:
+
+1. From an interactive terminal running as the same OS user/`HOME` as the MCP
+   server, install the `direct-cli[browser]` extra and Playwright Chromium if
+   needed. Install the extra into the environment of the exact `direct`
+   executable selected by the MCP server, pinned to that executable's currently
+   installed `direct-cli` version. Do not redirect the server to an arbitrary
+   unpinned system CLI; it is the transport for every plugin tool.
+2. Run `direct masters login` and complete Yandex Passport login in the visible
+   Chromium window. This creates the CLI-owned persistent profile at
+   `~/.direct-cli/chrome-profile/`; it does not read the user's real Chrome
+   profile or macOS Keychain.
+3. Start or restart the MCP client, then call the read-only Masters tools if
+   they are exposed by that plugin version. No Masters mutation commands are
+   exposed by the plugin.
+
+`direct masters login` requires a TTY, visible GUI session, and human input; do
+not attempt it from a tool call, headless/remote process without GUI, CI, or an
+ephemeral sandbox. Once provisioned, reads may run headlessly only while the
+same home directory and Playwright Chromium remain available.
+
+The alternative `direct playwright login` path imports Yandex cookies from a
+real Chrome profile into `~/.direct-cli/playwright/session.json`; on macOS it
+reads the `Chrome Safe Storage` key from the login Keychain. `direct playwright
+doctor` diagnoses that path without logging in or writing files. A persistent
+profile created by `direct masters login` takes precedence over the imported
+session. Treat both stores as live login credentials; `direct masters logout`
+removes the CLI-owned persistent profile.
+
 ## Testing
 
 Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, no network), **mocks** (`-m mocks`, patch `subprocess.run` for unreproducible edges), **integration** (`-m integration`, live token). Cassette lifecycle: record → sanitize (strip secrets/PII) → audit → commit → replay. Some v2 tools (`advideos_*`, `*_set_auto`, `retargeting_update`) are mock-only pending cassette recording.

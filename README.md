@@ -132,6 +132,68 @@ auth_login()
 direct auth login --client-id "ваш-client-id" --client-secret "ваш-client-secret"
 ```
 
+## Авторизация Мастеров кампаний
+
+В версиях плагина, где доступны `masters_get` и
+`masters_targetactions_get`, эти инструменты отличаются от остальных:
+Мастера кампаний доступны только в веб-интерфейсе Директа, поэтому
+`direct-cli` читает их через браузер под управлением Playwright. OAuth-токен
+из `auth_login()` или `~/.direct-cli/auth.json` для этого не используется и
+не заменяет браузерную сессию. Проверьте наличие инструментов через
+`tool_help()`; если их нет, сначала обновите плагин до версии с поддержкой
+read-only Masters.
+
+Перед первым вызовом masters-инструмента выполните **в обычном терминале, вне
+MCP-сессии**:
+
+```bash
+direct masters login
+```
+
+Команда открывает видимое окно Chromium с Яндекс Паспортом и ждёт ручного
+входа. Она сохраняет сессию в отдельном профиле CLI
+`~/.direct-cli/chrome-profile/`; реальный профиль Chrome и macOS Keychain при
+этом не используются. Запускайте команду от того же пользователя и с тем же
+`HOME`, под которым работает MCP-сервер.
+
+Для `direct masters login` нужны browser extra `direct-cli` и Chromium для
+Playwright. Установите их **в то же окружение и для той же закреплённой версии
+CLI, которую выбирает MCP-сервер**. Для установки из Claude marketplace по
+умолчанию:
+
+```bash
+DIRECT_BIN="${YANDEX_DIRECT_CLI_PATH:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}/venv/bin/direct}"
+DIRECT_PY="$(dirname "$DIRECT_BIN")/python3"
+DIRECT_VERSION="$("$DIRECT_PY" -c 'import importlib.metadata as m; print(m.version("direct-cli"))')"
+"$DIRECT_PY" -m pip install "direct-cli[browser]==$DIRECT_VERSION"
+"$DIRECT_PY" -m playwright install chromium
+"$DIRECT_BIN" masters login
+```
+
+Если используется другой MCP-клиент или собственный `YANDEX_DIRECT_CLI_PATH`,
+задайте `DIRECT_BIN` и `DIRECT_PY` путями из одного и того же окружения. Не
+направляйте MCP на случайную или незакреплённую системную версию `direct-cli`:
+она станет транспортом для всех инструментов плагина, а не только Masters.
+
+Интерактивный вход нельзя выполнить из MCP tool-call, headless-сессии,
+удалённого процесса без GUI/TTY или CI. После ручной настройки сами
+read-only-инструменты могут запускать браузер без окна, если им доступны тот
+же профиль и установленный Chromium. Не рассчитывайте на эту схему в
+эфемерных или sandboxed-окружениях, где домашний каталог не сохраняется.
+
+Альтернативный путь для уже авторизованного Chrome — `direct playwright
+login`: он импортирует только Yandex cookies из выбранного Chrome-профиля и
+сохраняет Playwright-сессию в `~/.direct-cli/playwright/session.json`. На
+macOS для расшифровки cookies потребуется разрешить чтение ключа `Chrome Safe
+Storage` из Keychain. Для безопасной диагностики без входа и записи файлов
+используйте `direct playwright doctor`. Если создан профиль через `direct
+masters login`, `direct-cli` предпочитает его импортированной сессии.
+
+Оба варианта авторизуют аккаунт, открытый в браузере; OAuth-профиль и
+`YANDEX_DIRECT_LOGIN` не переключают masters-инструменты на другой клиентский
+аккаунт. Профиль содержит живую Яндекс-сессию — не копируйте и не публикуйте
+его. Удалить созданный CLI профиль можно командой `direct masters logout`.
+
 ## Скиллы
 
 | Скилл | Что делает |
