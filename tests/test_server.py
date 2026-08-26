@@ -109,6 +109,17 @@ def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
     return {t["name"] for t in resp["result"]["tools"]}
 
 
+def test_unregistered_optional_tool_allowlist_fails_closed():
+    """A browser tool allowlist cannot fail open to all default tools (#304)."""
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_get"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == set()
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
 def test_mcp_server_respects_disabled_tool_groups():
     """YANDEX_DIRECT_DISABLED_GROUPS removes a group from tools/list (#190).
 

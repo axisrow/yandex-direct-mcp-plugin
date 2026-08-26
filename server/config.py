@@ -353,17 +353,22 @@ def apply_tool_surface(mcp, config: ToolSurfaceConfig) -> list[str]:
     Uses the public ``remove_tool``. A ``full`` config removes nothing, so the
     default tool surface is untouched.
 
-    Fail-safe: if the config would remove *every* registered tool — almost
-    always a typo in an allow-list env var (e.g. ``YANDEX_DIRECT_ENABLED_GROUPS``
-    or ``...ENABLED_TOOLS`` naming nothing that matches) — the removal is
-    abandoned and the full surface is kept. An empty MCP server is never a
-    useful outcome, so a startup typo must not silently wipe the surface.
+    Fail-safe: if the config would remove *every* registered tool because an
+    allow-list names no contract tool (usually a typo), the removal is abandoned
+    and the full surface is kept. A valid allow-list that currently matches only
+    unregistered optional tools is different: it must fail closed to an empty
+    surface rather than expose every default tool.
     """
     manager = getattr(mcp, "_tool_manager", None)
     registered = list(getattr(manager, "_tools", {}).keys())
     removed = [name for name in registered if not config.is_enabled(name)]
-    if registered and len(removed) == len(registered):
-        # Would disable everything — treat as misconfiguration, keep full surface.
+    known_allowlist_target = bool(
+        config.enabled_tools & tool_names() or config.enabled_groups & all_groups()
+    )
+    valid_empty_allowlist = not config.default_enabled and known_allowlist_target
+    if registered and len(removed) == len(registered) and not valid_empty_allowlist:
+        # No known allow-list target matched, or a deny-list removed everything:
+        # treat it as a typo/misconfiguration and keep the registered surface.
         return []
     for name in removed:
         mcp.remove_tool(name)

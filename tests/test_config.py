@@ -259,6 +259,51 @@ def test_apply_tool_surface_failsafe_keeps_full_when_all_disabled():
     assert set(mcp._tool_manager._tools) == {"campaigns_get", "ads_get"}
 
 
+def test_apply_tool_surface_denylist_failsafe_ignores_optional_contract_tools():
+    """Unregistered optional defaults cannot defeat the deny-list fail-safe."""
+    mcp = _StubMcp(["campaigns_get", "ads_get"])
+    cfg = ToolSurfaceConfig(
+        disabled_tools=frozenset({"campaigns_get", "ads_get"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert removed == []
+    assert set(mcp._tool_manager._tools) == {"campaigns_get", "ads_get"}
+
+
+def test_apply_tool_surface_optional_only_allowlist_fails_closed():
+    """A known optional tool that is not registered must not expose defaults."""
+    mcp = _StubMcp(["campaigns_get", "campaigns_delete", "v4account_deposit"])
+    cfg = ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_tools=frozenset({"masters_get"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert set(removed) == {
+        "campaigns_get",
+        "campaigns_delete",
+        "v4account_deposit",
+    }
+    assert not mcp._tool_manager._tools
+
+
+def test_apply_tool_surface_optional_group_only_allowlist_fails_closed():
+    """The browser group has the same fail-closed behavior as a tool name."""
+    mcp = _StubMcp(["campaigns_get", "campaigns_delete"])
+    cfg = ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_groups=frozenset({"browser"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert set(removed) == {"campaigns_get", "campaigns_delete"}
+    assert not mcp._tool_manager._tools
+
+
 def test_config_from_env_enabled_groups_typo_warns_and_keeps_full():
     """A typo in YANDEX_DIRECT_ENABLED_GROUPS surfaces a zero-tools warning."""
     cfg = config_from_env({"YANDEX_DIRECT_ENABLED_GROUPS": "analyticz"})
