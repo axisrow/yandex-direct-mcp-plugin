@@ -8,6 +8,7 @@ from pathlib import Path
 
 from server.contract import (
     CLI_HELPER_TOOL_NAMES,
+    DEFAULT_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
     REMOVED_LEGACY_PUBLIC_NAMES,
@@ -87,9 +88,9 @@ def test_mcp_server_registers_all_tools():
         assert resp["id"] == 2
 
         tool_names = {t["name"] for t in resp["result"]["tools"]}
-        assert tool_names == PUBLIC_TOOL_NAMES, (
-            f"Missing tools: {PUBLIC_TOOL_NAMES - tool_names}, "
-            f"extra tools: {tool_names - PUBLIC_TOOL_NAMES}"
+        assert tool_names == DEFAULT_TOOL_NAMES, (
+            f"Missing tools: {DEFAULT_TOOL_NAMES - tool_names}, "
+            f"extra tools: {tool_names - DEFAULT_TOOL_NAMES}"
         )
     finally:
         proc.terminate()

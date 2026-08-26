@@ -3,8 +3,9 @@
 Tool count (derived from the structures below):
 - Direct API tools: 141
 - CLI helper tools:   4
+- Browser tools:     23
 - Plugin tools:       4
-Total:              149
+Total:              172 (149 default + 23 optional)
 """
 
 from __future__ import annotations
@@ -16,13 +17,17 @@ from typing import Literal
 # ``reports-spec``: canonical Reports API operation validated against reports spec.
 # ``v4-live``: canonical Yandex Direct v4 Live operation exposed by the direct CLI.
 # ``cli-extra``: public CLI helper intentionally outside the 1:1 API surface.
+# ``browser``: optional browser/local-reference command outside the Direct API.
 # ``plugin``: plugin-only auth/utility tool, not a Direct API operation.
-ToolAuthority = Literal["wsdl", "reports-spec", "v4-live", "cli-extra", "plugin"]
+ToolAuthority = Literal[
+    "wsdl", "reports-spec", "v4-live", "cli-extra", "browser", "plugin"
+]
 
 # ``direct_api``: public Direct operation exposed through CLI transport.
 # ``cli_helper``: public helper kept separate from the Direct API contract.
+# ``browser``: optional browser/local-reference tool, not a Direct API operation.
 # ``plugin``: plugin-only tool unrelated to Direct service parity.
-ToolClassification = Literal["direct_api", "cli_helper", "plugin"]
+ToolClassification = Literal["direct_api", "cli_helper", "browser", "plugin"]
 
 # ``aligned``: MCP name matches tapi/WSDL canonical; CLI transport confirmed.
 # ``transport_blocked``: operation exists in WSDL/tapi surface but
@@ -41,6 +46,14 @@ class ContractTool:
     cli_method: str | None
     authority: ToolAuthority
     classification: ToolClassification
+    # Optional registration bundle. None means the tool is part of the default
+    # MCP surface; named bundles are imported only when explicitly enabled.
+    optional_bundle: str | None = field(default=None)
+    # Full direct CLI argv path for commands whose public ``cli_method`` cannot
+    # be represented by one kebab-case subcommand. For example,
+    # masters_adimages_get uses ("masters", "adimages", "get"), not the
+    # non-existent ``direct masters adimages-get``.
+    cli_subcommand_path: tuple[str, ...] | None = field(default=None)
     # Explicit tapi-yandex-direct canonical method name when it cannot be
     # derived automatically from cli_method.  None means the auto-derived
     # camelCase form (``tapi_canonical`` property) is correct.
@@ -63,8 +76,8 @@ class ContractTool:
 
         Converts the stored snake_case ``cli_method`` to the kebab-case string
         expected by the ``direct`` binary, e.g. ``set_bids`` → ``set-bids``.
-        Use this when constructing actual CLI invocations or validating parity
-        against the CLI transport layer.
+        When ``cli_subcommand_path`` is set, callers must use that full override
+        instead: a scalar subcommand cannot represent nested Click commands.
         """
         if self.cli_method is None:
             return None
@@ -205,6 +218,50 @@ CLI_HELPER_EXTRA_TOOLS: tuple[ContractTool, ...] = (
         classification="cli_helper",
     ),
 )
+
+# Optional commands introduced by the browser-automation surface. The mapping
+# value is the opt-in registration bundle consumed by server.optional_tools.
+# ``trackingparams`` is a local reference command rather than Playwright-backed,
+# so it intentionally lives in its own bundle.
+BROWSER_SERVICE_METHODS: dict[str, dict[str, str]] = {
+    "masters": {
+        "list": "browser",
+        "get": "browser",
+        "add": "browser",
+        "update": "browser",
+        "launch": "browser",
+        "suspend": "browser",
+        "resume": "browser",
+        "archive": "browser",
+        "copy": "browser",
+        "delete": "browser",
+        "login": "browser",
+        "logout": "browser",
+        "adimages_get": "browser",
+        "adimages_add": "browser",
+        "adimages_set": "browser",
+        "adimages_delete": "browser",
+        "targetactions_get": "browser",
+        "counters_get": "browser",
+        "audience_get": "browser",
+    },
+    "history": {"get": "browser"},
+    "playwright": {"login": "browser", "doctor": "browser"},
+    "trackingparams": {"get": "trackingparams"},
+}
+
+_BROWSER_CLI_SUBCOMMAND_PATHS: dict[tuple[str, str], tuple[str, ...]] = {
+    ("masters", "adimages_get"): ("masters", "adimages", "get"),
+    ("masters", "adimages_add"): ("masters", "adimages", "add"),
+    ("masters", "adimages_set"): ("masters", "adimages", "set"),
+    ("masters", "adimages_delete"): ("masters", "adimages", "delete"),
+    ("masters", "targetactions_get"): ("masters", "targetactions", "get"),
+    ("masters", "counters_get"): ("masters", "counters", "get"),
+    ("masters", "audience_get"): ("masters", "audience", "get"),
+    # ``trackingparams`` is a leaf command: the ``get`` suffix exists only in
+    # the public MCP name, not in the direct CLI command tree.
+    ("trackingparams", "get"): ("trackingparams",),
+}
 
 # Reports-spec tools that share the same CLI subcommand (`direct reports get`)
 # but expose a different MCP-side parameter shape. These cannot live in
@@ -696,6 +753,19 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = (
     *V4_LIVE_CLI_TOOLS,
     *(
         ContractTool(
+            public_name=_tool_name(service, method),
+            cli_service=service,
+            cli_method=method,
+            authority="browser",
+            classification="browser",
+            optional_bundle=bundle,
+            cli_subcommand_path=_BROWSER_CLI_SUBCOMMAND_PATHS.get((service, method)),
+        )
+        for service, methods in BROWSER_SERVICE_METHODS.items()
+        for method, bundle in methods.items()
+    ),
+    *(
+        ContractTool(
             public_name=name,
             cli_service=None,
             cli_method=None,
@@ -713,6 +783,13 @@ DIRECT_API_TOOL_NAMES = frozenset(
 CLI_HELPER_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "cli_helper"
 )
+BROWSER_TOOL_NAMES = frozenset(
+    tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "browser"
+)
+OPTIONAL_TOOL_NAMES = frozenset(
+    tool.public_name for tool in PUBLIC_CONTRACT if tool.optional_bundle is not None
+)
+DEFAULT_TOOL_NAMES = PUBLIC_TOOL_NAMES - OPTIONAL_TOOL_NAMES
 V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
 V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(
     blocked.method for blocked in V4_LIVE_BLOCKED_METHODS

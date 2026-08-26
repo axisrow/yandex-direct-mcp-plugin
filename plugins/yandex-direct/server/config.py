@@ -19,7 +19,7 @@ Two kinds of groups:
     ``destructive`` no longer also strips the ability to *undo* a state change
     (#205-A).
   * *area*: ``analytics`` | ``campaign_management`` | ``bidding_budget`` |
-    ``assets_creatives`` | ``targeting_audience``
+    ``assets_creatives`` | ``targeting_audience`` | ``browser``
   * *risk*: ``financial`` — an extra deny axis layered *on top of* the action
     group for money-movement tools (``v4account_deposit`` / ``invoice`` /
     ``transfer_money``). It is not an action group: these tools keep their
@@ -50,7 +50,7 @@ from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
 # also strip the ability to undo a state change (#205-A).
 _DESTRUCTIVE_METHODS = frozenset({"delete", "delete_report"})
 _LIFECYCLE_METHODS = frozenset(
-    {"archive", "unarchive", "suspend", "resume", "moderate"}
+    {"archive", "unarchive", "suspend", "resume", "moderate", "launch"}
 )
 _MUTATE_METHODS = frozenset(
     {
@@ -66,6 +66,7 @@ _MUTATE_METHODS = frozenset(
         "update_campaigns",
         "update_banners",
         "enable_shared_account",
+        "copy",
     }
 )
 # Tools whose cli_method does not encode the action (cli_method is None or a
@@ -108,7 +109,6 @@ _SERVICE_AREA: dict[str, str] = {
     "reports": "analytics",
     "changes": "analytics",
     "dictionaries": "analytics",
-    "trackingparams": "analytics",
     "keywordsresearch": "analytics",
     "leads": "analytics",
     "v4forecast": "analytics",
@@ -116,6 +116,11 @@ _SERVICE_AREA: dict[str, str] = {
     "v4goals": "analytics",
     "v4keywords": "analytics",
     "v4events": "analytics",
+    # optional browser/local-reference surface
+    "masters": "browser",
+    "history": "browser",
+    "playwright": "browser",
+    "trackingparams": "browser",
     # agencyclients / clients / businesses / plugin: account/admin, no area group
 }
 

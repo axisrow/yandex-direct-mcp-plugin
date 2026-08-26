@@ -13,12 +13,13 @@ from server.config import (
     groups_for_tool,
     tool_names,
 )
-from server.contract import PUBLIC_CONTRACT
+from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
 
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 149
+    assert len(tool_names()) == 172
+    assert len(DEFAULT_TOOL_NAMES) == 149
 
 
 def test_every_tool_has_exactly_one_action_group():
@@ -44,7 +45,7 @@ def test_group_membership_examples():
     )
     assert groups_for_tool("reports_get") == frozenset({"reports", "analytics", "read"})
     assert groups_for_tool("trackingparams") == frozenset(
-        {"trackingparams", "analytics", "read"}
+        {"trackingparams", "browser", "read"}
     )
     # Money movement keeps its mutate action and additionally carries the
     # financial risk group (#205-B).
@@ -63,10 +64,27 @@ def test_group_membership_examples():
     assert groups_for_tool("auth_login") == frozenset({"plugin", "mutate"})
 
 
+def test_browser_tool_group_membership() -> None:
+    assert groups_for_tool("masters_delete") == frozenset(
+        {"masters", "browser", "destructive"}
+    )
+    assert groups_for_tool("masters_copy") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("history_get") == frozenset({"history", "browser", "read"})
+
+
+def test_masters_launch_is_lifecycle_not_read_regression() -> None:
+    groups = groups_for_tool("masters_launch")
+    assert groups == frozenset({"masters", "browser", "lifecycle"})
+    assert "read" not in groups
+
+
 def test_all_groups_includes_services_and_scenarios():
     groups = all_groups()
     assert SCENARIO_GROUPS <= groups
     assert "campaigns" in groups and "plugin" in groups
+    assert "browser" in groups
 
 
 def test_default_config_is_full_surface():
