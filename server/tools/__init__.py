@@ -1,9 +1,14 @@
+import os
 import re
 from dataclasses import asdict, dataclass
 from functools import wraps
 
 from server.cli.runner import (
+    BROWSER_DEFAULT_TIMEOUT,
     CliAuthError,
+    CliBrowserAuthError,
+    CliBrowserCaptchaError,
+    CliBrowserProfileError,
     CliError,
     CliNotFoundError,
     CliRegistrationError,
@@ -213,6 +218,39 @@ def handle_cli_errors(func):
                     hint="Run auth_status to check the active direct auth profile, then auth_login to re-authorize.",
                 )
             )
+        except CliBrowserAuthError as e:
+            return tool_error_dict(
+                ToolError(
+                    error="browser_auth_required",
+                    message=str(e),
+                    hint=(
+                        "Run masters_login to create a persistent browser session, "
+                        "or run `direct playwright login`, then retry."
+                    ),
+                )
+            )
+        except CliBrowserCaptchaError as e:
+            return tool_error_dict(
+                ToolError(
+                    error="browser_captcha",
+                    message=str(e),
+                    hint=(
+                        "Run the browser command in headful mode, solve the captcha "
+                        "in the visible browser, then retry."
+                    ),
+                )
+            )
+        except CliBrowserProfileError as e:
+            return tool_error_dict(
+                ToolError(
+                    error="browser_profile_error",
+                    message=str(e),
+                    hint=(
+                        "Run playwright_doctor to inspect the Chrome profile and "
+                        "browser dependencies, then fix the reported issue."
+                    ),
+                )
+            )
         except CliNotFoundError as e:
             return tool_error_dict(ToolError(error="cli_not_found", message=str(e)))
         except CliTimeoutError as e:
@@ -256,3 +294,20 @@ def get_runner():
     from server.cli.runner import DirectCliRunner
 
     return DirectCliRunner()
+
+
+def get_browser_runner(*, timeout: int = BROWSER_DEFAULT_TIMEOUT):
+    """Create a runner with a browser-safe, environment-overridable timeout."""
+    from server.cli.runner import DirectCliRunner
+
+    configured_timeout = os.environ.get("YANDEX_DIRECT_BROWSER_TIMEOUT")
+    if configured_timeout is not None:
+        try:
+            timeout = int(configured_timeout)
+        except ValueError as exc:
+            raise ValueError(
+                "YANDEX_DIRECT_BROWSER_TIMEOUT must be a positive integer"
+            ) from exc
+    if timeout <= 0:
+        raise ValueError("YANDEX_DIRECT_BROWSER_TIMEOUT must be a positive integer")
+    return DirectCliRunner(timeout=timeout)

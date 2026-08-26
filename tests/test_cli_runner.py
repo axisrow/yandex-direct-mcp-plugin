@@ -1,14 +1,25 @@
 """Tests for DirectCliRunner — edge cases (mock-based)."""
 
+import inspect
 import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
+import direct_cli.browser.session as direct_browser_session  # type: ignore[import-not-found, import-untyped]
 import pytest
 
 from server.cli.runner import (
+    _BROWSER_ERROR_ANCHORS,
+    _BROWSER_ERROR_PATTERNS,
+    BROWSER_DEFAULT_TIMEOUT,
+    BROWSER_LOGIN_TIMEOUT,
     MIN_DIRECT_VERSION,
     CliAuthError,
+    CliBrowserAuthError,
+    CliBrowserCaptchaError,
+    CliBrowserError,
+    CliBrowserProfileError,
+    CliError,
     CliNotFoundError,
     CliRegistrationError,
     CliTimeoutError,
@@ -940,3 +951,185 @@ class TestRunJson:
                 runner.run_json(["campaigns", "get"])
             assert not isinstance(exc_info.value, CliAuthError)
             assert exc_info.value.error_code == 152
+
+
+@pytest.mark.mocks
+class TestRunJsonLenient:
+    @staticmethod
+    def _result(stdout: str, *, stderr: str = "") -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=["direct"], returncode=0, stdout=stdout, stderr=stderr
+        )
+
+    def test_parses_exact_masters_tip_and_returns_it_as_notice(self, runner):
+        """The exact print_info text from direct_cli/commands/masters.py:208."""
+        stdout = (
+            '{"a":1}\n'
+            "ℹ Tip: run `direct playwright login` to save this session "
+            "and skip the Keychain prompt next time.\n"
+        )
+        with patch.object(
+            runner, "run_checked", return_value=self._result(stdout)
+        ) as run_checked:
+            result = runner.run_json_lenient(["masters", "get"])
+
+        assert result == {
+            "a": 1,
+            "notices": [
+                (
+                    "Tip: run `direct playwright login` to save this session "
+                    "and skip the Keychain prompt next time."
+                )
+            ],
+        }
+        run_checked.assert_called_once_with(["masters", "get"], timeout=None)
+
+    def test_accepts_leading_information_notice(self, runner):
+        stdout = 'ℹ Using saved browser session\n{"Campaigns": []}\n'
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            result = runner.run_json_lenient(["masters", "get"])
+
+        assert result == {
+            "Campaigns": [],
+            "notices": ["Using saved browser session"],
+        }
+
+    def test_accepts_ansi_wrapped_multiline_notices_at_both_edges(self, runner):
+        stdout = (
+            "\x1b[33m⚠ Browser fallback selected\n"
+            "Chrome profile: Default\x1b[0m\n"
+            '{"value": "brackets in strings: } ] and escaped \\" quote"}\n'
+            "\x1b[32m✓ Browser read completed\n"
+            "No writes were performed\x1b[0m\n"
+        )
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            result = runner.run_json_lenient(["history", "get"])
+
+        assert result == {
+            "value": 'brackets in strings: } ] and escaped " quote',
+            "notices": [
+                "Browser fallback selected\nChrome profile: Default",
+                "Browser read completed\nNo writes were performed",
+            ],
+        }
+
+    def test_rejects_unmarked_text_outside_balanced_json(self, runner):
+        stdout = 'unexpected banner\n{"a": 1}\nunexpected footer'
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            with pytest.raises(CliError, match="Failed to parse CLI output as JSON"):
+                runner.run_json_lenient(["masters", "get"])
+
+    def test_rejects_malformed_balanced_fragment(self, runner):
+        stdout = "ℹ notice\n{not-json: [1]}\n"
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            with pytest.raises(CliError, match="Failed to parse CLI output as JSON"):
+                runner.run_json_lenient(["masters", "get"])
+
+    def test_preserves_list_shape_and_surfaces_notice_out_of_band(self, runner, capsys):
+        stdout = '[{"Id": 1}]\n✓ Done\n'
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            result = runner.run_json_lenient(["masters", "get"])
+
+        assert result == [{"Id": 1}]
+        assert "direct emitted stdout notices: Done" in capsys.readouterr().err
+
+    def test_strict_run_json_still_rejects_the_same_notice_byte_for_byte(self, runner):
+        """Guard the strict API transport: W-03 must not make it lenient."""
+        stdout = '{"a":1}\nℹ Tip: run `direct playwright login`\n'
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            with pytest.raises(CliError) as exc_info:
+                runner.run_json(["campaigns", "get"])
+
+        assert str(exc_info.value) == (
+            "Failed to parse CLI output as JSON: Extra data: line 2 column 1 (char 8)"
+        )
+
+    @pytest.mark.parametrize(
+        ("stdout", "expected"),
+        [
+            ('[{"Id": 12345, "Name": "Test"}]', [{"Id": 12345, "Name": "Test"}]),
+            ("1", {"result": 1}),
+            ("", []),
+        ],
+    )
+    def test_strict_run_json_existing_fixtures_are_unchanged(
+        self, runner, stdout, expected
+    ):
+        """Existing strict clean/empty/scalar fixture outputs stay identical."""
+        with patch.object(runner, "run_checked", return_value=self._result(stdout)):
+            assert runner.run_json(["campaigns", "get"]) == expected
+
+
+@pytest.mark.mocks
+class TestBrowserErrorClassification:
+    @pytest.mark.parametrize(
+        ("stderr", "expected_type"),
+        [
+            (
+                (
+                    "Error: Yandex served its login page instead of Direct. "
+                    "Your Chrome session cookies are expired."
+                ),
+                CliBrowserAuthError,
+            ),
+            (
+                (
+                    "Error: Yandex served a SmartCaptcha challenge instead of the "
+                    "Direct page."
+                ),
+                CliBrowserCaptchaError,
+            ),
+            (
+                "Error: Chrome profile directory not found: /tmp/profile.",
+                CliBrowserProfileError,
+            ),
+            (
+                "Error: playwright is required for this command but is not installed.",
+                CliBrowserError,
+            ),
+        ],
+    )
+    def test_nonzero_browser_stderr_raises_specific_error(
+        self, runner, stderr, expected_type
+    ):
+        completed = subprocess.CompletedProcess(
+            args=["direct"], returncode=1, stdout="", stderr=stderr
+        )
+        with patch.object(runner, "run", return_value=completed):
+            with pytest.raises(expected_type) as exc_info:
+                runner.run_checked(["masters", "get"])
+
+        assert exc_info.value.stderr == stderr
+        assert str(exc_info.value) == f"direct failed (exit 1): {stderr}"
+
+    def test_every_regex_anchor_is_guarded_by_installed_direct_cli_source(self):
+        """Upstream wording changes must fail CI, not regress to ``unknown``."""
+        source = inspect.getsource(direct_browser_session)
+        assert _BROWSER_ERROR_PATTERNS
+        assert len(_BROWSER_ERROR_PATTERNS) == len(_BROWSER_ERROR_ANCHORS)
+        for (error_kind, anchor), (pattern_kind, pattern) in zip(
+            _BROWSER_ERROR_ANCHORS, _BROWSER_ERROR_PATTERNS, strict=True
+        ):
+            assert error_kind == pattern_kind
+            assert anchor in source, (
+                f"browser error anchor drifted from direct_cli.browser.session: "
+                f"{anchor!r}"
+            )
+            assert pattern.fullmatch(anchor)
+
+    def test_api_error_code_wins_over_browser_wording(self, runner):
+        stderr = "error_code=8000, error_detail=Invalid Chrome profile value"
+        completed = subprocess.CompletedProcess(
+            args=["direct"], returncode=1, stdout="", stderr=stderr
+        )
+        with patch.object(runner, "run", return_value=completed):
+            with pytest.raises(CliError) as exc_info:
+                runner.run_checked(["campaigns", "get"])
+
+        assert not isinstance(exc_info.value, CliBrowserError)
+        assert exc_info.value.error_code == 8000
+
+
+def test_browser_timeout_constants_match_transport_contract() -> None:
+    assert BROWSER_DEFAULT_TIMEOUT == 180
+    assert BROWSER_LOGIN_TIMEOUT == 300

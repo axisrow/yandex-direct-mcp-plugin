@@ -2,9 +2,15 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from server import tools
 from server.cli.runner import (
+    BROWSER_DEFAULT_TIMEOUT,
     CliAuthError,
+    CliBrowserAuthError,
+    CliBrowserCaptchaError,
+    CliBrowserProfileError,
     CliNotFoundError,
     CliRegistrationError,
     CliTimeoutError,
@@ -67,6 +73,40 @@ def test_handle_cli_errors_returns_auth_expired_without_plugin_refresh() -> None
     assert result["error"] == "auth_expired"
     assert "auth_login" in result["hint"]
     assert state["calls"] == 1
+
+
+def test_handle_cli_errors_maps_browser_auth_required() -> None:
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliBrowserAuthError("browser login required")
+
+    result = wrapped()
+    assert result["error"] == "browser_auth_required"
+    assert result["message"] == "browser login required"
+    assert "masters_login" in result["hint"]
+    assert "direct playwright login" in result["hint"]
+
+
+def test_handle_cli_errors_maps_browser_captcha() -> None:
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliBrowserCaptchaError("captcha required")
+
+    result = wrapped()
+    assert result["error"] == "browser_captcha"
+    assert result["message"] == "captcha required"
+    assert "headful" in result["hint"]
+
+
+def test_handle_cli_errors_maps_browser_profile_error() -> None:
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliBrowserProfileError("profile unavailable")
+
+    result = wrapped()
+    assert result["error"] == "browser_profile_error"
+    assert result["message"] == "profile unavailable"
+    assert "playwright_doctor" in result["hint"]
 
 
 def test_handle_cli_errors_returns_unknown_for_unexpected_exception() -> None:
@@ -264,6 +304,27 @@ def test_handle_cli_errors_no_code_keeps_unknown_and_no_hint() -> None:
 def test_get_runner_returns_profile_based_runner() -> None:
     runner = tools.get_runner()
     assert isinstance(runner, DirectCliRunner)
+
+
+def test_get_browser_runner_uses_180_second_default(monkeypatch) -> None:
+    monkeypatch.delenv("YANDEX_DIRECT_BROWSER_TIMEOUT", raising=False)
+    runner = tools.get_browser_runner()
+    assert isinstance(runner, DirectCliRunner)
+    assert runner._timeout == BROWSER_DEFAULT_TIMEOUT == 180
+
+
+def test_get_browser_runner_respects_environment_override(monkeypatch) -> None:
+    monkeypatch.setenv("YANDEX_DIRECT_BROWSER_TIMEOUT", "45")
+    runner = tools.get_browser_runner()
+    assert runner._timeout == 45
+
+
+def test_get_browser_runner_rejects_invalid_environment_override(monkeypatch) -> None:
+    monkeypatch.setenv("YANDEX_DIRECT_BROWSER_TIMEOUT", "slow")
+    with pytest.raises(
+        ValueError, match="YANDEX_DIRECT_BROWSER_TIMEOUT must be a positive integer"
+    ):
+        tools.get_browser_runner()
 
 
 def test_parse_ids_strips_whitespace_and_empty_values() -> None:
