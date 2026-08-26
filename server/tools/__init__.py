@@ -8,6 +8,7 @@ from server.cli.runner import (
     CliAuthError,
     CliBrowserAuthError,
     CliBrowserCaptchaError,
+    CliBrowserError,
     CliBrowserProfileError,
     CliError,
     CliNotFoundError,
@@ -248,6 +249,17 @@ def handle_cli_errors(func):
                     hint=(
                         "Run playwright_doctor to inspect the Chrome profile and "
                         "browser dependencies, then fix the reported issue."
+                    ),
+                )
+            )
+        except CliBrowserError as e:
+            return tool_error_dict(
+                ToolError(
+                    error="browser_error",
+                    message=str(e),
+                    hint=(
+                        "Run playwright_doctor to inspect browser dependencies "
+                        "and installation, then fix the reported issue."
                     ),
                 )
             )

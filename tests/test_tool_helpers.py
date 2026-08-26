@@ -10,6 +10,7 @@ from server.cli.runner import (
     CliAuthError,
     CliBrowserAuthError,
     CliBrowserCaptchaError,
+    CliBrowserError,
     CliBrowserProfileError,
     CliNotFoundError,
     CliRegistrationError,
@@ -106,6 +107,17 @@ def test_handle_cli_errors_maps_browser_profile_error() -> None:
     result = wrapped()
     assert result["error"] == "browser_profile_error"
     assert result["message"] == "profile unavailable"
+    assert "playwright_doctor" in result["hint"]
+
+
+def test_handle_cli_errors_maps_generic_browser_error() -> None:
+    @tools.handle_cli_errors
+    def wrapped():
+        raise CliBrowserError("playwright is unavailable")
+
+    result = wrapped()
+    assert result["error"] == "browser_error"
+    assert result["message"] == "playwright is unavailable"
     assert "playwright_doctor" in result["hint"]
 
 
