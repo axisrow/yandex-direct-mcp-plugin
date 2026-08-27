@@ -42,6 +42,16 @@ IGNORED_CLI_PARAMS = {
     "output_format",
     "output",
 }
+UNRELEASED_CLI_REQUIREMENTS = {
+    "masters_get": (
+        "tracking_params",
+        "https://github.com/axisrow/direct-cli/commit/4ce5b27",
+    ),
+    "masters_counters_get": (
+        None,
+        "https://github.com/axisrow/direct-cli/commit/a52fe95",
+    ),
+}
 
 
 @pytest.fixture()
@@ -74,6 +84,33 @@ def _click_command(path: tuple[str, ...]) -> click.Command:
         child = command.get_command(click.Context(command), component)
         assert child is not None, path
         command = child
+    return command
+
+
+def _click_command_or_skip_unreleased(
+    tool_name: str,
+    path: tuple[str, ...],
+) -> click.Command:
+    requirement = UNRELEASED_CLI_REQUIREMENTS.get(tool_name)
+    try:
+        command = _click_command(path)
+    except AssertionError:
+        if requirement is None:
+            raise
+        _, commit_url = requirement
+        pytest.skip(
+            f"{tool_name} is not in published direct-cli 0.5.2; requires {commit_url}"
+        )
+
+    if requirement is not None:
+        required_param, commit_url = requirement
+        if required_param is not None and all(
+            parameter.name != required_param for parameter in command.params
+        ):
+            pytest.skip(
+                f"{tool_name}.{required_param} is not in published direct-cli 0.5.2; "
+                f"requires {commit_url}"
+            )
     return command
 
 
@@ -191,28 +228,26 @@ def test_adimages_path_is_not_flattened(masters_module: ModuleType) -> None:
     ]
 
 
-def test_masters_signatures_match_click_except_env_and_output_options(
+@pytest.mark.parametrize("tool_name", TOOL_NAMES)
+def test_masters_signature_matches_click_except_env_and_output_options(
     masters_module: ModuleType,
+    tool_name: str,
 ) -> None:
     contract = {tool.public_name: tool for tool in PUBLIC_CONTRACT}
-
-    for tool_name in TOOL_NAMES:
-        tool = contract[tool_name]
-        if tool.cli_subcommand_path is not None:
-            path = tool.cli_subcommand_path
-        else:
-            assert tool.cli_service is not None
-            assert tool.cli_subcommand is not None
-            path = (tool.cli_service, tool.cli_subcommand)
-        click_params = {
-            parameter.name
-            for parameter in _click_command(path).params
-            if parameter.name not in IGNORED_CLI_PARAMS
-        }
-        mcp_params = set(
-            inspect.signature(getattr(masters_module, tool_name)).parameters
-        )
-        assert mcp_params == click_params, tool_name
+    tool = contract[tool_name]
+    if tool.cli_subcommand_path is not None:
+        path = tool.cli_subcommand_path
+    else:
+        assert tool.cli_service is not None
+        assert tool.cli_subcommand is not None
+        path = (tool.cli_service, tool.cli_subcommand)
+    click_params = {
+        parameter.name
+        for parameter in _click_command_or_skip_unreleased(tool_name, path).params
+        if parameter.name not in IGNORED_CLI_PARAMS
+    }
+    mcp_params = set(inspect.signature(getattr(masters_module, tool_name)).parameters)
+    assert mcp_params == click_params, tool_name
 
 
 def test_masters_signature_defaults_and_cli_option_tables(
@@ -273,7 +308,7 @@ def test_nested_click_integer_ids_are_safe_mcp_strings(
     """Document the intentional ID-type divergence required by issue #256."""
     click_campaign_id = next(
         parameter
-        for parameter in _click_command(path).params
+        for parameter in _click_command_or_skip_unreleased(tool_name, path).params
         if parameter.name == "campaign_id"
     )
     mcp_campaign_id = inspect.signature(getattr(masters_module, tool_name)).parameters[

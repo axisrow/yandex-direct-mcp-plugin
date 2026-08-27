@@ -51,7 +51,7 @@ def _run_browser_json(args: list[str]) -> list[dict] | dict:
 
 @mcp.tool(
     name="masters_list",
-    description="List Campaign Wizard campaigns by status (browser-backed, read-only). Call tool_help('masters_list') for parameters.",
+    description="Read Campaign Wizard campaigns by status. See tool_help('masters_list').",
 )
 @handle_cli_errors
 def masters_list(status: str = "not-archived") -> list[dict] | dict:
@@ -76,7 +76,7 @@ def masters_list(status: str = "not-archived") -> list[dict] | dict:
 
 @mcp.tool(
     name="masters_get",
-    description="Get Campaign Wizard campaigns by ID (browser-backed, read-only). Call tool_help('masters_get') for parameters.",
+    description="Read Campaign Wizard campaigns by ID. See tool_help('masters_get').",
 )
 @handle_cli_errors
 def masters_get(
@@ -85,6 +85,10 @@ def masters_get(
     tracking_params: bool = False,
 ) -> list[dict] | dict:
     """Get one or more Campaign Wizard campaigns by comma-separated ID.
+
+    ``tracking_params=True`` requires a direct-cli release containing commit
+    https://github.com/axisrow/direct-cli/commit/4ce5b27. The published 0.5.2
+    wheel predates that read flag; the default call remains compatible with it.
 
     Args:
         campaign_ids: Comma-separated campaign IDs.
@@ -115,7 +119,7 @@ def _get_campaign_resource(tool_name: str, campaign_id: str) -> dict:
 
 @mcp.tool(
     name="masters_adimages_get",
-    description="Get Campaign Wizard images (browser-backed, read-only). Call tool_help('masters_adimages_get') for parameters.",
+    description="Read Campaign Wizard images. See tool_help('masters_adimages_get').",
 )
 @handle_cli_errors
 def masters_adimages_get(campaign_id: str) -> dict:
@@ -129,7 +133,7 @@ def masters_adimages_get(campaign_id: str) -> dict:
 
 @mcp.tool(
     name="masters_targetactions_get",
-    description="Get Campaign Wizard target actions (browser-backed, read-only). Call tool_help('masters_targetactions_get') for parameters.",
+    description="Read Campaign Wizard goals. See tool_help('masters_targetactions_get').",
 )
 @handle_cli_errors
 def masters_targetactions_get(campaign_id: str) -> dict:
@@ -143,11 +147,15 @@ def masters_targetactions_get(campaign_id: str) -> dict:
 
 @mcp.tool(
     name="masters_counters_get",
-    description="Get Campaign Wizard Metrika counters (browser-backed, read-only). Call tool_help('masters_counters_get') for parameters.",
+    description="Read Campaign Wizard counters. See tool_help('masters_counters_get').",
 )
 @handle_cli_errors
 def masters_counters_get(campaign_id: str) -> dict:
     """Get the campaign's linked Yandex Metrika counters.
+
+    Requires a direct-cli release containing commit
+    https://github.com/axisrow/direct-cli/commit/a52fe95. The command is absent
+    from the published 0.5.2 wheel.
 
     Args:
         campaign_id: Campaign ID.
@@ -157,7 +165,7 @@ def masters_counters_get(campaign_id: str) -> dict:
 
 @mcp.tool(
     name="masters_audience_get",
-    description="Get Campaign Wizard audience settings (browser-backed, read-only). Call tool_help('masters_audience_get') for parameters.",
+    description="Read Campaign Wizard audience. See tool_help('masters_audience_get').",
 )
 @handle_cli_errors
 def masters_audience_get(campaign_id: str) -> dict:
