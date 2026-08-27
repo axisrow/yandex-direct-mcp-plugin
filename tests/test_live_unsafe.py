@@ -2,12 +2,15 @@
 
 import os
 import warnings
+from collections.abc import Iterator
+from types import ModuleType
 
 import pytest
 
 from server.tools.campaigns import campaigns_list, campaigns_update
 from server.tools.keyword_bids import keyword_bids_set
 from server.tools.keywords import keywords_list
+from tests.helpers import import_tool_module_without_registration
 
 pytestmark = [pytest.mark.integration, pytest.mark.live_unsafe]
 
@@ -35,6 +38,24 @@ def _find_keyword(campaign_id: str, keyword_id: str) -> dict:
         if str(keyword.get("Id")) == str(keyword_id):
             return keyword
     raise AssertionError(f"Keyword {keyword_id} not found in campaign {campaign_id}")
+
+
+@pytest.fixture()
+def masters_tools() -> Iterator[ModuleType]:
+    """Load optional Masters tools without changing the global tool surface."""
+    with import_tool_module_without_registration("server.tools.masters") as module:
+        yield module
+
+
+def _master_status(masters_tools: ModuleType, campaign_id: str) -> str:
+    result = masters_tools.masters_get(campaign_id)
+    if isinstance(result, list):
+        assert len(result) == 1, result
+        result = result[0]
+    assert isinstance(result, dict), result
+    status = result.get("Status")
+    assert isinstance(status, str), result
+    return status
 
 
 def test_live_campaigns_update_rolls_back(live_plugin_data_dir):
@@ -96,3 +117,32 @@ def test_live_keyword_bids_set_rolls_back(live_plugin_data_dir):
             assert int(restored["Bid"]) == original_bid, restored
         except Exception:
             warnings.warn(f"Rollback failed for keyword {keyword_id}", stacklevel=2)
+
+
+def test_live_masters_resume_then_suspend_rolls_back(
+    masters_tools: ModuleType,
+) -> None:
+    campaign_id = _require_env("TEST_MASTERS_SUSPENDED_CAMPAIGN_ID")
+    assert _master_status(masters_tools, campaign_id) == "SUSPENDED", (
+        f"TEST_MASTERS_SUSPENDED_CAMPAIGN_ID={campaign_id} must start SUSPENDED"
+    )
+
+    try:
+        resumed = masters_tools.masters_resume(campaign_id)
+        assert isinstance(resumed, dict), resumed
+        assert resumed.get("Status") in {"ACTIVE", "MODERATION"}, resumed
+        assert _master_status(masters_tools, campaign_id) in {
+            "ACTIVE",
+            "MODERATION",
+        }
+    finally:
+        try:
+            rollback = masters_tools.masters_suspend(campaign_id)
+            assert isinstance(rollback, dict), rollback
+            assert rollback.get("Status") == "SUSPENDED", rollback
+            assert _master_status(masters_tools, campaign_id) == "SUSPENDED"
+        except Exception:
+            warnings.warn(
+                f"Rollback failed for Masters campaign {campaign_id}",
+                stacklevel=2,
+            )

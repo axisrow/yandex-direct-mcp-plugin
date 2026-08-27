@@ -1,4 +1,4 @@
-"""Read-only MCP tools for browser-backed Campaign Wizard campaigns."""
+"""MCP tools for browser-backed Campaign Wizard campaigns."""
 
 import os
 from typing import cast
@@ -10,6 +10,7 @@ from server.tools.browser_helpers import browser_session_args
 from server.tools.helpers import (
     CliOption,
     append_cli_options,
+    check_batch_limit,
     finalize_json_args,
     require_non_empty_csv,
     tool_error_dict,
@@ -106,6 +107,97 @@ def masters_get(
     args = [*_command_path("masters_get"), normalized_ids]
     append_cli_options(args, locals(), MASTERS_GET_OPTIONS)
     return _run_browser_json(args)
+
+
+def _run_campaign_batch(tool_name: str, campaign_ids: str) -> list[dict] | dict:
+    """Run one native browser session for a comma-separated campaign batch."""
+    normalized_ids = require_non_empty_csv(
+        campaign_ids,
+        error="missing_campaign_ids",
+        noun="campaign ID",
+    )
+    if isinstance(normalized_ids, ToolError):
+        return tool_error_dict(normalized_ids)
+
+    batch_error = check_batch_limit(normalized_ids)
+    if batch_error:
+        return tool_error_dict(batch_error)
+
+    return _run_browser_json([*_command_path(tool_name), normalized_ids])
+
+
+@mcp.tool(
+    name="masters_launch",
+    description="Launch Wizard campaigns. See tool_help('masters_launch').",
+)
+@handle_cli_errors
+def masters_launch(campaign_ids: str) -> list[dict] | dict:
+    """Launch one or more draft campaigns by comma-separated ID.
+
+    Args:
+        campaign_ids: Comma-separated campaign IDs (maximum 10).
+    """
+    return _run_campaign_batch("masters_launch", campaign_ids)
+
+
+@mcp.tool(
+    name="masters_suspend",
+    description="Suspend Wizard campaigns. See tool_help('masters_suspend').",
+)
+@handle_cli_errors
+def masters_suspend(campaign_ids: str) -> list[dict] | dict:
+    """Suspend one or more campaigns by comma-separated ID.
+
+    Args:
+        campaign_ids: Comma-separated campaign IDs (maximum 10).
+    """
+    return _run_campaign_batch("masters_suspend", campaign_ids)
+
+
+@mcp.tool(
+    name="masters_resume",
+    description="Resume Wizard campaigns. See tool_help('masters_resume').",
+)
+@handle_cli_errors
+def masters_resume(campaign_ids: str) -> list[dict] | dict:
+    """Resume one or more campaigns by comma-separated ID.
+
+    Args:
+        campaign_ids: Comma-separated campaign IDs (maximum 10).
+    """
+    return _run_campaign_batch("masters_resume", campaign_ids)
+
+
+@mcp.tool(
+    name="masters_archive",
+    description="Archive Wizard campaigns. See tool_help('masters_archive').",
+)
+@handle_cli_errors
+def masters_archive(campaign_ids: str) -> list[dict] | dict:
+    """Archive one or more campaigns by comma-separated ID.
+
+    Args:
+        campaign_ids: Comma-separated campaign IDs (maximum 10).
+    """
+    return _run_campaign_batch("masters_archive", campaign_ids)
+
+
+@mcp.tool(
+    name="masters_copy",
+    description="Copy a Wizard campaign. See tool_help('masters_copy').",
+)
+@handle_cli_errors
+def masters_copy(campaign_id: str, launch: bool = False) -> dict:
+    """Clone a campaign, saving the copy as a draft unless launch is true.
+
+    Args:
+        campaign_id: Source campaign ID.
+        launch: Launch the clone immediately instead of saving it as a draft.
+    """
+    args = [*_command_path("masters_copy"), str(campaign_id)]
+    if launch:
+        args.append("--launch")
+    return cast(dict, _run_browser_json(args))
 
 
 def _get_campaign_resource(tool_name: str, campaign_id: str) -> dict:

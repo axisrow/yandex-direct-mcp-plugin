@@ -28,6 +28,11 @@ IMPLEMENTED_BROWSER_TOOL_NAMES = frozenset(
     {
         "masters_list",
         "masters_get",
+        "masters_launch",
+        "masters_suspend",
+        "masters_resume",
+        "masters_archive",
+        "masters_copy",
         "masters_adimages_get",
         "masters_targetactions_get",
         "masters_counters_get",
