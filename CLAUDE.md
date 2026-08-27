@@ -48,7 +48,7 @@ Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCK
 | `negativekeywords_*` | not a CLI service; use AdGroups payload or `negativekeywordsharedsets_*` |
 | `bidmodifiers_toggle` | removed in CLI 0.2.8; API op deprecated 2025-11-13 |
 
-## Masters browser authentication
+## Browser-backed tools authentication
 
 When present in `PUBLIC_CONTRACT`, Masters tools do not use the API OAuth path
 described under Environment. Campaign Wizard has no Management API, so the
@@ -58,6 +58,13 @@ before assuming they are available. The browser's logged-in account is
 authoritative; `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, and the finance
 `YANDEX_DIRECT_MASTER_TOKEN` do not authenticate or select an account for these
 tools.
+
+`history_get` is another read-only browser tool. It reads the account-wide
+«История изменений» journal with server-side filters, automatic pagination, and
+`Gtid` de-duplication for overlapping timestamp-cursor pages. Plain dates expand
+to full-day boundaries in `direct`. For its `categories` filter, omission keeps
+the web UI's complete category list, while an explicit empty string filters out
+all records; callers must not collapse those two states.
 
 Provision Masters authentication manually, outside the stdio MCP process:
 
