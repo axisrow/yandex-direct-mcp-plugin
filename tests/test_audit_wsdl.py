@@ -141,6 +141,35 @@ def test_run_live_audit_excludes_reports_and_uses_wsdl_endpoint_aliases():
     ]
 
 
+def test_browser_contract_additions_do_not_change_wsdl_audit_report(monkeypatch):
+    """Browser-authority tools must remain invisible to the WSDL audit."""
+    declared_with_browser = audit_wsdl.auditable_contract_methods()
+    report_with_browser = audit_wsdl.format_report(
+        audit_wsdl.compare_wsdl_to_contract(
+            declared_with_browser,
+            blocked_operations={},
+        )
+    )
+
+    monkeypatch.setattr(
+        audit_wsdl,
+        "PUBLIC_CONTRACT",
+        tuple(
+            tool for tool in audit_wsdl.PUBLIC_CONTRACT if tool.authority != "browser"
+        ),
+    )
+    declared_without_browser = audit_wsdl.auditable_contract_methods()
+    report_without_browser = audit_wsdl.format_report(
+        audit_wsdl.compare_wsdl_to_contract(
+            declared_without_browser,
+            blocked_operations={},
+        )
+    )
+
+    assert declared_with_browser == declared_without_browser
+    assert report_with_browser == report_without_browser
+
+
 def test_run_live_audit_marks_non_wsdl_service_as_inconclusive():
     """Reports is a JSON API, not a WSDL service — it must skip the WSDL audit."""
     result = audit_wsdl.run_live_audit(timeout=3.0, services=frozenset({"reports"}))

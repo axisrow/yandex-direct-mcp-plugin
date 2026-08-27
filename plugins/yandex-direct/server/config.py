@@ -19,7 +19,7 @@ Two kinds of groups:
     ``destructive`` no longer also strips the ability to *undo* a state change
     (#205-A).
   * *area*: ``analytics`` | ``campaign_management`` | ``bidding_budget`` |
-    ``assets_creatives`` | ``targeting_audience``
+    ``assets_creatives`` | ``targeting_audience`` | ``browser``
   * *risk*: ``financial`` — an extra deny axis layered *on top of* the action
     group for money-movement tools (``v4account_deposit`` / ``invoice`` /
     ``transfer_money``). It is not an action group: these tools keep their
@@ -50,7 +50,7 @@ from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
 # also strip the ability to undo a state change (#205-A).
 _DESTRUCTIVE_METHODS = frozenset({"delete", "delete_report"})
 _LIFECYCLE_METHODS = frozenset(
-    {"archive", "unarchive", "suspend", "resume", "moderate"}
+    {"archive", "unarchive", "suspend", "resume", "moderate", "launch"}
 )
 _MUTATE_METHODS = frozenset(
     {
@@ -66,6 +66,9 @@ _MUTATE_METHODS = frozenset(
         "update_campaigns",
         "update_banners",
         "enable_shared_account",
+        "copy",
+        "login",
+        "logout",
     }
 )
 # Tools whose cli_method does not encode the action (cli_method is None or a
@@ -108,7 +111,6 @@ _SERVICE_AREA: dict[str, str] = {
     "reports": "analytics",
     "changes": "analytics",
     "dictionaries": "analytics",
-    "trackingparams": "analytics",
     "keywordsresearch": "analytics",
     "leads": "analytics",
     "v4forecast": "analytics",
@@ -116,6 +118,11 @@ _SERVICE_AREA: dict[str, str] = {
     "v4goals": "analytics",
     "v4keywords": "analytics",
     "v4events": "analytics",
+    # optional browser/local-reference surface
+    "masters": "browser",
+    "history": "browser",
+    "playwright": "browser",
+    "trackingparams": "browser",
     # agencyclients / clients / businesses / plugin: account/admin, no area group
 }
 
@@ -152,8 +159,14 @@ def _action_group(name: str, cli_method: str | None) -> str:
 
 @lru_cache(maxsize=1)
 def _tool_records() -> dict[str, tuple[str | None, str | None]]:
-    """name -> (cli_service, cli_method) for every public tool."""
-    return {ct.public_name: (ct.cli_service, ct.cli_method) for ct in PUBLIC_CONTRACT}
+    """name -> (cli_service, effective action verb) for every public tool."""
+    return {
+        ct.public_name: (
+            ct.cli_service,
+            ct.cli_subcommand_path[-1] if ct.cli_subcommand_path else ct.cli_method,
+        )
+        for ct in PUBLIC_CONTRACT
+    }
 
 
 def tool_names() -> frozenset[str]:
@@ -348,17 +361,22 @@ def apply_tool_surface(mcp, config: ToolSurfaceConfig) -> list[str]:
     Uses the public ``remove_tool``. A ``full`` config removes nothing, so the
     default tool surface is untouched.
 
-    Fail-safe: if the config would remove *every* registered tool — almost
-    always a typo in an allow-list env var (e.g. ``YANDEX_DIRECT_ENABLED_GROUPS``
-    or ``...ENABLED_TOOLS`` naming nothing that matches) — the removal is
-    abandoned and the full surface is kept. An empty MCP server is never a
-    useful outcome, so a startup typo must not silently wipe the surface.
+    Fail-safe: if the config would remove *every* registered tool because an
+    allow-list names no contract tool (usually a typo), the removal is abandoned
+    and the full surface is kept. A valid allow-list that currently matches only
+    unregistered optional tools is different: it must fail closed to an empty
+    surface rather than expose every default tool.
     """
     manager = getattr(mcp, "_tool_manager", None)
     registered = list(getattr(manager, "_tools", {}).keys())
     removed = [name for name in registered if not config.is_enabled(name)]
-    if registered and len(removed) == len(registered):
-        # Would disable everything — treat as misconfiguration, keep full surface.
+    known_allowlist_target = bool(
+        config.enabled_tools & tool_names() or config.enabled_groups & all_groups()
+    )
+    valid_empty_allowlist = not config.default_enabled and known_allowlist_target
+    if registered and len(removed) == len(registered) and not valid_empty_allowlist:
+        # No known allow-list target matched, or a deny-list removed everything:
+        # treat it as a typo/misconfiguration and keep the registered surface.
         return []
     for name in removed:
         mcp.remove_tool(name)

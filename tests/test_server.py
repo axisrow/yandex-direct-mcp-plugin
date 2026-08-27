@@ -8,6 +8,7 @@ from pathlib import Path
 
 from server.contract import (
     CLI_HELPER_TOOL_NAMES,
+    DEFAULT_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
     REMOVED_LEGACY_PUBLIC_NAMES,
@@ -87,9 +88,9 @@ def test_mcp_server_registers_all_tools():
         assert resp["id"] == 2
 
         tool_names = {t["name"] for t in resp["result"]["tools"]}
-        assert tool_names == PUBLIC_TOOL_NAMES, (
-            f"Missing tools: {PUBLIC_TOOL_NAMES - tool_names}, "
-            f"extra tools: {tool_names - PUBLIC_TOOL_NAMES}"
+        assert tool_names == DEFAULT_TOOL_NAMES, (
+            f"Missing tools: {DEFAULT_TOOL_NAMES - tool_names}, "
+            f"extra tools: {tool_names - DEFAULT_TOOL_NAMES}"
         )
     finally:
         proc.terminate()
@@ -106,6 +107,17 @@ def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
     resp = _read_response(proc)
     assert resp["id"] == 2
     return {t["name"] for t in resp["result"]["tools"]}
+
+
+def test_unregistered_optional_tool_allowlist_fails_closed():
+    """A browser tool allowlist cannot fail open to all default tools (#304)."""
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_get"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == set()
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
 
 
 def test_mcp_server_respects_disabled_tool_groups():

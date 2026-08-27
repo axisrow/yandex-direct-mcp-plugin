@@ -13,12 +13,13 @@ from server.config import (
     groups_for_tool,
     tool_names,
 )
-from server.contract import PUBLIC_CONTRACT
+from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
 
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 149
+    assert len(tool_names()) == 172
+    assert len(DEFAULT_TOOL_NAMES) == 149
 
 
 def test_every_tool_has_exactly_one_action_group():
@@ -44,7 +45,7 @@ def test_group_membership_examples():
     )
     assert groups_for_tool("reports_get") == frozenset({"reports", "analytics", "read"})
     assert groups_for_tool("trackingparams") == frozenset(
-        {"trackingparams", "analytics", "read"}
+        {"trackingparams", "browser", "read"}
     )
     # Money movement keeps its mutate action and additionally carries the
     # financial risk group (#205-B).
@@ -63,10 +64,57 @@ def test_group_membership_examples():
     assert groups_for_tool("auth_login") == frozenset({"plugin", "mutate"})
 
 
+def test_browser_tool_group_membership() -> None:
+    assert groups_for_tool("masters_delete") == frozenset(
+        {"masters", "browser", "destructive"}
+    )
+    assert groups_for_tool("masters_copy") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("history_get") == frozenset({"history", "browser", "read"})
+
+
+def test_nested_browser_writes_use_terminal_cli_verb() -> None:
+    assert groups_for_tool("masters_adimages_get") == frozenset(
+        {"masters", "browser", "read"}
+    )
+    assert groups_for_tool("masters_adimages_add") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_adimages_set") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_adimages_delete") == frozenset(
+        {"masters", "browser", "destructive"}
+    )
+
+
+def test_browser_auth_commands_are_not_reads() -> None:
+    assert groups_for_tool("masters_login") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_logout") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("playwright_login") == frozenset(
+        {"playwright", "browser", "mutate"}
+    )
+    assert groups_for_tool("playwright_doctor") == frozenset(
+        {"playwright", "browser", "read"}
+    )
+
+
+def test_masters_launch_is_lifecycle_not_read_regression() -> None:
+    groups = groups_for_tool("masters_launch")
+    assert groups == frozenset({"masters", "browser", "lifecycle"})
+    assert "read" not in groups
+
+
 def test_all_groups_includes_services_and_scenarios():
     groups = all_groups()
     assert SCENARIO_GROUPS <= groups
     assert "campaigns" in groups and "plugin" in groups
+    assert "browser" in groups
 
 
 def test_default_config_is_full_surface():
@@ -239,6 +287,51 @@ def test_apply_tool_surface_failsafe_keeps_full_when_all_disabled():
     removed = apply_tool_surface(mcp, cfg)
     assert removed == []
     assert set(mcp._tool_manager._tools) == {"campaigns_get", "ads_get"}
+
+
+def test_apply_tool_surface_denylist_failsafe_ignores_optional_contract_tools():
+    """Unregistered optional defaults cannot defeat the deny-list fail-safe."""
+    mcp = _StubMcp(["campaigns_get", "ads_get"])
+    cfg = ToolSurfaceConfig(
+        disabled_tools=frozenset({"campaigns_get", "ads_get"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert removed == []
+    assert set(mcp._tool_manager._tools) == {"campaigns_get", "ads_get"}
+
+
+def test_apply_tool_surface_optional_only_allowlist_fails_closed():
+    """A known optional tool that is not registered must not expose defaults."""
+    mcp = _StubMcp(["campaigns_get", "campaigns_delete", "v4account_deposit"])
+    cfg = ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_tools=frozenset({"masters_get"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert set(removed) == {
+        "campaigns_get",
+        "campaigns_delete",
+        "v4account_deposit",
+    }
+    assert not mcp._tool_manager._tools
+
+
+def test_apply_tool_surface_optional_group_only_allowlist_fails_closed():
+    """The browser group has the same fail-closed behavior as a tool name."""
+    mcp = _StubMcp(["campaigns_get", "campaigns_delete"])
+    cfg = ToolSurfaceConfig(
+        default_enabled=False,
+        enabled_groups=frozenset({"browser"}),
+    )
+
+    removed = apply_tool_surface(mcp, cfg)
+
+    assert set(removed) == {"campaigns_get", "campaigns_delete"}
+    assert not mcp._tool_manager._tools
 
 
 def test_config_from_env_enabled_groups_typo_warns_and_keeps_full():

@@ -9,9 +9,9 @@ from pathlib import Path
 
 from server.contract import (
     CLI_HELPER_TOOL_NAMES,
+    DEFAULT_TOOL_NAMES,
     DIRECT_API_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
-    PUBLIC_TOOL_NAMES,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -92,14 +92,15 @@ def test_plugin_table_matches_contract() -> None:
     _check("### Plugin tools", PLUGIN_ONLY_TOOL_NAMES)
 
 
-def test_mcp_tools_headline_total_matches_contract() -> None:
+def test_mcp_tools_headline_total_matches_default_contract() -> None:
     """The most-read count — ``## MCP Tools (N total)`` — must track the contract
     so the hardcoded total (the only one not under any test) cannot go stale."""
     text = TOOLS_MD.read_text()
     match = re.search(r"^## MCP Tools \((\d+) total\)", text, re.MULTILINE)
     assert match, "docs/TOOLS.md is missing the '## MCP Tools (N total)' headline"
-    assert int(match.group(1)) == len(PUBLIC_TOOL_NAMES), (
-        f"headline total {match.group(1)} != {len(PUBLIC_TOOL_NAMES)} contract tools"
+    assert int(match.group(1)) == len(DEFAULT_TOOL_NAMES), (
+        f"headline total {match.group(1)} != "
+        f"{len(DEFAULT_TOOL_NAMES)} default contract tools"
     )
 
 
