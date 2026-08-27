@@ -244,6 +244,30 @@
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="server.cli.runner.CliBrowserAuthError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.cli.runner.</span></span><span class="sig-name descname"><span class="pre">CliBrowserAuthError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.CliBrowserAuthError" title="Link to this definition">¶</a></dt>
+<dd><p>The browser session is missing, expired, or requires login.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="server.cli.runner.CliBrowserCaptchaError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.cli.runner.</span></span><span class="sig-name descname"><span class="pre">CliBrowserCaptchaError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.CliBrowserCaptchaError" title="Link to this definition">¶</a></dt>
+<dd><p>Yandex served a captcha instead of the requested browser page.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="server.cli.runner.CliBrowserError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.cli.runner.</span></span><span class="sig-name descname"><span class="pre">CliBrowserError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.CliBrowserError" title="Link to this definition">¶</a></dt>
+<dd><p>Base error for browser-backed direct-cli commands.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="server.cli.runner.CliBrowserProfileError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.cli.runner.</span></span><span class="sig-name descname"><span class="pre">CliBrowserProfileError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.CliBrowserProfileError" title="Link to this definition">¶</a></dt>
+<dd><p>The Chrome profile, cookies, or Keychain cannot be used.</p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="server.cli.runner.CliError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.cli.runner.</span></span><span class="sig-name descname"><span class="pre">CliError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.CliError" title="Link to this definition">¶</a></dt>
 <dd><p>Base error for CLI operations.</p>
@@ -383,6 +407,21 @@ that residual stderr is surfaced as <code class="docutils literal notranslate"><
 swallowed (issue #256). Empty stderr leaves the payload untouched.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="server.cli.runner.DirectCliRunner.run_json_lenient">
+<span class="sig-name descname"><span class="pre">run_json_lenient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.cli.runner.DirectCliRunner.run_json_lenient" title="Link to this definition">¶</a></dt>
+<dd><p>Parse JSON surrounded by direct-cli informational notices.</p>
+<p>Browser commands can print <code class="docutils literal notranslate"><span class="pre">ℹ</span></code>/<code class="docutils literal notranslate"><span class="pre">✓</span></code>/<code class="docutils literal notranslate"><span class="pre">⚠</span></code> notices to stdout before
+or after their JSON payload. Unlike <a class="reference internal" href="#server.cli.runner.DirectCliRunner.run_json" title="server.cli.runner.DirectCliRunner.run_json"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_json()</span></code></a>, this method
+deliberately accepts that narrow envelope while still failing closed
+on unrelated stdout text or malformed JSON.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -444,6 +483,10 @@ swallowed (issue #256). Empty stderr leaves the payload untouched.</p>
             <ul>
 <li><a class="reference internal" href="#">CLI Runner</a><ul>
 <li><a class="reference internal" href="#server.cli.runner.CliAuthError"><code class="docutils literal notranslate"><span class="pre">CliAuthError</span></code></a></li>
+<li><a class="reference internal" href="#server.cli.runner.CliBrowserAuthError"><code class="docutils literal notranslate"><span class="pre">CliBrowserAuthError</span></code></a></li>
+<li><a class="reference internal" href="#server.cli.runner.CliBrowserCaptchaError"><code class="docutils literal notranslate"><span class="pre">CliBrowserCaptchaError</span></code></a></li>
+<li><a class="reference internal" href="#server.cli.runner.CliBrowserError"><code class="docutils literal notranslate"><span class="pre">CliBrowserError</span></code></a></li>
+<li><a class="reference internal" href="#server.cli.runner.CliBrowserProfileError"><code class="docutils literal notranslate"><span class="pre">CliBrowserProfileError</span></code></a></li>
 <li><a class="reference internal" href="#server.cli.runner.CliError"><code class="docutils literal notranslate"><span class="pre">CliError</span></code></a></li>
 <li><a class="reference internal" href="#server.cli.runner.CliNotFoundError"><code class="docutils literal notranslate"><span class="pre">CliNotFoundError</span></code></a></li>
 <li><a class="reference internal" href="#server.cli.runner.CliRegistrationError"><code class="docutils literal notranslate"><span class="pre">CliRegistrationError</span></code></a></li>
@@ -458,6 +501,7 @@ swallowed (issue #256). Empty stderr leaves the payload untouched.</p>
 <li><a class="reference internal" href="#server.cli.runner.DirectCliRunner.run"><code class="docutils literal notranslate"><span class="pre">DirectCliRunner.run()</span></code></a></li>
 <li><a class="reference internal" href="#server.cli.runner.DirectCliRunner.run_checked"><code class="docutils literal notranslate"><span class="pre">DirectCliRunner.run_checked()</span></code></a></li>
 <li><a class="reference internal" href="#server.cli.runner.DirectCliRunner.run_json"><code class="docutils literal notranslate"><span class="pre">DirectCliRunner.run_json()</span></code></a></li>
+<li><a class="reference internal" href="#server.cli.runner.DirectCliRunner.run_json_lenient"><code class="docutils literal notranslate"><span class="pre">DirectCliRunner.run_json_lenient()</span></code></a></li>
 </ul>
 </li>
 </ul>
