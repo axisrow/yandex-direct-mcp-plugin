@@ -74,6 +74,36 @@ def test_browser_tool_group_membership() -> None:
     assert groups_for_tool("history_get") == frozenset({"history", "browser", "read"})
 
 
+def test_nested_browser_writes_use_terminal_cli_verb() -> None:
+    assert groups_for_tool("masters_adimages_get") == frozenset(
+        {"masters", "browser", "read"}
+    )
+    assert groups_for_tool("masters_adimages_add") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_adimages_set") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_adimages_delete") == frozenset(
+        {"masters", "browser", "destructive"}
+    )
+
+
+def test_browser_auth_commands_are_not_reads() -> None:
+    assert groups_for_tool("masters_login") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("masters_logout") == frozenset(
+        {"masters", "browser", "mutate"}
+    )
+    assert groups_for_tool("playwright_login") == frozenset(
+        {"playwright", "browser", "mutate"}
+    )
+    assert groups_for_tool("playwright_doctor") == frozenset(
+        {"playwright", "browser", "read"}
+    )
+
+
 def test_masters_launch_is_lifecycle_not_read_regression() -> None:
     groups = groups_for_tool("masters_launch")
     assert groups == frozenset({"masters", "browser", "lifecycle"})

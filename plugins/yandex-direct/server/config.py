@@ -67,6 +67,8 @@ _MUTATE_METHODS = frozenset(
         "update_banners",
         "enable_shared_account",
         "copy",
+        "login",
+        "logout",
     }
 )
 # Tools whose cli_method does not encode the action (cli_method is None or a
@@ -157,8 +159,14 @@ def _action_group(name: str, cli_method: str | None) -> str:
 
 @lru_cache(maxsize=1)
 def _tool_records() -> dict[str, tuple[str | None, str | None]]:
-    """name -> (cli_service, cli_method) for every public tool."""
-    return {ct.public_name: (ct.cli_service, ct.cli_method) for ct in PUBLIC_CONTRACT}
+    """name -> (cli_service, effective action verb) for every public tool."""
+    return {
+        ct.public_name: (
+            ct.cli_service,
+            ct.cli_subcommand_path[-1] if ct.cli_subcommand_path else ct.cli_method,
+        )
+        for ct in PUBLIC_CONTRACT
+    }
 
 
 def tool_names() -> frozenset[str]:
