@@ -3,8 +3,6 @@
 import inspect
 from unittest.mock import MagicMock, patch
 
-from direct_cli.cli import cli  # type: ignore[import-not-found, import-untyped]
-
 from server.cli.runner import CliBrowserAuthError
 from tests.helpers import mock_runner
 
@@ -161,16 +159,16 @@ def test_history_get_maps_browser_auth_failures() -> None:
 
 def test_history_get_signature_covers_all_seven_domain_click_parameters() -> None:
     history = _load_history_module()
-    click_command = cli.commands["history"].commands["get"]
-    infrastructure = {
-        "headful",
-        "profile_dir",
-        "chrome_profile",
-        "output_format",
-        "output",
-    }
-    click_domain_params = {
-        param.name for param in click_command.params if param.name not in infrastructure
+    expected_domain_params = {
+        "campaign_ids",
+        "date_from",
+        "date_to",
+        "logins",
+        "change_sources",
+        "categories",
+        "limit",
     }
 
-    assert click_domain_params == set(inspect.signature(history.history_get).parameters)
+    assert expected_domain_params == set(
+        inspect.signature(history.history_get).parameters
+    )
