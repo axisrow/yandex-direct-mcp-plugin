@@ -16,6 +16,37 @@ _DIRECT_INSTALL_HINT = (
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
+_NOTICE_LINE_RE = re.compile(r"^\s*[ℹ✓⚠]\s+(?P<message>.*)$")
+
+# These are stable, user-facing fragments owned by direct-cli. Keep every
+# pattern as a literal substring (rather than a loose keyword soup): the tests
+# verify that each one still exists in the installed
+# ``direct_cli.browser.session`` source, so upstream wording changes fail CI
+# instead of silently degrading a browser failure back to ``unknown``.
+_BROWSER_ERROR_ANCHORS: tuple[tuple[str, str], ...] = (
+    ("captcha", "Yandex served a SmartCaptcha challenge instead of the Direct page"),
+    ("auth", "Yandex served its login page instead of Direct"),
+    ("auth", "waiting for login to"),
+    (
+        "auth",
+        "verifying the session. Retry `direct playwright login`",
+    ),
+    ("auth", "No persistent browser profile found at"),
+    ("profile", "Chrome profile directory"),
+    ("profile", "Chrome profile"),
+    ("profile", "browser profile"),
+    ("profile", "Chrome cookie"),
+    ("profile", "Keychain"),
+    ("browser", "playwright is required for this command"),
+)
+_BROWSER_ERROR_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
+    (error_kind, re.compile(re.escape(anchor)))
+    for error_kind, anchor in _BROWSER_ERROR_ANCHORS
+)
+
+BROWSER_DEFAULT_TIMEOUT = 180
+BROWSER_LOGIN_TIMEOUT = 300
+
 # JavaScript MCP hosts cannot represent integers outside this range exactly.
 # Keep the original JSON token as a string before the parsed CLI response
 # crosses the MCP boundary; smaller counters and monetary values stay numeric.
@@ -358,6 +389,174 @@ class DirectCliRunner:
             return _attach_cli_warnings(parsed, residual_stderr)
         return _attach_cli_warnings({"result": parsed}, residual_stderr)
 
+    def run_json_lenient(
+        self, args: list[str], *, timeout: int | None = None
+    ) -> list[dict] | dict:
+        """Parse JSON surrounded by direct-cli informational notices.
+
+        Browser commands can print ``ℹ``/``✓``/``⚠`` notices to stdout before
+        or after their JSON payload. Unlike :meth:`run_json`, this method
+        deliberately accepts that narrow envelope while still failing closed
+        on unrelated stdout text or malformed JSON.
+        """
+        result = self.run_checked(args, timeout=timeout)
+
+        output = _strip_ansi(result.stdout).strip()
+        residual_stderr = _strip_ansi(result.stderr).strip()
+
+        if not output:
+            return _attach_cli_warnings([], residual_stderr)
+
+        stripped_output, notices = _strip_single_line_edge_notices(output)
+        try:
+            parsed = json.loads(stripped_output, parse_int=_parse_json_integer)
+        except json.JSONDecodeError as original_error:
+            fragment = _largest_balanced_json_fragment(output)
+            if fragment is None:
+                raise CliError(
+                    f"Failed to parse CLI output as JSON: {original_error}"
+                ) from original_error
+
+            fragment_start, fragment_end = fragment
+            leading_notices = _parse_notice_region(output[:fragment_start])
+            trailing_notices = _parse_notice_region(output[fragment_end:])
+            if leading_notices is None or trailing_notices is None:
+                raise CliError(
+                    f"Failed to parse CLI output as JSON: {original_error}"
+                ) from original_error
+
+            notices = [*leading_notices, *trailing_notices]
+            fragment_text = output[fragment_start:fragment_end]
+            try:
+                parsed = json.loads(fragment_text, parse_int=_parse_json_integer)
+            except json.JSONDecodeError as fragment_error:
+                raise CliError(
+                    f"Failed to parse CLI output as JSON: {fragment_error}"
+                ) from fragment_error
+
+        if not isinstance(parsed, (dict, list)):
+            parsed = {"result": parsed}
+        parsed = _attach_notices(parsed, notices)
+        return _attach_cli_warnings(parsed, residual_stderr)
+
+
+def _strip_single_line_edge_notices(text: str) -> tuple[str, list[str]]:
+    """Remove sentinel-prefixed, single-line notices at either output edge."""
+    lines = text.splitlines()
+    leading: list[str] = []
+    trailing: list[str] = []
+
+    while lines and (match := _NOTICE_LINE_RE.match(lines[0])):
+        leading.append(match.group("message").strip())
+        lines.pop(0)
+    while lines and (match := _NOTICE_LINE_RE.match(lines[-1])):
+        trailing.append(match.group("message").strip())
+        lines.pop()
+
+    trailing.reverse()
+    return "\n".join(lines).strip(), [*leading, *trailing]
+
+
+def _parse_notice_region(text: str) -> list[str] | None:
+    """Parse one outer stdout region as sentinel-led, possibly multiline notices.
+
+    ``None`` means the region contained non-notice text. Continuation lines are
+    accepted only after a sentinel line, keeping the fallback narrow enough not
+    to hide arbitrary CLI corruption.
+    """
+    lines = text.strip().splitlines()
+    if not lines:
+        return []
+
+    notices: list[str] = []
+    current: list[str] | None = None
+    for line in lines:
+        if match := _NOTICE_LINE_RE.match(line):
+            if current is not None:
+                notices.append("\n".join(current).strip())
+            current = [match.group("message").strip()]
+        elif current is None:
+            return None
+        else:
+            current.append(line.strip())
+    if current is not None:
+        notices.append("\n".join(current).strip())
+    return notices
+
+
+def _largest_balanced_json_fragment(text: str) -> tuple[int, int] | None:
+    """Return bounds of the largest balanced object/array in ``text``.
+
+    Brackets inside JSON strings are ignored, including escaped quotes. The
+    caller still runs ``json.loads`` on the selected fragment; balancing alone
+    never turns malformed data into a successful response.
+    """
+    pairs = {"{": "}", "[": "]"}
+    candidates: list[tuple[int, int]] = []
+    stack: list[str] = []
+    start: int | None = None
+    in_string = False
+    escaped = False
+
+    for index, char in enumerate(text):
+        if start is None:
+            if char in pairs:
+                start = index
+                stack.append(pairs[char])
+            continue
+
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+        elif char in pairs:
+            stack.append(pairs[char])
+        elif char in ("}", "]"):
+            if char != stack[-1]:
+                # A mismatched candidate is not valid JSON. Reset and keep
+                # scanning for the next independent object/array.
+                start = None
+                stack.clear()
+                in_string = False
+                escaped = False
+                continue
+            stack.pop()
+            if not stack:
+                candidates.append((start, index + 1))
+                start = None
+
+    if not candidates:
+        return None
+    return max(candidates, key=lambda bounds: bounds[1] - bounds[0])
+
+
+def _attach_notices(parsed: list[dict] | dict, notices: list[str]) -> list[dict] | dict:
+    """Attach stdout notices without changing a top-level list's wire shape."""
+    notices = [notice for notice in notices if notice]
+    if not notices:
+        return parsed
+    if isinstance(parsed, dict):
+        existing = parsed.get("notices")
+        if existing is None:
+            parsed["notices"] = notices
+        elif isinstance(existing, list):
+            existing.extend(notices)
+        else:
+            sys.stderr.write(
+                "direct emitted stdout notices but the JSON payload already "
+                "contains a non-list 'notices' field\n"
+            )
+        return parsed
+    sys.stderr.write(f"direct emitted stdout notices: {'; '.join(notices)}\n")
+    return parsed
+
 
 def _attach_cli_warnings(
     parsed: list[dict] | dict, residual_stderr: str
@@ -409,6 +608,24 @@ def _raise_for_status(result: subprocess.CompletedProcess[str]) -> None:
             "Вам нужно подать или переподать заявку на регистрацию приложения "
             "в Яндекс.Директ: https://direct.yandex.ru → Инструменты → API → Мои заявки."
         )
+    # Browser ClickExceptions do not carry Direct API error codes. Restrict the
+    # text classifier to that code-less transport shape so an API error_detail
+    # that happens to mention Chrome/Keychain keeps its existing classification.
+    if error_code is None:
+        browser_error_types: dict[str, type[CliBrowserError]] = {
+            "browser": CliBrowserError,
+            "auth": CliBrowserAuthError,
+            "captcha": CliBrowserCaptchaError,
+            "profile": CliBrowserProfileError,
+        }
+        for error_kind, pattern in _BROWSER_ERROR_PATTERNS:
+            if pattern.search(stderr):
+                error_type = browser_error_types[error_kind]
+                raise error_type(
+                    f"direct failed (exit {result.returncode}): {stderr}",
+                    error_code=error_code,
+                    stderr=stderr,
+                )
     raise CliError(
         f"direct failed (exit {result.returncode}): {stderr or _strip_ansi(result.stdout)[:200]}",
         error_code=error_code,
@@ -445,3 +662,19 @@ class CliAuthError(CliError):
 
 class CliRegistrationError(CliError):
     """Application not registered in Yandex.Direct (error 58)."""
+
+
+class CliBrowserError(CliError):
+    """Base error for browser-backed direct-cli commands."""
+
+
+class CliBrowserAuthError(CliBrowserError):
+    """The browser session is missing, expired, or requires login."""
+
+
+class CliBrowserCaptchaError(CliBrowserError):
+    """Yandex served a captcha instead of the requested browser page."""
+
+
+class CliBrowserProfileError(CliBrowserError):
+    """The Chrome profile, cookies, or Keychain cannot be used."""
