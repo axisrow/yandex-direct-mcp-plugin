@@ -1,6 +1,7 @@
 """Tests for the optional browser-backed ``history_get`` MCP tool."""
 
 import inspect
+import os
 from unittest.mock import MagicMock, patch
 
 from server.cli.runner import CliBrowserAuthError
@@ -142,6 +143,38 @@ def test_history_get_forwards_non_positive_limit_for_direct_usage_error() -> Non
 
     runner.run_json_lenient.assert_called_once_with(
         ["history", "get", "--limit", "0", "--format", "json"]
+    )
+
+
+def test_history_get_forwards_browser_session_environment() -> None:
+    history = _load_history_module()
+    runner = _history_runner([])
+    env = {
+        "YANDEX_DIRECT_BROWSER_PROFILE_DIR": "/tmp/direct-profile",
+        "YANDEX_DIRECT_BROWSER_CHROME_PROFILE": "Profile 3",
+        "YANDEX_DIRECT_BROWSER_HEADFUL": "1",
+    }
+
+    with (
+        patch.dict(os.environ, env, clear=True),
+        patch("server.tools.history.get_browser_runner", return_value=runner),
+    ):
+        history.history_get(limit=1)
+
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "history",
+            "get",
+            "--limit",
+            "1",
+            "--profile-dir",
+            "/tmp/direct-profile",
+            "--chrome-profile",
+            "Profile 3",
+            "--headful",
+            "--format",
+            "json",
+        ]
     )
 
 
