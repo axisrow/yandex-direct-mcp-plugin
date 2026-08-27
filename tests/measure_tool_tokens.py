@@ -8,6 +8,7 @@
 Запуск:
     python -m tests.measure_tool_tokens            # сводка + rollup + топ-20
     python -m tests.measure_tool_tokens --json     # полный JSON по всем тулам
+    python -m tests.measure_tool_tokens --json --approx  # deterministic CI estimate
 
 Помимо общей суммы выводит rollup — вклад **по модулю** (`server/tools/*.py`)
 и **по сервису** (`cli_service` из `server/contract.py`), чтобы видеть, какие
@@ -40,6 +41,11 @@ def _make_counter():
         return (lambda s: (len(s or "") + 3) // 4, "approx(len/4)")
 
 
+def _make_approx_counter():
+    """Return the dependency-free deterministic counter used by budget guards."""
+    return (lambda s: (len(s or "") + 3) // 4, "approx(len/4)")
+
+
 def _module_by_name(mcp) -> dict[str, str]:
     """Сопоставить имя инструмента модулю, где определена его функция.
 
@@ -66,10 +72,10 @@ def _service_by_name() -> dict[str, str]:
     return {ct.public_name: (ct.cli_service or "(plugin)") for ct in PUBLIC_CONTRACT}
 
 
-async def collect_rows():
+async def collect_rows(counter=None):
     from server.main import mcp
 
-    count, method = _make_counter()
+    count, method = counter or _make_counter()
     module_by_name = _module_by_name(mcp)
     service_by_name = _service_by_name()
     tools = await mcp.list_tools()
@@ -141,7 +147,8 @@ def _print_rollup(title, buckets, key):
 
 
 def main():
-    rows, method = asyncio.run(collect_rows())
+    counter = _make_approx_counter() if "--approx" in sys.argv else None
+    rows, method = asyncio.run(collect_rows(counter))
     s = summarize(rows, method)
     by_module = rollup(rows, "module")
     by_service = rollup(rows, "service")

@@ -99,14 +99,14 @@ FastMCP генерирует `anyOf: [..., {"type":"null"}]` 200+ раз.
 
 Реализован управляемый tool surface ([#189](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/189)/[#190](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/190)/[#191](https://github.com/axisrow/yandex-direct-mcp-plugin/issues/191)):
 можно включать/выключать группы инструментов и выбирать preset-профиль через
-переменные окружения. Дефолт — `full` (все 147 тулов, обратная совместимость).
+переменные окружения. Дефолт — `full` (все 149 тулов, обратная совместимость).
 
 | Профиль | Tools | Бюджет (approx `len/4`) | ~% от full |
 |---|--:|--:|--:|
-| `full` | 147 | 34 744 | 100% |
+| `full` | 149 | 33 156 | 100% |
 | `core` (read-only кампаний + auth) | 10 | 2 566 | 7% |
-| `analytics` (отчёты/справочники/прогнозы; без destructive/lifecycle — delete отчётов не выставляется) | 26 | ~3 600 | ~10% |
-| `campaign-editor` (read+mutate кампаний/групп/объявлений/ключей/ставок, без destructive, lifecycle и финансового движения денег) | 36 | ~16 300 | ~49% |
+| `analytics` (отчёты/справочники/прогнозы; без destructive/lifecycle — delete отчётов не выставляется) | 26 | 3 588 | ~11% |
+| `campaign-editor` (read+mutate кампаний/групп/объявлений/ключей/ставок, без destructive, lifecycle и финансового движения денег) | 36 | 15 348 | ~46% |
 
 > Абсолютные числа здесь — `approx(len/4)` (tiktoken недоступен в окружении этого
 > замера из-за PEP 668), поэтому строка `full` отличается от tiktoken-базы в
@@ -125,6 +125,41 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 Регрессионный guard на общий бюджет — `tests/test_token_budget.py`; разбивку по
 модулю/сервису даёт `python -m tests.measure_tool_tokens`.
 
+### Opt-in bundles: zero-token по умолчанию (#293)
+
+Браузерная/local-reference поверхность регистрируется отдельным import gate до
+применения профилей и групп. Без `YANDEX_DIRECT_OPTIONAL_TOOLS` модули, доступные
+только через этот gate (например, `server.tools.masters`), вообще не
+импортируются, поэтому descriptions и JSON Schema реализованных optional tools
+не попадают в `tools/list` и не расходуют контекст. Контракт резервирует 23
+optional-имени; default-поверхность остаётся 149 инструментов с неизменным
+`DEFAULT_TOTAL_TOKEN_CEILING = 33_500`. Для полной поверхности зарезервирован
+`FULL_TOTAL_TOKEN_CEILING = 36_500`; exact full guard включается вместе с
+реальными tool-модулями из последующих этапов эпика.
+
+```bash
+export YANDEX_DIRECT_OPTIONAL_TOOLS=browser         # masters/history/playwright
+export YANDEX_DIRECT_OPTIONAL_TOOLS=trackingparams  # локальный справочник
+export YANDEX_DIRECT_OPTIONAL_TOOLS=all             # все доступные в этой версии bundles
+```
+
+Контракт и import mapping появляются раньше реализаций последующих этапов
+эпика. Если установленная ревизия ещё не содержит модуль явно запрошенного
+известного bundle, сервер завершит запуск с import error вместо молчаливой
+частичной поверхности.
+
+Значение аддитивно: оно только загружает bundle. После загрузки обычный
+`YANDEX_DIRECT_TOOL_PROFILE` и `*_ENABLED/DISABLED_GROUPS/TOOLS` применяются к
+уже зарегистрированной поверхности. Например, отключённый конкретный optional
+tool будет удалён после импорта. Одни только `ENABLED_GROUPS` или
+`ENABLED_TOOLS` optional-модуль не загружают.
+
+Budget-тест запускает измеритель в отдельном Python-процессе для каждой
+поверхности: `server.main` и tool-модули являются import-time singleton-ами и
+не могут быть безопасно «переключены» через remove/reload внутри одного pytest
+process. Для воспроизводимого CI-замера используется
+`python -m tests.measure_tool_tokens --json --approx`.
+
 ## Сжатие схем широких mutate-тулов (#220)
 
 Продолжение #154: оставшиеся плоские семейства параметров свёрнуты во вложенные
@@ -138,7 +173,8 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 | `ads_add` | 41 → **35** | 1118 → **963** |
 
 Суммарный tool-spec (approx): **34 781 → 32 866** (−1 915, ≈ −5.5%). `full`-строка
-в таблице профилей выше соответственно снизилась. `TOTAL_TOKEN_CEILING` — 33 500.
+в таблице профилей выше соответственно снизилась. Исторический default ceiling,
+теперь именуемый `DEFAULT_TOTAL_TOKEN_CEILING`, — 33 500.
 
 ## Что НЕ входит в этот замер
 

@@ -70,3 +70,5 @@ def test_entrypoint_wires_tool_surface_config() -> None:
     assert "apply_tool_surface" in text
     assert "config_from_env" in text
     assert "env_config_warnings" in text
+    assert "import_optional_modules" in text
+    assert "optional_tools_warnings" in text
