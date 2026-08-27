@@ -6,10 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from server.contract import (
-    BROWSER_TOOL_NAMES,
     CLI_HELPER_TOOL_NAMES,
     DEFAULT_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
@@ -27,13 +24,20 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-_BROWSER_MODULE_FILES = tuple(
-    PROJECT_ROOT / "server" / "tools" / f"{name}.py"
-    for name in ("masters", "history", "playwright")
+IMPLEMENTED_BROWSER_TOOL_NAMES = frozenset(
+    {
+        "masters_list",
+        "masters_get",
+        "masters_adimages_get",
+        "masters_targetactions_get",
+        "masters_counters_get",
+        "masters_audience_get",
+        "history_get",
+    }
 )
-_ALL_OPTIONAL_MODULE_FILES = _BROWSER_MODULE_FILES + (
-    PROJECT_ROOT / "server" / "tools" / "trackingparams.py",
-)
+IMPLEMENTED_OPTIONAL_TOOL_NAMES = IMPLEMENTED_BROWSER_TOOL_NAMES | {
+    "trackingparams_get"
+}
 
 
 def _read_response(proc: subprocess.Popen[str]) -> dict:
@@ -143,39 +147,29 @@ def test_disabled_browser_group_removes_loaded_trackingparams_bundle():
         proc.wait(timeout=5)
 
 
-@pytest.mark.skipif(
-    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
-    reason="full optional tool implementations land in later #290 work items",
-)
-def test_mcp_server_registers_full_surface():
+def test_mcp_server_registers_all_implemented_optional_tools():
     proc = _start_server(env={ENV_OPTIONAL_TOOLS: "all"})
     try:
         _initialize(proc)
-        assert _list_tool_names(proc) == PUBLIC_TOOL_NAMES
+        assert _list_tool_names(proc) == (
+            DEFAULT_TOOL_NAMES | IMPLEMENTED_OPTIONAL_TOOL_NAMES
+        )
     finally:
         proc.terminate()
         proc.wait(timeout=5)
 
 
-@pytest.mark.skipif(
-    not all(path.exists() for path in _BROWSER_MODULE_FILES),
-    reason="browser tool implementations land in later #290 work items",
-)
 def test_mcp_server_registers_only_browser_optional_bundle():
     proc = _start_server(env={ENV_OPTIONAL_TOOLS: "browser"})
     try:
         _initialize(proc)
-        expected = DEFAULT_TOOL_NAMES | (BROWSER_TOOL_NAMES - {"trackingparams_get"})
+        expected = DEFAULT_TOOL_NAMES | IMPLEMENTED_BROWSER_TOOL_NAMES
         assert _list_tool_names(proc) == expected
     finally:
         proc.terminate()
         proc.wait(timeout=5)
 
 
-@pytest.mark.skipif(
-    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
-    reason="full optional tool implementations land in later #290 work items",
-)
 def test_disabled_browser_group_removes_loaded_optional_surface():
     proc = _start_server(
         env={
