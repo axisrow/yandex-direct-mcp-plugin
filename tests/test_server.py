@@ -118,6 +118,31 @@ def test_mcp_server_registers_all_tools():
         proc.wait(timeout=5)
 
 
+def test_mcp_server_registers_trackingparams_optional_bundle():
+    proc = _start_server(env={ENV_OPTIONAL_TOOLS: "trackingparams"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES | {"trackingparams_get"}
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_disabled_browser_group_removes_loaded_trackingparams_bundle():
+    proc = _start_server(
+        env={
+            ENV_OPTIONAL_TOOLS: "trackingparams",
+            "YANDEX_DIRECT_DISABLED_GROUPS": "browser",
+        }
+    )
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
 @pytest.mark.skipif(
     not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
     reason="full optional tool implementations land in later #290 work items",

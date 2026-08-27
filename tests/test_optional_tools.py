@@ -124,6 +124,7 @@ import sys
 import server.main as main
 
 assert "server.tools.masters" not in sys.modules
+assert "server.tools.trackingparams" not in sys.modules
 registry = main.mcp._tool_manager._tools
 print(json.dumps({"masters_loaded": False, "tool_names": sorted(registry)}))
 """
@@ -131,6 +132,28 @@ print(json.dumps({"masters_loaded": False, "tool_names": sorted(registry)}))
     payload = json.loads(result.stdout)
     assert payload["masters_loaded"] is False
     assert set(payload["tool_names"]) == DEFAULT_TOOL_NAMES
+
+
+def test_trackingparams_bundle_registers_only_opt_in_contract_tool() -> None:
+    source = """
+import json
+import os
+import sys
+
+from server.optional_tools import ENV_OPTIONAL_TOOLS
+
+os.environ[ENV_OPTIONAL_TOOLS] = "trackingparams"
+import server.main as main
+
+print(json.dumps({
+    "module_loaded": "server.tools.trackingparams" in sys.modules,
+    "tool_names": sorted(main.mcp._tool_manager._tools),
+}))
+"""
+    result = _run_python(source, env=_clean_env())
+    payload = json.loads(result.stdout)
+    assert payload["module_loaded"] is True
+    assert set(payload["tool_names"]) == DEFAULT_TOOL_NAMES | {"trackingparams_get"}
 
 
 def test_main_import_gate_registers_stub_before_surface_filter(tmp_path: Path) -> None:

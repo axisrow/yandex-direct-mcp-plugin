@@ -47,7 +47,7 @@ import server.tools.sitelinks
 import server.tools.smart_ad_targets
 import server.tools.strategies
 import server.tools.tool_help
-import server.tools.trackingparams
+import server.tools.trackingparams_legacy
 import server.tools.turbo_pages
 import server.tools.v4account
 import server.tools.v4adimage
