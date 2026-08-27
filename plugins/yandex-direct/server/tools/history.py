@@ -1,7 +1,10 @@
 """MCP tool for Yandex.Direct browser-backed change history."""
 
+import os
+
 from server.main import mcp
 from server.tools import get_browser_runner, handle_cli_errors
+from server.tools.browser_helpers import browser_session_args
 from server.tools.helpers import append_id_filters, normalize_optional_str
 
 
@@ -79,5 +82,6 @@ def history_get(
     if limit is not None:
         args.extend(["--limit", str(limit)])
 
+    args.extend(browser_session_args(os.environ))
     args.extend(["--format", "json"])
     return get_browser_runner().run_json_lenient(args)

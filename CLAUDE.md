@@ -35,6 +35,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Auth (simplest first): set `YANDEX_DIRECT_TOKEN` in `~/.claude/settings.json` env, or run `auth_login`/`auth_setup` (saved to `~/.direct-cli/auth.json`). `direct-cli` resolves explicit env creds before the active profile.
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Optional registration (`server/optional_tools.py`, default = none): `YANDEX_DIRECT_OPTIONAL_TOOLS` accepts `browser`, `trackingparams`, a comma-separated combination, or `all`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
+- Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
 - Tool-surface selection (`server/config.py`, default = all 149 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
