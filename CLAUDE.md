@@ -48,6 +48,24 @@ Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCK
 | `negativekeywords_*` | not a CLI service; use AdGroups payload or `negativekeywordsharedsets_*` |
 | `bidmodifiers_toggle` | removed in CLI 0.2.8; API op deprecated 2025-11-13 |
 
+### Optional browser/local-reference tools
+
+The browser/local-reference surface is absent from the default MCP registration
+and is loaded only through `YANDEX_DIRECT_OPTIONAL_TOOLS`. The first read-only
+thin slice contains:
+
+| Bundle | Tool | CLI command | Safety |
+|---|---|---|---|
+| `trackingparams` | `trackingparams_get` | `direct trackingparams` | Static local reference; no browser or API request |
+| `browser` | `playwright_doctor` | `direct playwright doctor` | Read-only diagnostics; never logs in, launches a browser, or writes files |
+
+Both tools deliberately have zero MCP parameters. CLI output controls and the
+Playwright profile path/name are deployment/transport configuration, not
+per-call model inputs. Calibration on 2026-08-27 with deterministic
+`approx(len/4)`: enabling this two-tool slice moves the full registered surface
+from 149 tools / 33,156 tokens to 151 / 33,295 (**+139 tokens**); the default
+surface is unchanged. The same delta is 116 with `tiktoken/cl100k_base`.
+
 ## Masters browser authentication
 
 When present in `PUBLIC_CONTRACT`, Masters tools do not use the API OAuth path
