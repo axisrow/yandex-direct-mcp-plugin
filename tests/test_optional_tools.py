@@ -124,6 +124,7 @@ import sys
 import server.main as main
 
 assert "server.tools.masters" not in sys.modules
+assert "server.tools.playwright" not in sys.modules
 assert "server.tools.trackingparams" not in sys.modules
 registry = main.mcp._tool_manager._tools
 print(json.dumps({"masters_loaded": False, "tool_names": sorted(registry)}))
