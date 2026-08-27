@@ -6,7 +6,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from server.contract import (
+    BROWSER_TOOL_NAMES,
     CLI_HELPER_TOOL_NAMES,
     DEFAULT_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
@@ -15,6 +18,22 @@ from server.contract import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ENV_OPTIONAL_TOOLS = "YANDEX_DIRECT_OPTIONAL_TOOLS"
+_TOOL_SURFACE_ENV = (
+    ENV_OPTIONAL_TOOLS,
+    "YANDEX_DIRECT_TOOL_PROFILE",
+    "YANDEX_DIRECT_ENABLED_GROUPS",
+    "YANDEX_DIRECT_DISABLED_GROUPS",
+    "YANDEX_DIRECT_ENABLED_TOOLS",
+    "YANDEX_DIRECT_DISABLED_TOOLS",
+)
+_BROWSER_MODULE_FILES = tuple(
+    PROJECT_ROOT / "server" / "tools" / f"{name}.py"
+    for name in ("masters", "history", "playwright")
+)
+_ALL_OPTIONAL_MODULE_FILES = _BROWSER_MODULE_FILES + (
+    PROJECT_ROOT / "server" / "tools" / "trackingparams.py",
+)
 
 
 def _read_response(proc: subprocess.Popen[str]) -> dict:
@@ -30,6 +49,8 @@ def _start_server(env: dict[str, str] | None = None) -> subprocess.Popen[str]:
     proc_env["HOME"] = "/tmp/yandex-direct-mcp-plugin-test-home"
     proc_env.pop("YANDEX_DIRECT_TOKEN", None)
     proc_env.pop("YANDEX_DIRECT_LOGIN", None)
+    for name in _TOOL_SURFACE_ENV:
+        proc_env.pop(name, None)
     if env:
         proc_env.update(env)
     return subprocess.Popen(
@@ -97,6 +118,79 @@ def test_mcp_server_registers_all_tools():
         proc.wait(timeout=5)
 
 
+def test_mcp_server_registers_trackingparams_optional_bundle():
+    proc = _start_server(env={ENV_OPTIONAL_TOOLS: "trackingparams"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES | {"trackingparams_get"}
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_disabled_browser_group_removes_loaded_trackingparams_bundle():
+    proc = _start_server(
+        env={
+            ENV_OPTIONAL_TOOLS: "trackingparams",
+            "YANDEX_DIRECT_DISABLED_GROUPS": "browser",
+        }
+    )
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(
+    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
+    reason="full optional tool implementations land in later #290 work items",
+)
+def test_mcp_server_registers_full_surface():
+    proc = _start_server(env={ENV_OPTIONAL_TOOLS: "all"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == PUBLIC_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(
+    not all(path.exists() for path in _BROWSER_MODULE_FILES),
+    reason="browser tool implementations land in later #290 work items",
+)
+def test_mcp_server_registers_only_browser_optional_bundle():
+    proc = _start_server(env={ENV_OPTIONAL_TOOLS: "browser"})
+    try:
+        _initialize(proc)
+        expected = DEFAULT_TOOL_NAMES | (BROWSER_TOOL_NAMES - {"trackingparams_get"})
+        assert _list_tool_names(proc) == expected
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(
+    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
+    reason="full optional tool implementations land in later #290 work items",
+)
+def test_disabled_browser_group_removes_loaded_optional_surface():
+    proc = _start_server(
+        env={
+            ENV_OPTIONAL_TOOLS: "all",
+            "YANDEX_DIRECT_DISABLED_GROUPS": "browser",
+        }
+    )
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
 def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
     assert proc.stdin is not None
     proc.stdin.write(
@@ -133,7 +227,7 @@ def test_mcp_server_respects_disabled_tool_groups():
         assert "campaigns_delete" not in names  # destructive
         assert "ads_archive" not in names  # lifecycle
         assert "campaigns_get" in names
-        assert names < PUBLIC_TOOL_NAMES
+        assert names < DEFAULT_TOOL_NAMES
     finally:
         proc.terminate()
         proc.wait(timeout=5)
@@ -150,6 +244,21 @@ def test_mcp_server_allowlist_profile_via_enabled_groups():
     finally:
         proc.terminate()
         proc.wait(timeout=5)
+
+
+def test_mcp_server_warns_and_ignores_unknown_optional_bundle():
+    proc = _start_server(env={ENV_OPTIONAL_TOOLS: "unknown-bundle"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == DEFAULT_TOOL_NAMES
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+    assert proc.stderr is not None
+    assert (
+        "unknown optional tool bundles ignored: ['unknown-bundle']"
+        in proc.stderr.read()
+    )
 
 
 def test_mcp_server_keeps_helper_and_plugin_tools_separate():

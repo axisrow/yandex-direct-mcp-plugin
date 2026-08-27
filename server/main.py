@@ -12,10 +12,8 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("yandex-direct-mcp", json_response=True)
 
-# Tool registration happens via imports
-# Apply the configured tool surface (#149): with no YANDEX_DIRECT_TOOL_* env the
-# default is the full tool surface, so this is a no-op unless a profile or
-# enable/disable rules are set.
+# Tool registration happens via imports. Required modules form the default
+# surface; optional bundles are imported only when explicitly enabled (#293).
 import os
 
 import server.tools.adextensions
@@ -49,7 +47,7 @@ import server.tools.sitelinks
 import server.tools.smart_ad_targets
 import server.tools.strategies
 import server.tools.tool_help
-import server.tools.trackingparams
+import server.tools.trackingparams_legacy
 import server.tools.turbo_pages
 import server.tools.v4account
 import server.tools.v4adimage
@@ -65,15 +63,23 @@ from server.config import (
     config_from_env,
     env_config_warnings,
 )
+from server.optional_tools import import_optional_modules, optional_tools_warnings
+
+for _warning in optional_tools_warnings(os.environ):
+    print(f"[yandex-direct-mcp] tool-surface config: {_warning}", file=sys.stderr)
+_OPTIONAL_LOADED = import_optional_modules(os.environ)
 
 _TOOL_SURFACE = config_from_env(os.environ)
 for _warning in env_config_warnings(os.environ, _TOOL_SURFACE):
     print(f"[yandex-direct-mcp] tool-surface config: {_warning}", file=sys.stderr)
 _REMOVED_TOOLS = apply_tool_surface(mcp, _TOOL_SURFACE)
 if _REMOVED_TOOLS:
+    _REGISTERED_TOOL_COUNT = len(
+        getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
+    )
     print(
         f"[yandex-direct-mcp] tool surface: {len(_REMOVED_TOOLS)} tool(s) disabled "
-        f"by config; {len(_TOOL_SURFACE.enabled_tool_names())} enabled.",
+        f"by config; {_REGISTERED_TOOL_COUNT} enabled.",
         file=sys.stderr,
     )
 

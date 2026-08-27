@@ -126,6 +126,10 @@ _SERVICE_AREA: dict[str, str] = {
     # agencyclients / clients / businesses / plugin: account/admin, no area group
 }
 
+# The pre-existing ``trackingparams`` CLI helper remains in the default analytics
+# surface. Only the new ``trackingparams_get`` contract tool is browser-area opt-in.
+_TOOL_AREA_OVERRIDES = {"trackingparams": "analytics"}
+
 # --- financial risk axis ----------------------------------------------------
 # Money-movement tools. AccountManagement is one CLI verb (cli_method=
 # "account_management") split across action-scoped tools, so these cannot be
@@ -182,7 +186,7 @@ def groups_for_tool(name: str) -> frozenset[str]:
     service_group = service or ("plugin" if name in PLUGIN_TOOL_NAMES else None)
     if service_group:
         groups.add(service_group)
-        area = _SERVICE_AREA.get(service_group)
+        area = _TOOL_AREA_OVERRIDES.get(name, _SERVICE_AREA.get(service_group))
         if area:
             groups.add(area)
     groups.add(_action_group(name, cli_method))

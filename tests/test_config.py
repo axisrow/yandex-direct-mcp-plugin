@@ -45,6 +45,9 @@ def test_group_membership_examples():
     )
     assert groups_for_tool("reports_get") == frozenset({"reports", "analytics", "read"})
     assert groups_for_tool("trackingparams") == frozenset(
+        {"trackingparams", "analytics", "read"}
+    )
+    assert groups_for_tool("trackingparams_get") == frozenset(
         {"trackingparams", "browser", "read"}
     )
     # Money movement keeps its mutate action and additionally carries the

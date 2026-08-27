@@ -18,35 +18,89 @@ Ceilings are snapshots with headroom, not exact values. A legitimate increase
 
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import patch
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 
-import tests.measure_tool_tokens as mtt
+import pytest
 
-# Deterministic, tokenizer-independent estimate (≈4 chars/token).
-_APPROX_COUNTER = ((lambda s: (len(s or "") + 3) // 4), "approx(len/4)")
+from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_TOOL_NAMES
 
-# Snapshot under approx(len/4) as of 2026-06-17 (see docs/token-budget.md):
-#   total ≈ 32,866 · descriptions ≈ 5,193 · 147 tools.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ENV_OPTIONAL_TOOLS = "YANDEX_DIRECT_OPTIONAL_TOOLS"
+_TOOL_SURFACE_ENV = (
+    ENV_OPTIONAL_TOOLS,
+    "YANDEX_DIRECT_TOOL_PROFILE",
+    "YANDEX_DIRECT_ENABLED_GROUPS",
+    "YANDEX_DIRECT_DISABLED_GROUPS",
+    "YANDEX_DIRECT_ENABLED_TOOLS",
+    "YANDEX_DIRECT_DISABLED_TOOLS",
+)
+_ALL_OPTIONAL_MODULE_FILES = tuple(
+    PROJECT_ROOT / "server" / "tools" / f"{name}.py"
+    for name in ("masters", "history", "playwright", "trackingparams")
+)
+
+# Snapshot under approx(len/4) as of 2026-08-27 (see docs/token-budget.md):
+#   total ≈ 33,156 · descriptions ≈ 5,313 · 149 default tools.
 # Lowered 38,000 → 35,500 (#220-A, ads dicts) → 33,500 (#220-B, campaigns dicts).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).
-TOTAL_TOKEN_CEILING = 33_500
+DEFAULT_TOTAL_TOKEN_CEILING = 33_500
+FULL_TOTAL_TOKEN_CEILING = 36_500
 DESCRIPTION_TOKEN_CEILING = 7_000
 
 
-def _measure():
-    with patch.object(mtt, "_make_counter", lambda: _APPROX_COUNTER):
-        rows, method = asyncio.run(mtt.collect_rows())
-    return mtt.summarize(rows, method)
+def _measure(env: dict[str, str] | None = None) -> dict:
+    """Measure one surface in a fresh interpreter to isolate import side effects."""
+    proc_env = os.environ.copy()
+    for name in _TOOL_SURFACE_ENV:
+        proc_env.pop(name, None)
+    if env:
+        proc_env.update(env)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tests.measure_tool_tokens",
+            "--json",
+            "--approx",
+        ],
+        cwd=PROJECT_ROOT,
+        env=proc_env,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    measured = json.loads(result.stdout)
+    assert measured["method"] == "approx(len/4)"
+    return measured
 
 
 def test_total_tool_spec_budget_under_ceiling() -> None:
     s = _measure()
-    assert s["total_tok"] <= TOTAL_TOKEN_CEILING, (
+    assert s["n_tools"] == len(DEFAULT_TOOL_NAMES)
+    assert s["total_tok"] <= DEFAULT_TOTAL_TOKEN_CEILING, (
         f"tool-spec budget {s['total_tok']:,} exceeds ceiling "
-        f"{TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "
-        "update docs/token-budget.md and raise TOTAL_TOKEN_CEILING in the same PR."
+        f"{DEFAULT_TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "
+        "update docs/token-budget.md and raise DEFAULT_TOTAL_TOKEN_CEILING in the same PR."
+    )
+
+
+@pytest.mark.skipif(
+    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
+    reason="full optional tool implementations land in later #290 work items",
+)
+def test_full_tool_spec_budget_under_ceiling() -> None:
+    s = _measure({ENV_OPTIONAL_TOOLS: "all"})
+    assert s["n_tools"] == len(PUBLIC_TOOL_NAMES)
+    assert s["total_tok"] <= FULL_TOTAL_TOKEN_CEILING, (
+        f"full tool-spec budget {s['total_tok']:,} exceeds ceiling "
+        f"{FULL_TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "
+        "update docs/token-budget.md and FULL_TOTAL_TOKEN_CEILING in the same PR."
     )
 
 
