@@ -407,8 +407,10 @@ class DirectCliRunner:
         # then use exit 2 (or 1) to report that one of the IDs failed.  Preserve
         # that payload for callers which explicitly opt in; all other commands
         # retain the existing fail-closed behavior.
-        result = self.run(args, timeout=timeout) if allow_nonzero else self.run_checked(
-            args, timeout=timeout
+        result = (
+            self.run(args, timeout=timeout)
+            if allow_nonzero
+            else self.run_checked(args, timeout=timeout)
         )
 
         output = _strip_ansi(result.stdout).strip()
