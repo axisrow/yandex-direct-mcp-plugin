@@ -219,7 +219,12 @@ def test_mcp_server_respects_disabled_tool_groups():
     destructive=delete only; archive is the separate lifecycle group (#205-A),
     so disabling destructive drops campaigns_delete but keeps ads_archive.
     """
-    proc = _start_server(env={"YANDEX_DIRECT_DISABLED_GROUPS": "destructive,lifecycle"})
+    proc = _start_server(
+        env={
+            ENV_OPTIONAL_TOOLS: "browser",
+            "YANDEX_DIRECT_DISABLED_GROUPS": "destructive,lifecycle",
+        }
+    )
     try:
         _initialize(proc)
         names = _list_tool_names(proc)
@@ -228,7 +233,7 @@ def test_mcp_server_respects_disabled_tool_groups():
         assert "masters_launch" not in names  # lifecycle
         assert "masters_copy" in names  # draft-only copy remains available
         assert "campaigns_get" in names
-        assert names < DEFAULT_TOOL_NAMES
+        assert names <= DEFAULT_TOOL_NAMES | IMPLEMENTED_OPTIONAL_TOOL_NAMES
     finally:
         proc.terminate()
         proc.wait(timeout=5)
