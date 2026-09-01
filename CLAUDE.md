@@ -53,11 +53,11 @@ Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCK
 ## Browser-backed tools authentication
 
 When present in `PUBLIC_CONTRACT`, Masters tools do not use the API OAuth path
-described under Environment. Campaign Wizard has no Management API, so the
-read-only `masters_get` and `masters_targetactions_get` tools invoke Playwright
-against the Direct web UI. Check the installed build's `tool_help()` output
-before assuming they are available. The browser's logged-in account is
-authoritative; `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, and the finance
+described under Environment. Campaign Wizard has no Management API, so Masters
+reads and lifecycle mutations invoke Playwright against the Direct web UI.
+Check the installed build's `tool_help()` output before assuming they are
+available. The browser's logged-in account is authoritative;
+`YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, and the finance
 `YANDEX_DIRECT_MASTER_TOKEN` do not authenticate or select an account for these
 tools.
 
@@ -96,9 +96,11 @@ Provision Masters authentication manually, outside the stdio MCP process:
    Chromium window. This creates the CLI-owned persistent profile at
    `~/.direct-cli/chrome-profile/`; it does not read the user's real Chrome
    profile or macOS Keychain.
-3. Start or restart the MCP client, then call the read-only Masters tools if
-   they are exposed by that plugin version. No Masters mutation commands are
-   exposed by the plugin.
+3. Start or restart the MCP client, then enable the `browser` optional bundle
+   and call the Masters tools exposed by that plugin version. Lifecycle tools
+   change live campaign state: launch and archive have no CLI rollback. Copy is
+   non-idempotent and always creates a draft; publish the clone separately via
+   the lifecycle-gated `masters_launch` tool.
 
 `direct masters login` requires a TTY, visible GUI session, and human input; do
 not attempt it from a tool call, headless/remote process without GUI, CI, or an
