@@ -68,6 +68,22 @@ to full-day boundaries in `direct`. For its `categories` filter, omission keeps
 the web UI's complete category list, while an explicit empty string filters out
 all records; callers must not collapse those two states.
 
+The first optional thin slice also includes two zero-parameter helpers:
+
+| Bundle | Tool | CLI command | Safety |
+|---|---|---|---|
+| `trackingparams` | `trackingparams_get` | `direct trackingparams` | Static local reference; no browser or API request |
+| `browser` | `playwright_doctor` | `direct playwright doctor` | Read-only diagnostics; never logs in, launches a browser, or writes files |
+
+CLI output controls and Playwright profile path/name are transport/deployment
+configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
+`approx(len/4)`: `OPTIONAL_TOOLS=all` registers 158 implemented tools / 33,987
+tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
+(`trackingparams_get` +63, `playwright_doctor` +73). This PR's incremental delta
+is +73 because W-02 already landed `trackingparams_get`; the default surface
+remains unchanged. The same two-tool delta is 113 with
+`tiktoken/cl100k_base`.
+
 Provision Masters authentication manually, outside the stdio MCP process:
 
 1. From an interactive terminal running as the same OS user/`HOME` as the MCP

@@ -24,8 +24,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_TOOL_NAMES
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -38,11 +36,6 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-_ALL_OPTIONAL_MODULE_FILES = tuple(
-    PROJECT_ROOT / "server" / "tools" / f"{name}.py"
-    for name in ("masters", "history", "playwright", "trackingparams")
-)
-
 # Snapshot under approx(len/4) as of 2026-08-27 (see docs/token-budget.md):
 #   total ≈ 33,156 · descriptions ≈ 5,313 · 149 default tools.
 # Lowered 38,000 → 35,500 (#220-A, ads dicts) → 33,500 (#220-B, campaigns dicts).
@@ -90,13 +83,10 @@ def test_total_tool_spec_budget_under_ceiling() -> None:
     )
 
 
-@pytest.mark.skipif(
-    not all(path.exists() for path in _ALL_OPTIONAL_MODULE_FILES),
-    reason="full optional tool implementations land in later #290 work items",
-)
 def test_full_tool_spec_budget_under_ceiling() -> None:
     s = _measure({ENV_OPTIONAL_TOOLS: "all"})
-    assert s["n_tools"] == len(PUBLIC_TOOL_NAMES)
+    registered_names = {row["name"] for row in s["rows"]}
+    assert DEFAULT_TOOL_NAMES < registered_names <= PUBLIC_TOOL_NAMES
     assert s["total_tok"] <= FULL_TOTAL_TOKEN_CEILING, (
         f"full tool-spec budget {s['total_tok']:,} exceeds ceiling "
         f"{FULL_TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "

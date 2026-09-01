@@ -134,8 +134,9 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 не попадают в `tools/list` и не расходуют контекст. Контракт резервирует 23
 optional-имени; default-поверхность остаётся 149 инструментов с неизменным
 `DEFAULT_TOTAL_TOKEN_CEILING = 33_500`. Для полной поверхности зарезервирован
-`FULL_TOTAL_TOKEN_CEILING = 36_500`; exact full guard включается вместе с
-реальными tool-модулями из последующих этапов эпика.
+`FULL_TOTAL_TOKEN_CEILING = 36_500`; full guard измеряет все уже реализованные
+optional-тулы под `OPTIONAL_TOOLS=all`, пока последующие этапы эпика постепенно
+доводят зарегистрированный набор до всех зарезервированных контрактом имён.
 
 ```bash
 export YANDEX_DIRECT_OPTIONAL_TOOLS=browser         # masters/history/playwright

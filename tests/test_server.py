@@ -33,6 +33,7 @@ IMPLEMENTED_BROWSER_TOOL_NAMES = frozenset(
         "masters_counters_get",
         "masters_audience_get",
         "history_get",
+        "playwright_doctor",
     }
 )
 IMPLEMENTED_OPTIONAL_TOOL_NAMES = IMPLEMENTED_BROWSER_TOOL_NAMES | {

@@ -9,7 +9,9 @@ ENV_BROWSER_CHROME_PROFILE = "YANDEX_DIRECT_BROWSER_CHROME_PROFILE"
 ENV_BROWSER_HEADFUL = "YANDEX_DIRECT_BROWSER_HEADFUL"
 
 
-def browser_session_args(env: Mapping[str, str]) -> list[str]:
+def browser_session_args(
+    env: Mapping[str, str], *, include_headful: bool = True
+) -> list[str]:
     """Build browser-session CLI arguments from deployment environment values."""
     args: list[str] = []
     profile_dir = normalize_optional_str(env.get(ENV_BROWSER_PROFILE_DIR))
@@ -19,6 +21,6 @@ def browser_session_args(env: Mapping[str, str]) -> list[str]:
         args.extend(["--profile-dir", profile_dir])
     if chrome_profile is not None:
         args.extend(["--chrome-profile", chrome_profile])
-    if env.get(ENV_BROWSER_HEADFUL) == "1":
+    if include_headful and env.get(ENV_BROWSER_HEADFUL) == "1":
         args.append("--headful")
     return args
