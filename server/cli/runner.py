@@ -328,7 +328,16 @@ class DirectCliRunner:
             )
             return result
         except subprocess.TimeoutExpired as e:
-            raise CliTimeoutError(f"direct timed out after {effective_timeout}s") from e
+            raw_partial = getattr(e, "stdout", None) or getattr(e, "output", None)
+            partial_stdout = (
+                raw_partial.decode("utf-8", errors="replace")
+                if isinstance(raw_partial, bytes)
+                else raw_partial
+            )
+            raise CliTimeoutError(
+                f"direct timed out after {effective_timeout}s",
+                partial_stdout=partial_stdout,
+            ) from e
         except FileNotFoundError:
             raise CliNotFoundError(_DIRECT_INSTALL_HINT)
 
@@ -406,12 +415,43 @@ class DirectCliRunner:
         # Masters lifecycle batches emit the complete per-ID result array and
         # then use exit 2 (or 1) to report that one of the IDs failed.  Preserve
         # that payload for callers which explicitly opt in; all other commands
-        # retain the existing fail-closed behavior.
-        result = (
-            self.run(args, timeout=timeout)
-            if allow_nonzero
-            else self.run_checked(args, timeout=timeout)
-        )
+        # retain the existing fail-closed behavior.  A timeout mid-batch keeps
+        # the same contract: whatever per-ID results were printed before the
+        # kill come back marked as a partial timeout outcome.
+        try:
+            result = (
+                self.run(args, timeout=timeout)
+                if allow_nonzero
+                else self.run_checked(args, timeout=timeout)
+            )
+        except CliTimeoutError as exc:
+            if not allow_nonzero:
+                raise
+            partial = _strip_ansi(exc.partial_stdout or "").strip()
+            if not partial:
+                raise
+            try:
+                parsed_partial, partial_notices = _parse_lenient_payload(partial)
+            except CliError:
+                raise exc from None
+            if isinstance(parsed_partial, list):
+                return _attach_notices(
+                    {
+                        "results": parsed_partial,
+                        "_timeout_partial": True,
+                        "_cli_error": (
+                            f"{exc}; the listed results completed before the "
+                            "timeout, outcomes for the remaining IDs are unknown"
+                        ),
+                    },
+                    partial_notices,
+                )
+            parsed_partial["_timeout_partial"] = True
+            parsed_partial.setdefault(
+                "_cli_error",
+                f"{exc}; parsed from partial output before the timeout",
+            )
+            return parsed_partial
 
         output = _strip_ansi(result.stdout).strip()
         residual_stderr = _strip_ansi(result.stderr).strip()
@@ -421,35 +461,7 @@ class DirectCliRunner:
                 _raise_for_status(result)
             return _attach_cli_warnings([], residual_stderr)
 
-        stripped_output, notices = _strip_single_line_edge_notices(output)
-        try:
-            parsed = json.loads(stripped_output, parse_int=_parse_json_integer)
-        except json.JSONDecodeError as original_error:
-            fragment = _largest_balanced_json_fragment(output)
-            if fragment is None:
-                raise CliError(
-                    f"Failed to parse CLI output as JSON: {original_error}"
-                ) from original_error
-
-            fragment_start, fragment_end = fragment
-            leading_notices = _parse_notice_region(output[:fragment_start])
-            trailing_notices = _parse_notice_region(output[fragment_end:])
-            if leading_notices is None or trailing_notices is None:
-                raise CliError(
-                    f"Failed to parse CLI output as JSON: {original_error}"
-                ) from original_error
-
-            notices = [*leading_notices, *trailing_notices]
-            fragment_text = output[fragment_start:fragment_end]
-            try:
-                parsed = json.loads(fragment_text, parse_int=_parse_json_integer)
-            except json.JSONDecodeError as fragment_error:
-                raise CliError(
-                    f"Failed to parse CLI output as JSON: {fragment_error}"
-                ) from fragment_error
-
-        if not isinstance(parsed, (dict, list)):
-            parsed = {"result": parsed}
+        parsed, notices = _parse_lenient_payload(output)
         parsed = _attach_notices(parsed, notices)
         if result.returncode == 0:
             parsed = _attach_cli_warnings(parsed, residual_stderr)
@@ -480,6 +492,44 @@ def _strip_single_line_edge_notices(text: str) -> tuple[str, list[str]]:
 
     trailing.reverse()
     return "\n".join(lines).strip(), [*leading, *trailing]
+
+
+def _parse_lenient_payload(output: str) -> tuple[list[dict] | dict, list[str]]:
+    """Parse stdout that may wrap its JSON payload in informational notices.
+
+    Accepts either a direct JSON document or a largest balanced JSON fragment
+    surrounded by notices; anything else raises CliError (fail closed).
+    """
+    stripped_output, notices = _strip_single_line_edge_notices(output)
+    try:
+        parsed = json.loads(stripped_output, parse_int=_parse_json_integer)
+    except json.JSONDecodeError as original_error:
+        fragment = _largest_balanced_json_fragment(output)
+        if fragment is None:
+            raise CliError(
+                f"Failed to parse CLI output as JSON: {original_error}"
+            ) from original_error
+
+        fragment_start, fragment_end = fragment
+        leading_notices = _parse_notice_region(output[:fragment_start])
+        trailing_notices = _parse_notice_region(output[fragment_end:])
+        if leading_notices is None or trailing_notices is None:
+            raise CliError(
+                f"Failed to parse CLI output as JSON: {original_error}"
+            ) from original_error
+
+        notices = [*leading_notices, *trailing_notices]
+        fragment_text = output[fragment_start:fragment_end]
+        try:
+            parsed = json.loads(fragment_text, parse_int=_parse_json_integer)
+        except json.JSONDecodeError as fragment_error:
+            raise CliError(
+                f"Failed to parse CLI output as JSON: {fragment_error}"
+            ) from fragment_error
+
+    if not isinstance(parsed, (dict, list)):
+        parsed = {"result": parsed}
+    return parsed, notices
 
 
 def _parse_notice_region(text: str) -> list[str] | None:
@@ -678,7 +728,16 @@ class CliNotFoundError(CliError):
 
 
 class CliTimeoutError(CliError):
-    """The CLI command timed out."""
+    """The CLI command timed out.
+
+    On POSIX, subprocess.run attaches the stdout collected before the kill to
+    TimeoutExpired; keep it decoded here so batch callers can report which
+    per-ID outcomes completed before the process died.
+    """
+
+    def __init__(self, message: str, *, partial_stdout: str | None = None) -> None:
+        super().__init__(message)
+        self.partial_stdout = partial_stdout
 
 
 class CliAuthError(CliError):

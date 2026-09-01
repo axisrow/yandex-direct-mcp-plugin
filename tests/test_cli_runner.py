@@ -733,6 +733,35 @@ class TestRun:
                 runner.run(["campaigns", "get"])
             assert "direct timed out after 30s" in str(exc_info.value)
 
+    def test_timeout_captures_partial_stdout(self, runner):
+        """Partial stdout from a killed batch must survive the timeout.
+
+        POSIX subprocess.run attaches the output collected before the kill to
+        TimeoutExpired (as bytes even under text=True); the runner must decode
+        and keep it so batch callers can report per-ID outcomes.
+        """
+        expired = subprocess.TimeoutExpired("direct", 180)
+        expired.stdout = b'[{"CampaignId": 101, "Status": "launched"}]'
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", side_effect=expired),
+        ):
+            with pytest.raises(CliTimeoutError) as exc_info:
+                runner.run(["masters", "launch", "101,202"], timeout=180)
+        assert exc_info.value.partial_stdout == (
+            '[{"CampaignId": 101, "Status": "launched"}]'
+        )
+
+    def test_timeout_without_partial_stdout_keeps_none(self, runner):
+        expired = subprocess.TimeoutExpired("direct", 30)
+        with (
+            patch("server.cli.runner.shutil.which", return_value="/usr/bin/direct"),
+            patch("server.cli.runner.subprocess.run", side_effect=expired),
+        ):
+            with pytest.raises(CliTimeoutError) as exc_info:
+                runner.run(["campaigns", "get"])
+        assert exc_info.value.partial_stdout is None
+
 
 @pytest.mark.mocks
 class TestRunJson:
@@ -1007,6 +1036,50 @@ class TestRunJsonLenient:
             "_cli_error": "one campaign failed",
         }
         run.assert_called_once_with(["masters", "archive", "101,202"], timeout=180)
+
+    def test_preserves_parsed_partial_payload_on_timeout(self, runner):
+        """A timeout mid-batch returns known per-ID outcomes, not just an error.
+
+        The listed results completed before the kill; the remaining IDs are
+        unknown, so the payload is marked instead of failing with nothing.
+        """
+        timeout_error = CliTimeoutError(
+            "direct timed out after 180s",
+            partial_stdout='[{"CampaignId": 101, "Status": "launched"}]',
+        )
+        with patch.object(runner, "run", side_effect=timeout_error):
+            payload = runner.run_json_lenient(
+                ["masters", "launch", "101,202"],
+                timeout=180,
+                allow_nonzero=True,
+            )
+
+        assert payload["results"] == [{"CampaignId": 101, "Status": "launched"}]
+        assert payload["_timeout_partial"] is True
+        assert "direct timed out after 180s" in payload["_cli_error"]
+
+    def test_timeout_with_unparsable_partial_output_still_raises(self, runner):
+        for partial in (None, "", "not json at all"):
+            timeout_error = CliTimeoutError(
+                "direct timed out after 180s", partial_stdout=partial
+            )
+            with patch.object(runner, "run", side_effect=timeout_error):
+                with pytest.raises(CliTimeoutError):
+                    runner.run_json_lenient(
+                        ["masters", "launch", "101"],
+                        timeout=180,
+                        allow_nonzero=True,
+                    )
+
+    def test_timeout_without_allow_nonzero_always_raises(self, runner):
+        """Fail-closed commands never trade a timeout for a partial payload."""
+        timeout_error = CliTimeoutError(
+            "direct timed out after 180s",
+            partial_stdout='[{"CampaignId": 101}]',
+        )
+        with patch.object(runner, "run_checked", side_effect=timeout_error):
+            with pytest.raises(CliTimeoutError):
+                runner.run_json_lenient(["masters", "get"], timeout=180)
 
     def test_accepts_leading_information_notice(self, runner):
         stdout = 'ℹ Using saved browser session\n{"Campaigns": []}\n'
