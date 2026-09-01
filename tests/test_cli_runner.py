@@ -984,6 +984,30 @@ class TestRunJsonLenient:
         }
         run_checked.assert_called_once_with(["masters", "get"], timeout=None)
 
+    def test_preserves_partial_batch_payload_on_nonzero_exit(self, runner):
+        result = self._result(
+            '[{"CampaignId": 101, "Status": "launched"}, '
+            '{"CampaignId": 202, "Error": "already archived"}]',
+            stderr="one campaign failed",
+        )
+        result.returncode = 2
+        with patch.object(runner, "run", return_value=result) as run:
+            payload = runner.run_json_lenient(
+                ["masters", "archive", "101,202"],
+                timeout=180,
+                allow_nonzero=True,
+            )
+
+        assert payload == {
+            "results": [
+                {"CampaignId": 101, "Status": "launched"},
+                {"CampaignId": 202, "Error": "already archived"},
+            ],
+            "_partial_failure": True,
+            "_cli_error": "one campaign failed",
+        }
+        run.assert_called_once_with(["masters", "archive", "101,202"], timeout=180)
+
     def test_accepts_leading_information_notice(self, runner):
         stdout = 'ℹ Using saved browser session\n{"Campaigns": []}\n'
         with patch.object(runner, "run_checked", return_value=self._result(stdout)):

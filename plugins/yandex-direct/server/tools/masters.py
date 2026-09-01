@@ -3,6 +3,7 @@
 import os
 from typing import cast
 
+from server.cli.runner import BROWSER_DEFAULT_TIMEOUT
 from server.contract import PUBLIC_CONTRACT
 from server.main import mcp
 from server.tools import ToolError, get_browser_runner, handle_cli_errors
@@ -123,7 +124,12 @@ def _run_campaign_batch(tool_name: str, campaign_ids: str) -> list[dict] | dict:
     if batch_error:
         return tool_error_dict(batch_error)
 
-    return _run_browser_json([*_command_path(tool_name), normalized_ids])
+    args = [*_command_path(tool_name), normalized_ids]
+    args.extend(browser_session_args(os.environ))
+    finalize_json_args(args, False)
+    return get_browser_runner().run_json_lenient(
+        args, timeout=BROWSER_DEFAULT_TIMEOUT, allow_nonzero=True
+    )
 
 
 @mcp.tool(
@@ -187,16 +193,13 @@ def masters_archive(campaign_ids: str) -> list[dict] | dict:
     description="Copy a Wizard campaign. See tool_help('masters_copy').",
 )
 @handle_cli_errors
-def masters_copy(campaign_id: str, launch: bool = False) -> dict:
-    """Clone a campaign, saving the copy as a draft unless launch is true.
+def masters_copy(campaign_id: str) -> dict:
+    """Clone a campaign and save the copy as a draft.
 
     Args:
         campaign_id: Source campaign ID.
-        launch: Launch the clone immediately instead of saving it as a draft.
     """
     args = [*_command_path("masters_copy"), str(campaign_id)]
-    if launch:
-        args.append("--launch")
     return cast(dict, _run_browser_json(args))
 
 

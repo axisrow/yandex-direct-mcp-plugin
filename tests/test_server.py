@@ -225,6 +225,8 @@ def test_mcp_server_respects_disabled_tool_groups():
         names = _list_tool_names(proc)
         assert "campaigns_delete" not in names  # destructive
         assert "ads_archive" not in names  # lifecycle
+        assert "masters_launch" not in names  # lifecycle
+        assert "masters_copy" in names  # draft-only copy remains available
         assert "campaigns_get" in names
         assert names < DEFAULT_TOOL_NAMES
     finally:

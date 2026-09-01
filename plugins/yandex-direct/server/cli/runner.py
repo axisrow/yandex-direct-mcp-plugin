@@ -390,7 +390,11 @@ class DirectCliRunner:
         return _attach_cli_warnings({"result": parsed}, residual_stderr)
 
     def run_json_lenient(
-        self, args: list[str], *, timeout: int | None = None
+        self,
+        args: list[str],
+        *,
+        timeout: int | None = None,
+        allow_nonzero: bool = False,
     ) -> list[dict] | dict:
         """Parse JSON surrounded by direct-cli informational notices.
 
@@ -399,12 +403,20 @@ class DirectCliRunner:
         deliberately accepts that narrow envelope while still failing closed
         on unrelated stdout text or malformed JSON.
         """
-        result = self.run_checked(args, timeout=timeout)
+        # Masters lifecycle batches emit the complete per-ID result array and
+        # then use exit 2 (or 1) to report that one of the IDs failed.  Preserve
+        # that payload for callers which explicitly opt in; all other commands
+        # retain the existing fail-closed behavior.
+        result = self.run(args, timeout=timeout) if allow_nonzero else self.run_checked(
+            args, timeout=timeout
+        )
 
         output = _strip_ansi(result.stdout).strip()
         residual_stderr = _strip_ansi(result.stderr).strip()
 
         if not output:
+            if allow_nonzero:
+                _raise_for_status(result)
             return _attach_cli_warnings([], residual_stderr)
 
         stripped_output, notices = _strip_single_line_edge_notices(output)
@@ -437,7 +449,17 @@ class DirectCliRunner:
         if not isinstance(parsed, (dict, list)):
             parsed = {"result": parsed}
         parsed = _attach_notices(parsed, notices)
-        return _attach_cli_warnings(parsed, residual_stderr)
+        parsed = _attach_cli_warnings(parsed, residual_stderr)
+        if allow_nonzero and result.returncode != 0:
+            if isinstance(parsed, list):
+                return {
+                    "results": parsed,
+                    "_partial_failure": True,
+                    "_cli_error": residual_stderr,
+                }
+            parsed.setdefault("_partial_failure", True)
+            parsed.setdefault("_cli_error", residual_stderr)
+        return parsed
 
 
 def _strip_single_line_edge_notices(text: str) -> tuple[str, list[str]]:

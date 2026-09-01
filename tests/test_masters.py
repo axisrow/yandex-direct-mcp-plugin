@@ -54,6 +54,7 @@ IGNORED_CLI_PARAMS = {
     "headful",
     "profile_dir",
     "chrome_profile",
+    "launch",
     "output_format",
     "output",
 }
@@ -240,7 +241,9 @@ def test_lifecycle_tools_forward_native_csv_in_one_runner_call(
         {"CampaignId": 303},
     ]
     runner.run_json_lenient.assert_called_once_with(
-        [*path, "101, 202,303", "--format", "json"]
+        [*path, "101, 202,303", "--format", "json"],
+        timeout=180,
+        allow_nonzero=True,
     )
 
 
@@ -289,7 +292,9 @@ def test_lifecycle_tools_forward_browser_env(
             "--headful",
             "--format",
             "json",
-        ]
+        ],
+        timeout=180,
+        allow_nonzero=True,
     )
 
 
@@ -304,15 +309,8 @@ def test_masters_copy_defaults_to_draft(masters_module: ModuleType) -> None:
     )
 
 
-def test_masters_copy_can_launch_clone(masters_module: ModuleType) -> None:
-    runner = _runner_for(masters_module, {"CampaignId": 202})
-
-    result = masters_module.masters_copy("101", launch=True)
-
-    assert result == {"CampaignId": 202}
-    runner.run_json_lenient.assert_called_once_with(
-        ["masters", "copy", "101", "--launch", "--format", "json"]
-    )
+def test_masters_copy_has_no_publish_switch(masters_module: ModuleType) -> None:
+    assert "launch" not in inspect.signature(masters_module.masters_copy).parameters
 
 
 @pytest.mark.parametrize("tool_name,path", NESTED_TOOL_PATHS.items())
@@ -382,7 +380,7 @@ def test_masters_signature_defaults_and_cli_option_tables(
     copy_params = signatures["masters_copy"].parameters
     assert copy_params["campaign_id"].default is inspect.Parameter.empty
     assert copy_params["campaign_id"].annotation is str
-    assert copy_params["launch"].default is False
+    assert "launch" not in copy_params
 
     assert [
         (option.name, option.flag, option.repeat, option.is_flag)

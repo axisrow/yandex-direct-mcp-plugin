@@ -141,6 +141,7 @@ def test_disabled_lifecycle_group_keeps_destructive_separate():
     assert "ads_archive" not in enabled
     assert "ads_unarchive" not in enabled
     assert "campaigns_delete" in enabled  # delete is destructive, not lifecycle
+    assert "masters_copy" in enabled  # copy is draft-only, not lifecycle
 
 
 def test_disabled_financial_group_removes_money_movement():
