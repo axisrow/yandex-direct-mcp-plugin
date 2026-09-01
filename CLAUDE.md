@@ -83,7 +83,8 @@ Provision Masters authentication manually, outside the stdio MCP process:
 3. Start or restart the MCP client, then enable the `browser` optional bundle
    and call the Masters tools exposed by that plugin version. Lifecycle tools
    change live campaign state: launch and archive have no CLI rollback. Copy is
-   non-idempotent and creates a draft by default; `launch=true` publishes it.
+   non-idempotent and always creates a draft; publish the clone separately via
+   the lifecycle-gated `masters_launch` tool.
 
 `direct masters login` requires a TTY, visible GUI session, and human input; do
 not attempt it from a tool call, headless/remote process without GUI, CI, or an

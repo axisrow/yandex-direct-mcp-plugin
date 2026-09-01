@@ -3,7 +3,6 @@
 import os
 from typing import cast
 
-from server.cli.runner import BROWSER_DEFAULT_TIMEOUT
 from server.contract import PUBLIC_CONTRACT
 from server.main import mcp
 from server.tools import ToolError, get_browser_runner, handle_cli_errors
@@ -45,10 +44,15 @@ def _command_path(tool_name: str) -> list[str]:
     return [tool.cli_service, tool.cli_subcommand]
 
 
-def _run_browser_json(args: list[str]) -> list[dict] | dict:
+def _run_browser_json(
+    args: list[str], *, allow_nonzero: bool = False
+) -> list[dict] | dict:
     args.extend(browser_session_args(os.environ))
     finalize_json_args(args, False)
-    return get_browser_runner().run_json_lenient(args)
+    runner = get_browser_runner()
+    if allow_nonzero:
+        return runner.run_json_lenient(args, allow_nonzero=True)
+    return runner.run_json_lenient(args)
 
 
 @mcp.tool(
@@ -124,11 +128,8 @@ def _run_campaign_batch(tool_name: str, campaign_ids: str) -> list[dict] | dict:
     if batch_error:
         return tool_error_dict(batch_error)
 
-    args = [*_command_path(tool_name), normalized_ids]
-    args.extend(browser_session_args(os.environ))
-    finalize_json_args(args, False)
-    return get_browser_runner().run_json_lenient(
-        args, timeout=BROWSER_DEFAULT_TIMEOUT, allow_nonzero=True
+    return _run_browser_json(
+        [*_command_path(tool_name), normalized_ids], allow_nonzero=True
     )
 
 

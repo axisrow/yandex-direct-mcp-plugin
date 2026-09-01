@@ -242,7 +242,6 @@ def test_lifecycle_tools_forward_native_csv_in_one_runner_call(
     ]
     runner.run_json_lenient.assert_called_once_with(
         [*path, "101, 202,303", "--format", "json"],
-        timeout=180,
         allow_nonzero=True,
     )
 
@@ -293,7 +292,6 @@ def test_lifecycle_tools_forward_browser_env(
             "--format",
             "json",
         ],
-        timeout=180,
         allow_nonzero=True,
     )
 

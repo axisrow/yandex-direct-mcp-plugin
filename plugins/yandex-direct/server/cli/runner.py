@@ -451,7 +451,8 @@ class DirectCliRunner:
         if not isinstance(parsed, (dict, list)):
             parsed = {"result": parsed}
         parsed = _attach_notices(parsed, notices)
-        parsed = _attach_cli_warnings(parsed, residual_stderr)
+        if result.returncode == 0:
+            parsed = _attach_cli_warnings(parsed, residual_stderr)
         if allow_nonzero and result.returncode != 0:
             if isinstance(parsed, list):
                 return {
