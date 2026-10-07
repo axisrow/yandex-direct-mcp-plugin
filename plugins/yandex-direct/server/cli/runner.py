@@ -29,7 +29,7 @@ _BROWSER_ERROR_ANCHORS: tuple[tuple[str, str], ...] = (
     ("auth", "waiting for login to"),
     (
         "auth",
-        "verifying the session. Retry `direct playwright login`",
+        "WITHOUT live verification",
     ),
     ("auth", "No persistent browser profile found at"),
     ("profile", "Chrome profile directory"),
@@ -78,7 +78,7 @@ _VERSION_RE = re.compile(
     re.IGNORECASE,
 )
 
-MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 5, 2)
+MIN_DIRECT_VERSION: tuple[int, int, int] = (0, 5, 3)
 
 
 def _strip_ansi(text: str) -> str:

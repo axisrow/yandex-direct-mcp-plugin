@@ -29,7 +29,7 @@ _BROWSER_ERROR_ANCHORS: tuple[tuple[str, str], ...] = (
     ("auth", "waiting for login to"),
     (
         "auth",
-        "verifying the session. Retry `direct playwright login`",
+        "WITHOUT live verification",
     ),
     ("auth", "No persistent browser profile found at"),
     ("profile", "Chrome profile directory"),
