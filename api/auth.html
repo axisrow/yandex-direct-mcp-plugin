@@ -5,10 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="CLI Runner" href="cli.html"><link rel="prev" title="yandex-direct-mcp-plugin" href="../index.html">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>Authentication - yandex-direct-mcp-plugin documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
@@ -287,7 +288,7 @@ browser session; API profile and <code class="docutils literal notranslate"><spa
 <p id="module-server.tools.auth_tools">MCP tools and prompts for direct auth profiles.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="server.tools.auth_tools.AuthCredential">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">AuthCredential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.AuthCredential" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">AuthCredential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.AuthCredential" title="Link to this definition">¶</a></dt>
 <dd><p>Schema for eliciting an authorization code from user.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="server.tools.auth_tools.AuthCredential.model_config">
@@ -298,14 +299,50 @@ browser session; API profile and <code class="docutils literal notranslate"><spa
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.auth_tools.auth_browser_login">
+<span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_browser_login</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'manual'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chrome_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_tty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_browser_login" title="Link to this definition">¶</a></dt>
+<dd><p>Save the browser session used by browser-backed tools (masters, history).</p>
+<p>Wraps <cite>direct auth login browser</cite>. Unlike auth_login (API OAuth token),
+this provisions the browser session those tools require when it is missing
+or expired. With source=”manual” a visible browser window opens on the
+user’s desktop and a human completes the Yandex Passport login — this tool
+blocks until they finish or the timeout expires. With source=”chrome” no
+window opens: the CLI decrypts the existing logged-in Chrome session
+instead. Check the result’s browser section (or call auth_status) to
+confirm the session is active.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – “manual” opens the visible login window (default); “chrome”
+imports the existing Chrome session (no window, no human input).</p></li>
+<li><p><strong>profile_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Browser profile directory (manual) or Chrome
+user-data-dir (chrome). Omit for the CLI default.</p></li>
+<li><p><strong>chrome_profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Chrome profile subdirectory to import, e.g.
+“Profile 1” (source=”chrome” only; CLI default “Default”).</p></li>
+<li><p><strong>timeout</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Seconds to wait for the manual login (source=”manual” only,
+&gt;= 1; CLI validates, default 300).</p></li>
+<li><p><strong>allow_no_tty</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Lets the login window open without a terminal — always
+the case for MCP, so keep the default True. False reproduces the
+CLI’s interactive-terminal refusal.</p></li>
+<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Accepted for syntax uniformity; browser sessions are shared,
+so the CLI ignores the name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.auth_tools.auth_login">
 <span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_login</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">login</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_login" title="Link to this definition">¶</a></dt>
 <dd><p>Start interactive OAuth login through <cite>direct</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
-<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – direct auth profile name (default — “default”).</p></li>
+<li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
+<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – direct auth profile name (default — “default”).</p></li>
 <li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Re-run OAuth flow even if the profile is already valid. Use
 this to switch the active account or to refresh an existing token
 without manually changing CLI auth configuration.</p></li>
@@ -325,7 +362,7 @@ without manually changing CLI auth configuration.</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>code</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Direct OAuth token (starts with <a href="#id1"><span class="problematic" id="id2">y0_</span></a>).</p></li>
-<li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
+<li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
 <li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – direct auth profile name to save and activate.</p></li>
 </ul>
 </dd>
@@ -338,7 +375,7 @@ without manually changing CLI auth configuration.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="server.tools.auth_tools.auth_status">
 <span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_status" title="Link to this definition">¶</a></dt>
-<dd><p>Check the current direct auth profile status.</p>
+<dd><p>Check the current direct auth status (API token + browser session).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
@@ -424,6 +461,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.AuthCredential.model_config"><code class="docutils literal notranslate"><span class="pre">AuthCredential.model_config</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#server.tools.auth_tools.auth_browser_login"><code class="docutils literal notranslate"><span class="pre">auth_browser_login()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_login"><code class="docutils literal notranslate"><span class="pre">auth_login()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_setup"><code class="docutils literal notranslate"><span class="pre">auth_setup()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_status"><code class="docutils literal notranslate"><span class="pre">auth_status()</span></code></a></li>
