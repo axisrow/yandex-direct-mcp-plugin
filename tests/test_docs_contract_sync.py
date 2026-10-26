@@ -11,6 +11,7 @@ from server.contract import (
     CLI_HELPER_TOOL_NAMES,
     DEFAULT_TOOL_NAMES,
     DIRECT_API_TOOL_NAMES,
+    IMPLEMENTED_BUNDLE_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
 )
 
@@ -88,19 +89,25 @@ def test_cli_helper_table_matches_contract() -> None:
     _check("### CLI helper tools", CLI_HELPER_TOOL_NAMES)
 
 
+def test_browser_bundle_table_matches_contract() -> None:
+    _check("### Browser bundle tools", IMPLEMENTED_BUNDLE_TOOL_NAMES)
+
+
 def test_plugin_table_matches_contract() -> None:
     _check("### Plugin tools", PLUGIN_ONLY_TOOL_NAMES)
 
 
 def test_mcp_tools_headline_total_matches_default_contract() -> None:
     """The most-read count — ``## MCP Tools (N total)`` — must track the contract
-    so the hardcoded total (the only one not under any test) cannot go stale."""
+    so the hardcoded total (the only one not under any test) cannot go stale.
+    Since the #312 default-on decision the default surface is the base tools
+    plus every implemented bundle tool."""
     text = TOOLS_MD.read_text()
     match = re.search(r"^## MCP Tools \((\d+) total\)", text, re.MULTILINE)
     assert match, "docs/TOOLS.md is missing the '## MCP Tools (N total)' headline"
-    assert int(match.group(1)) == len(DEFAULT_TOOL_NAMES), (
-        f"headline total {match.group(1)} != "
-        f"{len(DEFAULT_TOOL_NAMES)} default contract tools"
+    expected = len(DEFAULT_TOOL_NAMES | IMPLEMENTED_BUNDLE_TOOL_NAMES)
+    assert int(match.group(1)) == expected, (
+        f"headline total {match.group(1)} != {expected} default surface tools"
     )
 
 

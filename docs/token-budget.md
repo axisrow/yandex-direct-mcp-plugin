@@ -125,35 +125,34 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 Регрессионный guard на общий бюджет — `tests/test_token_budget.py`; разбивку по
 модулю/сервису даёт `python -m tests.measure_tool_tokens`.
 
-### Opt-in bundles: zero-token по умолчанию (#293)
+### Bundle tools в default-поверхности (#293 → #312 default-on)
 
 Браузерная/local-reference поверхность регистрируется отдельным import gate до
-применения профилей и групп. Без `YANDEX_DIRECT_OPTIONAL_TOOLS` модули, доступные
-только через этот gate (например, `server.tools.masters`), вообще не
-импортируются, поэтому descriptions и JSON Schema реализованных optional tools
-не попадают в `tools/list` и не расходуют контекст. Контракт резервирует 23
-optional-имени; default-поверхность остаётся 149 инструментов с неизменным
-`DEFAULT_TOTAL_TOKEN_CEILING = 33_500`. Для полной поверхности зарезервирован
-`FULL_TOTAL_TOKEN_CEILING = 36_500`; full guard измеряет все уже реализованные
-optional-тулы под `OPTIONAL_TOOLS=all`, пока последующие этапы эпика постепенно
-доводят зарегистрированный набор до всех зарезервированных контрактом имён.
+применения профилей и групп. С 2026-10-26 (#312) реализованные bundle-модули
+(`server.tools.masters`, `server.tools.history`, `server.tools.playwright`,
+`server.tools.trackingparams`) импортируются **по умолчанию**: их 14
+инструментов входят в default-поверхность — 164 инструмента,
+`DEFAULT_TOTAL_TOKEN_CEILING = 35_500` (замер 34 575 approx `len/4`).
+Оставшиеся 9 зарезервированных контрактом имён по-прежнему ждут модулей
+реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
+не регистрируются, сервер и `tools/list` живут (warning в stderr).
 
 ```bash
-export YANDEX_DIRECT_OPTIONAL_TOOLS=browser         # masters/history/playwright
-export YANDEX_DIRECT_OPTIONAL_TOOLS=trackingparams  # локальный справочник
-export YANDEX_DIRECT_OPTIONAL_TOOLS=all             # все доступные в этой версии bundles
+export YANDEX_DIRECT_DISABLED_GROUPS=browser          # вычесть всю browser-область
+export YANDEX_DIRECT_DISABLED_TOOLS=history_get       # вычесть инструмент по имени
+export YANDEX_DIRECT_OPTIONAL_TOOLS=trackingparams    # legacy-сужение: грузить только эти bundles
 ```
 
-Контракт и import mapping появляются раньше реализаций последующих этапов
-эпика. Если установленная ревизия ещё не содержит модуль явно запрошенного
-известного bundle, сервер завершит запуск с import error вместо молчаливой
-частичной поверхности.
+`YANDEX_DIRECT_OPTIONAL_TOOLS` остаётся как явное сужение загружаемых bundles
+(`browser`, `trackingparams`, комбинация или `all`); без переменной грузятся
+все. Если установленная ревизия не содержит модуль явно запрошенного известного
+bundle, сервер завершит запуск с import error вместо молчаливой частичной
+поверхности.
 
 Значение аддитивно: оно только загружает bundle. После загрузки обычный
 `YANDEX_DIRECT_TOOL_PROFILE` и `*_ENABLED/DISABLED_GROUPS/TOOLS` применяются к
-уже зарегистрированной поверхности. Например, отключённый конкретный optional
-tool будет удалён после импорта. Одни только `ENABLED_GROUPS` или
-`ENABLED_TOOLS` optional-модуль не загружают.
+уже зарегистрированной поверхности. Например, отключённый конкретный bundle
+tool будет удалён после импорта.
 
 Budget-тест запускает измеритель в отдельном Python-процессе для каждой
 поверхности: `server.main` и tool-модули являются import-time singleton-ами и

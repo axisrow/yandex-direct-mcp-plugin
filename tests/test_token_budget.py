@@ -24,7 +24,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_TOOL_NAMES
+from server.contract import (
+    DEFAULT_TOOL_NAMES,
+    IMPLEMENTED_BUNDLE_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ENV_OPTIONAL_TOOLS = "YANDEX_DIRECT_OPTIONAL_TOOLS"
@@ -36,12 +40,13 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-# Snapshot under approx(len/4) as of 2026-08-27 (see docs/token-budget.md):
-#   total ≈ 33,156 · descriptions ≈ 5,313 · 149 default tools.
-# Lowered 38,000 → 35,500 (#220-A, ads dicts) → 33,500 (#220-B, campaigns dicts).
+# Snapshot under approx(len/4) as of 2026-10-26 (default-on bundle registration,
+# #312): total ≈ 34,575 · descriptions ≈ 5,670 · 164 tools
+# (150 base + 14 implemented bundle tools).
+# Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).
-DEFAULT_TOTAL_TOKEN_CEILING = 33_500
+DEFAULT_TOTAL_TOKEN_CEILING = 35_500
 FULL_TOTAL_TOKEN_CEILING = 36_500
 DESCRIPTION_TOKEN_CEILING = 7_000
 
@@ -75,7 +80,8 @@ def _measure(env: dict[str, str] | None = None) -> dict:
 
 def test_total_tool_spec_budget_under_ceiling() -> None:
     s = _measure()
-    assert s["n_tools"] == len(DEFAULT_TOOL_NAMES)
+    expected_tools = len(DEFAULT_TOOL_NAMES | IMPLEMENTED_BUNDLE_TOOL_NAMES)
+    assert s["n_tools"] == expected_tools
     assert s["total_tok"] <= DEFAULT_TOTAL_TOKEN_CEILING, (
         f"tool-spec budget {s['total_tok']:,} exceeds ceiling "
         f"{DEFAULT_TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "
@@ -87,6 +93,8 @@ def test_full_tool_spec_budget_under_ceiling() -> None:
     s = _measure({ENV_OPTIONAL_TOOLS: "all"})
     registered_names = {row["name"] for row in s["rows"]}
     assert DEFAULT_TOOL_NAMES < registered_names <= PUBLIC_TOOL_NAMES
+    # Default-on (#312): the env=all surface equals the default surface, so the
+    # full ceiling only guards the env override staying loadable and bounded.
     assert s["total_tok"] <= FULL_TOTAL_TOKEN_CEILING, (
         f"full tool-spec budget {s['total_tok']:,} exceeds ceiling "
         f"{FULL_TOTAL_TOKEN_CEILING:,} ({s['method']}). If this growth is intended, "

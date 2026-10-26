@@ -795,6 +795,31 @@ BROWSER_TOOL_NAMES = frozenset(
 OPTIONAL_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.optional_bundle is not None
 )
+# Bundle tools whose implementation module already exists (see
+# server/optional_tools.py). Since the default-on registration decision
+# (browser bundles load without YANDEX_DIRECT_OPTIONAL_TOOLS; opt out via
+# YANDEX_DIRECT_DISABLED_GROUPS=browser or YANDEX_DIRECT_DISABLED_TOOLS), the
+# actual default tools/list surface is DEFAULT_TOOL_NAMES |
+# IMPLEMENTED_BUNDLE_TOOL_NAMES. The remaining OPTIONAL_TOOL_NAMES are
+# reserved declarations without implementation modules yet.
+IMPLEMENTED_BUNDLE_TOOL_NAMES = frozenset(
+    {
+        "masters_list",
+        "masters_get",
+        "masters_launch",
+        "masters_suspend",
+        "masters_resume",
+        "masters_archive",
+        "masters_copy",
+        "masters_adimages_get",
+        "masters_targetactions_get",
+        "masters_counters_get",
+        "masters_audience_get",
+        "history_get",
+        "playwright_doctor",
+        "trackingparams_get",
+    }
+)
 DEFAULT_TOOL_NAMES = PUBLIC_TOOL_NAMES - OPTIONAL_TOOL_NAMES
 V4_LIVE_TOOL_NAMES = frozenset(tool.public_name for tool in V4_LIVE_CLI_TOOLS)
 V4_LIVE_BLOCKED_METHOD_NAMES = frozenset(

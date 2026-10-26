@@ -1,8 +1,16 @@
-"""Opt-in import gate for tool bundles that are absent from the default surface.
+"""Bundle import gate for tool modules outside the base server/main.py imports.
 
 FastMCP registers decorated tools eagerly while their modules are imported.  To
-keep optional tool schemas out of the default MCP context, module selection must
-therefore happen before import rather than by removing tools afterwards.
+keep a module's tool schemas together, module selection must therefore happen
+before import rather than by removing tools afterwards.
+
+All known bundles load by default (default-on decision after #312): the browser
+surface works without YANDEX_DIRECT_OPTIONAL_TOOLS, and users opt out through
+the tool-surface config instead (YANDEX_DIRECT_DISABLED_GROUPS=browser or
+YANDEX_DIRECT_DISABLED_TOOLS). The env variable remains supported as an
+explicit narrow-down override. A bundle module that fails to import degrades
+softly under the default (tool absent, server and tools/list stay alive); an
+explicitly requested bundle still fails closed, as it did when it was opt-in.
 """
 
 from __future__ import annotations
@@ -32,9 +40,16 @@ def _configured_bundles(env: Mapping[str, str]) -> frozenset[str]:
 
 
 def enabled_bundles(env: Mapping[str, str]) -> frozenset[str]:
-    """Return known bundles enabled by ``env``; ``all`` expands every bundle."""
+    """Return bundles enabled by ``env``.
+
+    An unset/empty ``env`` enables every known bundle (default-on). A non-empty
+    ``env`` is an explicit override: ``all`` expands every bundle, anything else
+    narrows the loaded bundles to the known, named ones.
+    """
     configured = _configured_bundles(env)
     if "all" in configured:
+        return frozenset(OPTIONAL_BUNDLES)
+    if not configured:
         return frozenset(OPTIONAL_BUNDLES)
     return frozenset(configured & OPTIONAL_BUNDLES.keys())
 
@@ -68,12 +83,22 @@ def optional_modules(env: Mapping[str, str]) -> tuple[str, ...]:
 def import_optional_modules(env: Mapping[str, str]) -> list[str]:
     """Import selected tool modules and return their canonical module names.
 
-    Import failures intentionally propagate: a known, explicitly requested
-    bundle must not leave the server running with a partially registered surface.
+    Fail-safe under the default-on start: a bundle module whose extra is
+    missing degrades softly (module skipped, its tools absent, server and
+    tools/list alive). An explicitly configured env keeps the original
+    fail-closed contract: a known, explicitly requested bundle must not leave
+    the server running with a partially registered surface.
     """
+    explicit = bool(_configured_bundles(env))
     imported: list[str] = []
     for module_name in optional_modules(env):
-        importlib.import_module(module_name)
+        try:
+            importlib.import_module(module_name)
+        except ImportError:
+            if explicit:
+                raise
+            # Skip only the broken bundle module; sibling bundles stay alive.
+            continue
         imported.append(module_name)
     return imported
 

@@ -1,4 +1,4 @@
-"""Tests for opt-in module registration and its zero-import default (#293)."""
+"""Tests for default-on bundle registration and its env override (#312)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,11 @@ from pathlib import Path
 import pytest
 
 from server import optional_tools
-from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
+from server.contract import (
+    DEFAULT_TOOL_NAMES,
+    IMPLEMENTED_BUNDLE_TOOL_NAMES,
+    PUBLIC_CONTRACT,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _TOOL_SURFACE_ENV = (
@@ -51,9 +55,13 @@ def _run_python(
     )
 
 
-def test_enabled_bundles_parse_csv_all_and_unknown_names() -> None:
+def test_enabled_bundles_default_on_and_env_override() -> None:
     env_name = optional_tools.ENV_OPTIONAL_TOOLS
-    assert optional_tools.enabled_bundles({}) == frozenset()
+    # Default-on (#312): without the env every known bundle loads.
+    assert optional_tools.enabled_bundles({}) == frozenset(
+        optional_tools.OPTIONAL_BUNDLES
+    )
+    # A non-empty env is an explicit narrow-down override; "all" expands.
     assert optional_tools.enabled_bundles(
         {env_name: " browser, TRACKINGPARAMS, browser, unknown "}
     ) == frozenset({"browser", "trackingparams"})
@@ -116,23 +124,76 @@ def test_known_optional_module_import_failure_propagates(
         )
 
 
-def test_default_server_never_imports_optional_tool_modules() -> None:
+def test_default_server_imports_every_bundle_module_and_registers_surface() -> None:
     source = """
 import json
 import sys
 
 import server.main as main
 
-assert "server.tools.masters" not in sys.modules
-assert "server.tools.playwright" not in sys.modules
-assert "server.tools.trackingparams" not in sys.modules
+assert "server.tools.masters" in sys.modules
+assert "server.tools.history" in sys.modules
+assert "server.tools.playwright" in sys.modules
+assert "server.tools.trackingparams" in sys.modules
 registry = main.mcp._tool_manager._tools
-print(json.dumps({"masters_loaded": False, "tool_names": sorted(registry)}))
+print(json.dumps({"tool_names": sorted(registry)}))
 """
     result = _run_python(source, env=_clean_env())
     payload = json.loads(result.stdout)
-    assert payload["masters_loaded"] is False
-    assert set(payload["tool_names"]) == DEFAULT_TOOL_NAMES
+    assert set(payload["tool_names"]) == (
+        DEFAULT_TOOL_NAMES | IMPLEMENTED_BUNDLE_TOOL_NAMES
+    )
+
+
+def test_default_start_degrades_softly_when_bundle_module_is_missing() -> None:
+    """Default-on must not break startup when a bundle module is unavailable."""
+    source = """
+import json
+
+import server.optional_tools as optional_tools
+
+optional_tools.OPTIONAL_BUNDLES = {
+    "browser": (
+        "module_that_does_not_exist_for_default_on",
+        "server.tools.history",
+        "server.tools.playwright",
+    ),
+    "trackingparams": ("server.tools.trackingparams",),
+}
+import server.main as main
+
+registry = main.mcp._tool_manager._tools
+print(json.dumps({"tool_names": sorted(registry)}))
+"""
+    result = _run_python(source, env=_clean_env())
+    payload = json.loads(result.stdout)
+    assert set(payload["tool_names"]) == (
+        DEFAULT_TOOL_NAMES | {"history_get", "playwright_doctor", "trackingparams_get"}
+    )
+    # Sibling bundles stay alive; only the broken module's tools are skipped.
+    assert "module_that_does_not_exist_for_default_on" in result.stderr
+
+
+def test_explicit_env_bundle_import_failure_still_fails_closed() -> None:
+    source = """
+import server.optional_tools as optional_tools
+
+optional_tools.OPTIONAL_BUNDLES = {"browser": ("module_that_does_not_exist_x",)}
+import server.main as main
+"""
+    env = _clean_env()
+    env[optional_tools.ENV_OPTIONAL_TOOLS] = "browser"
+    result = subprocess.run(
+        [sys.executable, "-c", source],
+        cwd=PROJECT_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert result.returncode != 0
+    assert "module_that_does_not_exist_x" in result.stderr
 
 
 def test_trackingparams_bundle_registers_only_opt_in_contract_tool() -> None:
