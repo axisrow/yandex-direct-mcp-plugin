@@ -930,7 +930,10 @@ class TestAuthBrowserLogin:
         browser = {
             "active_tier": "1.5",
             "active_source": "masters login",
-            "persistent_profile": {"path": "/h/.direct-cli/chrome-profile", "usable": True},
+            "persistent_profile": {
+                "path": "/h/.direct-cli/chrome-profile",
+                "usable": True,
+            },
             "saved_session": {"exists": True, "expired": False},
         }
         with patch(
@@ -975,7 +978,12 @@ class TestAuthBrowserLogin:
             "--allow-no-tty",
         ]
         assert mock_run.call_args_list[0].kwargs == {"timeout": 90, "input": ""}
-        assert mock_run.call_args_list[1].args[0] == ["auth", "status", "--format", "json"]
+        assert mock_run.call_args_list[1].args[0] == [
+            "auth",
+            "status",
+            "--format",
+            "json",
+        ]
 
     def test_auth_browser_login_non_json_output_still_succeeds(self) -> None:
         """A text-format fallback output must not fail the tool: the session
