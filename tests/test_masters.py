@@ -383,7 +383,10 @@ def test_masters_signature_defaults_and_cli_option_tables(
     assert [
         (option.name, option.flag, option.repeat, option.is_flag)
         for option in masters_module.MASTERS_LIST_OPTIONS
-    ] == [("status", "--status", False, False)]
+    ] == [
+        ("status", "--status", False, False),
+        ("capture_timeout_seconds", "--timeout", False, False),
+    ]
     assert [
         (option.name, option.flag, option.repeat, option.is_flag)
         for option in masters_module.MASTERS_GET_OPTIONS

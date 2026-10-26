@@ -596,7 +596,13 @@ V4_LIVE_BLOCKED_METHODS: tuple[BlockedV4Method, ...] = (
 # ``tool_help`` is a meta-tool: it serves the full docstring of any tool on
 # demand so the other tools can expose only a short one-line description and
 # keep the startup context small (progressive disclosure).
-PLUGIN_TOOL_NAMES = ("auth_status", "auth_setup", "auth_login", "tool_help")
+PLUGIN_TOOL_NAMES = (
+    "auth_status",
+    "auth_setup",
+    "auth_login",
+    "auth_browser_login",
+    "tool_help",
+)
 
 # Operations that exist in the WSDL/tapi surface but cannot be exposed
 # in MCP because `direct` has no matching transport subcommand.

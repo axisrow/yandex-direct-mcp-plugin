@@ -25,7 +25,10 @@ MASTERS_STATUS_CHOICES = (
     "all",
 )
 
-MASTERS_LIST_OPTIONS = (CliOption("status", "--status"),)
+MASTERS_LIST_OPTIONS = (
+    CliOption("status", "--status"),
+    CliOption("capture_timeout_seconds", "--timeout"),
+)
 MASTERS_GET_OPTIONS = (
     CliOption("moderation_statuses", "--moderation-statuses", is_flag=True),
     CliOption("tracking_params", "--tracking-params", is_flag=True),
@@ -60,11 +63,18 @@ def _run_browser_json(
     description="Read Campaign Wizard campaigns by status. See tool_help('masters_list').",
 )
 @handle_cli_errors
-def masters_list(status: str = "not-archived") -> list[dict] | dict:
+def masters_list(
+    status: str = "not-archived",
+    capture_timeout_seconds: int | None = None,
+) -> list[dict] | dict:
     """List Campaign Wizard campaigns from the logged-in browser account.
 
     Args:
         status: Status filter: not-archived, active, stopped, archived, or all.
+        capture_timeout_seconds: Seconds to wait for the grid's data request
+            per capture attempt (two attempts are made — this budget, then
+            double it — before the command fails). Raise on slow connections;
+            the CLI validates the range.
     """
     enum_error = validate_enum(
         status,
