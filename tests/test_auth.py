@@ -6,11 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError
 from server.tools.auth_tools import (
+    _browser_login_args,
     _human_readable_time,
     _login_finish_args,
     _login_finish_legacy_args,
     _login_start_args,
     _token_setup_args,
+    auth_browser_login,
     auth_login,
     auth_setup,
     auth_status,
@@ -204,6 +206,117 @@ class TestAuthStatus:
 
         assert result["valid"] is False
         assert result["reason"] == "not_authenticated"
+
+    def test_auth_status_normalizes_combined_api_and_browser_payload(self) -> None:
+        """direct-cli 0.5.4 answers `auth status --format json` with both
+        domains nested in {api, browser}; the API contract of this tool gains
+        the browser section without changing existing keys (#313)."""
+        browser = {
+            "active_tier": "1.5",
+            "active_source": "masters login",
+            "persistent_profile": {
+                "path": "/home/u/.direct-cli/chrome-profile",
+                "usable": True,
+            },
+            "saved_session": {"exists": True, "expired": False},
+        }
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                            "expires_at": 2_000_000_000.0,
+                            "expires_in_seconds": 3600,
+                        },
+                        "browser": browser,
+                    }
+                )
+            ),
+        ) as mock_run:
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["profile"] == "default"
+        assert result["source"] == "oauth"
+        assert result["has_token"] is True
+        assert result["login"] == "client"
+        assert result["expires_at"] == 2_000_000_000.0
+        assert result["expires_in"] == 3600
+        assert result["expires_in_human"] == "1 ч."
+        assert result["browser"] == browser
+        assert result["browser_valid"] is True
+        mock_run.assert_called_once_with(["auth", "status", "--format", "json"])
+
+    def test_auth_status_reports_browser_valid_without_api_token(self) -> None:
+        """The browser session is independent of the API token: an
+        authenticated browser next to a missing API token must still surface
+        as browser_valid (#313)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": None,
+                            "source": None,
+                            "has_token": False,
+                            "login": None,
+                        },
+                        "browser": {
+                            "active_tier": "2",
+                            "active_source": "playwright login",
+                            "persistent_profile": {
+                                "path": "/home/u/.direct-cli/chrome-profile",
+                                "usable": False,
+                            },
+                            "saved_session": {"exists": True, "expired": False},
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is False
+        assert result["reason"] == "not_authenticated"
+        assert result["browser_valid"] is True
+
+    def test_auth_status_reports_expired_browser_session_invalid(self) -> None:
+        """No usable tier (active_tier=None) with a valid API token means the
+        browser session needs re-login before the next masters call (#313)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "active_tier": None,
+                            "active_source": None,
+                            "persistent_profile": {
+                                "path": "/home/u/.direct-cli/chrome-profile",
+                                "usable": False,
+                            },
+                            "saved_session": {"exists": True, "expired": True},
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is False
 
 
 class TestAuthSetup:
@@ -770,6 +883,152 @@ class TestAuthLogin:
             "message": "direct failed",
             "auth_url": "https://oauth.yandex.ru/authorize?x=1",
         }
+
+
+class TestAuthBrowserLogin:
+    def test_browser_login_args_manual_defaults(self) -> None:
+        assert _browser_login_args("manual") == [
+            "auth",
+            "login",
+            "browser",
+            "--source",
+            "manual",
+            "--format",
+            "json",
+            "--timeout",
+            "300",
+            "--allow-no-tty",
+        ]
+
+    def test_browser_login_args_chrome_omits_manual_only_flags(self) -> None:
+        """The CLI rejects mixed options (--timeout/--allow-no-tty with
+        chrome, --chrome-profile with manual), so they never travel."""
+        assert _browser_login_args(
+            "chrome",
+            profile_dir="/tmp/chrome-data",
+            chrome_profile="Profile 1",
+            timeout=60,
+            allow_no_tty=False,
+            profile="work",
+        ) == [
+            "auth",
+            "login",
+            "browser",
+            "--source",
+            "chrome",
+            "--format",
+            "json",
+            "--profile-dir",
+            "/tmp/chrome-data",
+            "--profile",
+            "work",
+            "--chrome-profile",
+            "Profile 1",
+        ]
+
+    def test_auth_browser_login_manual_success_reports_browser_status(self) -> None:
+        browser = {
+            "active_tier": "1.5",
+            "active_source": "masters login",
+            "persistent_profile": {"path": "/h/.direct-cli/chrome-profile", "usable": True},
+            "saved_session": {"exists": True, "expired": False},
+        }
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                completed(json.dumps({"saved": True, "source": "manual"})),
+                completed(
+                    json.dumps(
+                        {
+                            "api": {
+                                "profile": "default",
+                                "source": "oauth",
+                                "has_token": True,
+                                "login": "client",
+                            },
+                            "browser": browser,
+                        }
+                    )
+                ),
+            ],
+        ) as mock_run:
+            result = auth_browser_login(timeout=60)
+
+        assert result["success"] is True
+        assert result["saved"] is True
+        assert result["source"] == "manual"
+        assert result["profile"] == "default"
+        assert result["browser"] == browser
+        assert result["browser_valid"] is True
+        # The CLI owns the wait: subprocess timeout = CLI timeout + headroom,
+        # and stdin is an empty pipe (no TTY inheritance from the MCP host).
+        assert mock_run.call_args_list[0].args[0] == [
+            "auth",
+            "login",
+            "browser",
+            "--source",
+            "manual",
+            "--format",
+            "json",
+            "--timeout",
+            "60",
+            "--allow-no-tty",
+        ]
+        assert mock_run.call_args_list[0].kwargs == {"timeout": 90, "input": ""}
+        assert mock_run.call_args_list[1].args[0] == ["auth", "status", "--format", "json"]
+
+    def test_auth_browser_login_non_json_output_still_succeeds(self) -> None:
+        """A text-format fallback output must not fail the tool: the session
+        state comes from the follow-up status call anyway."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                completed("✓ Login confirmed."),
+                completed(
+                    json.dumps(
+                        {
+                            "api": {
+                                "profile": "default",
+                                "source": "oauth",
+                                "has_token": True,
+                                "login": "client",
+                            },
+                            "browser": {"active_tier": None, "active_source": None},
+                        }
+                    )
+                ),
+            ],
+        ):
+            result = auth_browser_login()
+
+        assert result["success"] is True
+        assert "saved" not in result
+        assert result["browser_valid"] is False
+
+    def test_auth_browser_login_cli_failure_is_returned(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr=(
+                    "Manual browser login needs an interactive terminal. Run "
+                    "`direct auth login browser` in a terminal "
+                    "(override: --allow-no-tty)."
+                ),
+                returncode=1,
+            ),
+        ) as mock_run:
+            result = auth_browser_login(allow_no_tty=False)
+
+        assert result == {
+            "success": False,
+            "error": "auth_failed",
+            "message": (
+                "Manual browser login needs an interactive terminal. Run "
+                "`direct auth login browser` in a terminal "
+                "(override: --allow-no-tty)."
+            ),
+        }
+        assert "--allow-no-tty" not in mock_run.call_args.args[0]
 
 
 def test_oauth_login_prompt_points_to_auth_login() -> None:

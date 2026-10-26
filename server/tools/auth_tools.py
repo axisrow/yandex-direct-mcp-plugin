@@ -75,15 +75,43 @@ def _is_not_authenticated_message(message: str) -> bool:
     )
 
 
+def _attach_browser_status(result: dict, browser: dict | None) -> dict:
+    """Proxy the CLI browser-session section plus a one-field verdict (#313).
+
+    ``browser`` is the verbatim ``{active_tier, active_source,
+    persistent_profile, saved_session}`` dict from `direct auth status`; the
+    CLI owns its shape and wording. ``active_tier`` is None exactly when no
+    usable session tier exists, so it makes a cheap ``browser_valid`` flag.
+    """
+    if browser is None:
+        return result
+    result["browser"] = browser
+    result["browser_valid"] = browser.get("active_tier") is not None
+    return result
+
+
 def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
-    has_token = bool(payload.get("has_token"))
-    payload_profile = payload.get("profile")
+    # direct-cli 0.5.4 answers `auth status --format json` with both domains:
+    # {"api": {...flat fields...}, "browser": {...}}. Older CLI versions (and
+    # recorded cassettes) returned the flat API-only dict; normalize both so
+    # the API contract of this tool is unchanged (#313).
+    api_payload = payload.get("api")
+    if not isinstance(api_payload, dict):
+        api_payload = payload
+    browser = payload.get("browser")
+    if not isinstance(browser, dict):
+        browser = None
+
+    has_token = bool(api_payload.get("has_token"))
+    payload_profile = api_payload.get("profile")
     selected_profile = payload_profile if isinstance(payload_profile, str) else profile
     if not has_token:
-        return _not_authenticated(selected_profile or profile)
+        return _attach_browser_status(
+            _not_authenticated(selected_profile or profile), browser
+        )
 
-    expires_at = payload.get("expires_at")
-    expires_in = payload.get("expires_in_seconds")
+    expires_at = api_payload.get("expires_at")
+    expires_in = api_payload.get("expires_in_seconds")
     if not isinstance(expires_in, (int, float)) and isinstance(
         expires_at, (int, float)
     ):
@@ -91,9 +119,9 @@ def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
 
     result: dict[str, object] = {
         "profile": selected_profile,
-        "source": payload.get("source") or "",
+        "source": api_payload.get("source") or "",
         "has_token": has_token,
-        "login": payload.get("login") or "",
+        "login": api_payload.get("login") or "",
         "valid": has_token,
     }
     if isinstance(expires_at, (int, float)):
@@ -103,7 +131,7 @@ def _normalize_status_payload(profile: str | None, payload: dict) -> dict:
         result["valid"] = has_token and expires_in_value > 0
         result["expires_in"] = expires_in_value
         result["expires_in_human"] = _human_readable_time(expires_in_value)
-    return result
+    return _attach_browser_status(result, browser)
 
 
 def _status_from_cli(profile: str | None = None) -> dict:
@@ -221,6 +249,37 @@ def _login_finish_legacy_args(*, profile: str = "default") -> list[str]:
     return ["auth", "login", "--profile", profile, "--code-stdin"]
 
 
+def _browser_login_args(
+    source: str,
+    *,
+    profile_dir: str | None = None,
+    chrome_profile: str | None = None,
+    timeout: int = 300,
+    allow_no_tty: bool = True,
+    profile: str | None = None,
+) -> list[str]:
+    """Build `direct auth login browser` argv (#313).
+
+    Only flags the selected source accepts are forwarded: the CLI rejects
+    mixed options (--timeout/--allow-no-tty with chrome, --chrome-profile
+    with manual) with a UsageError, so defaults the caller did not choose
+    must not travel. Range/choice validation stays with the CLI.
+    """
+    args = ["auth", "login", "browser", "--source", source, "--format", "json"]
+    if profile_dir:
+        args.extend(["--profile-dir", profile_dir])
+    if profile:
+        args.extend(["--profile", profile])
+    if source == "chrome":
+        if chrome_profile:
+            args.extend(["--chrome-profile", chrome_profile])
+    else:
+        args.extend(["--timeout", str(timeout)])
+        if allow_no_tty:
+            args.append("--allow-no-tty")
+    return args
+
+
 def _clean_cli_output(stdout: str = "", stderr: str = "") -> str:
     return _strip_ansi(stderr or stdout).strip()
 
@@ -259,10 +318,10 @@ def _complete_login_with_code(profile: str, code: str) -> dict:
 
 
 @mcp.tool(
-    description="Check the current direct auth profile status (token presence, login, expiry). Call tool_help('auth_status') for parameters.",
+    description="Check the current direct auth status for both domains: API token and browser session (used by masters/history tools). Call tool_help('auth_status') for parameters.",
 )
 def auth_status(profile: str | None = None) -> dict:
-    """Check the current direct auth profile status."""
+    """Check the current direct auth status (API token + browser session)."""
     return _status_from_cli(profile)
 
 
@@ -409,6 +468,73 @@ async def auth_login(
         "method": "oauth_code",
         "profile": _status_profile(target_profile, status),
         "login": _status_login(status),
+    }
+
+
+@mcp.tool(
+    description="Open the Yandex login window and save the browser session used by browser-backed tools (masters, history); source='chrome' imports an already-logged-in Chrome session without a window. Call tool_help('auth_browser_login') for parameters.",
+)
+def auth_browser_login(
+    source: str = "manual",
+    profile_dir: str | None = None,
+    chrome_profile: str | None = None,
+    timeout: int = 300,
+    allow_no_tty: bool = True,
+    profile: str | None = None,
+) -> dict:
+    """Save the browser session used by browser-backed tools (masters, history).
+
+    Wraps `direct auth login browser`. Unlike auth_login (API OAuth token),
+    this provisions the browser session those tools require when it is missing
+    or expired. With source="manual" a visible browser window opens on the
+    user's desktop and a human completes the Yandex Passport login — this tool
+    blocks until they finish or the timeout expires. With source="chrome" no
+    window opens: the CLI decrypts the existing logged-in Chrome session
+    instead. Check the result's browser section (or call auth_status) to
+    confirm the session is active.
+
+    Args:
+        source: "manual" opens the visible login window (default); "chrome"
+            imports the existing Chrome session (no window, no human input).
+        profile_dir: Browser profile directory (manual) or Chrome
+            user-data-dir (chrome). Omit for the CLI default.
+        chrome_profile: Chrome profile subdirectory to import, e.g.
+            "Profile 1" (source="chrome" only; CLI default "Default").
+        timeout: Seconds to wait for the manual login (source="manual" only,
+            >= 1; CLI validates, default 300).
+        allow_no_tty: Lets the login window open without a terminal — always
+            the case for MCP, so keep the default True. False reproduces the
+            CLI's interactive-terminal refusal.
+        profile: Accepted for syntax uniformity; browser sessions are shared,
+            so the CLI ignores the name.
+    """
+    args = _browser_login_args(
+        source,
+        profile_dir=profile_dir,
+        chrome_profile=chrome_profile,
+        timeout=timeout,
+        allow_no_tty=allow_no_tty,
+        profile=profile,
+    )
+    # The CLI owns the wait for human input: give the subprocess its timeout
+    # plus headroom for browser startup/teardown so a slow login survives.
+    result = _run_auth_command(args, timeout=max(60, timeout) + 30, input="")
+    if not result.get("success"):
+        return result
+    payload: dict = {}
+    try:
+        parsed = json.loads(result.get("message") or "")
+        if isinstance(parsed, dict):
+            payload = parsed
+    except json.JSONDecodeError:
+        pass
+    status = auth_status(profile)
+    return {
+        "success": True,
+        **payload,
+        "profile": _status_profile(profile or "default", status),
+        "browser": status.get("browser"),
+        "browser_valid": status.get("browser_valid"),
     }
 
 

@@ -11,7 +11,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - **MCP never calls Yandex.Direct directly** — always through `direct`, even to work around a missing/broken CLI feature. No `urllib`, raw HTTP, or `tapi-yandex-direct` imports. File upstream issues in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary. WSDL/Reports spec wins when CLI convenience names drift.
 - Machine-readable parity source: `server/contract.py` (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
-- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 149 default tools across 42 modules, one module per service; the contract reserves 23 additional tools for opt-in bundles loaded by `server/optional_tools.py` as their implementation modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
+- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 150 default tools across 42 modules, one module per service; the contract reserves 23 additional tools for opt-in bundles loaded by `server/optional_tools.py` as their implementation modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
 
 ## Commands
 
@@ -36,11 +36,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Optional registration (`server/optional_tools.py`, default = none): `YANDEX_DIRECT_OPTIONAL_TOOLS` accepts `browser`, `trackingparams`, a comma-separated combination, or `all`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
 - Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
-- Tool-surface selection (`server/config.py`, default = all 149 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 150 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-149 tools are registered by default (141 Direct API + 4 CLI helpers + 4 plugin); the contract reserves 23 browser/local-reference names for opt-in implementation modules, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+150 tools are registered by default (141 Direct API + 4 CLI helpers + 5 plugin); the contract reserves 23 browser/local-reference names for opt-in implementation modules, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -95,7 +95,12 @@ Provision Masters authentication manually, outside the stdio MCP process:
 2. Run `direct masters login` and complete Yandex Passport login in the visible
    Chromium window. This creates the CLI-owned persistent profile at
    `~/.direct-cli/chrome-profile/`; it does not read the user's real Chrome
-   profile or macOS Keychain.
+   profile or macOS Keychain. Since direct-cli 0.5.4 the plugin's
+   `auth_browser_login` tool wraps the canonical `direct auth login browser`
+   (same visible window, `--allow-no-tty` for the terminal-less MCP process;
+   `--source chrome` imports an existing logged-in Chrome session without a
+   window), and `auth_status` reports the browser-session state alongside the
+   API token so an expired session is visible before a masters call fails.
 3. Start or restart the MCP client, then enable the `browser` optional bundle
    and call the Masters tools exposed by that plugin version. Lifecycle tools
    change live campaign state: launch and archive have no CLI rollback. Copy is
@@ -125,7 +130,7 @@ Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, n
 
 - **Money is micro-units**: 15 RUB = 15_000_000. CLI 0.2.10+ rejects `0 < x < 100_000` with a "× 1_000_000?" hint.
 - **API batch limit: 10 IDs per request.** Some SelectionCriteria filters are stricter (dynamicads/smartadtargets `CampaignIds`=2, keywordbids=10); dry-run does not surface these.
-- Runtime pin: `direct-cli==0.5.3` in `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace).
+- Runtime pin: `direct-cli==0.5.4` in `scripts/runtime-pins.env`; bump via `scripts/update-pins.sh`. Plugin version bumps via `scripts/update-version.sh` — never by hand (syncs both manifests + marketplace). CLI 0.5.4 alignment: `auth login` became a group (`auth login api|browser`), `auth status --format json` reports both domains (`{"api": …, "browser": …}`), and `auth login browser` (`--source manual|chrome`, `--timeout`, `--allow-no-tty`) unlocked the plugin's `auth_browser_login` tool (#313).
 - `reports_custom(goal_ids=...)` adds `Conversions_<goal>_<attr>` / `CostPerConversion_<goal>_<attr>` columns; default attribution `LSC`.
 - Docs in Russian, code identifiers in English.
 
