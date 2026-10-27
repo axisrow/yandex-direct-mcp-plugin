@@ -2,10 +2,10 @@
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
-- CLI helper tools:   4
+- CLI helper tools:   5
 - Browser tools:     24
 - Plugin tools:       5
-Total:              174 (150 default + 24 optional)
+Total:              175 (151 default + 24 optional)
 """
 
 from __future__ import annotations
