@@ -413,10 +413,8 @@ def masters_audience_get(campaign_id: str) -> dict:
 @mcp.tool(
     name="masters_add",
     description=(
-        "Create a Campaign Wizard campaign — MUTATING and NOT idempotent: a "
-        "repeated call creates a second campaign, and there is no rollback. "
-        "Saved as a draft by default; pass draft=False to launch immediately. "
-        "See tool_help('masters_add')."
+        "Create a Wizard campaign — MUTATING, NOT idempotent; no rollback. "
+        "Draft by default; draft=False launches. See tool_help('masters_add')."
     ),
 )
 @handle_cli_errors
@@ -473,10 +471,8 @@ def masters_add(
 @mcp.tool(
     name="masters_update",
     description=(
-        "Update Campaign Wizard campaigns — MUTATING, saves live campaign "
-        "state immediately. Single campaign_id + field dicts, or batch via "
-        "from_file/masters_json; launch=True publishes a draft. See "
-        "tool_help('masters_update')."
+        "Update Wizard campaigns — MUTATING; launch publishes a draft. "
+        "See tool_help('masters_update')."
     ),
 )
 @handle_cli_errors

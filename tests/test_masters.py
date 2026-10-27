@@ -19,7 +19,7 @@ import server.main as main_module
 import server.tools as tools_package
 from server.contract import PUBLIC_CONTRACT
 from tests.helpers import import_tool_module_without_registration
-from tests.measure_tool_tokens import _make_counter
+from tests.measure_tool_tokens import _make_approx_counter
 
 TOOL_NAMES = (
     "masters_list",
@@ -1043,7 +1043,10 @@ def _isolated_masters_tools() -> list[Any]:
 
 
 def _token_cost(tool: Any) -> int:
-    count, _ = _make_counter()
+    # The deterministic approx(len/4) counter, not tiktoken: the ceilings are
+    # budget-guard numbers in the project's canonical metric (same as
+    # test_token_budget), and CI (no tiktoken) must see the same figures.
+    count, _ = _make_approx_counter()
     payload = json.dumps(
         {
             "name": tool.name,

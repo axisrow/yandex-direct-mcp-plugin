@@ -132,7 +132,7 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 (`server.tools.masters`, `server.tools.history`, `server.tools.adrestrictions`,
 `server.tools.playwright`, `server.tools.trackingparams`) импортируются
 **по умолчанию**: их 17 инструментов входят в default-поверхность —
-169 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 35,571 approx
+169 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 35,516 approx
 `len/4`, 2026-10-27, с мутирующими `masters_add`/`masters_update` #298).
 Оставшиеся 7 зарезервированных контрактом имён по-прежнему ждут модулей
 реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
@@ -179,8 +179,10 @@ process. Для воспроизводимого CI-замера использ�
 
 Мутирующие masters-тулы (#298) сразу сгруппированы по этому паттерну, без
 ретрофита: `masters_update` — 36 CLI-параметра → 12 сигнатурных
-(31 поглощён в 7 `*_options`-словарях + 5 плоских), **386 tokens** (потолок
-400); `masters_add` — 8 → 7 (`region_options`), **210 tokens**.
+(31 поглощён в 7 `*_options`-словарях + 5 плоских), **395 tokens** (потолок
+400); `masters_add` — 8 → 7 (`region_options`), **213 tokens**. Потолки
+token-тестов мастеров меряют детерминированным approx-счётчиком (как и
+budget-guard'ы), а не tiktoken, чтобы CI и локаль видели одинаковые цифры.
 
 ## Что НЕ входит в этот замер
 

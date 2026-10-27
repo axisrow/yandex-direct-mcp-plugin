@@ -88,7 +88,7 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 169 tools / ≈35,571 tokens (`approx(len/4)`, 2026-10-27, with the
+surface: 169 tools / ≈35,516 tokens (`approx(len/4)`, 2026-10-27, with the
 #298 mutating masters tools).
 
 `masters_add` (8 CLI params → 7: `region_options`) and `masters_update`
