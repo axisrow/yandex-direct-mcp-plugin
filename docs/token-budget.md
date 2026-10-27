@@ -131,11 +131,12 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 применения профилей и групп. С 2026-10-26 (#312) реализованные bundle-модули
 (`server.tools.masters`, `server.tools.history`, `server.tools.adrestrictions`,
 `server.tools.playwright`, `server.tools.trackingparams`) импортируются
-**по умолчанию**: их 17 инструментов входят в default-поверхность —
-170 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 35 598 approx
-`len/4`, 2026-10-28, с `api_units` #318, `dictionaries_get_retargeting_goals` #319,
-мутирующими `masters_add`/`masters_update` #298 и `auth_browser_logout` #323).
-Оставшиеся 7 зарезервированных контрактом имён по-прежнему ждут модулей
+**по умолчанию**: их 21 инструмент входит в default-поверхность —
+174 инструмента, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 36,054 approx
+`len/4`, 2026-10-28, с мутирующими `masters_add`/`masters_update` #298,
+`auth_browser_logout` #323 и `masters_adimages_add/set/delete` +
+`masters_delete` #300).
+Оставшиеся 3 зарезервированных контрактом имён по-прежнему ждут модулей
 реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
 не регистрируются, сервер и `tools/list` живут (warning в stderr).
 

@@ -1,4 +1,4 @@
-## MCP Tools (170 total) + 1 Prompt
+## MCP Tools (174 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -176,15 +176,14 @@ Auth/utility tools unrelated to Direct API parity.
 | `auth_browser_logout` | Remove the browser session used by browser-backed tools: deletes the persistent Chrome profile and the imported session |
 | `tool_help` | Return the full docstring (parameters, examples, constraints) for any tool on demand. Every tool exposes only a one-line description to keep startup context small; call `tool_help('<name>')` before using an unfamiliar tool. Omit the name to list all tools. |
 
-### Browser bundle tools (17)
+### Browser bundle tools (21)
 
 Load by default since the #312 default-on decision (no env needed). Opt out
 with `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`.
 Masters/history tools use the browser session of the logged-in Direct web UI
 (headless by default; provisioning is described in the README). The contract
-declares 7 more browser names without implementation modules yet
-(`masters_delete`, `masters_login/logout`,
-`masters_adimages_add/set/delete`, `playwright_login`) — reserved.
+declares 3 more browser names without implementation modules yet
+(`masters_login/logout`, `playwright_login`) — reserved.
 
 | Tool | Purpose |
 |---|---|
@@ -196,8 +195,12 @@ declares 7 more browser names without implementation modules yet
 | `masters_suspend` | Suspend Wizard campaigns (max 10 per call) |
 | `masters_resume` | Resume Wizard campaigns (max 10 per call) |
 | `masters_archive` | Archive Wizard campaigns (max 10 per call) |
+| `masters_delete` | Permanently delete a draft Wizard campaign (irreversible, no undo) |
 | `masters_copy` | Clone a Wizard campaign as a draft (non-idempotent) |
 | `masters_adimages_get` | Get the campaign's current image set |
+| `masters_adimages_add` | Append local images to the campaign's image set |
+| `masters_adimages_set` | Replace the campaign's ENTIRE image set (previous set is lost) |
+| `masters_adimages_delete` | Delete campaign images by position/content ID or all (irreversible) |
 | `masters_targetactions_get` | Get the campaign's target-action goals and prices |
 | `masters_counters_get` | Get the campaign's linked Metrika counters |
 | `masters_audience_get` | Get the campaign's manual audience settings |
