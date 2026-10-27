@@ -13,6 +13,7 @@ from server.tools.auth_tools import (
     _login_start_args,
     _token_setup_args,
     auth_browser_login,
+    auth_browser_logout,
     auth_login,
     auth_setup,
     auth_status,
@@ -1037,6 +1038,38 @@ class TestAuthBrowserLogin:
             ),
         }
         assert "--allow-no-tty" not in mock_run.call_args.args[0]
+
+
+class TestAuthBrowserLogout:
+    def test_auth_browser_logout_proxies_cli_result(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed("✓ Browser sessions removed."),
+        ) as mock_run:
+            result = auth_browser_logout()
+
+        assert result == {"success": True, "message": "✓ Browser sessions removed."}
+        # The subcommand takes no flags (CLI 0.5.5): bare argv, and unlike
+        # login there is no follow-up status call.
+        mock_run.assert_called_once_with(
+            ["auth", "logout", "browser"], timeout=None, input=""
+        )
+
+    def test_auth_browser_logout_cli_failure_is_returned(self) -> None:
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr="✗ No saved browser sessions.",
+                returncode=1,
+            ),
+        ):
+            result = auth_browser_logout()
+
+        assert result == {
+            "success": False,
+            "error": "auth_failed",
+            "message": "✗ No saved browser sessions.",
+        }
 
 
 def test_oauth_login_prompt_points_to_auth_login() -> None:

@@ -84,8 +84,11 @@ def test_handle_cli_errors_maps_browser_auth_required() -> None:
     result = wrapped()
     assert result["error"] == "browser_auth_required"
     assert result["message"] == "browser login required"
-    assert "masters_login" in result["hint"]
-    assert "direct playwright login" in result["hint"]
+    assert "auth_browser_login" in result["hint"]
+    assert "auth_browser_logout" in result["hint"]
+    # Stale hint regression (#323): the canonical auth surface only.
+    assert "masters_login" not in result["hint"]
+    assert "playwright login" not in result["hint"]
 
 
 def test_handle_cli_errors_maps_browser_captcha() -> None:

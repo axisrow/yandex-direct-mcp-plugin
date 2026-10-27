@@ -18,8 +18,8 @@ from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 176
-    assert len(DEFAULT_TOOL_NAMES) == 152
+    assert len(tool_names()) == 179
+    assert len(DEFAULT_TOOL_NAMES) == 153
 
 
 def test_every_tool_has_exactly_one_action_group():

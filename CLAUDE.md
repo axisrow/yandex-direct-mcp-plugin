@@ -36,11 +36,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Bundle registration (`server/optional_tools.py`, default = all bundles): implemented browser/trackingparams tools load without any env (#312); a bundle module missing its extra degrades softly — its tools are absent, the server starts. `YANDEX_DIRECT_OPTIONAL_TOOLS` remains as an explicit narrow-down override (`browser`, `trackingparams`, a comma-separated combination, or `all`). Opt out through the tool-surface config: `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
 - Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
-- Tool-surface selection (`server/config.py`, default = all 169 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 170 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-169 tools are registered by default (141 Direct API + 6 CLI helpers + 5 plugin + 17 browser bundle tools); the contract declares 24 browser/local-reference names — the 7 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+170 tools are registered by default (141 Direct API + 6 CLI helpers + 6 plugin + 17 browser bundle tools); the contract declares 24 browser/local-reference names — the 7 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -88,8 +88,8 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 169 tools / ≈35,516 tokens (`approx(len/4)`, 2026-10-27, with the
-#298 mutating masters tools).
+surface: 170 tools / ≈35,598 tokens (`approx(len/4)`, 2026-10-28, with the
+#298 mutating masters tools and #323 auth_browser_logout).
 
 `masters_add` (8 CLI params → 7: `region_options`) and `masters_update`
 (36 → 12: seven `*_options` dicts per the #220/#298 pattern, `MASTERS_UPDATE_DICT_REGISTRY`)
@@ -118,7 +118,9 @@ Provision Masters authentication manually, outside the stdio MCP process:
    `auth_browser_login` tool wraps the canonical `direct auth login browser`
    (same visible window, `--allow-no-tty` for the terminal-less MCP process;
    `--source chrome` imports an existing logged-in Chrome session without a
-   window), and `auth_status` reports the browser-session state alongside the
+   window), `auth_browser_logout` wraps `direct auth logout browser` (deletes
+   the persistent profile and the imported session), and `auth_status` reports
+   the browser-session state alongside the
    API token so an expired session is visible before a masters call fails.
 3. Start or restart the MCP client, then call the Masters tools exposed by that plugin version (bundle modules load by default since the #312 default-on decision). Lifecycle tools
    change live campaign state: launch and archive have no CLI rollback. Copy is
@@ -135,8 +137,8 @@ real Chrome profile into `~/.direct-cli/playwright/session.json`; on macOS it
 reads the `Chrome Safe Storage` key from the login Keychain. `direct playwright
 doctor` diagnoses that path without logging in or writing files. A persistent
 profile created by `direct masters login` takes precedence over the imported
-session. Treat both stores as live login credentials; `direct masters logout`
-removes the CLI-owned persistent profile.
+session. Treat both stores as live login credentials; `direct auth logout browser`
+(plugin tool `auth_browser_logout`) removes the CLI-owned persistent profile.
 
 ## Testing
 

@@ -40,10 +40,11 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-# Snapshot under approx(len/4) as of 2026-10-27 (#317 adrestrictions_get,
-# #318 api_units, #319 dictionaries_get_retargeting_goals, default-on bundle
-# registration): total ≈ 34,908 · descriptions ≈ 5,816 · 167 tools
-# (152 base + 15 implemented bundle tools).
+# Snapshot under approx(len/4) as of 2026-10-28 (#317 adrestrictions_get,
+# #318 api_units, #319 dictionaries_get_retargeting_goals, #323
+# auth_browser_logout, #298 mutating masters tools, default-on bundle
+# registration): total ≈ 35,598 · descriptions ≈ 5,923 · 170 tools
+# (153 base + 17 implemented bundle tools).
 # Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
 # Raised 35,500 → 36,250 (#298: masters_add + masters_update joined the browser
 # bundle; +608 tokens of grouped-dict schemas, measured 35,516 approx).
