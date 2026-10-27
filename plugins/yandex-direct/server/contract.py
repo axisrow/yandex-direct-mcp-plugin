@@ -3,9 +3,9 @@
 Tool count (derived from the structures below):
 - Direct API tools: 141
 - CLI helper tools:   4
-- Browser tools:     23
+- Browser tools:     24
 - Plugin tools:       4
-Total:              172 (149 default + 23 optional)
+Total:              173 (149 default + 24 optional)
 """
 
 from __future__ import annotations
@@ -246,6 +246,7 @@ BROWSER_SERVICE_METHODS: dict[str, dict[str, str]] = {
         "audience_get": "browser",
     },
     "history": {"get": "browser"},
+    "adrestrictions": {"get": "browser"},
     "playwright": {"login": "browser", "doctor": "browser"},
     "trackingparams": {"get": "trackingparams"},
 }
@@ -258,9 +259,10 @@ _BROWSER_CLI_SUBCOMMAND_PATHS: dict[tuple[str, str], tuple[str, ...]] = {
     ("masters", "targetactions_get"): ("masters", "targetactions", "get"),
     ("masters", "counters_get"): ("masters", "counters", "get"),
     ("masters", "audience_get"): ("masters", "audience", "get"),
-    # ``trackingparams`` is a leaf command: the ``get`` suffix exists only in
-    # the public MCP name, not in the direct CLI command tree.
+    # Leaf commands: the ``get`` suffix exists only in the public MCP names,
+    # not in the direct CLI command tree.
     ("trackingparams", "get"): ("trackingparams",),
+    ("adrestrictions", "get"): ("adrestrictions",),
 }
 
 # Reports-spec tools that share the same CLI subcommand (`direct reports get`)
@@ -816,6 +818,7 @@ IMPLEMENTED_BUNDLE_TOOL_NAMES = frozenset(
         "masters_counters_get",
         "masters_audience_get",
         "history_get",
+        "adrestrictions_get",
         "playwright_doctor",
         "trackingparams_get",
     }

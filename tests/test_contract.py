@@ -32,6 +32,7 @@ EXPECTED_BROWSER_TOOL_NAMES = frozenset(
         "masters_counters_get",
         "masters_audience_get",
         "history_get",
+        "adrestrictions_get",
         "playwright_login",
         "playwright_doctor",
         "trackingparams_get",
@@ -43,9 +44,9 @@ def _contract_by_name():
     return {tool.public_name: tool for tool in PUBLIC_CONTRACT}
 
 
-def test_browser_contract_declares_all_23_commands_and_bundles() -> None:
+def test_browser_contract_declares_all_24_commands_and_bundles() -> None:
     assert BROWSER_TOOL_NAMES == EXPECTED_BROWSER_TOOL_NAMES
-    assert sum(len(methods) for methods in BROWSER_SERVICE_METHODS.values()) == 23
+    assert sum(len(methods) for methods in BROWSER_SERVICE_METHODS.values()) == 24
 
     by_name = _contract_by_name()
     assert {by_name[name].optional_bundle for name in BROWSER_TOOL_NAMES} == {
@@ -96,6 +97,7 @@ def test_nested_browser_commands_override_flat_kebab_case_path() -> None:
         "masters_counters_get": ("masters", "counters", "get"),
         "masters_audience_get": ("masters", "audience", "get"),
         "trackingparams_get": ("trackingparams",),
+        "adrestrictions_get": ("adrestrictions",),
     }
     for name, path in expected_nested_paths.items():
         assert by_name[name].cli_subcommand_path == path
