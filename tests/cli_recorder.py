@@ -92,7 +92,14 @@ class CliRecorder:
         args = cassette.get("args", [])
         subcmd = "general"
         for arg in args:
-            if arg in ("campaigns", "ads", "keywords", "reports", "auth"):
+            if arg in (
+                "campaigns",
+                "ads",
+                "keywords",
+                "reports",
+                "auth",
+                "dictionaries",
+            ):
                 subcmd = arg
                 break
 

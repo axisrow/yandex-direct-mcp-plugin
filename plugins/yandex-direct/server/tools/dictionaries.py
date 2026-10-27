@@ -59,6 +59,42 @@ def dictionaries_list_names() -> list[str]:
 
 
 @mcp.tool(
+    name="dictionaries_get_retargeting_goals",
+    description="Get retargeting goals via the v5 dictionary (domain/app name → ExternalId); prefer it over v4goals_get_retargeting_goals when mapping a domain to an ExternalId, the v4 tool lists goals scoped to campaigns. Call tool_help('dictionaries_get_retargeting_goals') for parameters.",
+)
+@handle_cli_errors
+def dictionaries_get_retargeting_goals(
+    name: str | None = None,
+    ids: str | None = None,
+) -> dict | list[dict]:
+    """Get retargeting goals dictionary entries (v5, direct-cli #853).
+
+    Maps a website address or application name to the ExternalId used in
+    RetargetingList(Type=AUDIENCE) → Rules[].Arguments[].ExternalId — e.g.
+    for audience rules or reports_custom Conversions_<goal>_<attr> columns.
+
+    Yandex does not document this method and does not guarantee its
+    stability. Name search may return several goal types with similar names
+    (Type=HOST and Type=APPLICATION) — pick the entry with the needed Type.
+
+    Use v4goals_get_retargeting_goals for the campaign-scoped v4 Live
+    channel; this tool is the canonical domain → ExternalId dictionary.
+
+    Args:
+        name: Goal name to search for (e.g. a domain like "example.com").
+        ids: Comma-separated retargeting goal IDs to search.
+    """
+    args = ["dictionaries", "get-retargeting-goals", "--format", "json"]
+    if name is not None:
+        args.extend(["--name", name])
+    if ids is not None:
+        args.extend(["--ids", ids])
+
+    runner = get_runner()
+    return runner.run_json(args)
+
+
+@mcp.tool(
     name="dictionaries_get_geo_regions",
     description="Get GeoRegions dictionary entries, optionally filtered by name or region IDs. Call tool_help('dictionaries_get_geo_regions') for parameters.",
 )

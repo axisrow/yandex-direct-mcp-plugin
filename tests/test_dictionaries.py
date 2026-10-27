@@ -1,10 +1,14 @@
 """Tests for dictionaries MCP tools."""
 
+import subprocess
 from unittest.mock import patch
+
+import pytest
 
 from server.tools.dictionaries import (
     dictionaries_get,
     dictionaries_get_geo_regions,
+    dictionaries_get_retargeting_goals,
     dictionaries_list_names,
 )
 from tests.helpers import mock_runner
@@ -131,3 +135,98 @@ class TestDictionariesGetGeoRegions:
                 "Москва",
             ]
         )
+
+
+class TestDictionariesGetRetargetingGoals:
+    """Test scenarios for dictionaries_get_retargeting_goals (#319)."""
+
+    def test_passes_name_flag(self):
+        runner = mock_runner({"Goals": []})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            result = dictionaries_get_retargeting_goals(name="example.com")
+
+        assert result == {"Goals": []}
+        runner.run_json.assert_called_once_with(
+            [
+                "dictionaries",
+                "get-retargeting-goals",
+                "--format",
+                "json",
+                "--name",
+                "example.com",
+            ]
+        )
+
+    def test_passes_ids_flag(self):
+        runner = mock_runner({"Goals": []})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            dictionaries_get_retargeting_goals(ids="123,456")
+
+        runner.run_json.assert_called_once_with(
+            [
+                "dictionaries",
+                "get-retargeting-goals",
+                "--format",
+                "json",
+                "--ids",
+                "123,456",
+            ]
+        )
+
+    def test_without_filters_runs_bare_command(self):
+        runner = mock_runner({"Goals": []})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            dictionaries_get_retargeting_goals()
+
+        runner.run_json.assert_called_once_with(
+            ["dictionaries", "get-retargeting-goals", "--format", "json"]
+        )
+
+
+def _run_cassette(fn, /, *args, **kwargs):
+    """Call a tool, skipping the test if no cassette has been recorded yet.
+
+    Mirrors tests/test_v4_cassettes.py: ``@handle_cli_errors`` turns a missing
+    cassette into an ``{"error": "unknown", ...}`` dict, detected here.
+    """
+    result = fn(*args, **kwargs)
+    if (
+        isinstance(result, dict)
+        and result.get("error") == "unknown"
+        and "No cassette found" in str(result.get("message", ""))
+    ):
+        pytest.skip(f"No cassette recorded yet for {fn.__name__}")
+    return result
+
+
+class TestDictionariesGetRetargetingGoalsCassette:
+    """Cassette replay for dictionaries_get_retargeting_goals (read-only)."""
+
+    def test_by_name(self, cli_recorder):
+        result = _run_cassette(dictionaries_get_retargeting_goals, name="example.com")
+        assert isinstance(result, (dict, list))
+
+    def test_committed_cassette_matches_tool_argv(self, cli_recorder):
+        """The committed cassette must replay the exact argv the tool emits.
+
+        Direct subprocess replay (tests/test_cli_recorder.py style): the
+        tool-level replay path stays skipped until #261 Phase 2 fixes the
+        runner's ``--version`` probe, but the cassette itself must already
+        match the tool's argv — a drift fails here instead of rotting.
+        """
+        result = subprocess.run(
+            [
+                "direct",
+                "dictionaries",
+                "get-retargeting-goals",
+                "--format",
+                "json",
+                "--name",
+                "example.com",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0
+        assert "RetargetingGoals" in result.stdout

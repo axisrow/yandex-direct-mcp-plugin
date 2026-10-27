@@ -2,10 +2,10 @@
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
-- CLI helper tools:   4
+- CLI helper tools:   5
 - Browser tools:     23
-- Plugin tools:       4
-Total:              172 (149 default + 23 optional)
+- Plugin tools:       5
+Total:              174 (151 default + 23 optional)
 """
 
 from __future__ import annotations
@@ -205,7 +205,7 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 
 CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "agencyclients": ("delete",),
-    "dictionaries": ("list_names",),
+    "dictionaries": ("list_names", "get_retargeting_goals"),
     "reports": ("list_types",),
 }
 

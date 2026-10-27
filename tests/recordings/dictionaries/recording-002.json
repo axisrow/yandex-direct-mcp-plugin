@@ -1,0 +1,14 @@
+{
+  "command": "direct",
+  "args": [
+    "dictionaries",
+    "get-retargeting-goals",
+    "--format",
+    "json",
+    "--name",
+    "example.com"
+  ],
+  "stdout": "{\n  \"result\": {\n    \"RetargetingGoals\": [\n      {\n        \"Id\": 10000014,\n        \"Name\": \"Campaign_XXXXX\",\n        \"Type\": \"HOST\",\n        \"Description\": null,\n        \"CoverageType\": \"LOW\",\n        \"SuggestionSource\": \"SUBSTRING_MATCH\",\n        \"StoreLink\": null\n      }\n    ]\n  }\n}",
+  "stderr": "",
+  "returncode": 0
+}
