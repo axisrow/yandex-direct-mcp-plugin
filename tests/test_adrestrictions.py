@@ -137,7 +137,8 @@ def test_adrestrictions_get_maps_browser_auth_failures(
     result = adrestrictions_module.adrestrictions_get("77593206")
 
     assert result["error"] == "browser_auth_required"
-    assert "direct playwright login" in result["hint"]
+    assert "auth_browser_login" in result["hint"]
+    assert "auth_browser_logout" in result["hint"]
 
 
 def test_adrestrictions_get_uses_contract_leaf_path(

@@ -608,6 +608,7 @@ PLUGIN_TOOL_NAMES = (
     "auth_setup",
     "auth_login",
     "auth_browser_login",
+    "auth_browser_logout",
     "tool_help",
 )
 

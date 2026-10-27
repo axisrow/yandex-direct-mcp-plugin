@@ -187,7 +187,8 @@ def test_history_get_maps_browser_auth_failures() -> None:
         result = history.history_get(limit=1)
 
     assert result["error"] == "browser_auth_required"
-    assert "direct playwright login" in result["hint"]
+    assert "auth_browser_login" in result["hint"]
+    assert "auth_browser_logout" in result["hint"]
 
 
 def test_history_get_signature_covers_all_seven_domain_click_parameters() -> None:

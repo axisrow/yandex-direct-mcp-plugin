@@ -280,6 +280,12 @@ def _browser_login_args(
     return args
 
 
+def _browser_logout_args() -> list[str]:
+    # `direct auth logout browser` takes no flags (verified against CLI 0.5.5):
+    # it removes both saved browser sessions in one call (#323).
+    return ["auth", "logout", "browser"]
+
+
 def _clean_cli_output(stdout: str = "", stderr: str = "") -> str:
     return _strip_ansi(stderr or stdout).strip()
 
@@ -536,6 +542,26 @@ def auth_browser_login(
         "browser": status.get("browser"),
         "browser_valid": status.get("browser_valid"),
     }
+
+
+@mcp.tool(
+    description="Remove the browser session used by browser-backed tools (masters, history): deletes the persistent Chrome profile and the imported session. Call tool_help('auth_browser_logout') for parameters.",
+)
+def auth_browser_logout() -> dict:
+    """Remove the browser session used by browser-backed tools (masters, history).
+
+    Wraps `direct auth logout browser` — the canonical logout since
+    direct-cli 0.5.5 (`masters logout` and `playwright login` are
+    deprecated). One call deletes both saved browser sessions: the CLI-owned
+    persistent Chrome profile and the imported-session store. The API OAuth
+    token (auth_login/auth_setup) is not touched. stdout/stderr and the exit
+    code are proxied: success returns {"success": True, "message": ...},
+    failures carry an "error" key ("auth_failed", "cli_not_found",
+    "timeout"). Confirm with auth_status (browser_valid becomes False);
+    browser-backed tools require auth_browser_login again afterwards.
+    """
+    # Empty stdin pipe: no TTY inheritance from the MCP host, same as login.
+    return _run_auth_command(_browser_logout_args(), input="")
 
 
 # --- MCP Prompt ---

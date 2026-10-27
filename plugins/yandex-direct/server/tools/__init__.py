@@ -225,8 +225,11 @@ def handle_cli_errors(func):
                     error="browser_auth_required",
                     message=str(e),
                     hint=(
-                        "Run masters_login to create a persistent browser session, "
-                        "or run `direct playwright login`, then retry."
+                        "Run auth_browser_login to provision the browser session "
+                        "(`direct auth login browser`); if a session exists but is "
+                        "unusable (expired or another account's), reset it first "
+                        "with auth_browser_logout (`direct auth logout browser`), "
+                        "then retry."
                     ),
                 )
             )

@@ -53,8 +53,10 @@ logging in or writing files.
 
 When both stores exist, ``direct`` prefers the persistent profile created by
 ``direct masters login``. Both stores contain a live Yandex session and must be
-protected as credentials. ``direct masters logout`` removes the CLI-owned
-persistent profile. Masters commands always use the account logged in to the
+protected as credentials. ``direct auth logout browser`` — or the plugin's
+``auth_browser_logout`` tool — removes both saved sessions: the CLI-owned
+persistent profile and the imported session store. Masters commands always use
+the account logged in to the
 browser session; API profile and ``YANDEX_DIRECT_LOGIN`` selection do not apply.
 
 .. automodule:: server.tools.auth_tools
