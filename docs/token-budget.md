@@ -112,6 +112,11 @@ FastMCP генерирует `anyOf: [..., {"type":"null"}]` 200+ раз.
 > замера из-за PEP 668), поэтому строка `full` отличается от tiktoken-базы в
 > «Сводке» выше. **Проценты от full устойчивы между токенайзерами** — именно они
 > показывают экономию профиля.
+>
+> Снимок эпохи #149 (149 тулов): после #312 default-on полная поверхность —
+> 174 инструмента (см. раздел ниже), а составы профилей изменились. Актуальный
+> замер 2026-10-28 (approx): `core` 10 / 2 576, `analytics` 28 / 3 819,
+> `campaign-editor` 36 / 15 358.
 
 Как задать (env):
 
@@ -139,6 +144,10 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 Оставшиеся 3 зарезервированных контрактом имён по-прежнему ждут модулей
 реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
 не регистрируются, сервер и `tools/list` живут (warning в stderr).
+
+Гард полной поверхности (`YANDEX_DIRECT_OPTIONAL_TOOLS=all`, с #312 совпадает
+с default-поверхностью) — `FULL_TOTAL_TOKEN_CEILING = 37_250` в том же
+`tests/test_token_budget.py`.
 
 ```bash
 export YANDEX_DIRECT_DISABLED_GROUPS=browser          # вычесть всю browser-область

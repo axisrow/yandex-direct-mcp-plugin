@@ -18,7 +18,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Не пытайся вызывать другие tools пока авторизация не пройдена — они вернут ошибку.
 
-## Доступный MCP-контракт (149 tools)
+## Доступный MCP-контракт (174 tools)
 
 Контракт теперь следует иерархии:
 
@@ -54,7 +54,7 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 | Стратегии | `strategies_get/add/update/archive/unarchive` |
 | Медиа и расширения | `adimages_get/add/delete`, `advideos_get/add`, `adextensions_get/add/delete`, `sitelinks_get/add/delete`, `vcards_get/add/delete`, `creatives_get/add` |
 | Справочники / изменения / отчёты | `dictionaries_get`, `dictionaries_get_geo_regions`, `changes_check`, `changes_check_campaigns`, `changes_check_dictionaries`, `reports_get` |
-| v4 Live | `balance_get`, `v4account_get_accounts`, `v4account_update_account`, `v4account_deposit`, `v4account_invoice`, `v4account_transfer_money`, `v4account_enable_shared_account`, `v4events_get_events_log`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners`, `v4forecast_create`, `v4forecast_list`, `v4forecast_get`, `v4forecast_delete`, `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report` |
+| v4 Live | `balance_get`, `v4account_get_accounts`, `v4account_update_account`, `v4account_deposit`, `v4account_invoice`, `v4account_transfer_money`, `v4account_enable_shared_account`, `v4events_get_events_log`, `v4goals_get_stat_goals`, `v4goals_get_retargeting_goals`, `v4keywords_get_suggestion`, `v4adimage_get`, `v4adimage_set`, `v4tags_get_campaigns`, `v4tags_get_banners`, `v4tags_update_campaigns`, `v4tags_update_banners`, `v4forecast_create`, `v4forecast_list`, `v4forecast_get`, `v4forecast_delete`, `v4wordstat_create_report`, `v4wordstat_list_reports`, `v4wordstat_get_report`, `v4wordstat_delete_report` |
 | Прочее | `clients_get/update`, `agencyclients_get/add/update/add_passport_organization/add_passport_organization_member`, `businesses_get`, `feeds_get/add/update/delete`, `leads_get`, `negativekeywordsharedsets_get/add/update/delete`, `keywordsresearch_has_search_volume`, `keywordsresearch_deduplicate`, `turbopages_get` |
 
 ### Явно helper-only tools
@@ -62,6 +62,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 Эти tools публичные, но не являются 1:1 Direct API методами:
 
 - `agencyclients_delete`
+- `api_units` — остаток API-юнитов (read-only, перед тяжёлыми запросами)
+- `dictionaries_get_retargeting_goals` — ExternalId ретаргетинговой цели по домену/приложению или ID
 - `dictionaries_list_names`
 - `reports_list_types`
 - `trackingparams`
@@ -71,6 +73,26 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 - `auth_status`
 - `auth_setup`
 - `auth_login`
+- `auth_browser_login` — сохранение браузерной сессии для browser-тулов (`source="chrome"` импортирует залогиненную сессию Chrome)
+- `auth_browser_logout` — удаляет браузерную сессию
+- `tool_help` — полная справка по любому тулу; без аргумента — список всех тулов
+
+### Browser bundle tools (21)
+
+Загружаются по умолчанию. Работают через браузерную сессию веб-интерфейса
+Директа — OAuth-токен для них не используется. Перед первым вызовом нужна
+разовая настройка сессии (`auth_browser_login()` или `direct masters login`
+в обычном терминале); статус виден в `auth_status()`.
+
+- Мастера кампаний: `masters_list`, `masters_get`, `masters_add`, `masters_update`, `masters_launch`, `masters_suspend`, `masters_resume`, `masters_archive`, `masters_delete`, `masters_copy`
+- Изображения Мастеров: `masters_adimages_get`, `masters_adimages_add`, `masters_adimages_set`, `masters_adimages_delete` — set/delete заменяют или удаляют весь набор изображений необратимо
+- Настройки кампании (чтение): `masters_targetactions_get`, `masters_counters_get`, `masters_audience_get`
+- Аккаунт-wide чтение: `history_get` (журнал «История изменений»), `adrestrictions_get` (модерационные ограничения объявлений в UI)
+- Диагностика и справочники: `playwright_doctor`, `trackingparams_get`
+
+Lifecycle-тулы Мастеров меняют живые кампании; у `masters_delete` отмены нет.
+Имена `masters_login`, `masters_logout`, `playwright_login` зарезервированы
+контрактом — модулей пока нет, не вызывать.
 
 ## Отчёты (статистика)
 

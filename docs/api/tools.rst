@@ -10,6 +10,9 @@ Shared Infrastructure
 .. automodule:: server.tools.helpers
    :members:
 
+.. automodule:: server.tools.tool_help
+   :members:
+
 Campaign & Ad Management
 ------------------------
 
@@ -31,7 +34,13 @@ Bids & Bid Modifiers
 .. automodule:: server.tools.bids
    :members:
 
+.. automodule:: server.tools.keyword_bids
+   :members:
+
 .. automodule:: server.tools.bidmodifiers
+   :members:
+
+.. automodule:: server.tools.strategies
    :members:
 
 Ad Extensions
@@ -44,6 +53,9 @@ Ad Extensions
    :members:
 
 .. automodule:: server.tools.images
+   :members:
+
+.. automodule:: server.tools.advideos
    :members:
 
 .. automodule:: server.tools.adextensions
@@ -85,6 +97,15 @@ Reference & Utility
 .. automodule:: server.tools.agency
    :members:
 
+.. automodule:: server.tools.businesses
+   :members:
+
+.. automodule:: server.tools.api_units
+   :members:
+
+.. automodule:: server.tools.trackingparams_legacy
+   :members:
+
 Research & Reporting
 --------------------
 
@@ -121,6 +142,9 @@ V4 Live
 .. automodule:: server.tools.v4goals
    :members:
 
+.. automodule:: server.tools.v4keywords
+   :members:
+
 .. automodule:: server.tools.v4tags
    :members:
 
@@ -128,6 +152,27 @@ V4 Live
    :members:
 
 .. automodule:: server.tools.v4wordstat
+   :members:
+
+.. automodule:: server.tools.v4adimage
+   :members:
+
+Browser bundle tools
+--------------------
+
+.. automodule:: server.tools.masters
+   :members:
+
+.. automodule:: server.tools.history
+   :members:
+
+.. automodule:: server.tools.adrestrictions
+   :members:
+
+.. automodule:: server.tools.playwright
+   :members:
+
+.. automodule:: server.tools.trackingparams
    :members:
 
 Authentication
