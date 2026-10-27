@@ -9,6 +9,7 @@ from pathlib import Path
 from server.contract import (
     CLI_HELPER_TOOL_NAMES,
     DEFAULT_TOOL_NAMES,
+    IMPLEMENTED_BUNDLE_TOOL_NAMES,
     PLUGIN_ONLY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
     REMOVED_LEGACY_PUBLIC_NAMES,
@@ -24,26 +25,9 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-IMPLEMENTED_BROWSER_TOOL_NAMES = frozenset(
-    {
-        "masters_list",
-        "masters_get",
-        "masters_launch",
-        "masters_suspend",
-        "masters_resume",
-        "masters_archive",
-        "masters_copy",
-        "masters_adimages_get",
-        "masters_targetactions_get",
-        "masters_counters_get",
-        "masters_audience_get",
-        "history_get",
-        "playwright_doctor",
-    }
-)
-IMPLEMENTED_OPTIONAL_TOOL_NAMES = IMPLEMENTED_BROWSER_TOOL_NAMES | {
-    "trackingparams_get"
-}
+# Actual default surface (#312 default-on): base tools plus every implemented
+# bundle tool. IMPLEMENTED_BUNDLE_TOOL_NAMES (contract) tracks the split.
+DEFAULT_SURFACE_TOOL_NAMES = DEFAULT_TOOL_NAMES | IMPLEMENTED_BUNDLE_TOOL_NAMES
 
 
 def _read_response(proc: subprocess.Popen[str]) -> dict:
@@ -119,9 +103,9 @@ def test_mcp_server_registers_all_tools():
         assert resp["id"] == 2
 
         tool_names = {t["name"] for t in resp["result"]["tools"]}
-        assert tool_names == DEFAULT_TOOL_NAMES, (
-            f"Missing tools: {DEFAULT_TOOL_NAMES - tool_names}, "
-            f"extra tools: {tool_names - DEFAULT_TOOL_NAMES}"
+        assert tool_names == DEFAULT_SURFACE_TOOL_NAMES, (
+            f"Missing tools: {DEFAULT_SURFACE_TOOL_NAMES - tool_names}, "
+            f"extra tools: {tool_names - DEFAULT_SURFACE_TOOL_NAMES}"
         )
     finally:
         proc.terminate()
@@ -157,9 +141,7 @@ def test_mcp_server_registers_all_implemented_optional_tools():
     proc = _start_server(env={ENV_OPTIONAL_TOOLS: "all"})
     try:
         _initialize(proc)
-        assert _list_tool_names(proc) == (
-            DEFAULT_TOOL_NAMES | IMPLEMENTED_OPTIONAL_TOOL_NAMES
-        )
+        assert _list_tool_names(proc) == DEFAULT_SURFACE_TOOL_NAMES
     finally:
         proc.terminate()
         proc.wait(timeout=5)
@@ -169,7 +151,7 @@ def test_mcp_server_registers_only_browser_optional_bundle():
     proc = _start_server(env={ENV_OPTIONAL_TOOLS: "browser"})
     try:
         _initialize(proc)
-        expected = DEFAULT_TOOL_NAMES | IMPLEMENTED_BROWSER_TOOL_NAMES
+        expected = DEFAULT_SURFACE_TOOL_NAMES - {"trackingparams_get"}
         assert _list_tool_names(proc) == expected
     finally:
         proc.terminate()
@@ -203,9 +185,20 @@ def _list_tool_names(proc: subprocess.Popen[str]) -> set[str]:
     return {t["name"] for t in resp["result"]["tools"]}
 
 
+def test_tool_allowlist_serves_named_bundle_tool():
+    """A bundle tool is registered by default, so a tool allowlist can serve it."""
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_get"})
+    try:
+        _initialize(proc)
+        assert _list_tool_names(proc) == {"masters_get"}
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
 def test_unregistered_optional_tool_allowlist_fails_closed():
     """A browser tool allowlist cannot fail open to all default tools (#304)."""
-    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_get"})
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_add"})
     try:
         _initialize(proc)
         assert _list_tool_names(proc) == set()
@@ -234,7 +227,7 @@ def test_mcp_server_respects_disabled_tool_groups():
         assert "masters_launch" not in names  # lifecycle
         assert "masters_copy" in names  # draft-only copy remains available
         assert "campaigns_get" in names
-        assert names <= DEFAULT_TOOL_NAMES | IMPLEMENTED_OPTIONAL_TOOL_NAMES
+        assert names <= DEFAULT_SURFACE_TOOL_NAMES
     finally:
         proc.terminate()
         proc.wait(timeout=5)

@@ -12,8 +12,10 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("yandex-direct-mcp", json_response=True)
 
-# Tool registration happens via imports. Required modules form the default
-# surface; optional bundles are imported only when explicitly enabled (#293).
+# Tool registration happens via imports. The required modules plus the bundle
+# modules loaded by server.optional_tools (default-on since #312) form the
+# default surface; an explicitly configured YANDEX_DIRECT_OPTIONAL_TOOLS only
+# narrows the loaded bundles.
 import os
 
 import server.tools.adextensions
@@ -63,11 +65,22 @@ from server.config import (
     config_from_env,
     env_config_warnings,
 )
-from server.optional_tools import import_optional_modules, optional_tools_warnings
+from server.optional_tools import (
+    import_optional_modules,
+    optional_modules,
+    optional_tools_warnings,
+)
 
 for _warning in optional_tools_warnings(os.environ):
     print(f"[yandex-direct-mcp] tool-surface config: {_warning}", file=sys.stderr)
 _OPTIONAL_LOADED = import_optional_modules(os.environ)
+_MISSING_OPTIONAL = set(optional_modules(os.environ)) - set(_OPTIONAL_LOADED)
+if _MISSING_OPTIONAL:
+    print(
+        f"[yandex-direct-mcp] optional bundle modules unavailable, their tools "
+        f"are skipped: {sorted(_MISSING_OPTIONAL)}",
+        file=sys.stderr,
+    )
 
 _TOOL_SURFACE = config_from_env(os.environ)
 for _warning in env_config_warnings(os.environ, _TOOL_SURFACE):
