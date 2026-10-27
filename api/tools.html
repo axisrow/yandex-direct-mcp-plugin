@@ -586,6 +586,42 @@ Got: {n}”) when over the limit.</p>
 </dl>
 </dd></dl>
 
+<p id="module-server.tools.tool_help">Meta-tool: on-demand detailed help for any MCP tool.</p>
+<p>To keep the startup context small, every tool exposes only a short one-line
+<code class="docutils literal notranslate"><span class="pre">description</span></code>. The full documentation (parameter reference, examples,
+constraints) lives in each tool function’s docstring and is served lazily
+through <code class="docutils literal notranslate"><span class="pre">tool_help</span></code> instead of being loaded on every request.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tool_help</span></code> reaches into a few private FastMCP internals
+(<code class="docutils literal notranslate"><span class="pre">mcp._tool_manager</span></code>, <code class="docutils literal notranslate"><span class="pre">manager._tools</span></code>, <code class="docutils literal notranslate"><span class="pre">tool.fn</span></code>) because the public
+API does not expose a tool’s underlying function/docstring. Those accesses are
+wrapped defensively: if a future <code class="docutils literal notranslate"><span class="pre">mcp</span></code> upgrade renames or removes them,
+<code class="docutils literal notranslate"><span class="pre">tool_help</span></code> returns a graceful error dict instead of raising — important
+because every other tool’s description now points here for its parameters, so
+a hard crash would cascade across the whole plugin. The <code class="docutils literal notranslate"><span class="pre">mcp</span></code> dependency is
+also version-pinned in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> to bound that risk.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.tool_help.tool_help">
+<span class="sig-prename descclassname"><span class="pre">server.tools.tool_help.</span></span><span class="sig-name descname"><span class="pre">tool_help</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.tool_help.tool_help" title="Link to this definition">¶</a></dt>
+<dd><p>Return the full documentation for any registered MCP tool.</p>
+<p>Every tool in this plugin exposes only a one-line summary so the startup
+context stays small; the full parameter reference, examples and
+constraints live in each tool’s docstring and are served here on demand.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Exact tool name to document (e.g. ‘campaigns_add’). Omit it to
+get the list of all available tool names instead.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{“tool”, “documentation”} — the tool’s full docs.
+- Without a name: {“available_tools”, “count”} — every tool name.
+- Unknown name: {“error”: “unknown_tool”, “message”, “available_tools”}.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-server.tools.campaigns">
 <span id="campaign-ad-management"></span><h2>Campaign &amp; Ad Management<a class="headerlink" href="#module-server.tools.campaigns" title="Link to this heading">¶</a></h2>
@@ -1548,6 +1584,75 @@ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint
 </dl>
 </dd></dl>
 
+<p id="module-server.tools.keyword_bids">MCP tools for keyword bid management.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.keyword_bids.keyword_bids_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.keyword_bids.</span></span><span class="sig-name descname"><span class="pre">keyword_bids_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_group_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyword_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serving_statuses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.keyword_bids.keyword_bids_list" title="Link to this definition">¶</a></dt>
+<dd><p>List keyword bids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated campaign IDs.</p></li>
+<li><p><strong>ad_group_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated ad group IDs.</p></li>
+<li><p><strong>keyword_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated keyword IDs.</p></li>
+<li><p><strong>serving_statuses</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated serving statuses.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Limit number of results.</p></li>
+<li><p><strong>fetch_all</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Fetch all pages.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.keyword_bids.keyword_bids_set">
+<span class="sig-prename descclassname"><span class="pre">server.tools.keyword_bids.</span></span><span class="sig-name descname"><span class="pre">keyword_bids_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keyword_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_group_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_bid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network_bid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autotargeting_search_bid_is_auto</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.keyword_bids.keyword_bids_set" title="Link to this definition">¶</a></dt>
+<dd><p>Set keyword bids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Keyword ID selector.</p></li>
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Campaign ID selector.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Ad group ID selector.</p></li>
+<li><p><strong>search_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional search bid in micro-units (RUB × 1,000,000); CLI 0.2.10+
+rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
+<li><p><strong>network_bid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional network bid in micro-units (same rules as <cite>search_bid</cite>).</p></li>
+<li><p><strong>autotargeting_search_bid_is_auto</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Autotargeting search bid auto flag.</p></li>
+<li><p><strong>priority</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Strategy priority.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.keyword_bids.keyword_bids_set_auto">
+<span class="sig-prename descclassname"><span class="pre">server.tools.keyword_bids.</span></span><span class="sig-name descname"><span class="pre">keyword_bids_set_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_group_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyword_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_traffic_volume</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_coverage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">increase_percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bid_ceiling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.keyword_bids.keyword_bids_set_auto" title="Link to this definition">¶</a></dt>
+<dd><p>Configure automatic keyword bidding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Campaign ID.</p></li>
+<li><p><strong>ad_group_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Ad group ID.</p></li>
+<li><p><strong>keyword_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Keyword ID.</p></li>
+<li><p><strong>target_traffic_volume</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – WbMaximumClicks target traffic volume.</p></li>
+<li><p><strong>target_coverage</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – NetworkByCoverage target coverage value.</p></li>
+<li><p><strong>increase_percent</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Bidding rule IncreasePercent.</p></li>
+<li><p><strong>bid_ceiling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional bidding rule bid ceiling in micro-units (RUB × 1,000,000);
+CLI 0.2.10+ rejects values 0 &lt; x &lt; 100_000 with a “did you mean × 1_000_000” hint.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-server.tools.bidmodifiers">MCP tools for bid modifier management.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="server.tools.bidmodifiers.bidmodifiers_add">
@@ -1627,6 +1732,142 @@ CLI default when omitted: both levels.</p></li>
 <li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Existing BidModifier ID returned by <cite>bidmodifiers_add</cite>.</p></li>
 <li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Modifier percentage integer (0–1300, e.g. 150 for +50%).
 Not money/micro-units.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.strategies">MCP tools for bidding strategy management.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.strategies.strategies_add">
+<span class="sig-prename descclassname"><span class="pre">server.tools.strategies.</span></span><span class="sig-name descname"><span class="pre">strategies_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_cpc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_cpa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_crr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weekly_spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bid_ceiling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_start_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_end_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_auto_continue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum_exploration_budget</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_goals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.strategies.strategies_add" title="Link to this definition">¶</a></dt>
+<dd><p>Add a bidding strategy.</p>
+<p>CLI 0.3.8 replaced the JSON <cite>–params</cite> / <cite>–priority-goals</cite> blobs with
+typed flags. Each strategy <cite>type</cite> accepts its own subset of money fields
+(CLI enforces this against the WSDL schema gate).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Strategy name.</p></li>
+<li><p><strong>type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Strategy type — one of WbMaximumClicks,
+WbMaximumConversionRate, AverageCpc, AverageCpcPerCampaign,
+AverageCpcPerFilter, AverageCpa, AverageCpaPerCampaign,
+AverageCpaPerFilter, AverageCpaMultipleGoals, AverageCrr,
+MaxProfit, PayForConversion, PayForConversionPerCampaign,
+PayForConversionPerFilter, PayForConversionCrr,
+PayForConversionMultipleGoals.</p></li>
+<li><p><strong>average_cpc</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average CPC in micro-units (RUB × 1,000,000).</p></li>
+<li><p><strong>average_cpa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average CPA in micro-units (RUB × 1,000,000).</p></li>
+<li><p><strong>average_crr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average cost-revenue ratio (integer percent).</p></li>
+<li><p><strong>goal_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Goal ID for conversion strategies.</p></li>
+<li><p><strong>spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Spend limit in micro-units.</p></li>
+<li><p><strong>weekly_spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Weekly spend limit in micro-units.</p></li>
+<li><p><strong>bid_ceiling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Bid ceiling in micro-units.</p></li>
+<li><p><strong>custom_period_spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period spend limit in micro-units.</p></li>
+<li><p><strong>custom_period_start_date</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period start date.</p></li>
+<li><p><strong>custom_period_end_date</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period end date.</p></li>
+<li><p><strong>custom_period_auto_continue</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period auto-continue flag.</p></li>
+<li><p><strong>minimum_exploration_budget</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Minimum exploration budget in micro-units.</p></li>
+<li><p><strong>counter_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated Metrica counter IDs.</p></li>
+<li><p><strong>priority_goals</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – List of “GOAL_ID:VALUE” specs (each becomes a
+repeated –priority-goal flag).</p></li>
+<li><p><strong>attribution_model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Attribution model — LYDC, FC, LC, LSC, LYDC_WEIGHT,
+CROSSTDEVICE.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.strategies.strategies_archive">
+<span class="sig-prename descclassname"><span class="pre">server.tools.strategies.</span></span><span class="sig-name descname"><span class="pre">strategies_archive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.strategies.strategies_archive" title="Link to this definition">¶</a></dt>
+<dd><p>Archive a bidding strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Strategy ID to archive.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.strategies.strategies_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.strategies.</span></span><span class="sig-name descname"><span class="pre">strategies_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">types</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_archived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.strategies.strategies_list" title="Link to this definition">¶</a></dt>
+<dd><p>List bidding strategies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated strategy IDs (max 10).</p></li>
+<li><p><strong>types</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated strategy types.</p></li>
+<li><p><strong>is_archived</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Filter by archived status — “YES” or “NO”.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Limit number of results.</p></li>
+<li><p><strong>fetch_all</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Fetch all pages.</p></li>
+<li><p><strong>fields</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated field names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.strategies.strategies_unarchive">
+<span class="sig-prename descclassname"><span class="pre">server.tools.strategies.</span></span><span class="sig-name descname"><span class="pre">strategies_unarchive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.strategies.strategies_unarchive" title="Link to this definition">¶</a></dt>
+<dd><p>Unarchive a bidding strategy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Strategy ID to unarchive.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.strategies.strategies_update">
+<span class="sig-prename descclassname"><span class="pre">server.tools.strategies.</span></span><span class="sig-name descname"><span class="pre">strategies_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_cpc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_cpa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_crr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weekly_spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bid_ceiling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_spend_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_start_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_end_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_period_auto_continue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum_exploration_budget</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_goals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.strategies.strategies_update" title="Link to this definition">¶</a></dt>
+<dd><p>Update a bidding strategy.</p>
+<p>CLI 0.3.8 replaced –params / –priority-goals JSON with typed flags.
+See <cite>strategies_add</cite> for argument semantics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Strategy ID.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional new strategy name.</p></li>
+<li><p><strong>type</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional new strategy type.</p></li>
+<li><p><strong>average_cpc</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average CPC in micro-units.</p></li>
+<li><p><strong>average_cpa</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average CPA in micro-units.</p></li>
+<li><p><strong>average_crr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Average cost-revenue ratio (integer percent).</p></li>
+<li><p><strong>goal_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Goal ID for conversion strategies.</p></li>
+<li><p><strong>spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Spend limit in micro-units.</p></li>
+<li><p><strong>weekly_spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Weekly spend limit in micro-units.</p></li>
+<li><p><strong>bid_ceiling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Bid ceiling in micro-units.</p></li>
+<li><p><strong>custom_period_spend_limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period spend limit in micro-units.</p></li>
+<li><p><strong>custom_period_start_date</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period start date.</p></li>
+<li><p><strong>custom_period_end_date</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period end date.</p></li>
+<li><p><strong>custom_period_auto_continue</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Custom period auto-continue flag.</p></li>
+<li><p><strong>minimum_exploration_budget</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Minimum exploration budget in micro-units.</p></li>
+<li><p><strong>counter_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated Metrica counter IDs.</p></li>
+<li><p><strong>priority_goals</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – List of “GOAL_ID:VALUE” specs.</p></li>
+<li><p><strong>attribution_model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Attribution model code.</p></li>
 <li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
 </ul>
 </dd>
@@ -1835,6 +2076,47 @@ path via image_file (CLI will read and base64-encode it).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.advideos">MCP tools for ad video management.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.advideos.advideos_add">
+<span class="sig-prename descclassname"><span class="pre">server.tools.advideos.</span></span><span class="sig-name descname"><span class="pre">advideos_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.advideos.advideos_add" title="Link to this definition">¶</a></dt>
+<dd><p>Add an ad video.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Video URL (mutually exclusive with video_data / video_file).</p></li>
+<li><p><strong>video_data</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Base64-encoded video binary.</p></li>
+<li><p><strong>video_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Path to a video file (CLI base64-encodes it).</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional video name.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.advideos.advideos_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.advideos.</span></span><span class="sig-name descname"><span class="pre">advideos_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.advideos.advideos_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get ad videos.</p>
+<p>CLI 0.3.8 <cite>advideos get</cite> requires <cite>–ids</cite> (there is no full-list mode).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated video IDs (required).</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Limit number of results.</p></li>
+<li><p><strong>fetch_all</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Fetch all pages.</p></li>
+<li><p><strong>fields</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated field names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2871,6 +3153,55 @@ WSDL ClientUpdateItem. Note: the previous tool exposed a non-existent
 </dl>
 </dd></dl>
 
+<p id="module-server.tools.businesses">MCP tools for business management.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.businesses.businesses_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.businesses.</span></span><span class="sig-name descname"><span class="pre">businesses_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.businesses.businesses_list" title="Link to this definition">¶</a></dt>
+<dd><p>List businesses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated business IDs.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Limit number of results.</p></li>
+<li><p><strong>fetch_all</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Fetch all pages.</p></li>
+<li><p><strong>fields</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated field names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.api_units">MCP tool for the direct-cli API-units balance readout (direct-cli 0.5.5).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.api_units.api_units">
+<span class="sig-prename descclassname"><span class="pre">server.tools.api_units.</span></span><span class="sig-name descname"><span class="pre">api_units</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.api_units.api_units" title="Link to this definition">¶</a></dt>
+<dd><p>Report the remaining API-unit balance parsed from the Units HTTP header.</p>
+<p>Cheap pre-flight check before expensive operations (reports, batch
+mutations); also explains unit-exhaustion errors. Read-only: the balance is
+read from the <code class="docutils literal notranslate"><span class="pre">Units</span></code> response header of a live API call — a minimal
+<code class="docutils literal notranslate"><span class="pre">Clients.get</span></code> that itself costs ~10 units — and the resolved login
+matches the active <code class="docutils literal notranslate"><span class="pre">direct</span></code> auth profile.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.trackingparams_legacy">Backward-compatible default MCP helper for tracking-parameter reference data.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.trackingparams_legacy.trackingparams">
+<span class="sig-prename descclassname"><span class="pre">server.tools.trackingparams_legacy.</span></span><span class="sig-name descname"><span class="pre">trackingparams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.trackingparams_legacy.trackingparams" title="Link to this definition">¶</a></dt>
+<dd><p>List dynamic tracking parameters and their allowed values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-server.tools.research">
 <span id="research-reporting"></span><h2>Research &amp; Reporting<a class="headerlink" href="#module-server.tools.research" title="Link to this heading">¶</a></h2>
@@ -3510,6 +3841,23 @@ dictionaries_get_retargeting_goals.</p>
 </dl>
 </dd></dl>
 
+<p id="module-server.tools.v4keywords">MCP tools for Yandex Direct v4 Live keyword-suggestion commands.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.v4keywords.v4keywords_get_suggestion">
+<span class="sig-prename descclassname"><span class="pre">server.tools.v4keywords.</span></span><span class="sig-name descname"><span class="pre">v4keywords_get_suggestion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.v4keywords.v4keywords_get_suggestion" title="Link to this definition">¶</a></dt>
+<dd><p>Get related keyword suggestions via v4 Live GetKeywordsSuggestion.</p>
+<p>Returns up to 20 suggested phrases per call. Spends API points
+(error_code=152 when the account runs out).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>keywords</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Source phrases to expand. At least one is required.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-server.tools.v4tags">MCP tools for Yandex Direct v4 Live tag commands.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="server.tools.v4tags.v4tags_get_banners">
@@ -3702,6 +4050,548 @@ dictionaries_get_retargeting_goals.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.v4adimage">MCP tools for Yandex Direct v4 Live ad-image association commands.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.v4adimage.v4adimage_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.v4adimage.</span></span><span class="sig-name descname"><span class="pre">v4adimage_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_image_hashes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_moderate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ad_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.v4adimage.v4adimage_get" title="Link to this definition">¶</a></dt>
+<dd><p>Read ad-image associations via v4 Live AdImageAssociation (Action=Get).</p>
+<p>An empty filter returns up to 10000 associations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated client logins.</p></li>
+<li><p><strong>ad_image_hashes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated ad image hashes.</p></li>
+<li><p><strong>status_moderate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Moderation status filter values (yes/no/ready/sending);
+repeat for several.</p></li>
+<li><p><strong>ad_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated ad IDs.</p></li>
+<li><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated campaign IDs.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Page size (1-10000).</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Page offset (&gt;=0).</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.v4adimage.v4adimage_set">
+<span class="sig-prename descclassname"><span class="pre">server.tools.v4adimage.</span></span><span class="sig-name descname"><span class="pre">v4adimage_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">associations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.v4adimage.v4adimage_set" title="Link to this definition">¶</a></dt>
+<dd><p>Link or unlink ad images via v4 Live AdImageAssociation (Action=Set).</p>
+<p>Up to 10000 associations per call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>associations</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Each item is <code class="docutils literal notranslate"><span class="pre">AD_ID</span></code> to unlink an image, or
+<code class="docutils literal notranslate"><span class="pre">AD_ID=HASH</span></code> to link an image. At least one is required.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Show the direct request without sending it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-server.tools.masters">
+<span id="browser-bundle-tools"></span><h2>Browser bundle tools<a class="headerlink" href="#module-server.tools.masters" title="Link to this heading">¶</a></h2>
+<p>MCP tools for browser-backed Campaign Wizard campaigns.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_add">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headlines</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">texts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_target_actions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weekly_budget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draft</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_add" title="Link to this definition">¶</a></dt>
+<dd><p>Create a new Мастер кампаний (“Конверсии и трафик”) campaign.</p>
+<p>MUTATING and NOT idempotent: running this twice with the same arguments
+creates a SECOND campaign — Мастер кампаний has no duplicate detection and
+no sandbox/rollback. Double-check the arguments before calling.</p>
+<p>The campaign is saved as a DRAFT by default (<code class="docutils literal notranslate"><span class="pre">draft=True</span></code>). Pass
+<code class="docutils literal notranslate"><span class="pre">draft=False</span></code> to launch it immediately — unlike the raw CLI (whose own
+default launches), the plugin defaults to the safe draft path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Landing page URL the wizard optimizes for.</p></li>
+<li><p><strong>headlines</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Ad headline variants (Варианты заголовков); repeat for
+multiple. The wizard refuses to auto-generate copy, so explicit
+text is required.</p></li>
+<li><p><strong>texts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Ad text variants (Варианты текстов объявлений).</p></li>
+<li><p><strong>add_target_actions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Conversion goals as <code class="docutils literal notranslate"><span class="pre">&quot;goal_id=price&quot;</span></code> (Yandex
+Metrika goal ID = CPA in account currency); repeat for multiple
+goals. At least one is required — the create form silently refuses
+without a goal. The goal must belong to the Metrika counter on the
+landing page’s domain.</p></li>
+<li><p><strong>weekly_budget</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Weekly budget in ACCOUNT CURRENCY (Недельный бюджет) —
+a plain number like 15000, NOT micro-units. Required; the create
+form silently refuses without one.</p></li>
+<li><p><strong>region_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Display region dict — keys: <code class="docutils literal notranslate"><span class="pre">regions</span></code> (list of exact
+Yandex region names), <code class="docutils literal notranslate"><span class="pre">region_ids</span></code> (list of RegionId strings,
+resolved via the GeoRegions dictionary; needs API credentials,
+unlike the rest of this tool). At least one region overall is
+required; the two keys combine.</p></li>
+<li><p><strong>draft</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – True (default) saves as a draft; False launches immediately.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_adimages_add">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_adimages_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_files</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_adimages_add" title="Link to this definition">¶</a></dt>
+<dd><p>Append one or more local image files to the campaign’s image set.</p>
+<p>Works even if the campaign currently has no images. Saving a DRAFT
+campaign keeps it a draft — publish it separately via masters_launch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>image_files</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Local PNG/JPEG/GIF paths to append (one or more).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_adimages_delete">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_adimages_delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_images</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_adimages_delete" title="Link to this definition">¶</a></dt>
+<dd><p>Delete images from the campaign’s image set. Irreversible.</p>
+<p>The campaign’s previous image set cannot be restored. Exactly one of
+<code class="docutils literal notranslate"><span class="pre">positions</span></code>, <code class="docutils literal notranslate"><span class="pre">content_ids</span></code>, or <code class="docutils literal notranslate"><span class="pre">all_images</span></code> must be provided.
+Saving a DRAFT campaign keeps it a draft — publish it separately via
+masters_launch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>positions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>] | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – 1-based image positions as shown by masters_adimages_get.</p></li>
+<li><p><strong>content_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Yandex content IDs as shown by masters_adimages_get.</p></li>
+<li><p><strong>all_images</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Delete every image (idempotent on an empty set).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_adimages_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_adimages_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_adimages_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get the campaign’s current image set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_adimages_set">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_adimages_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_adimages_set" title="Link to this definition">¶</a></dt>
+<dd><p>Replace the campaign’s ENTIRE image set inside one modal session.</p>
+<p>Irreversible: every current image is removed and every <code class="docutils literal notranslate"><span class="pre">image_files</span></code>
+entry is uploaded; the previous image set cannot be restored. An empty
+<code class="docutils literal notranslate"><span class="pre">image_files</span></code> deletes every image and is refused unless
+<code class="docutils literal notranslate"><span class="pre">allow_empty=True</span></code> confirms it — the CLI’s own guard against a likely
+mistake such as an empty shell glob (masters_adimages_delete with
+all_images=True is the explicit way to clear the set). Saving a DRAFT
+campaign keeps it a draft — publish it separately via masters_launch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>image_files</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Local PNG/JPEG/GIF paths forming the new image set.</p></li>
+<li><p><strong>allow_empty</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Confirm an empty <code class="docutils literal notranslate"><span class="pre">image_files</span></code>, i.e. delete every image.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_archive">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_archive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_archive" title="Link to this definition">¶</a></dt>
+<dd><p>Archive one or more campaigns by comma-separated ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs (maximum 10).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_audience_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_audience_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_audience_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get the campaign’s manual audience settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_copy">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_copy" title="Link to this definition">¶</a></dt>
+<dd><p>Clone a campaign and save the copy as a draft.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Source campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_counters_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_counters_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_counters_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get the campaign’s linked Yandex Metrika counters.</p>
+<p>Requires a direct-cli release containing commit
+<a class="reference external" href="https://github.com/axisrow/direct-cli/commit/a52fe95">https://github.com/axisrow/direct-cli/commit/a52fe95</a>. The command is absent
+from the published 0.5.2 wheel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_delete">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_delete" title="Link to this definition">¶</a></dt>
+<dd><p>Permanently delete a DRAFT Campaign Wizard campaign. IRREVERSIBLE.</p>
+<p>There is no undo and no CLI rollback: Yandex itself shows no confirmation
+dialog, so the campaign is gone the instant the deletion lands, and the
+CLI’s own confirmation is always auto-confirmed with <code class="docutils literal notranslate"><span class="pre">--yes</span></code> because the
+MCP process has no TTY to answer it. Only DRAFT campaigns can be deleted —
+the CLI refuses every other status and points at masters_archive instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moderation_statuses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracking_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get one or more Campaign Wizard campaigns by comma-separated ID.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tracking_params=True</span></code> requires a direct-cli release containing commit
+<a class="reference external" href="https://github.com/axisrow/direct-cli/commit/4ce5b27">https://github.com/axisrow/direct-cli/commit/4ce5b27</a>. The published 0.5.2
+wheel predates that read flag; the default call remains compatible with it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs.</p></li>
+<li><p><strong>moderation_statuses</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Include per-image moderation rejection details.</p></li>
+<li><p><strong>tracking_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Include UTM and URL tracking parameters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_launch">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_launch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_launch" title="Link to this definition">¶</a></dt>
+<dd><p>Launch one or more draft campaigns by comma-separated ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs (maximum 10).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_list">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'not-archived'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capture_timeout_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_list" title="Link to this definition">¶</a></dt>
+<dd><p>List Campaign Wizard campaigns from the logged-in browser account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Status filter: not-archived, active, stopped, archived, or all.</p></li>
+<li><p><strong>capture_timeout_seconds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Seconds to wait for the grid’s data request
+per capture attempt (two attempts are made — this budget, then
+double it — before the command fails). Raise on slow connections;
+the CLI validates the range.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_resume">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_resume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_resume" title="Link to this definition">¶</a></dt>
+<dd><p>Resume one or more campaigns by comma-separated ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs (maximum 10).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_suspend">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_suspend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_suspend" title="Link to this definition">¶</a></dt>
+<dd><p>Suspend one or more campaigns by comma-separated ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs (maximum 10).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_targetactions_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_targetactions_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_targetactions_get" title="Link to this definition">¶</a></dt>
+<dd><p>Get the campaign’s target-action goals and prices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.masters.masters_update">
+<span class="sig-prename descclassname"><span class="pre">server.tools.masters.</span></span><span class="sig-name descname"><span class="pre">masters_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masters_json</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">launch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">budget_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">creative_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">media_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrika_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.masters.masters_update" title="Link to this definition">¶</a></dt>
+<dd><p>Update settings of one or many Мастер кампаний campaigns.</p>
+<p>MUTATING: the edit page has a single whole-form save, so every passed
+field is committed to the LIVE campaign state in one save (fields not
+passed keep their current value). Lifecycle dependence: for a DRAFT
+campaign the default save keeps it a DRAFT; <code class="docutils literal notranslate"><span class="pre">launch=True</span></code> publishes it
+while saving (no effect on a non-DRAFT campaign; to publish without
+changing fields use <code class="docutils literal notranslate"><span class="pre">masters_launch</span></code>). For a LIVE campaign the save
+applies immediately. <code class="docutils literal notranslate"><span class="pre">launch</span></code> stays a flat param on purpose — publishing
+a draft must not hide inside a dict.</p>
+<p>Modes (exactly one): single <code class="docutils literal notranslate"><span class="pre">campaign_id</span></code> + at least one field, or a
+batch plan via <code class="docutils literal notranslate"><span class="pre">from_file</span></code> (JSONL, one campaign object per line) or
+<code class="docutils literal notranslate"><span class="pre">masters_json</span></code> (inline JSON array) — mutually exclusive, and both are
+exclusive with <code class="docutils literal notranslate"><span class="pre">campaign_id</span></code>. Batch rows are the source of truth:
+PascalCase keys mirroring the field names below (<code class="docutils literal notranslate"><span class="pre">CampaignId</span></code> integer
+required per row, <code class="docutils literal notranslate"><span class="pre">Headlines</span></code> as a <code class="docutils literal notranslate"><span class="pre">{&quot;2&quot;:</span> <span class="pre">&quot;text&quot;}</span></code> slot object, batch
+<code class="docutils literal notranslate"><span class="pre">RemoveAudienceTags</span></code>/<code class="docutils literal notranslate"><span class="pre">RemoveMetrikaCounters</span></code>/<code class="docutils literal notranslate"><span class="pre">RemoveSitelinks</span></code> are
+1-based while the flat params are 0-based — a direct-cli asymmetry).
+<code class="docutils literal notranslate"><span class="pre">batch_options</span></code> (<code class="docutils literal notranslate"><span class="pre">moderation_statuses</span></code> snapshot flag, <code class="docutils literal notranslate"><span class="pre">pacing_ms</span></code>)
+only applies to batch mode; the CLI rejects them in single mode.
+<code class="docutils literal notranslate"><span class="pre">dry_run</span></code> validates the plan (including that local image/video files
+exist) and prints it without opening a browser.</p>
+<p>Field dicts (keys = the flat param names; unknown keys are ignored
+silently, so spell them exactly):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">budget_options</span></code>: weekly_budget (account currency, not micro-units),
+promotion_goal (max-clicks | max-conversions), goal_price,
+directs_helps (True → –directs-helps, False → –no-directs-helps).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">goal_options</span></code>: target_action_prices, add_target_actions,
+remove_target_actions — “goal_id=price” strings / goal-id strings for
+the “Целевые действия” table (max-conversions gating; a goal id cannot
+appear in more than one of the three).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">creative_options</span></code>: name, landing_url, tracking_params (pass “” to
+clear landing_url/tracking_params), headlines, texts (slot replacement
+<code class="docutils literal notranslate"><span class="pre">&quot;N=text&quot;</span></code>, N 1-based: headlines 1-5, texts 1-3 — replaces an EXISTING
+variant, never adds), clear_headlines, clear_texts (1-based slot numbers
+to delete; a slot cannot be set and cleared in one call).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">media_options</span></code>: images (“N=path”, 1-based position; Yandex has no
+in-place image replacement — the new image is appended, so the set
+order changes), add_video, add_video_url, remove_videos (exact URLs;
+max 2 videos per campaign).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">audience_options</span></code>: gender (any | female | male), age_from (0 | 18 |
+25 | 35 | 45 | 55), age_to (18 | 25 | 35 | 45 | 55 | unlimited),
+devices (list of mobile | desktop | tablet — REPLACES the whole
+selection), add_audience_tags (exact autocomplete suggestions),
+remove_audience_tags (0-based positions; see masters_audience_get).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">metrika_options</span></code>: add_metrika_counters, remove_metrika_counters
+(0-based positions) AND the sitelinks pair add_sitelinks
+(“Title|Href|Description”), remove_sitelinks (0-based positions) — the
+sitelinks live under the same dict even though they are a separate UI
+section.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_options</span></code>: moderation_statuses (bool snapshot after each batch
+save — not a final moderation verdict), pacing_ms (pause between batch
+campaigns), no_progress (suppress the per-campaign stderr progress
+line).</p></li>
+</ul>
+<p>NOT LIVE-VERIFIED paths (the plugin cannot claim more certainty than the
+CLI): <code class="docutils literal notranslate"><span class="pre">add_video</span></code>’s actual file-upload sequence (upload → poll → Save)
+was never confirmed against the real Yandex UI — prefer <code class="docutils literal notranslate"><span class="pre">add_video_url</span></code>
+(fully live-verified); <code class="docutils literal notranslate"><span class="pre">remove_metrika_counters</span></code> (the add/link path is
+LIVE-VERIFIED through the page per direct-cli #846, the remove path is
+not); part of <code class="docutils literal notranslate"><span class="pre">add_sitelinks</span></code> (whether Yandex’s inline form really
+requires a non-empty description is unconfirmed). There are no live tests
+for <code class="docutils literal notranslate"><span class="pre">add_video</span></code> — manual verification only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Campaign ID for single mode.</p></li>
+<li><p><strong>from_file</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – JSONL plan file path (batch mode).</p></li>
+<li><p><strong>masters_json</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Inline JSON array plan (batch mode); a JSON string or an
+already-parsed list/dict.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Validate and print the plan without opening a browser.</p></li>
+<li><p><strong>launch</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Publish a DRAFT campaign while saving (single mode).</p></li>
+<li><p><strong>budget_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Budget/goal-strategy dict — see above.</p></li>
+<li><p><strong>goal_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Target-action table dict — see above.</p></li>
+<li><p><strong>creative_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Name/URL/UTM/slot-copy dict — see above.</p></li>
+<li><p><strong>media_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Images/videos dict — see above.</p></li>
+<li><p><strong>audience_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Manual audience dict — see above.</p></li>
+<li><p><strong>metrika_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Counters + sitelinks dict — see above.</p></li>
+<li><p><strong>batch_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Batch-mode controls (moderation_statuses, pacing_ms,
+no_progress) — see above.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.history">MCP tool for Yandex.Direct browser-backed change history.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.history.history_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.history.</span></span><span class="sig-name descname"><span class="pre">history_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_sources</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.history.history_get" title="Link to this definition">¶</a></dt>
+<dd><p>Read the account’s browser-backed «История изменений» journal.</p>
+<p>The command returns newest-first records for the browser session’s logged-in
+account. Filters are applied by Yandex. Pagination is automatic, and direct
+de-duplicates overlapping pages by the server-owned <code class="docutils literal notranslate"><span class="pre">Gtid</span></code>: the cursor has
+one-second granularity, so adjacent pages can repeat records from the same
+second. <code class="docutils literal notranslate"><span class="pre">limit</span></code> counts unique records after that de-duplication.</p>
+<p>A plain <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code> boundary is expanded by direct to the whole day:
+<code class="docutils literal notranslate"><span class="pre">date_from</span></code> gets <code class="docutils literal notranslate"><span class="pre">T00:00:00</span></code> and <code class="docutils literal notranslate"><span class="pre">date_to</span></code> gets <code class="docutils literal notranslate"><span class="pre">T23:59:59</span></code>. A value
+already containing uppercase <code class="docutils literal notranslate"><span class="pre">T</span></code> passes through unchanged. If both dates
+are omitted, the web interface’s own default period is preserved.</p>
+<p><code class="docutils literal notranslate"><span class="pre">categories</span></code> has an intentional three-state contract. <code class="docutils literal notranslate"><span class="pre">None</span></code> omits the
+CLI flag and preserves the complete category list captured from the web UI
+(44 positions in the 2026-08-13 live check). An explicit empty string is
+forwarded as <code class="docutils literal notranslate"><span class="pre">--categories</span> <span class="pre">''</span></code> and filters out every record. Do not
+collapse explicit empty <code class="docutils literal notranslate"><span class="pre">categories</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional comma-separated campaign IDs.</p></li>
+<li><p><strong>date_from</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional start date or naive local datetime, in
+<code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code> or <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DDTHH:MM:SS</span></code> form.</p></li>
+<li><p><strong>date_to</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional end date or naive local datetime, in the same forms.</p></li>
+<li><p><strong>logins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional comma-separated author logins.</p></li>
+<li><p><strong>change_sources</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional comma-separated UI source values such as
+<code class="docutils literal notranslate"><span class="pre">WEB</span></code>, <code class="docutils literal notranslate"><span class="pre">API</span></code>, or <code class="docutils literal notranslate"><span class="pre">OTHER</span></code>.</p></li>
+<li><p><strong>categories</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional comma-separated UI change categories, for example
+<code class="docutils literal notranslate"><span class="pre">CAMPAIGN_STRATEGY</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> differ as described above.</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional maximum number of unique records. Must be positive;
+direct raises a UsageError for zero or negative values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of flattened records with <code class="docutils literal notranslate"><span class="pre">Datetime</span></code>, <code class="docutils literal notranslate"><span class="pre">Login</span></code>, <code class="docutils literal notranslate"><span class="pre">Uid</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ChangeSource</span></code>, <code class="docutils literal notranslate"><span class="pre">Category</span></code>, <code class="docutils literal notranslate"><span class="pre">EventType</span></code>, <code class="docutils literal notranslate"><span class="pre">CampaignId</span></code>,
+<code class="docutils literal notranslate"><span class="pre">CampaignName</span></code>, <code class="docutils literal notranslate"><span class="pre">Gtid</span></code>, and the event union passed through unchanged
+under <code class="docutils literal notranslate"><span class="pre">Event</span></code>. Browser/auth failures are returned as structured errors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.adrestrictions">MCP tool for browser-backed ad moderation restrictions.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.adrestrictions.adrestrictions_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.adrestrictions.</span></span><span class="sig-name descname"><span class="pre">adrestrictions_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.adrestrictions.adrestrictions_get" title="Link to this definition">¶</a></dt>
+<dd><p>Read the campaign’s ads element-by-element with their UI restrictions.</p>
+<p>Opens the web UI’s banners grid for the campaign and reads its own data
+calls (<code class="docutils literal notranslate"><span class="pre">ads:list</span></code> + <code class="docutils literal notranslate"><span class="pre">AdDisclaimers</span></code> + <code class="docutils literal notranslate"><span class="pre">ads:batchGet</span></code>): every headline,
+text, image and video of every ad, each with the ad’s restriction warnings —
+the machine reason (moderation flags, aggregated-status reasons) and the
+UI’s verbatim explanation (the «Добавлено предупреждение» popup texts, e.g.
+the «Медицина и фармацевтика» category notice).</p>
+<p>The warning granularity is the ad — that is what the UI’s own popup shows
+and what its data calls carry; a per-headline split does not exist in any
+data surface. Read-only, browser-backed: uses the same logged-in Direct web
+session as the masters tools (the browser’s account is authoritative).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>campaign_id</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Campaign ID.</p></li>
+<li><p><strong>group_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional comma-separated ad group IDs; default: all the
+groups the page loads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The ads with their restriction warnings, or a structured error dict
+when the browser session or the page read fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.playwright">Opt-in MCP tools for the direct-cli Playwright session pipeline.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.playwright.playwright_doctor">
+<span class="sig-prename descclassname"><span class="pre">server.tools.playwright.</span></span><span class="sig-name descname"><span class="pre">playwright_doctor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.playwright.playwright_doctor" title="Link to this definition">¶</a></dt>
+<dd><p>Return read-only diagnostics for browser dependencies and session state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-server.tools.trackingparams">Opt-in MCP tool for Yandex.Direct tracking-parameter reference data.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.trackingparams.trackingparams_get">
+<span class="sig-prename descclassname"><span class="pre">server.tools.trackingparams.</span></span><span class="sig-name descname"><span class="pre">trackingparams_get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.trackingparams.trackingparams_get" title="Link to this definition">¶</a></dt>
+<dd><p>List dynamic tracking parameters and their allowed values.</p>
+<p>The CLI defaults reference commands to human-readable text, so request JSON
+explicitly before passing the result through <code class="docutils literal notranslate"><span class="pre">run_json</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3924,6 +4814,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_enum"><code class="docutils literal notranslate"><span class="pre">validate_enum()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_phrase_csv"><code class="docutils literal notranslate"><span class="pre">validate_phrase_csv()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.helpers.validate_yes_no"><code class="docutils literal notranslate"><span class="pre">validate_yes_no()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.tool_help.tool_help"><code class="docutils literal notranslate"><span class="pre">tool_help()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-server.tools.campaigns">Campaign &amp; Ad Management</a><ul>
@@ -3962,10 +4853,18 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.bids.bids_list"><code class="docutils literal notranslate"><span class="pre">bids_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bids.bids_set"><code class="docutils literal notranslate"><span class="pre">bids_set()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bids.bids_set_auto"><code class="docutils literal notranslate"><span class="pre">bids_set_auto()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.keyword_bids.keyword_bids_list"><code class="docutils literal notranslate"><span class="pre">keyword_bids_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.keyword_bids.keyword_bids_set"><code class="docutils literal notranslate"><span class="pre">keyword_bids_set()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.keyword_bids.keyword_bids_set_auto"><code class="docutils literal notranslate"><span class="pre">keyword_bids_set_auto()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bidmodifiers.bidmodifiers_add"><code class="docutils literal notranslate"><span class="pre">bidmodifiers_add()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bidmodifiers.bidmodifiers_delete"><code class="docutils literal notranslate"><span class="pre">bidmodifiers_delete()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bidmodifiers.bidmodifiers_list"><code class="docutils literal notranslate"><span class="pre">bidmodifiers_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.bidmodifiers.bidmodifiers_set"><code class="docutils literal notranslate"><span class="pre">bidmodifiers_set()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.strategies.strategies_add"><code class="docutils literal notranslate"><span class="pre">strategies_add()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.strategies.strategies_archive"><code class="docutils literal notranslate"><span class="pre">strategies_archive()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.strategies.strategies_list"><code class="docutils literal notranslate"><span class="pre">strategies_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.strategies.strategies_unarchive"><code class="docutils literal notranslate"><span class="pre">strategies_unarchive()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.strategies.strategies_update"><code class="docutils literal notranslate"><span class="pre">strategies_update()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-server.tools.sitelinks">Ad Extensions</a><ul>
@@ -3978,6 +4877,8 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.images.adimages_add"><code class="docutils literal notranslate"><span class="pre">adimages_add()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.images.adimages_delete"><code class="docutils literal notranslate"><span class="pre">adimages_delete()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.images.adimages_list"><code class="docutils literal notranslate"><span class="pre">adimages_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.advideos.advideos_add"><code class="docutils literal notranslate"><span class="pre">advideos_add()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.advideos.advideos_get"><code class="docutils literal notranslate"><span class="pre">advideos_get()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.adextensions.adextensions_add"><code class="docutils literal notranslate"><span class="pre">adextensions_add()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.adextensions.adextensions_delete"><code class="docutils literal notranslate"><span class="pre">adextensions_delete()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.adextensions.adextensions_list"><code class="docutils literal notranslate"><span class="pre">adextensions_list()</span></code></a></li>
@@ -4035,6 +4936,9 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.agency.agency_clients_delete"><code class="docutils literal notranslate"><span class="pre">agency_clients_delete()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.agency.agency_clients_list"><code class="docutils literal notranslate"><span class="pre">agency_clients_list()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.agency.agency_clients_update"><code class="docutils literal notranslate"><span class="pre">agency_clients_update()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.businesses.businesses_list"><code class="docutils literal notranslate"><span class="pre">businesses_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.api_units.api_units"><code class="docutils literal notranslate"><span class="pre">api_units()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.trackingparams_legacy.trackingparams"><code class="docutils literal notranslate"><span class="pre">trackingparams()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-server.tools.research">Research &amp; Reporting</a><ul>
@@ -4064,6 +4968,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.v4events.v4events_get_events_log"><code class="docutils literal notranslate"><span class="pre">v4events_get_events_log()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4goals.v4goals_get_retargeting_goals"><code class="docutils literal notranslate"><span class="pre">v4goals_get_retargeting_goals()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4goals.v4goals_get_stat_goals"><code class="docutils literal notranslate"><span class="pre">v4goals_get_stat_goals()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.v4keywords.v4keywords_get_suggestion"><code class="docutils literal notranslate"><span class="pre">v4keywords_get_suggestion()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4tags.v4tags_get_banners"><code class="docutils literal notranslate"><span class="pre">v4tags_get_banners()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4tags.v4tags_get_campaigns"><code class="docutils literal notranslate"><span class="pre">v4tags_get_campaigns()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4tags.v4tags_update_banners"><code class="docutils literal notranslate"><span class="pre">v4tags_update_banners()</span></code></a></li>
@@ -4076,6 +4981,32 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#server.tools.v4wordstat.v4wordstat_delete_report"><code class="docutils literal notranslate"><span class="pre">v4wordstat_delete_report()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4wordstat.v4wordstat_get_report"><code class="docutils literal notranslate"><span class="pre">v4wordstat_get_report()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.v4wordstat.v4wordstat_list_reports"><code class="docutils literal notranslate"><span class="pre">v4wordstat_list_reports()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.v4adimage.v4adimage_get"><code class="docutils literal notranslate"><span class="pre">v4adimage_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.v4adimage.v4adimage_set"><code class="docutils literal notranslate"><span class="pre">v4adimage_set()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-server.tools.masters">Browser bundle tools</a><ul>
+<li><a class="reference internal" href="#server.tools.masters.masters_add"><code class="docutils literal notranslate"><span class="pre">masters_add()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_adimages_add"><code class="docutils literal notranslate"><span class="pre">masters_adimages_add()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_adimages_delete"><code class="docutils literal notranslate"><span class="pre">masters_adimages_delete()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_adimages_get"><code class="docutils literal notranslate"><span class="pre">masters_adimages_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_adimages_set"><code class="docutils literal notranslate"><span class="pre">masters_adimages_set()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_archive"><code class="docutils literal notranslate"><span class="pre">masters_archive()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_audience_get"><code class="docutils literal notranslate"><span class="pre">masters_audience_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_copy"><code class="docutils literal notranslate"><span class="pre">masters_copy()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_counters_get"><code class="docutils literal notranslate"><span class="pre">masters_counters_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_delete"><code class="docutils literal notranslate"><span class="pre">masters_delete()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_get"><code class="docutils literal notranslate"><span class="pre">masters_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_launch"><code class="docutils literal notranslate"><span class="pre">masters_launch()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_list"><code class="docutils literal notranslate"><span class="pre">masters_list()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_resume"><code class="docutils literal notranslate"><span class="pre">masters_resume()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_suspend"><code class="docutils literal notranslate"><span class="pre">masters_suspend()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_targetactions_get"><code class="docutils literal notranslate"><span class="pre">masters_targetactions_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.masters.masters_update"><code class="docutils literal notranslate"><span class="pre">masters_update()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.history.history_get"><code class="docutils literal notranslate"><span class="pre">history_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.adrestrictions.adrestrictions_get"><code class="docutils literal notranslate"><span class="pre">adrestrictions_get()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.playwright.playwright_doctor"><code class="docutils literal notranslate"><span class="pre">playwright_doctor()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.trackingparams.trackingparams_get"><code class="docutils literal notranslate"><span class="pre">trackingparams_get()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-server.tools.auth_tools">Authentication</a><ul>
