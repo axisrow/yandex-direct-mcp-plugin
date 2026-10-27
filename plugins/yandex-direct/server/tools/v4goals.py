@@ -32,11 +32,16 @@ def v4goals_get_stat_goals(campaign_ids: str) -> dict | list[dict]:
 
 @mcp.tool(
     name="v4goals_get_retargeting_goals",
-    description="Get retargeting goals for campaigns (v4 Live); use v4goals_get_stat_goals for Metrica stat goals. Call tool_help('v4goals_get_retargeting_goals') for parameters.",
+    description="Get retargeting goals for campaigns (v4 Live); use v4goals_get_stat_goals for Metrica stat goals and dictionaries_get_retargeting_goals for the domain→ExternalId mapping without campaign IDs. Call tool_help('v4goals_get_retargeting_goals') for parameters.",
 )
 @handle_cli_errors
 def v4goals_get_retargeting_goals(campaign_ids: str) -> dict | list[dict]:
     """Get retargeting goals for campaigns.
+
+    Use this v4 Live channel when you already have campaign IDs and want the
+    retargeting goals available to them; for the domain/app → ExternalId
+    mapping without campaign IDs prefer the v5 dictionary
+    dictionaries_get_retargeting_goals.
 
     Args:
         campaign_ids: Comma-separated campaign IDs.

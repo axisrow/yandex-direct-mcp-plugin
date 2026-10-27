@@ -2,10 +2,10 @@
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
-- CLI helper tools:   5
+- CLI helper tools:   6
 - Browser tools:     24
 - Plugin tools:       5
-Total:              175 (151 default + 24 optional)
+Total:              176 (152 default + 24 optional)
 """
 
 from __future__ import annotations
@@ -206,7 +206,11 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "agencyclients": ("delete",),
     "api": ("units",),
-    "dictionaries": ("list_names",),
+    # get_retargeting_goals is an undocumented/internal v5 method: it is not
+    # declared in the live dictionaries WSDL, so direct-cli lists it in
+    # ``INTENTIONAL_EXTRA_METHODS`` (issue #852) and the plugin keeps it out of
+    # the wsdl-authority surface (#319) — the WSDL audit would flag it as drift.
+    "dictionaries": ("list_names", "get_retargeting_goals"),
     "reports": ("list_types",),
 }
 
