@@ -282,8 +282,10 @@ the login Keychain. <code class="docutils literal notranslate"><span class="pre"
 logging in or writing files.</p>
 <p>When both stores exist, <code class="docutils literal notranslate"><span class="pre">direct</span></code> prefers the persistent profile created by
 <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">masters</span> <span class="pre">login</span></code>. Both stores contain a live Yandex session and must be
-protected as credentials. <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">masters</span> <span class="pre">logout</span></code> removes the CLI-owned
-persistent profile. Masters commands always use the account logged in to the
+protected as credentials. <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">auth</span> <span class="pre">logout</span> <span class="pre">browser</span></code> — or the plugin’s
+<code class="docutils literal notranslate"><span class="pre">auth_browser_logout</span></code> tool — removes both saved sessions: the CLI-owned
+persistent profile and the imported session store. Masters commands always use
+the account logged in to the
 browser session; API profile and <code class="docutils literal notranslate"><span class="pre">YANDEX_DIRECT_LOGIN</span></code> selection do not apply.</p>
 <p id="module-server.tools.auth_tools">MCP tools and prompts for direct auth profiles.</p>
 <dl class="py class">
@@ -330,6 +332,26 @@ so the CLI ignores the name.</p></li>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.tools.auth_tools.auth_browser_logout">
+<span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_browser_logout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_browser_logout" title="Link to this definition">¶</a></dt>
+<dd><p>Remove the browser session used by browser-backed tools (masters, history).</p>
+<p>Wraps <cite>direct auth logout browser</cite> — the canonical logout since
+direct-cli 0.5.5 (<cite>masters logout</cite> and <cite>playwright login</cite> are
+deprecated). One call deletes both saved browser sessions: the CLI-owned
+persistent Chrome profile and the imported-session store. The API OAuth
+token (auth_login/auth_setup) is not touched. stdout/stderr and the exit
+code are proxied: success returns {“success”: True, “message”: …},
+failures carry an “error” key (“auth_failed”, “cli_not_found”,
+“timeout”). Confirm with auth_status (browser_valid becomes False);
+browser-backed tools require auth_browser_login again afterwards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -462,6 +484,7 @@ without manually changing CLI auth configuration.</p></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_browser_login"><code class="docutils literal notranslate"><span class="pre">auth_browser_login()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.auth_tools.auth_browser_logout"><code class="docutils literal notranslate"><span class="pre">auth_browser_logout()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_login"><code class="docutils literal notranslate"><span class="pre">auth_login()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_setup"><code class="docutils literal notranslate"><span class="pre">auth_setup()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.auth_tools.auth_status"><code class="docutils literal notranslate"><span class="pre">auth_status()</span></code></a></li>
