@@ -205,6 +205,7 @@ DIRECT_API_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
 
 CLI_HELPER_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
     "agencyclients": ("delete",),
+    "api": ("units",),
     "dictionaries": ("list_names",),
     "reports": ("list_types",),
 }

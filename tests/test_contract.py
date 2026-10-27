@@ -76,8 +76,9 @@ def test_optional_and_default_name_sets_partition_public_contract() -> None:
     # The current main-branch default surface contains 149 tools. Issue #292's
     # original 146 estimate predated three already-merged default tools; browser
     # declarations must not make existing tools optional just to preserve it.
-    # #313 added auth_browser_login as the fifth plugin tool.
-    assert len(DEFAULT_TOOL_NAMES) == 150
+    # #313 added auth_browser_login as the fifth plugin tool; #318 added the
+    # api_units CLI helper.
+    assert len(DEFAULT_TOOL_NAMES) == 151
 
 
 def test_nested_browser_commands_override_flat_kebab_case_path() -> None:

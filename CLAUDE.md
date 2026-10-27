@@ -40,7 +40,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 
 ## Tools
 
-165 tools are registered by default (141 Direct API + 4 CLI helpers + 5 plugin + 15 browser bundle tools); the contract declares 24 browser/local-reference names — the 9 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+166 tools are registered by default (141 Direct API + 5 CLI helpers + 5 plugin + 15 browser bundle tools); the contract declares 24 browser/local-reference names — the 9 without implementation modules stay reserved, plus the `oauth_login` prompt.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -88,7 +88,7 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 165 tools / ≈34,680 tokens (`approx(len/4)`, 2026-10-27).
+surface: 166 tools / ≈34,747 tokens (`approx(len/4)`, 2026-10-27).
 
 Provision Masters authentication manually, outside the stdio MCP process:
 
