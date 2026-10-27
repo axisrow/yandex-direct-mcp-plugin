@@ -197,8 +197,12 @@ def test_tool_allowlist_serves_named_bundle_tool():
 
 
 def test_unregistered_optional_tool_allowlist_fails_closed():
-    """A browser tool allowlist cannot fail open to all default tools (#304)."""
-    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_add"})
+    """A browser tool allowlist cannot fail open to all default tools (#304).
+
+    masters_delete is a reserved contract name with no implementation module
+    yet (masters_add/update were implemented by #298).
+    """
+    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_delete"})
     try:
         _initialize(proc)
         assert _list_tool_names(proc) == set()

@@ -45,10 +45,12 @@ _TOOL_SURFACE_ENV = (
 # registration): total ≈ 34,908 · descriptions ≈ 5,816 · 167 tools
 # (152 base + 15 implemented bundle tools).
 # Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
+# Raised 35,500 → 36,250 (#298: masters_add + masters_update joined the browser
+# bundle; +608 tokens of grouped-dict schemas, measured 35,516 approx).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).
-DEFAULT_TOTAL_TOKEN_CEILING = 35_500
-FULL_TOTAL_TOKEN_CEILING = 36_500
+DEFAULT_TOTAL_TOKEN_CEILING = 36_250
+FULL_TOTAL_TOKEN_CEILING = 37_250
 DESCRIPTION_TOKEN_CEILING = 7_000
 
 

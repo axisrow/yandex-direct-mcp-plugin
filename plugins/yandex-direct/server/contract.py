@@ -813,6 +813,8 @@ IMPLEMENTED_BUNDLE_TOOL_NAMES = frozenset(
     {
         "masters_list",
         "masters_get",
+        "masters_add",
+        "masters_update",
         "masters_launch",
         "masters_suspend",
         "masters_resume",
