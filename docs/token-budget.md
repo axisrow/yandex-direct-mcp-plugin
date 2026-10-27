@@ -132,8 +132,8 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 (`server.tools.masters`, `server.tools.history`, `server.tools.adrestrictions`,
 `server.tools.playwright`, `server.tools.trackingparams`) импортируются
 **по умолчанию**: их 15 инструментов входят в default-поверхность —
-166 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 35_500` (замер 34 747 approx
-`len/4`, 2026-10-27, с `api_units` #318).
+167 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 35_500` (замер 34 908 approx
+`len/4`, 2026-10-27, с `api_units` #318 и `dictionaries_get_retargeting_goals` #319).
 Оставшиеся 9 зарезервированных контрактом имён по-прежнему ждут модулей
 реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
 не регистрируются, сервер и `tools/list` живут (warning в stderr).

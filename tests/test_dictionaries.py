@@ -5,6 +5,7 @@ from unittest.mock import patch
 from server.tools.dictionaries import (
     dictionaries_get,
     dictionaries_get_geo_regions,
+    dictionaries_get_retargeting_goals,
     dictionaries_list_names,
 )
 from tests.helpers import mock_runner
@@ -131,3 +132,62 @@ class TestDictionariesGetGeoRegions:
                 "Москва",
             ]
         )
+
+
+class TestDictionariesGetRetargetingGoals:
+    """Test scenarios for dictionaries_get_retargeting_goals (#319)."""
+
+    def test_search_by_name(self):
+        """Search a domain and return the CLI result."""
+        mock_result = {
+            "RetargetingGoals": [
+                {"Id": 12345, "Name": "example.com", "Type": "HOST"},
+            ]
+        }
+        runner = mock_runner(mock_result)
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            result = dictionaries_get_retargeting_goals(name="example.com")
+
+        assert result == mock_result
+        runner.run_json.assert_called_once_with(
+            [
+                "dictionaries",
+                "get-retargeting-goals",
+                "--format",
+                "json",
+                "--name",
+                "example.com",
+            ]
+        )
+
+    def test_lookup_by_ids(self):
+        """Look up goal IDs by their comma-separated list."""
+        runner = mock_runner({"RetargetingGoals": []})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            result = dictionaries_get_retargeting_goals(ids="12345,67890")
+
+        assert result == {"RetargetingGoals": []}
+        runner.run_json.assert_called_once_with(
+            [
+                "dictionaries",
+                "get-retargeting-goals",
+                "--format",
+                "json",
+                "--ids",
+                "12345,67890",
+            ]
+        )
+
+    def test_unset_flag_is_omitted(self):
+        """Only the provided selector reaches the CLI argv."""
+        runner = mock_runner({})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner):
+            dictionaries_get_retargeting_goals(name="example.com")
+            argv = runner.run_json.call_args[0][0]
+            assert "--ids" not in argv
+
+        runner2 = mock_runner({})
+        with patch("server.tools.dictionaries.get_runner", return_value=runner2):
+            dictionaries_get_retargeting_goals(ids="1")
+            argv2 = runner2.run_json.call_args[0][0]
+            assert "--name" not in argv2
