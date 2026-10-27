@@ -88,14 +88,24 @@ auth_login()
 
 ## Настройка инструментов
 
-По умолчанию зарегистрирован 174 инструмента (включая browser-инструменты Мастеров; они работают headless, нужен настроенный браузерный профиль — см. ниже). Можно ограничить набор через переменные окружения:
+По умолчанию зарегистрировано 174 инструмента (включая browser-инструменты Мастеров; они работают headless, нужен настроенный браузерный профиль — см. ниже). Можно ограничить набор через переменные окружения:
 
 | Переменная | Что делает |
 |---|---|
-| `YANDEX_DIRECT_TOOL_PROFILE` | Пресет: `full` (по умолчанию), `core` (10), `analytics` (26), `campaign-editor` (36) |
+| `YANDEX_DIRECT_TOOL_PROFILE` | Пресет: `full` (по умолчанию), `core` (10), `analytics` (28), `campaign-editor` (36) |
 | `YANDEX_DIRECT_ENABLED_GROUPS` | Включить только эти группы |
-| `YANDEX_DIRECT_DISABLED_GROUPS` | Исключить группы |
+| `YANDEX_DIRECT_DISABLED_GROUPS` | Исключить группы (например, `browser` — вся browser-область) |
 | `YANDEX_DIRECT_ENABLED_TOOLS` / `_DISABLED_TOOLS` | Точечные переопределения |
+| `YANDEX_DIRECT_OPTIONAL_TOOLS` | Какие browser/local-reference бандлы грузить: `browser`, `trackingparams`, комбинация или `all`; без переменной грузятся все |
+
+Настройка развёртывания browser-инструментов (это env сервера, а не параметры тулов):
+
+| Переменная | Что делает |
+|---|---|
+| `YANDEX_DIRECT_BROWSER_PROFILE_DIR` | Каталог постоянного профиля браузера; по умолчанию используется профиль CLI |
+| `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` | Выбор профиля внутри каталога |
+| `YANDEX_DIRECT_BROWSER_HEADFUL` | `1` — показывать окно браузера вместо headless-режима |
+| `YANDEX_DIRECT_BROWSER_TIMEOUT` | Таймаут браузерных команд в секундах (положительное целое) |
 
 ```jsonc
 // ~/.claude/settings.json — только аналитика
@@ -155,6 +165,10 @@ direct masters login
 `~/.direct-cli/chrome-profile/`; реальный профиль Chrome и macOS Keychain при
 этом не используются. Запускайте команду от того же пользователя и с тем же
 `HOME`, под которым работает MCP-сервер.
+
+Тот же вход доступен и из MCP-сессии тулом `auth_browser_login()` — оно
+открывает такое же видимое окно либо импортирует уже залогиненную сессию
+Chrome (`source="chrome"`).
 
 Для `direct masters login` нужны browser extra `direct-cli` и Chromium для
 Playwright. Установите их **в то же окружение и для той же закреплённой версии
