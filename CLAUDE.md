@@ -11,7 +11,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - **MCP never calls Yandex.Direct directly** — always through `direct`, even to work around a missing/broken CLI feature. No `urllib`, raw HTTP, or `tapi-yandex-direct` imports. File upstream issues in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary. WSDL/Reports spec wins when CLI convenience names drift.
 - Machine-readable parity source: `server/contract.py` (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
-- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 164 default tools across 42 modules, one module per service; the contract declares 23 additional browser/local-reference names — 14 are implemented in bundle modules that `server/optional_tools.py` loads by default, the other 9 stay reserved until their modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
+- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 165 default tools across 43 modules, one module per service; the contract declares 24 additional browser/local-reference names — 15 are implemented in bundle modules that `server/optional_tools.py` loads by default, the other 9 stay reserved until their modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
 
 ## Commands
 
@@ -36,11 +36,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Bundle registration (`server/optional_tools.py`, default = all bundles): implemented browser/trackingparams tools load without any env (#312); a bundle module missing its extra degrades softly — its tools are absent, the server starts. `YANDEX_DIRECT_OPTIONAL_TOOLS` remains as an explicit narrow-down override (`browser`, `trackingparams`, a comma-separated combination, or `all`). Opt out through the tool-surface config: `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
 - Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
-- Tool-surface selection (`server/config.py`, default = all 164 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 165 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-164 tools are registered by default (141 Direct API + 4 CLI helpers + 5 plugin + 14 browser bundle tools); the contract declares 23 browser/local-reference names — the 9 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+165 tools are registered by default (141 Direct API + 4 CLI helpers + 5 plugin + 15 browser bundle tools); the contract declares 24 browser/local-reference names — the 9 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -60,6 +60,13 @@ available. The browser's logged-in account is authoritative;
 `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, and the finance
 `YANDEX_DIRECT_MASTER_TOKEN` do not authenticate or select an account for these
 tools.
+
+`adrestrictions_get` is another read-only browser tool (CLI 0.5.4, #892). It
+opens the campaign's banners grid in the web UI and returns every ad with its
+UI moderation restrictions: the machine reason (moderation flags,
+aggregated-status reasons) and the verbatim «Добавлено предупреждение» popup
+texts. Warning granularity is the ad, as in the UI. It shares the masters
+browser session.
 
 `history_get` is another read-only browser tool. It reads the account-wide
 «История изменений» journal with server-side filters, automatic pagination, and
@@ -81,7 +88,7 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 164 tools / ≈34,575 tokens (`approx(len/4)`, 2026-10-26).
+surface: 165 tools / ≈34,680 tokens (`approx(len/4)`, 2026-10-27).
 
 Provision Masters authentication manually, outside the stdio MCP process:
 

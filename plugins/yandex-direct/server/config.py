@@ -121,6 +121,7 @@ _SERVICE_AREA: dict[str, str] = {
     # optional browser/local-reference surface
     "masters": "browser",
     "history": "browser",
+    "adrestrictions": "browser",
     "playwright": "browser",
     "trackingparams": "browser",
     # agencyclients / clients / businesses / plugin: account/admin, no area group

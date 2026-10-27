@@ -40,9 +40,9 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-# Snapshot under approx(len/4) as of 2026-10-26 (default-on bundle registration,
-# #312): total ≈ 34,575 · descriptions ≈ 5,670 · 164 tools
-# (150 base + 14 implemented bundle tools).
+# Snapshot under approx(len/4) as of 2026-10-27 (#317 adrestrictions_get,
+# default-on bundle registration): total ≈ 34,680 · descriptions ≈ 5,699 ·
+# 165 tools (150 base + 15 implemented bundle tools).
 # Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).

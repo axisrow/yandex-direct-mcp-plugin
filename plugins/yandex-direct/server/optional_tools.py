@@ -28,6 +28,7 @@ OPTIONAL_BUNDLES: dict[str, tuple[str, ...]] = {
     "browser": (
         "server.tools.masters",
         "server.tools.history",
+        "server.tools.adrestrictions",
         "server.tools.playwright",
     ),
     "trackingparams": ("server.tools.trackingparams",),
