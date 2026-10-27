@@ -2583,6 +2583,36 @@ AudienceDemographicProfiles, FilterSchemas.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="server.tools.dictionaries.dictionaries_get_retargeting_goals">
+<span class="sig-prename descclassname"><span class="pre">server.tools.dictionaries.</span></span><span class="sig-name descname"><span class="pre">dictionaries_get_retargeting_goals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.dictionaries.dictionaries_get_retargeting_goals" title="Link to this definition">¶</a></dt>
+<dd><p>Get RetargetingGoals dictionary entries (undocumented/internal v5 method).</p>
+<p>Resolves a site address or app name into the ExternalId used by
+RetargetingList(Type=AUDIENCE) -&gt; Rules[].Arguments[].ExternalId — the
+canonical source of goal IDs for reports_custom(goal_ids=…) columns.
+Yandex does not document this method and gives no stability guarantees.</p>
+<p>Channel choice: use this v5 dictionary when you need the domain/app →
+ExternalId mapping and have no campaign IDs; use
+v4goals_get_retargeting_goals when you already have campaign IDs and want
+the retargeting goals available to them via the v4 Live channel.</p>
+<p>A search by name can return several goal types with similar names
+(e.g. Type=HOST and Type=APPLICATION) — pick the entry with the Type
+your use case needs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Retargeting goal name to search for (e.g. a domain).</p></li>
+<li><p><strong>ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Comma-separated retargeting goal IDs to look up.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+<p>The CLI requires exactly one of <cite>name</cite> / <cite>ids</cite>; passing both or neither is
+a CLI validation error (not duplicated here).</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="server.tools.dictionaries.dictionaries_list_names">
 <span class="sig-prename descclassname"><span class="pre">server.tools.dictionaries.</span></span><span class="sig-name descname"><span class="pre">dictionaries_list_names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.dictionaries.dictionaries_list_names" title="Link to this definition">¶</a></dt>
 <dd><p>List available dictionary names.</p>
@@ -3452,6 +3482,10 @@ does not require dry_run or sandbox.</p>
 <dt class="sig sig-object py" id="server.tools.v4goals.v4goals_get_retargeting_goals">
 <span class="sig-prename descclassname"><span class="pre">server.tools.v4goals.</span></span><span class="sig-name descname"><span class="pre">v4goals_get_retargeting_goals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">campaign_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.v4goals.v4goals_get_retargeting_goals" title="Link to this definition">¶</a></dt>
 <dd><p>Get retargeting goals for campaigns.</p>
+<p>Use this v4 Live channel when you already have campaign IDs and want the
+retargeting goals available to them; for the domain/app → ExternalId
+mapping without campaign IDs prefer the v5 dictionary
+dictionaries_get_retargeting_goals.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>campaign_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Comma-separated campaign IDs.</p>
@@ -3968,6 +4002,7 @@ without manually changing CLI auth configuration.</p></li>
 <li><a class="reference internal" href="#module-server.tools.dictionaries">Reference &amp; Utility</a><ul>
 <li><a class="reference internal" href="#server.tools.dictionaries.dictionaries_get"><code class="docutils literal notranslate"><span class="pre">dictionaries_get()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.dictionaries.dictionaries_get_geo_regions"><code class="docutils literal notranslate"><span class="pre">dictionaries_get_geo_regions()</span></code></a></li>
+<li><a class="reference internal" href="#server.tools.dictionaries.dictionaries_get_retargeting_goals"><code class="docutils literal notranslate"><span class="pre">dictionaries_get_retargeting_goals()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.dictionaries.dictionaries_list_names"><code class="docutils literal notranslate"><span class="pre">dictionaries_list_names()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.changes.changes_check"><code class="docutils literal notranslate"><span class="pre">changes_check()</span></code></a></li>
 <li><a class="reference internal" href="#server.tools.changes.changes_checkcamp"><code class="docutils literal notranslate"><span class="pre">changes_checkcamp()</span></code></a></li>
