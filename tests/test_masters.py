@@ -24,6 +24,8 @@ from tests.measure_tool_tokens import _make_counter
 TOOL_NAMES = (
     "masters_list",
     "masters_get",
+    "masters_add",
+    "masters_update",
     "masters_launch",
     "masters_suspend",
     "masters_resume",
@@ -34,6 +36,13 @@ TOOL_NAMES = (
     "masters_counters_get",
     "masters_audience_get",
 )
+# Registry members are exposed as dict keys, not flat signature params (#298),
+# so the signature parity guard must treat them as exposed — scoped per tool,
+# like the ads registry guard in the parity tests.
+DICT_REGISTRY_BY_TOOL = {
+    "masters_add": "MASTERS_ADD_DICT_REGISTRY",
+    "masters_update": "MASTERS_UPDATE_DICT_REGISTRY",
+}
 LIFECYCLE_TOOL_PATHS = {
     "masters_launch": ("masters", "launch"),
     "masters_suspend": ("masters", "suspend"),
@@ -346,13 +355,27 @@ def test_masters_signature_matches_click_except_env_and_output_options(
         assert tool.cli_service is not None
         assert tool.cli_subcommand is not None
         path = (tool.cli_service, tool.cli_subcommand)
+    # `launch` is only ignored because `masters copy` has a Click launch flag
+    # the plugin does not expose; masters_update's launch IS exposed.
+    ignored = IGNORED_CLI_PARAMS - (
+        {"launch"} if tool_name == "masters_update" else set()
+    )
     click_params = {
         parameter.name
         for parameter in _click_command_or_skip_unreleased(tool_name, path).params
-        if parameter.name not in IGNORED_CLI_PARAMS
+        if parameter.name not in ignored
     }
     mcp_params = set(inspect.signature(getattr(masters_module, tool_name)).parameters)
-    assert mcp_params == click_params, tool_name
+    registry_attr = DICT_REGISTRY_BY_TOOL.get(tool_name)
+    if registry_attr is not None:
+        registry = getattr(masters_module, registry_attr)
+        members = {member for _, members_tuple in registry for member in members_tuple}
+        # Grouped dict params replace their absorbed flat params in the
+        # signature: click flat names covered by members swap for dict names.
+        dict_params = {dict_name for dict_name, _ in registry}
+        assert mcp_params == (click_params - members) | dict_params, tool_name
+    else:
+        assert mcp_params == click_params, tool_name
 
 
 def test_masters_signature_defaults_and_cli_option_tables(
@@ -379,6 +402,35 @@ def test_masters_signature_defaults_and_cli_option_tables(
     assert copy_params["campaign_id"].default is inspect.Parameter.empty
     assert copy_params["campaign_id"].annotation is str
     assert "launch" not in copy_params
+
+    add_params = signatures["masters_add"].parameters
+    assert add_params["url"].default is inspect.Parameter.empty
+    assert add_params["headlines"].default is inspect.Parameter.empty
+    assert add_params["texts"].default is inspect.Parameter.empty
+    assert add_params["add_target_actions"].default is inspect.Parameter.empty
+    assert add_params["weekly_budget"].default is inspect.Parameter.empty
+    # Safe MCP default: the raw CLI launches immediately, the plugin drafts.
+    assert add_params["draft"].default is True
+    assert add_params["region_options"].default is None
+    update_params = signatures["masters_update"].parameters
+    assert update_params["campaign_id"].default is None
+    assert update_params["campaign_id"].annotation == str | None
+    assert update_params["from_file"].default is None
+    assert update_params["masters_json"].default is None
+    assert update_params["dry_run"].default is False
+    # launch stays flat on purpose (#298) — publishing must not hide in a dict.
+    assert update_params["launch"].default is False
+    for dict_param in (
+        "budget_options",
+        "goal_options",
+        "creative_options",
+        "media_options",
+        "audience_options",
+        "metrika_options",
+        "batch_options",
+    ):
+        assert update_params[dict_param].default is None
+        assert update_params[dict_param].annotation == dict | None
 
     assert [
         (option.name, option.flag, option.repeat, option.is_flag)
@@ -415,6 +467,539 @@ def test_masters_status_choices_match_installed_click_command(
     )
 
 
+_BROWSER_ONLY_CLICK_PARAMS = {
+    "headful",
+    "profile_dir",
+    "chrome_profile",
+    "output_format",
+    "output",
+}
+
+
+def test_masters_update_registry_covers_full_click_domain(
+    masters_module: ModuleType,
+) -> None:
+    """Every CLI 0.5.5 domain param is reachable: 31 dict members + 5 flat = 36."""
+    command = _click_command(("masters", "update"))
+    click_names = {
+        parameter.name
+        for parameter in command.params
+        if parameter.name not in _BROWSER_ONLY_CLICK_PARAMS
+    }
+    registry = masters_module.MASTERS_UPDATE_DICT_REGISTRY
+    member_list = [member for _, members in registry for member in members]
+    signature = set(inspect.signature(masters_module.masters_update).parameters)
+
+    assert len(member_list) == len(set(member_list)), "duplicate registry member"
+    assert len(member_list) == 31
+    assert len(registry) == 7
+    dict_params = {dict_name for dict_name, _ in registry}
+    members = set(member_list)
+    assert members.isdisjoint(signature)
+    assert (signature | members) - click_names == dict_params
+    assert click_names - (signature | members) == set()
+    # Every member must be forwarded by the option table (directs_helps is the
+    # tri-state exception emitted manually).
+    option_names = {option.name for option in masters_module.MASTERS_UPDATE_OPTIONS}
+    assert members - option_names == {"directs_helps"}
+    # launch/dry_run stay flat — publishing/preview must not hide inside dicts.
+    assert {"launch", "dry_run"} <= signature
+    assert {"launch", "dry_run"}.isdisjoint(members)
+
+
+def test_masters_add_registry_covers_full_click_domain(
+    masters_module: ModuleType,
+) -> None:
+    """masters_add 8 → 7: the only natural collapse is region_options (#298)."""
+    command = _click_command(("masters", "add"))
+    click_names = {
+        parameter.name
+        for parameter in command.params
+        if parameter.name not in _BROWSER_ONLY_CLICK_PARAMS
+    }
+    registry = masters_module.MASTERS_ADD_DICT_REGISTRY
+    member_list = [member for _, members in registry for member in members]
+    signature = set(inspect.signature(masters_module.masters_add).parameters)
+
+    assert member_list == ["regions", "region_ids"]
+    dict_params = {dict_name for dict_name, _ in registry}
+    assert set(member_list).isdisjoint(signature)
+    assert (signature | set(member_list)) - click_names == dict_params
+    assert click_names - (signature | set(member_list)) == set()
+    option_names = {option.name for option in masters_module.MASTERS_ADD_OPTIONS}
+    assert set(member_list) <= option_names
+
+
+def test_masters_add_builds_exact_command(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"CampaignId": 9001})
+
+    result = masters_module.masters_add(
+        "https://example.com",
+        headlines=["Заголовок"],
+        texts=["Текст"],
+        add_target_actions=["501=300"],
+        weekly_budget=15000,
+        region_options={"regions": ["Москва"], "region_ids": ["225"]},
+    )
+
+    assert result == {"CampaignId": 9001}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "add",
+            "https://example.com",
+            "--headline",
+            "Заголовок",
+            "--text",
+            "Текст",
+            "--add-target-action",
+            "501=300",
+            "--weekly-budget",
+            "15000",
+            "--region",
+            "Москва",
+            "--region-id",
+            "225",
+            "--draft",
+            "--format",
+            "json",
+        ],
+        allow_nonzero=True,
+    )
+
+
+def test_masters_add_draft_false_launches(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"CampaignId": 9001})
+
+    masters_module.masters_add(
+        "https://example.com",
+        headlines=["H"],
+        texts=["T"],
+        add_target_actions=["501=300"],
+        weekly_budget=15000,
+        region_options={"region_ids": ["225"]},
+        draft=False,
+    )
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert "--draft" not in argv
+
+
+def test_masters_add_rejects_non_dict_region_options(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, {})
+
+    result = masters_module.masters_add(
+        "https://example.com",
+        headlines=["H"],
+        texts=["T"],
+        add_target_actions=["501=300"],
+        weekly_budget=15000,
+        region_options="Москва",
+    )
+
+    assert result["error"] == "invalid_param"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_add_forwards_browser_env(
+    masters_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = _runner_for(masters_module, {"CampaignId": 9001})
+    monkeypatch.setenv("YANDEX_DIRECT_BROWSER_PROFILE_DIR", "/tmp/profile")
+
+    masters_module.masters_add(
+        "https://example.com",
+        headlines=["H"],
+        texts=["T"],
+        add_target_actions=["501=300"],
+        weekly_budget=15000,
+        region_options={"regions": ["Москва"]},
+    )
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert argv[-4:] == ["--profile-dir", "/tmp/profile", "--format", "json"]
+
+
+# One byte-for-byte argv case per dict family (#298 acceptance): the grouped
+# call must produce exactly the argv a hypothetical flat signature would build.
+_UPDATE_FAMILY_CASES = {
+    "budget": (
+        {
+            "budget_options": {
+                "weekly_budget": 95000,
+                "promotion_goal": "max-clicks",
+                "goal_price": 2.5,
+                "directs_helps": False,
+            }
+        },
+        [
+            "--weekly-budget",
+            "95000",
+            "--promotion-goal",
+            "max-clicks",
+            "--goal-price",
+            "2.5",
+            "--no-directs-helps",
+        ],
+    ),
+    "goal": (
+        {
+            "goal_options": {
+                "target_action_prices": ["501=250"],
+                "add_target_actions": ["502=300", "503=120"],
+                "remove_target_actions": ["504"],
+            }
+        },
+        [
+            "--target-action-price",
+            "501=250",
+            "--add-target-action",
+            "502=300",
+            "--add-target-action",
+            "503=120",
+            "--remove-target-action",
+            "504",
+        ],
+    ),
+    "creative": (
+        {
+            "creative_options": {
+                "name": "Новое имя",
+                "landing_url": "https://example.com/",
+                "tracking_params": "",
+                "headlines": ["2=Новый заголовок"],
+                "texts": ["1=Текст"],
+                "clear_headlines": ["4"],
+                "clear_texts": [3],
+            }
+        },
+        [
+            "--name",
+            "Новое имя",
+            "--landing-url",
+            "https://example.com/",
+            "--tracking-params",
+            "",
+            "--headline",
+            "2=Новый заголовок",
+            "--text",
+            "1=Текст",
+            "--clear-headline",
+            "4",
+            "--clear-text",
+            "3",
+        ],
+    ),
+    "media": (
+        {
+            "media_options": {
+                "images": ["2=/tmp/new.png"],
+                "add_video": "/tmp/v.mp4",
+                "add_video_url": "https://video.example/1",
+                "remove_videos": ["https://video.example/1"],
+            }
+        },
+        [
+            "--image",
+            "2=/tmp/new.png",
+            "--add-video",
+            "/tmp/v.mp4",
+            "--add-video-url",
+            "https://video.example/1",
+            "--remove-video",
+            "https://video.example/1",
+        ],
+    ),
+    "audience": (
+        {
+            "audience_options": {
+                "gender": "female",
+                "age_from": "18",
+                "age_to": "unlimited",
+                "devices": ["mobile", "desktop"],
+                "add_audience_tags": ["крем для рук"],
+                "remove_audience_tags": [0],
+            }
+        },
+        [
+            "--gender",
+            "female",
+            "--age-from",
+            "18",
+            "--age-to",
+            "unlimited",
+            "--device",
+            "mobile",
+            "--device",
+            "desktop",
+            "--add-audience-tag",
+            "крем для рук",
+            "--remove-audience-tag",
+            "0",
+        ],
+    ),
+    "metrika": (
+        {
+            "metrika_options": {
+                "add_metrika_counters": ["72112213"],
+                "remove_metrika_counters": [1],
+                "add_sitelinks": ["Об авторе|https://example.com/about|Подробнее"],
+                "remove_sitelinks": [2],
+            }
+        },
+        [
+            "--add-metrika-counter",
+            "72112213",
+            "--remove-metrika-counter",
+            "1",
+            "--add-sitelink",
+            "Об авторе|https://example.com/about|Подробнее",
+            "--remove-sitelink",
+            "2",
+        ],
+    ),
+}
+
+
+@pytest.mark.parametrize("family_case", _UPDATE_FAMILY_CASES.values())
+def test_masters_update_family_argv_is_byte_for_byte(
+    masters_module: ModuleType,
+    family_case: tuple[dict, list[str]],
+) -> None:
+    family_kwargs, expected_flags = family_case
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    result = masters_module.masters_update("101", **family_kwargs)
+
+    assert result == [{"CampaignId": 101}]
+    runner.run_json_lenient.assert_called_once_with(
+        ["masters", "update", "101", *expected_flags, "--format", "json"],
+        allow_nonzero=True,
+    )
+
+
+def test_masters_update_no_dict_name_leaks_into_argv(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update(
+        "101", goal_options={"add_target_actions": ["501=300"]}
+    )
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert "goal_options" not in argv
+    assert "--goal-options" not in argv
+
+
+@pytest.mark.parametrize(
+    ("value", "flag"),
+    [(True, "--directs-helps"), (False, "--no-directs-helps")],
+)
+def test_masters_update_directs_helps_tri_state(
+    masters_module: ModuleType,
+    value: bool,
+    flag: str,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update("101", budget_options={"directs_helps": value})
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert flag in argv
+
+
+def test_masters_update_directs_helps_none_is_absent(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update("101", creative_options={"name": "x"})
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert "--directs-helps" not in argv
+    assert "--no-directs-helps" not in argv
+
+
+def test_masters_update_forwards_flat_launch(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update("101", creative_options={"name": "x"}, launch=True)
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert "--launch" in argv
+
+
+def test_masters_update_dry_run_is_forwarded(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update("101", creative_options={"name": "x"}, dry_run=True)
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert argv[-3:] == ["--dry-run", "--format", "json"]
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "error"),
+    [
+        ({"budget_options": {"promotion_goal": "max-leads"}}, "invalid_promotion_goal"),
+        ({"audience_options": {"gender": "robot"}}, "invalid_gender"),
+        ({"audience_options": {"age_from": "17"}}, "invalid_age_from"),
+        ({"audience_options": {"age_to": "0"}}, "invalid_age_to"),
+        ({"audience_options": {"devices": ["tv"]}}, "invalid_devices"),
+    ],
+)
+def test_masters_update_rejects_bad_enums_before_browser(
+    masters_module: ModuleType,
+    kwargs: dict,
+    error: str,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update("101", **kwargs)
+
+    assert result["error"] == error
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_update_requires_at_least_one_field(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update("101")
+
+    assert result["error"] == "missing_update_fields"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_update_empty_dict_does_not_count_as_field(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update("101", creative_options={})
+
+    assert result["error"] == "missing_update_fields"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_update_requires_a_mode(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update()
+
+    assert result["error"] == "missing_mode"
+    runner.run_json_lenient.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"campaign_id": "101", "from_file": "/tmp/plan.jsonl"},
+        {"campaign_id": "101", "masters_json": '[{"CampaignId": 101}]'},
+        {"from_file": "/tmp/plan.jsonl", "masters_json": '[{"CampaignId": 101}]'},
+    ],
+)
+def test_masters_update_rejects_conflicting_modes(
+    masters_module: ModuleType,
+    kwargs: dict,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update(**kwargs)
+
+    assert result["error"] == "conflicting_modes"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_update_from_file_batch_builds_exact_command(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}, {"CampaignId": 202}])
+
+    result = masters_module.masters_update(
+        from_file="/tmp/plan.jsonl",
+        batch_options={
+            "moderation_statuses": True,
+            "pacing_ms": 500,
+            "no_progress": True,
+        },
+        dry_run=True,
+    )
+
+    assert result == [{"CampaignId": 101}, {"CampaignId": 202}]
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "update",
+            "--from-file",
+            "/tmp/plan.jsonl",
+            "--moderation-statuses",
+            "--pacing-ms",
+            "500",
+            "--no-progress",
+            "--dry-run",
+            "--format",
+            "json",
+        ],
+        allow_nonzero=True,
+    )
+
+
+def test_masters_update_masters_json_string_builds_exact_command(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+    plan = '[{"CampaignId": 101, "Name": "x"}]'
+
+    result = masters_module.masters_update(masters_json=plan)
+
+    assert result == [{"CampaignId": 101}]
+    runner.run_json_lenient.assert_called_once_with(
+        ["masters", "update", "--masters-json", plan, "--format", "json"],
+        allow_nonzero=True,
+    )
+
+
+def test_masters_update_masters_json_list_is_reserialized(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+    plan = [{"CampaignId": 101, "Name": "x"}]
+
+    masters_module.masters_update(masters_json=plan)
+
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "update",
+            "--masters-json",
+            json.dumps(plan, ensure_ascii=False),
+            "--format",
+            "json",
+        ],
+        allow_nonzero=True,
+    )
+
+
+def test_masters_update_rejects_unsafe_json_integer(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_update(
+        masters_json=[{"CampaignId": 2**60, "Name": "x"}]
+    )
+
+    assert result["error"] == "unsafe_json_integer"
+    assert "$[0].CampaignId" in result["message"]
+    runner.run_json_lenient.assert_not_called()
+
+
 @pytest.mark.parametrize("tool_name,path", STRING_ID_TOOL_PATHS.items())
 def test_click_integer_ids_are_safe_mcp_strings(
     masters_module: ModuleType,
@@ -435,7 +1020,8 @@ def test_click_integer_ids_are_safe_mcp_strings(
     assert mcp_campaign_id.annotation is str
 
 
-def test_eleven_masters_tools_fit_token_budget() -> None:
+def _isolated_masters_tools() -> list[Any]:
+    """Import server.tools.masters against an isolated FastMCP and return tools."""
     isolated_mcp = FastMCP("masters-token-test", json_response=True)
     module_name = "server.tools.masters"
     dynamic_tools_package = cast(Any, tools_package)
@@ -445,7 +1031,7 @@ def test_eleven_masters_tools_fit_token_budget() -> None:
     with patch.object(main_module, "mcp", isolated_mcp):
         try:
             importlib.import_module(module_name)
-            tools = asyncio.run(isolated_mcp.list_tools())
+            return asyncio.run(isolated_mcp.list_tools())
         finally:
             sys.modules.pop(module_name, None)
             if previous_module is not None:
@@ -455,22 +1041,34 @@ def test_eleven_masters_tools_fit_token_budget() -> None:
             else:
                 del dynamic_tools_package.masters
 
+
+def _token_cost(tool: Any) -> int:
     count, _ = _make_counter()
-    total = 0
-    for tool in tools:
-        payload = json.dumps(
-            {
-                "name": tool.name,
-                "description": tool.description or "",
-                "input_schema": tool.inputSchema or {},
-            },
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        total += count(payload)
+    payload = json.dumps(
+        {
+            "name": tool.name,
+            "description": tool.description or "",
+            "input_schema": tool.inputSchema or {},
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return count(payload)
+
+
+def test_seventeen_masters_tools_fit_token_budget() -> None:
+    tools = _isolated_masters_tools()
 
     assert {tool.name for tool in tools} == set(TOOL_NAMES)
     for tool in tools:
         if tool.name in STRING_ID_TOOL_PATHS:
             assert tool.inputSchema["properties"]["campaign_id"]["type"] == "string"
-    assert total <= 850
+    assert sum(_token_cost(tool) for tool in tools) <= 1450
+
+
+def test_masters_mutating_tools_have_hard_token_ceilings() -> None:
+    """#298: masters_update ≤ 400 tokens is the whole point of the grouping."""
+    tokens = {tool.name: _token_cost(tool) for tool in _isolated_masters_tools()}
+
+    assert tokens["masters_update"] <= 400
+    assert tokens["masters_add"] <= 220

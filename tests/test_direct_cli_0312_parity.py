@@ -68,6 +68,8 @@ TARGET_COMMANDS: tuple[tuple[str, str, str, str], ...] = (
     ("strategies", "add", "server.tools.strategies", "strategies_add"),
     ("strategies", "update", "server.tools.strategies", "strategies_update"),
     ("changes", "check", "server.tools.changes", "changes_check"),
+    ("masters", "add", "server.tools.masters", "masters_add"),
+    ("masters", "update", "server.tools.masters", "masters_update"),
 )
 
 IGNORED_CLI_PARAMS = {"output", "output_format", "format"}
@@ -79,6 +81,11 @@ INTENTIONALLY_UNEXPOSED_CLI_PARAMS = {
     # RetargetingLists.update rejects the Type field (API error 8000); a list's
     # type is fixed at creation, so retargeting_update drops list_type. See #166.
     ("retargeting", "update"): {"list_type"},
+    # Browser transport/deployment configuration is server env, not MCP input
+    # (headful / profile_dir / chrome_profile; output/output_format/format are
+    # already in IGNORED_CLI_PARAMS).
+    ("masters", "add"): {"headful", "profile_dir", "chrome_profile"},
+    ("masters", "update"): {"headful", "profile_dir", "chrome_profile"},
 }
 
 # CLI options that direct-cli 0.4.2 still DEFINES (so it can emit a friendly
@@ -200,11 +207,27 @@ def _ads_extra_dict_param_names_by_subcommand() -> dict[str, set[str]]:
     }
 
 
+def _masters_dict_param_names_by_subcommand() -> dict[str, set[str]]:
+    """CLI option names exposed via masters_add/update grouped dicts (#298),
+    scoped per subcommand — same reasoning as the ads registries above.
+    """
+    from server.tools.masters import (
+        MASTERS_ADD_DICT_REGISTRY,
+        MASTERS_UPDATE_DICT_REGISTRY,
+    )
+
+    return {
+        "add": {m for _, members in MASTERS_ADD_DICT_REGISTRY for m in members},
+        "update": {m for _, members in MASTERS_UPDATE_DICT_REGISTRY for m in members},
+    }
+
+
 def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
     _require_direct_cli_0312()
 
     strategy_dict_params = _campaign_strategy_dict_param_names()
     ads_dict_params_by_sub = _ads_extra_dict_param_names_by_subcommand()
+    masters_dict_params_by_sub = _masters_dict_param_names_by_subcommand()
     missing_by_command: dict[str, list[str]] = {}
     for group, subcommand, module_name, function_name in TARGET_COMMANDS:
         click_command = cli.commands[group].commands[subcommand]
@@ -224,6 +247,8 @@ def test_direct_cli_0312_options_are_exposed_by_mcp_signatures() -> None:
             mcp_params |= strategy_dict_params
         if group == "ads":
             mcp_params |= ads_dict_params_by_sub.get(subcommand, set())
+        if group == "masters":
+            mcp_params |= masters_dict_params_by_sub.get(subcommand, set())
         aliases = ALIASES.get((group, subcommand), {})
         unexposed = INTENTIONALLY_UNEXPOSED_CLI_PARAMS.get((group, subcommand), set())
         missing = [

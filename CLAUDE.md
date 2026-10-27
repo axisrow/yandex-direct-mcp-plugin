@@ -36,11 +36,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Bundle registration (`server/optional_tools.py`, default = all bundles): implemented browser/trackingparams tools load without any env (#312); a bundle module missing its extra degrades softly — its tools are absent, the server starts. `YANDEX_DIRECT_OPTIONAL_TOOLS` remains as an explicit narrow-down override (`browser`, `trackingparams`, a comma-separated combination, or `all`). Opt out through the tool-surface config: `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
 - Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
-- Tool-surface selection (`server/config.py`, default = all 165 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 169 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-167 tools are registered by default (141 Direct API + 6 CLI helpers + 5 plugin + 15 browser bundle tools); the contract declares 24 browser/local-reference names — the 9 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+169 tools are registered by default (141 Direct API + 6 CLI helpers + 5 plugin + 17 browser bundle tools); the contract declares 24 browser/local-reference names — the 7 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -88,7 +88,20 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 167 tools / ≈34,908 tokens (`approx(len/4)`, 2026-10-27).
+surface: 169 tools / ≈35,571 tokens (`approx(len/4)`, 2026-10-27, with the
+#298 mutating masters tools).
+
+`masters_add` (8 CLI params → 7: `region_options`) and `masters_update`
+(36 → 12: seven `*_options` dicts per the #220/#298 pattern, `MASTERS_UPDATE_DICT_REGISTRY`)
+use `helpers.expand_grouped_dicts`; dict keys = the original flat names, argv
+is byte-identical. `launch`/`dry_run` stay flat on purpose — publishing a
+draft must not hide inside a dict. `directs_helps` is tri-state
+(True → `--directs-helps`, False → `--no-directs-helps`, omit → untouched).
+CLI 0.5.5 marks `add_video`, `remove_metrika_counters` and part of
+`add_sitelinks` NOT LIVE-VERIFIED — the plugin docstrings repeat that verbatim.
+Batch modes `from_file`/`masters_json` are mutually exclusive and exclusive
+with `campaign_id`; `batch_options` members are batch-only and the CLI rejects
+them in single mode.
 
 Provision Masters authentication manually, outside the stdio MCP process:
 

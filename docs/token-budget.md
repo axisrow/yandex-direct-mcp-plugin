@@ -131,10 +131,10 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 применения профилей и групп. С 2026-10-26 (#312) реализованные bundle-модули
 (`server.tools.masters`, `server.tools.history`, `server.tools.adrestrictions`,
 `server.tools.playwright`, `server.tools.trackingparams`) импортируются
-**по умолчанию**: их 15 инструментов входят в default-поверхность —
-167 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 35_500` (замер 34 908 approx
-`len/4`, 2026-10-27, с `api_units` #318 и `dictionaries_get_retargeting_goals` #319).
-Оставшиеся 9 зарезервированных контрактом имён по-прежнему ждут модулей
+**по умолчанию**: их 17 инструментов входят в default-поверхность —
+169 инструментов, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 35,571 approx
+`len/4`, 2026-10-27, с мутирующими `masters_add`/`masters_update` #298).
+Оставшиеся 7 зарезервированных контрактом имён по-прежнему ждут модулей
 реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
 не регистрируются, сервер и `tools/list` живут (warning в stderr).
 
@@ -176,6 +176,11 @@ process. Для воспроизводимого CI-замера использ�
 Суммарный tool-spec (approx): **34 781 → 32 866** (−1 915, ≈ −5.5%). `full`-строка
 в таблице профилей выше соответственно снизилась. Исторический default ceiling,
 теперь именуемый `DEFAULT_TOTAL_TOKEN_CEILING`, — 33 500.
+
+Мутирующие masters-тулы (#298) сразу сгруппированы по этому паттерну, без
+ретрофита: `masters_update` — 36 CLI-параметра → 12 сигнатурных
+(31 поглощён в 7 `*_options`-словарях + 5 плоских), **386 tokens** (потолок
+400); `masters_add` — 8 → 7 (`region_options`), **210 tokens**.
 
 ## Что НЕ входит в этот замер
 

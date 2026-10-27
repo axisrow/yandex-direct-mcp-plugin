@@ -1,4 +1,4 @@
-## MCP Tools (167 total) + 1 Prompt
+## MCP Tools (169 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -175,20 +175,22 @@ Auth/utility tools unrelated to Direct API parity.
 | `auth_browser_login` | Open the visible browser login window (or import a Chrome session) to save the browser session used by browser-backed tools |
 | `tool_help` | Return the full docstring (parameters, examples, constraints) for any tool on demand. Every tool exposes only a one-line description to keep startup context small; call `tool_help('<name>')` before using an unfamiliar tool. Omit the name to list all tools. |
 
-### Browser bundle tools (15)
+### Browser bundle tools (17)
 
 Load by default since the #312 default-on decision (no env needed). Opt out
 with `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`.
 Masters/history tools use the browser session of the logged-in Direct web UI
 (headless by default; provisioning is described in the README). The contract
-declares 9 more browser names without implementation modules yet
-(`masters_add/update/delete`, `masters_login/logout`,
+declares 7 more browser names without implementation modules yet
+(`masters_delete`, `masters_login/logout`,
 `masters_adimages_add/set/delete`, `playwright_login`) — reserved.
 
 | Tool | Purpose |
 |---|---|
 | `masters_list` | List Campaign Wizard campaigns by status (strategies, goals, budgets) |
 | `masters_get` | Get Campaign Wizard campaigns by ID (optional moderation/tracking details) |
+| `masters_add` | Create a Wizard campaign (NOT idempotent; draft by default) |
+| `masters_update` | Update Wizard campaign settings — single campaign or a batch plan (MUTATING) |
 | `masters_launch` | Launch draft Wizard campaigns (max 10 per call) |
 | `masters_suspend` | Suspend Wizard campaigns (max 10 per call) |
 | `masters_resume` | Resume Wizard campaigns (max 10 per call) |
