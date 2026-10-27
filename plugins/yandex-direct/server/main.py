@@ -12,8 +12,10 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("yandex-direct-mcp", json_response=True)
 
-# Tool registration happens via imports. Required modules form the default
-# surface; optional bundles are imported only when explicitly enabled (#293).
+# Tool registration happens via imports. The required modules plus the bundle
+# modules loaded by server.optional_tools (default-on since #312) form the
+# default surface; an explicitly configured YANDEX_DIRECT_OPTIONAL_TOOLS only
+# narrows the loaded bundles.
 import os
 
 import server.tools.adextensions

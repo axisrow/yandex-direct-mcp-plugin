@@ -200,6 +200,8 @@ declares 9 more browser names without implementation modules yet
 | `playwright_doctor` | Diagnose the browser-session pipeline (read-only) |
 | `trackingparams_get` | Static local reference of dynamic tracking parameters |
 
+### Prompt
+
 | Prompt | Purpose |
 |---|---|
 | `oauth_login` | Start direct auth profile authorization flow |

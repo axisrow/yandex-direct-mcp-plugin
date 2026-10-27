@@ -42,7 +42,7 @@ def _clean_env(extra_python_path: Path | None = None) -> dict[str, str]:
 
 
 def _run_python(
-    source: str, *, env: dict[str, str]
+    source: str, *, env: dict[str, str], check: bool = True
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-c", source],
@@ -50,7 +50,7 @@ def _run_python(
         env=env,
         capture_output=True,
         text=True,
-        check=True,
+        check=check,
         timeout=30,
     )
 
@@ -183,15 +183,7 @@ import server.main as main
 """
     env = _clean_env()
     env[optional_tools.ENV_OPTIONAL_TOOLS] = "browser"
-    result = subprocess.run(
-        [sys.executable, "-c", source],
-        cwd=PROJECT_ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
-    )
+    result = _run_python(source, env=env, check=False)
     assert result.returncode != 0
     assert "module_that_does_not_exist_x" in result.stderr
 
