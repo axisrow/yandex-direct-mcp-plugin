@@ -468,6 +468,20 @@ def masters_add(
     return cast(dict, _run_browser_json(args, allow_nonzero=True))
 
 
+def _append_directs_helps(args: list[str], values: dict) -> None:
+    """Emit the tri-state --directs-helps/--no-directs-helps pair.
+
+    The shared CliOption table cannot express the negative flag: is_flag=True
+    only emits bare flags for truthy values, which would turn an explicit
+    ``False`` into a silent no-op. ``None`` (not requested) emits nothing.
+    """
+    directs_helps = values.get("directs_helps")
+    if directs_helps is True:
+        args.append("--directs-helps")
+    elif directs_helps is False:
+        args.append("--no-directs-helps")
+
+
 @mcp.tool(
     name="masters_update",
     description=(
@@ -611,11 +625,13 @@ def masters_update(
     if fields_error:
         return tool_error_dict(fields_error)
 
+    # JSON hosts may send numeric age brackets (18, not "18"); the CLI Choice
+    # accepts either spelling, so validate the string form.
     for field_name, allowed in _UPDATE_ENUM_GUARDS:
         if values.get(field_name) is None:
             continue
         enum_error = validate_enum(
-            values[field_name],
+            str(values[field_name]),
             allowed,
             field=field_name,
             error=f"invalid_{field_name}",
@@ -624,18 +640,14 @@ def masters_update(
             return tool_error_dict(enum_error)
     for device in values.get("devices") or ():
         enum_error = validate_enum(
-            device, _DEVICE_CHOICES, field="devices", error="invalid_devices"
+            str(device), _DEVICE_CHOICES, field="devices", error="invalid_devices"
         )
         if enum_error:
             return tool_error_dict(enum_error)
 
     args = [*_command_path("masters_update"), str(campaign_id)]
     append_cli_options(args, values, MASTERS_UPDATE_OPTIONS)
-    directs_helps = values.get("directs_helps")
-    if directs_helps is True:
-        args.append("--directs-helps")
-    elif directs_helps is False:
-        args.append("--no-directs-helps")
+    _append_directs_helps(args, values)
     if dry_run:
         args.append("--dry-run")
     return _run_browser_json(args, allow_nonzero=True)
@@ -698,6 +710,10 @@ def _run_masters_update_batch(
     elif plan_json is not None:
         args.extend(["--masters-json", plan_json])
     append_cli_options(args, values, MASTERS_UPDATE_OPTIONS)
+    # Emit the tri-state flag here too rather than dropping it silently:
+    # directs_helps is a single-item field, so the CLI rejects the batch call
+    # with "put the field in the --from-file/--masters-json plan instead".
+    _append_directs_helps(args, values)
     if dry_run:
         args.append("--dry-run")
     return cast(list[dict] | dict, _run_browser_json(args, allow_nonzero=True))

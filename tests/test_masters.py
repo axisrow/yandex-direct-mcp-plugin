@@ -865,6 +865,45 @@ def test_masters_update_rejects_bad_enums_before_browser(
     runner.run_json_lenient.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"audience_options": {"age_from": 18}},
+        {"audience_options": {"age_to": 55}},
+    ],
+)
+def test_masters_update_accepts_numeric_age_brackets(
+    masters_module: ModuleType,
+    kwargs: dict,
+) -> None:
+    """JSON hosts send age brackets as numbers; the CLI Choice accepts both."""
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    result = masters_module.masters_update("101", **kwargs)
+
+    assert result == [{"CampaignId": 101}]
+    argv = runner.run_json_lenient.call_args[0][0]
+    age_flag = "--age-from" if "age_from" in kwargs["audience_options"] else "--age-to"
+    value = argv[argv.index(age_flag) + 1]
+    assert value.isdigit()
+
+
+def test_masters_update_batch_does_not_drop_directs_helps(
+    masters_module: ModuleType,
+) -> None:
+    """The tri-state flag must reach argv in batch mode too — the CLI, not a
+    silent plugin-side drop, then rejects it as a single-item field (#324 review)."""
+    runner = _runner_for(masters_module, [{"CampaignId": 101}])
+
+    masters_module.masters_update(
+        from_file="/tmp/plan.jsonl",
+        budget_options={"directs_helps": False},
+    )
+
+    argv = runner.run_json_lenient.call_args[0][0]
+    assert "--no-directs-helps" in argv
+
+
 def test_masters_update_requires_at_least_one_field(
     masters_module: ModuleType,
 ) -> None:
