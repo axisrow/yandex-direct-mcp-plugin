@@ -78,21 +78,28 @@ def _is_not_authenticated_message(message: str) -> bool:
 def _attach_browser_status(result: dict, browser: dict | None) -> dict:
     """Proxy the CLI browser-session section plus a one-field verdict (#313).
 
-    ``browser`` is the verbatim flat report of the single session store
+    ``browser`` is the verbatim browser-section dict from `direct auth
+    status`; the CLI owns its shape and wording. Two shapes exist until the
+    direct-cli pin moves past 0.5.5 (whose wheel predates #951): the tier
+    report ``{active_tier, active_source, persistent_profile, saved_session}``
+    and the flat single-store report of
     ``~/.direct-cli/playwright/session.json`` — ``{exists, owner_login,
-    expired, cookie_count, path, error, ...}`` (direct-cli #951 removed the
-    ``active_tier``/``persistent_profile`` tiers without aliases); the CLI
-    owns its shape and wording. A usable session exists, is not expired, and
-    carries no error, so that makes a cheap ``browser_valid`` flag.
+    expired, cookie_count, path, error, ...}`` (#951 removed the tier keys
+    without aliases). A usable session is ``active_tier is not None`` on the
+    tier form, or exists, not expired, and error-free on the flat form;
+    either way that makes a cheap ``browser_valid`` flag.
     """
     if browser is None:
         return result
     result["browser"] = browser
-    result["browser_valid"] = (
-        bool(browser.get("exists"))
-        and not browser.get("expired")
-        and not browser.get("error")
-    )
+    if "active_tier" in browser:
+        result["browser_valid"] = browser.get("active_tier") is not None
+    else:
+        result["browser_valid"] = (
+            bool(browser.get("exists"))
+            and not browser.get("expired")
+            and not browser.get("error")
+        )
     return result
 
 

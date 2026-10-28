@@ -308,12 +308,17 @@ def test_mcp_server_tools_call_auth_status():
         # direct-cli reports both domains; the isolated HOME has no
         # token and no saved browser session (#313). The browser section's
         # shape follows the installed CLI (tier keys up to 0.5.5, flat
-        # single-store form since direct-cli #951), so only the verdict and
-        # the section's presence are stable here.
+        # single-store form since direct-cli #951); each form must yield the
+        # correct verdict for the same fact — no usable session.
         assert body["valid"] is False
         assert body["reason"] == "not_authenticated"
         assert body["profile"] == "default"
-        assert isinstance(body.get("browser"), dict)
+        browser = body["browser"]
+        assert isinstance(browser, dict)
+        if "active_tier" in browser:
+            assert browser["active_tier"] is None
+        else:
+            assert browser["exists"] is False
         assert body["browser_valid"] is False
     finally:
         proc.terminate()

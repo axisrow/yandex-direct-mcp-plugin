@@ -254,6 +254,80 @@ class TestAuthStatus:
         assert result["browser_valid"] is True
         mock_run.assert_called_once_with(["auth", "status", "--format", "json"])
 
+    def test_auth_status_parses_legacy_tier_browser_payload(self) -> None:
+        """The pinned direct-cli 0.5.5 wheel predates #951 and still reports
+        the tier form; an active tier must yield browser_valid True (#313,
+        review of PR #330)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "active_tier": "1.5",
+                            "active_source": "masters login",
+                            "persistent_profile": {
+                                "path": "/home/u/.direct-cli/chrome-profile",
+                                "usable": True,
+                            },
+                            "saved_session": {"exists": True, "expired": False},
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser"] == {
+            "active_tier": "1.5",
+            "active_source": "masters login",
+            "persistent_profile": {
+                "path": "/home/u/.direct-cli/chrome-profile",
+                "usable": True,
+            },
+            "saved_session": {"exists": True, "expired": False},
+        }
+        assert result["browser_valid"] is True
+
+    def test_auth_status_parses_legacy_tier_without_usable_session(self) -> None:
+        """active_tier=None on the tier form means no usable browser session,
+        next to a valid API token (#313)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "active_tier": None,
+                            "active_source": None,
+                            "persistent_profile": {
+                                "path": "/home/u/.direct-cli/chrome-profile",
+                                "usable": False,
+                            },
+                            "saved_session": {"exists": False, "expired": None},
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is False
+
     def test_auth_status_reports_browser_valid_without_api_token(self) -> None:
         """The browser session is independent of the API token: an
         authenticated browser next to a missing API token must still surface
