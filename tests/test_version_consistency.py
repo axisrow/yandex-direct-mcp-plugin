@@ -1,21 +1,32 @@
 """Regression guard: the plugin version must be identical across all manifests.
 
 The version lives in four committed files (plus the external marketplace repo,
-which is out of this repo's reach). ``scripts/update-version.sh`` bumps all of
-them at once, but nothing fails loudly if one drifts — e.g. a hand-edit to a
-single ``plugin.json``. This test reads the version straight from each file and
-asserts they agree, turning "forgot to sync one" from a silent release bug into
-a red CI. Tracks #209.
+covered by a separate local-only test below). ``scripts/update-version.sh``
+bumps all of them at once, but nothing fails loudly if one drifts — e.g. a
+hand-edit to a single ``plugin.json``. This test reads the version straight
+from each file and asserts they agree, turning "forgot to sync one" from a
+silent release bug into a red CI. Tracks #209.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import tomllib
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# The published marketplace repo (etopro/plugin-marketplace). Honors the same
+# MARKETPLACE_DIR override as scripts/update-version.sh.
+_EXTERNAL_MARKETPLACE_JSON = (
+    Path(os.environ.get("MARKETPLACE_DIR", Path.home() / "Projects" / "plugin-marketplace"))
+    / ".claude-plugin"
+    / "marketplace.json"
+)
 
 # Every committed file that pins the plugin version, with how to read it.
 _PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -73,3 +84,20 @@ def test_plugin_version_is_valid_semver() -> None:
         assert _SEMVER_RE.match(version), (
             f"{source} has a non-semver version: {version!r}"
         )
+
+
+@pytest.mark.skipif(
+    not _EXTERNAL_MARKETPLACE_JSON.exists(),
+    reason="external marketplace repo (etopro/plugin-marketplace) not checked out locally",
+)
+def test_external_marketplace_entry_is_in_sync() -> None:
+    """The published marketplace repo is bumped by scripts/update-version.sh
+    together with the in-repo manifests; a forgotten publish leaves marketplace
+    users on the old version with nothing failing. The repo lives outside this
+    checkout, so the check is local-only and skips where it is absent."""
+    published = _marketplace_version(_EXTERNAL_MARKETPLACE_JSON)
+    local = _pyproject_version()
+    assert published == local, (
+        f"external marketplace entry is {published!r} but the local plugin is "
+        f"{local!r}; run scripts/update-version.sh to publish"
+    )
