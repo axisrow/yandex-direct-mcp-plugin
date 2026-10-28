@@ -10,7 +10,8 @@
 # tests/test_pins_consistency.py guards that nothing drifted.
 #
 # This script does NOT touch the plugin version itself — bump that with
-# scripts/update-version.sh, which also syncs PLUGIN_VERSION= in runtime-pins.env.
+# scripts/update-version.sh. The pin files never carry the plugin version:
+# the bootstrap scripts derive it from the channel manifest.
 set -euo pipefail
 
 PLUGIN_DIR="${PLUGIN_DIR:-${HOME}/Projects/yandex-direct-mcp-plugin}"

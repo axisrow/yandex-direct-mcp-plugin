@@ -5,7 +5,7 @@
 #   hooks/setup.sh        — SessionStart hook. Sources scripts/runtime-pins.env
 #                           and installs the pinned `mcp` + `direct-cli` into
 #                           $CLAUDE_PLUGIN_DATA/venv. Stamp-gated: 99% of starts
-#                           exit in microseconds.
+#                           exit in milliseconds.
 #   hooks/run-server.sh   — this file. The strict consumer of that work.
 #                           No bootstrap, no version probing, no system-python
 #                           fallback: if the stamp + venv pair is not there,
@@ -27,6 +27,13 @@ if [ ! -f "$PIN_FILE" ]; then
 fi
 # shellcheck source=/dev/null
 . "$PIN_FILE"
+
+MANIFEST="$PLUGIN_ROOT/.claude-plugin/plugin.json"
+PLUGIN_VERSION="$(sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "$MANIFEST" 2>/dev/null | head -n1 || true)"
+if [ -z "$PLUGIN_VERSION" ]; then
+    echo "yandex-direct: could not read version from $MANIFEST." >&2
+    exit 1
+fi
 
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV_PYTHON="$DATA/venv/bin/python3"

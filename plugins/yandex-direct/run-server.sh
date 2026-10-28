@@ -10,8 +10,9 @@
 #                                     success → exec.  Failures keep #214's
 #                                     120s backoff via $DATA/.bootstrap-failed.
 #
-# Versions come from scripts/runtime-pins.env (single source of truth,
-# also sourced by hooks/setup.sh in the Claude Code channel).
+# Dependency pins come from scripts/runtime-pins.env (single source of truth,
+# also sourced by hooks/setup.sh in the Claude Code channel). The plugin
+# version is derived from the bundle manifest.
 #
 # Why this file is self-bootstrapping (issue #197): the Codex bundle has no
 # SessionStart hook and no setup.sh. The launcher is the only place we get
@@ -28,6 +29,13 @@ if [ ! -f "$PIN_FILE" ]; then
 fi
 # shellcheck source=/dev/null
 . "$PIN_FILE"
+
+MANIFEST="$PLUGIN_ROOT/.codex-plugin/plugin.json"
+PLUGIN_VERSION="$(sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "$MANIFEST" 2>/dev/null | head -n1 || true)"
+if [ -z "$PLUGIN_VERSION" ]; then
+    echo "yandex-direct: could not read version from $MANIFEST." >&2
+    exit 1
+fi
 
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV="$DATA/venv"

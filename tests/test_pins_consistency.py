@@ -1,15 +1,18 @@
 """Guard that the runtime-pins.env single source of truth stays in lockstep.
 
 #223 introduced exact-version pinning for `mcp` and `direct-cli` and a stamp-
-file gate that skips bootstrap on hot starts. The wiring spans 5 files: the
-pin file, its byte-identical Codex bundle copy, pyproject.toml, server/cli/
-runner.py's MIN_DIRECT_VERSION, and the two bootstrap shell scripts. These
-tests fail noisily if any of them drifts out of sync.
+file gate that skips bootstrap on hot starts. The wiring spans 4 files: the
+pin file, its byte-identical Codex bundle copy, pyproject.toml, and server/cli/
+runner.py's MIN_DIRECT_VERSION. The plugin version is deliberately NOT in the
+pin files: the bootstrap shell scripts derive it from their channel manifest,
+and this module guards that derivation too. These tests fail noisily if
+anything drifts out of sync.
 """
 
 from __future__ import annotations
 
 import re
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -25,9 +28,17 @@ RUNNER_PY = REPO_ROOT / "server" / "cli" / "runner.py"
 SETUP_SH = REPO_ROOT / "hooks" / "setup.sh"
 RUN_SERVER_SH = REPO_ROOT / "plugins" / "yandex-direct" / "run-server.sh"
 HOOKS_RUN_SERVER_SH = REPO_ROOT / "hooks" / "run-server.sh"
+CLAUDE_MANIFEST = REPO_ROOT / ".claude-plugin" / "plugin.json"
+BUNDLE_MANIFEST = (
+    REPO_ROOT / "plugins" / "yandex-direct" / ".codex-plugin" / "plugin.json"
+)
 
-REQUIRED_KEYS = ("PLUGIN_VERSION", "MCP_VERSION", "DIRECT_CLI_VERSION")
+REQUIRED_KEYS = ("MCP_VERSION", "DIRECT_CLI_VERSION")
 PEP440_LITE_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-+a-zA-Z0-9]*)?$")
+
+# The sed program the bootstrap scripts use to read "version" out of a
+# plugin.json manifest (kept here verbatim so drift fails these tests).
+SED_VERSION_SNIPPET = r's/.*"version" *: *"\([^"]*\)".*/\1/p'
 
 
 def _parse_pin_file(path: Path) -> dict[str, str]:
@@ -50,7 +61,7 @@ def pins() -> dict[str, str]:
 
 
 def test_pin_file_has_required_keys_only(pins: dict[str, str]) -> None:
-    """#1 — pin file has exactly PLUGIN_VERSION, MCP_VERSION, DIRECT_CLI_VERSION."""
+    """#1 — pin file has exactly MCP_VERSION, DIRECT_CLI_VERSION."""
     assert set(pins) == set(REQUIRED_KEYS), (
         f"unexpected keys in {PIN_FILE_REPO}: {set(pins) ^ set(REQUIRED_KEYS)}"
     )
@@ -69,8 +80,7 @@ def test_bundle_copy_is_byte_identical() -> None:
 
     The Codex bundle resolves ``$PLUGIN_ROOT/scripts/runtime-pins.env`` inside
     ``plugins/yandex-direct/``, so a separate copy lives there. It must match
-    the repo source byte-for-byte; ``scripts/update-pins.sh`` and
-    ``scripts/update-version.sh`` write both.
+    the repo source byte-for-byte; ``scripts/update-pins.sh`` writes both.
     """
     assert PIN_FILE_BUNDLE.read_bytes() == PIN_FILE_REPO.read_bytes(), (
         "scripts/runtime-pins.env and plugins/yandex-direct/scripts/runtime-pins.env "
@@ -114,8 +124,9 @@ def test_runner_min_direct_version_matches(pins: dict[str, str]) -> None:
 def test_shell_scripts_source_pin_file() -> None:
     """#5 — every shell script that depends on the pinned versions sources
     runtime-pins.env. Includes the Claude-channel launcher hooks/run-server.sh
-    because it reads ${PLUGIN_VERSION}/${MCP_VERSION}/${DIRECT_CLI_VERSION} to
-    compute the stamp filename (refuse-to-launch on stamp miss, #223 cycle 2).
+    because it reads ${MCP_VERSION}/${DIRECT_CLI_VERSION} (plus the manifest-
+    derived ${PLUGIN_VERSION}) to compute the stamp filename (refuse-to-launch
+    on stamp miss, #223 cycle 2).
     """
     setup_sh = SETUP_SH.read_text()
     run_server_sh = RUN_SERVER_SH.read_text()
@@ -157,17 +168,39 @@ def test_shell_scripts_use_pinned_literals() -> None:
         )
 
 
-def test_plugin_version_matches_pyproject(pins: dict[str, str]) -> None:
-    """#7 — PLUGIN_VERSION in the pin file equals pyproject.toml's version.
+def test_shell_scripts_derive_plugin_version_from_manifest() -> None:
+    """#9 — every bootstrap script derives PLUGIN_VERSION from its channel
+    manifest with the shared sed snippet and refuses to run on an empty
+    extraction. Without the guard a broken snippet would silently mint a stamp
+    like `.installed--${MCP_VERSION}-...` and stick across plugin bumps."""
+    for path in (SETUP_SH, HOOKS_RUN_SERVER_SH, RUN_SERVER_SH):
+        text = path.read_text()
+        assert SED_VERSION_SNIPPET in text, (
+            f"{path}: PLUGIN_VERSION is not derived from the channel manifest "
+            "(update SED_VERSION_SNIPPET in this test together with the scripts)"
+        )
+        assert '[ -z "$PLUGIN_VERSION" ]' in text, (
+            f"{path}: missing empty-extraction guard for PLUGIN_VERSION"
+        )
 
-    ``scripts/update-version.sh`` writes both; this test catches any case where
-    someone bumped pyproject.toml by hand without rerunning the script.
-    """
-    pyproject = tomllib.loads(PYPROJECT.read_text())
-    assert pins["PLUGIN_VERSION"] == pyproject["project"]["version"], (
-        f"PLUGIN_VERSION={pins['PLUGIN_VERSION']!r} does not match "
-        f"pyproject.toml version={pyproject['project']['version']!r}"
-    )
+
+def test_manifest_derivation_matches_pyproject() -> None:
+    """#10 — the sed snippet actually extracts the plugin version from both
+    channel manifests, equal to pyproject.toml (whose equality with the
+    manifests is pinned by tests/test_version_consistency.py)."""
+    expected = tomllib.loads(PYPROJECT.read_text())["project"]["version"]
+    for manifest in (CLAUDE_MANIFEST, BUNDLE_MANIFEST):
+        out = subprocess.run(
+            ["sed", "-n", SED_VERSION_SNIPPET, str(manifest)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        derived = next(iter(out.stdout.splitlines()), "")
+        assert derived == expected, (
+            f"{manifest}: sed derivation yielded {derived!r}, "
+            f"pyproject.toml has {expected!r}"
+        )
 
 
 def test_claude_channel_launcher_is_strict() -> None:

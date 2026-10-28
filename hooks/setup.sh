@@ -17,8 +17,9 @@
 # Claude Code; the user sees a clear error from the launcher the moment they
 # try to use the MCP server.
 #
-# Versions come from scripts/runtime-pins.env (the single source of truth,
-# also sourced by plugins/yandex-direct/run-server.sh in the Codex channel).
+# Dependency pins come from scripts/runtime-pins.env (the single source of
+# truth, also sourced by plugins/yandex-direct/run-server.sh in the Codex
+# channel). The plugin version is derived from the channel manifest.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,6 +32,13 @@ if [ ! -f "$PIN_FILE" ]; then
 fi
 # shellcheck source=/dev/null
 . "$PIN_FILE"
+
+MANIFEST="$PLUGIN_ROOT/.claude-plugin/plugin.json"
+PLUGIN_VERSION="$(sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "$MANIFEST" 2>/dev/null | head -n1 || true)"
+if [ -z "$PLUGIN_VERSION" ]; then
+    echo "yandex-direct: could not read version from $MANIFEST; aborting bootstrap." >&2
+    exit 0
+fi
 
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV="$DATA/venv"
