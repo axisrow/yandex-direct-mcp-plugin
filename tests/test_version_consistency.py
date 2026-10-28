@@ -23,7 +23,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # The published marketplace repo (etopro/plugin-marketplace). Honors the same
 # MARKETPLACE_DIR override as scripts/update-version.sh.
 _EXTERNAL_MARKETPLACE_JSON = (
-    Path(os.environ.get("MARKETPLACE_DIR", Path.home() / "Projects" / "plugin-marketplace"))
+    Path(
+        os.environ.get(
+            "MARKETPLACE_DIR", Path.home() / "Projects" / "plugin-marketplace"
+        )
+    )
     / ".claude-plugin"
     / "marketplace.json"
 )

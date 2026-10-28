@@ -29,7 +29,9 @@ SETUP_SH = REPO_ROOT / "hooks" / "setup.sh"
 RUN_SERVER_SH = REPO_ROOT / "plugins" / "yandex-direct" / "run-server.sh"
 HOOKS_RUN_SERVER_SH = REPO_ROOT / "hooks" / "run-server.sh"
 CLAUDE_MANIFEST = REPO_ROOT / ".claude-plugin" / "plugin.json"
-BUNDLE_MANIFEST = REPO_ROOT / "plugins" / "yandex-direct" / ".codex-plugin" / "plugin.json"
+BUNDLE_MANIFEST = (
+    REPO_ROOT / "plugins" / "yandex-direct" / ".codex-plugin" / "plugin.json"
+)
 
 REQUIRED_KEYS = ("MCP_VERSION", "DIRECT_CLI_VERSION")
 PEP440_LITE_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-+a-zA-Z0-9]*)?$")
