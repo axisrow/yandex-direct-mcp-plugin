@@ -1,6 +1,6 @@
 [project]
 name = "yandex-direct-mcp-plugin"
-version = "0.3.3"
+version = "0.3.4"
 requires-python = ">=3.11"
 # Runtime deps are pinned to exact versions to defend against PyPI supply-chain
 # changes (mcp is third-party; direct-cli is ours). Versions are kept in lockstep
