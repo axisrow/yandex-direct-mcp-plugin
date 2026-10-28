@@ -18,7 +18,7 @@ from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 177
+    assert len(tool_names()) == 174
     assert len(DEFAULT_TOOL_NAMES) == 153
 
 
@@ -92,19 +92,13 @@ def test_nested_browser_writes_use_terminal_cli_verb() -> None:
     )
 
 
-def test_browser_auth_commands_are_not_reads() -> None:
-    assert groups_for_tool("masters_login") == frozenset(
-        {"masters", "browser", "mutate"}
-    )
-    assert groups_for_tool("masters_logout") == frozenset(
-        {"masters", "browser", "mutate"}
-    )
-    assert groups_for_tool("playwright_login") == frozenset(
-        {"playwright", "browser", "mutate"}
-    )
+def test_browser_diagnostics_are_not_mutates() -> None:
+    # direct-cli #951 removed the masters/playwright login commands, so their
+    # contract names are gone; playwright_doctor stays the diagnostics read.
     assert groups_for_tool("playwright_doctor") == frozenset(
         {"playwright", "browser", "read"}
     )
+    assert "masters_login" not in tool_names()
 
 
 def test_masters_launch_is_lifecycle_not_read_regression() -> None:

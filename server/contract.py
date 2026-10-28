@@ -229,6 +229,11 @@ CLI_HELPER_EXTRA_TOOLS: tuple[ContractTool, ...] = (
 # ``trackingparams`` is a local reference command rather than Playwright-backed,
 # so it intentionally lives in its own bundle.
 BROWSER_SERVICE_METHODS: dict[str, dict[str, str]] = {
+    # direct-cli #951 removed `masters login`/`masters logout` (deprecated
+    # auth adapters) and deprecated `playwright login`: the canonical
+    # browser-auth surface is `auth login browser`/`auth logout browser`,
+    # wrapped by the plugin tools auth_browser_login/auth_browser_logout —
+    # so masters_login/masters_logout/playwright_login left the contract.
     "masters": {
         "list": "browser",
         "get": "browser",
@@ -240,8 +245,6 @@ BROWSER_SERVICE_METHODS: dict[str, dict[str, str]] = {
         "archive": "browser",
         "copy": "browser",
         "delete": "browser",
-        "login": "browser",
-        "logout": "browser",
         "adimages_get": "browser",
         "adimages_add": "browser",
         "adimages_set": "browser",
@@ -252,7 +255,7 @@ BROWSER_SERVICE_METHODS: dict[str, dict[str, str]] = {
     },
     "history": {"get": "browser"},
     "adrestrictions": {"get": "browser"},
-    "playwright": {"login": "browser", "doctor": "browser"},
+    "playwright": {"doctor": "browser"},
     "trackingparams": {"get": "trackingparams"},
 }
 

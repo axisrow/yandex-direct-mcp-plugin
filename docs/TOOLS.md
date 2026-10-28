@@ -173,7 +173,7 @@ Auth/utility tools unrelated to Direct API parity.
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
 | `auth_browser_login` | Open the visible browser login window (or import a Chrome session) to save the browser session used by browser-backed tools |
-| `auth_browser_logout` | Remove the browser session used by browser-backed tools: deletes the persistent Chrome profile and the imported session |
+| `auth_browser_logout` | Remove the browser session used by browser-backed tools: deletes the single session store ~/.direct-cli/playwright/session.json |
 | `tool_help` | Return the full docstring (parameters, examples, constraints) for any tool on demand. Every tool exposes only a one-line description to keep startup context small; call `tool_help('<name>')` before using an unfamiliar tool. Omit the name to list all tools. |
 
 ### Browser bundle tools (21)
@@ -181,9 +181,10 @@ Auth/utility tools unrelated to Direct API parity.
 Load by default since the #312 default-on decision (no env needed). Opt out
 with `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`.
 Masters/history tools use the browser session of the logged-in Direct web UI
-(headless by default; provisioning is described in the README). The contract
-declares 3 more browser names without implementation modules yet
-(`masters_login/logout`, `playwright_login`) — reserved.
+(headless by default; provisioning is described in the README). Since
+direct-cli #951 every browser contract name has an implementation module —
+the browser session lives in the single store
+~/.direct-cli/playwright/session.json.
 
 | Tool | Purpose |
 |---|---|

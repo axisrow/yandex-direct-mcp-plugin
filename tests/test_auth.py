@@ -211,15 +211,16 @@ class TestAuthStatus:
     def test_auth_status_normalizes_combined_api_and_browser_payload(self) -> None:
         """direct-cli 0.5.4 answers `auth status --format json` with both
         domains nested in {api, browser}; the API contract of this tool gains
-        the browser section without changing existing keys (#313)."""
+        the browser section without changing existing keys (#313). Since
+        direct-cli #951 the browser section is a flat report of the single
+        store playwright/session.json."""
         browser = {
-            "active_tier": "1.5",
-            "active_source": "masters login",
-            "persistent_profile": {
-                "path": "/home/u/.direct-cli/chrome-profile",
-                "usable": True,
-            },
-            "saved_session": {"exists": True, "expired": False},
+            "exists": True,
+            "owner_login": "ksamatadirect",
+            "expired": False,
+            "cookie_count": 47,
+            "path": "/home/u/.direct-cli/playwright/session.json",
+            "error": None,
         }
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
@@ -269,13 +270,12 @@ class TestAuthStatus:
                             "login": None,
                         },
                         "browser": {
-                            "active_tier": "2",
-                            "active_source": "playwright login",
-                            "persistent_profile": {
-                                "path": "/home/u/.direct-cli/chrome-profile",
-                                "usable": False,
-                            },
-                            "saved_session": {"exists": True, "expired": False},
+                            "exists": True,
+                            "owner_login": "ksamatadirect",
+                            "expired": False,
+                            "cookie_count": 47,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": None,
                         },
                     }
                 )
@@ -288,8 +288,8 @@ class TestAuthStatus:
         assert result["browser_valid"] is True
 
     def test_auth_status_reports_expired_browser_session_invalid(self) -> None:
-        """No usable tier (active_tier=None) with a valid API token means the
-        browser session needs re-login before the next masters call (#313)."""
+        """An expired session store with a valid API token means the browser
+        session needs re-login before the next masters call (#313)."""
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=completed(
@@ -302,13 +302,43 @@ class TestAuthStatus:
                             "login": "client",
                         },
                         "browser": {
-                            "active_tier": None,
-                            "active_source": None,
-                            "persistent_profile": {
-                                "path": "/home/u/.direct-cli/chrome-profile",
-                                "usable": False,
-                            },
-                            "saved_session": {"exists": True, "expired": True},
+                            "exists": True,
+                            "owner_login": "ksamatadirect",
+                            "expired": True,
+                            "cookie_count": None,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": None,
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is False
+
+    def test_auth_status_reports_broken_browser_session_invalid(self) -> None:
+        """A non-null error on the session store makes the browser session
+        unusable even though an envelope exists (direct-cli #951)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "exists": True,
+                            "owner_login": None,
+                            "expired": None,
+                            "cookie_count": None,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": "corrupt envelope",
                         },
                     }
                 )
@@ -903,7 +933,9 @@ class TestAuthBrowserLogin:
 
     def test_browser_login_args_chrome_omits_manual_only_flags(self) -> None:
         """The CLI rejects mixed options (--timeout/--allow-no-tty with
-        chrome, --chrome-profile with manual), so they never travel."""
+        chrome, --profile-dir/--chrome-profile with manual), so they never
+        travel. --profile-dir is chrome-only since direct-cli #951 removed it
+        from the manual flow."""
         assert _browser_login_args(
             "chrome",
             profile_dir="/tmp/chrome-data",
@@ -919,23 +951,22 @@ class TestAuthBrowserLogin:
             "chrome",
             "--format",
             "json",
-            "--profile-dir",
-            "/tmp/chrome-data",
             "--profile",
             "work",
+            "--profile-dir",
+            "/tmp/chrome-data",
             "--chrome-profile",
             "Profile 1",
         ]
 
     def test_auth_browser_login_manual_success_reports_browser_status(self) -> None:
         browser = {
-            "active_tier": "1.5",
-            "active_source": "masters login",
-            "persistent_profile": {
-                "path": "/h/.direct-cli/chrome-profile",
-                "usable": True,
-            },
-            "saved_session": {"exists": True, "expired": False},
+            "exists": True,
+            "owner_login": "ksamatadirect",
+            "expired": False,
+            "cookie_count": 47,
+            "path": "/h/.direct-cli/playwright/session.json",
+            "error": None,
         }
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
@@ -1002,7 +1033,14 @@ class TestAuthBrowserLogin:
                                 "has_token": True,
                                 "login": "client",
                             },
-                            "browser": {"active_tier": None, "active_source": None},
+                            "browser": {
+                                "exists": False,
+                                "owner_login": None,
+                                "expired": None,
+                                "cookie_count": None,
+                                "path": "/h/.direct-cli/playwright/session.json",
+                                "error": None,
+                            },
                         }
                     )
                 ),

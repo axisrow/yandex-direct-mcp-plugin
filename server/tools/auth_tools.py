@@ -78,15 +78,21 @@ def _is_not_authenticated_message(message: str) -> bool:
 def _attach_browser_status(result: dict, browser: dict | None) -> dict:
     """Proxy the CLI browser-session section plus a one-field verdict (#313).
 
-    ``browser`` is the verbatim ``{active_tier, active_source,
-    persistent_profile, saved_session}`` dict from `direct auth status`; the
-    CLI owns its shape and wording. ``active_tier`` is None exactly when no
-    usable session tier exists, so it makes a cheap ``browser_valid`` flag.
+    ``browser`` is the verbatim flat report of the single session store
+    ``~/.direct-cli/playwright/session.json`` — ``{exists, owner_login,
+    expired, cookie_count, path, error, ...}`` (direct-cli #951 removed the
+    ``active_tier``/``persistent_profile`` tiers without aliases); the CLI
+    owns its shape and wording. A usable session exists, is not expired, and
+    carries no error, so that makes a cheap ``browser_valid`` flag.
     """
     if browser is None:
         return result
     result["browser"] = browser
-    result["browser_valid"] = browser.get("active_tier") is not None
+    result["browser_valid"] = (
+        bool(browser.get("exists"))
+        and not browser.get("expired")
+        and not browser.get("error")
+    )
     return result
 
 
@@ -261,16 +267,17 @@ def _browser_login_args(
     """Build `direct auth login browser` argv (#313).
 
     Only flags the selected source accepts are forwarded: the CLI rejects
-    mixed options (--timeout/--allow-no-tty with chrome, --chrome-profile
-    with manual) with a UsageError, so defaults the caller did not choose
-    must not travel. Range/choice validation stays with the CLI.
+    mixed options (--timeout/--allow-no-tty with chrome, --profile-dir/
+    --chrome-profile with manual) with a UsageError, so defaults the caller
+    did not choose must not travel. Range/choice validation stays with the
+    CLI.
     """
     args = ["auth", "login", "browser", "--source", source, "--format", "json"]
-    if profile_dir:
-        args.extend(["--profile-dir", profile_dir])
     if profile:
         args.extend(["--profile", profile])
     if source == "chrome":
+        if profile_dir:
+            args.extend(["--profile-dir", profile_dir])
         if chrome_profile:
             args.extend(["--chrome-profile", chrome_profile])
     else:
@@ -496,14 +503,18 @@ def auth_browser_login(
     user's desktop and a human completes the Yandex Passport login — this tool
     blocks until they finish or the timeout expires. With source="chrome" no
     window opens: the CLI decrypts the existing logged-in Chrome session
-    instead. Check the result's browser section (or call auth_status) to
-    confirm the session is active.
+    instead. The session lives in the single store
+    ~/.direct-cli/playwright/session.json; any browser command auto-imports a
+    live Chrome session into it when it is missing or broken (no window —
+    only this tool's source="manual" opens one). Check the result's browser
+    section (or call auth_status) to confirm the session is active.
 
     Args:
         source: "manual" opens the visible login window (default); "chrome"
             imports the existing Chrome session (no window, no human input).
-        profile_dir: Browser profile directory (manual) or Chrome
-            user-data-dir (chrome). Omit for the CLI default.
+        profile_dir: Chrome user-data-dir to import the session from
+            (source="chrome" only; the manual flow no longer accepts
+            --profile-dir). Omit for the CLI default.
         chrome_profile: Chrome profile subdirectory to import, e.g.
             "Profile 1" (source="chrome" only; CLI default "Default").
         timeout: Seconds to wait for the manual login (source="manual" only,
@@ -545,16 +556,16 @@ def auth_browser_login(
 
 
 @mcp.tool(
-    description="Remove the browser session used by browser-backed tools (masters, history): deletes the persistent Chrome profile and the imported session. Call tool_help('auth_browser_logout') for parameters.",
+    description="Remove the browser session used by browser-backed tools (masters, history): deletes the saved session store ~/.direct-cli/playwright/session.json. Call tool_help('auth_browser_logout') for parameters.",
 )
 def auth_browser_logout() -> dict:
     """Remove the browser session used by browser-backed tools (masters, history).
 
-    Wraps `direct auth logout browser` — the canonical logout since
-    direct-cli 0.5.5 (`masters logout` and `playwright login` are
-    deprecated). One call deletes both saved browser sessions: the CLI-owned
-    persistent Chrome profile and the imported-session store. The API OAuth
-    token (auth_login/auth_setup) is not touched. stdout/stderr and the exit
+    Wraps `direct auth logout browser` — the canonical logout (`masters
+    logout` was removed from the CLI; `playwright login` is deprecated). One
+    call deletes the single browser-session store
+    ~/.direct-cli/playwright/session.json. The API OAuth token
+    (auth_login/auth_setup) is not touched. stdout/stderr and the exit
     code are proxied: success returns {"success": True, "message": ...},
     failures carry an "error" key ("auth_failed", "cli_not_found",
     "timeout"). Confirm with auth_status (browser_valid becomes False);

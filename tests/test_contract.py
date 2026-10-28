@@ -22,8 +22,6 @@ EXPECTED_BROWSER_TOOL_NAMES = frozenset(
         "masters_archive",
         "masters_copy",
         "masters_delete",
-        "masters_login",
-        "masters_logout",
         "masters_adimages_get",
         "masters_adimages_add",
         "masters_adimages_set",
@@ -33,7 +31,6 @@ EXPECTED_BROWSER_TOOL_NAMES = frozenset(
         "masters_audience_get",
         "history_get",
         "adrestrictions_get",
-        "playwright_login",
         "playwright_doctor",
         "trackingparams_get",
     }
@@ -44,9 +41,9 @@ def _contract_by_name():
     return {tool.public_name: tool for tool in PUBLIC_CONTRACT}
 
 
-def test_browser_contract_declares_all_24_commands_and_bundles() -> None:
+def test_browser_contract_declares_all_21_commands_and_bundles() -> None:
     assert BROWSER_TOOL_NAMES == EXPECTED_BROWSER_TOOL_NAMES
-    assert sum(len(methods) for methods in BROWSER_SERVICE_METHODS.values()) == 24
+    assert sum(len(methods) for methods in BROWSER_SERVICE_METHODS.values()) == 21
 
     by_name = _contract_by_name()
     assert {by_name[name].optional_bundle for name in BROWSER_TOOL_NAMES} == {
@@ -78,7 +75,9 @@ def test_optional_and_default_name_sets_partition_public_contract() -> None:
     # declarations must not make existing tools optional just to preserve it.
     # #313 added auth_browser_login as the fifth plugin tool; #318 added the
     # api_units CLI helper; #319 added dictionaries_get_retargeting_goals;
-    # #323 added auth_browser_logout.
+    # #323 added auth_browser_logout. Since direct-cli #951 every browser
+    # contract name has an implementation module (the three reserved auth
+    # names left the contract with their removed CLI commands).
     assert len(DEFAULT_TOOL_NAMES) == 153
 
 

@@ -157,23 +157,25 @@ read-only Masters.
 MCP-сессии**:
 
 ```bash
-direct masters login
+direct auth login browser
 ```
 
 Команда открывает видимое окно Chromium с Яндекс Паспортом и ждёт ручного
-входа. Она сохраняет сессию в отдельном профиле CLI
-`~/.direct-cli/chrome-profile/`; реальный профиль Chrome и macOS Keychain при
-этом не используются. Запускайте команду от того же пользователя и с тем же
-`HOME`, под которым работает MCP-сервер.
+входа. Она сохраняет сессию в единственное хранилище CLI
+`~/.direct-cli/playwright/session.json`. Браузерные команды при отсутствии,
+повреждении или истечении envelope сами импортируют живую сессию из Chrome
+(headless, без окна) — окно открывает только `direct auth login browser`.
+Запускайте команду от того же пользователя и с тем же `HOME`, под которым
+работает MCP-сервер.
 
 Тот же вход доступен и из MCP-сессии тулом `auth_browser_login()` — оно
 открывает такое же видимое окно либо импортирует уже залогиненную сессию
 Chrome (`source="chrome"`).
 
-Для `direct masters login` нужны browser extra `direct-cli` и Chromium для
-Playwright. Установите их **в то же окружение и для той же закреплённой версии
-CLI, которую выбирает MCP-сервер**. Для установки из Claude marketplace по
-умолчанию:
+Для `direct auth login browser` нужны browser extra `direct-cli` и Chromium
+для Playwright. Установите их **в то же окружение и для той же закреплённой
+версии CLI, которую выбирает MCP-сервер**. Для установки из Claude marketplace
+по умолчанию:
 
 ```bash
 DIRECT_BIN="${YANDEX_DIRECT_CLI_PATH:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}/venv/bin/direct}"
@@ -181,7 +183,7 @@ DIRECT_PY="$(dirname "$DIRECT_BIN")/python3"
 DIRECT_VERSION="$("$DIRECT_PY" -c 'import importlib.metadata as m; print(m.version("direct-cli"))')"
 "$DIRECT_PY" -m pip install "direct-cli[browser]==$DIRECT_VERSION"
 "$DIRECT_PY" -m playwright install chromium
-"$DIRECT_BIN" masters login
+"$DIRECT_BIN" auth login browser
 ```
 
 Если используется другой MCP-клиент или собственный `YANDEX_DIRECT_CLI_PATH`,
@@ -195,19 +197,20 @@ read-only-инструменты могут запускать браузер б
 же профиль и установленный Chromium. Не рассчитывайте на эту схему в
 эфемерных или sandboxed-окружениях, где домашний каталог не сохраняется.
 
-Альтернативный путь для уже авторизованного Chrome — `direct playwright
-login`: он импортирует только Yandex cookies из выбранного Chrome-профиля и
-сохраняет Playwright-сессию в `~/.direct-cli/playwright/session.json`. На
-macOS для расшифровки cookies потребуется разрешить чтение ключа `Chrome Safe
-Storage` из Keychain. Для безопасной диагностики без входа и записи файлов
-используйте `direct playwright doctor`. Если создан профиль через `direct
-masters login`, `direct-cli` предпочитает его импортированной сессии.
+Импорт из уже авторизованного Chrome: `source="chrome"` у
+`auth_browser_login` (или автоимпорт любой browser-командой при отсутствии/
+повреждении envelope) копирует Yandex cookies из выбранного Chrome-профиля в
+`~/.direct-cli/playwright/session.json`. На macOS для расшифровки cookies
+потребуется разрешить чтение ключа `Chrome Safe Storage` из Keychain. Для
+безопасной диагностики без входа и записи файлов используйте `direct
+playwright doctor` (legacy-команда `direct playwright login` deprecated —
+используйте `direct auth login browser`).
 
-Оба варианта авторизуют аккаунт, открытый в браузере; OAuth-профиль и
+Браузерные тулы авторизуют аккаунт, открытый в браузере; OAuth-профиль и
 `YANDEX_DIRECT_LOGIN` не переключают masters-инструменты на другой клиентский
-аккаунт. Профиль содержит живую Яндекс-сессию — не копируйте и не публикуйте
-его. Удалить созданный CLI профиль можно командой `direct auth logout
-browser` или тулом `auth_browser_logout` внутри MCP-сессии.
+аккаунт. Хранилище содержит живую Яндекс-сессию — не копируйте и не
+публикуйте его. Удалить сохранённую сессию можно командой `direct auth
+logout browser` или тулом `auth_browser_logout` внутри MCP-сессии.
 
 ## Скиллы
 

@@ -196,22 +196,6 @@ def test_tool_allowlist_serves_named_bundle_tool():
         proc.wait(timeout=5)
 
 
-def test_unregistered_optional_tool_allowlist_fails_closed():
-    """A browser tool allowlist cannot fail open to all default tools (#304).
-
-    masters_login is a reserved contract name with no implementation module
-    yet (masters_add/update landed in #324, masters_delete and the adimages
-    mutations in #300).
-    """
-    proc = _start_server(env={"YANDEX_DIRECT_ENABLED_TOOLS": "masters_login"})
-    try:
-        _initialize(proc)
-        assert _list_tool_names(proc) == set()
-    finally:
-        proc.terminate()
-        proc.wait(timeout=5)
-
-
 def test_mcp_server_respects_disabled_tool_groups():
     """YANDEX_DIRECT_DISABLED_GROUPS removes a group from tools/list (#190).
 
@@ -321,14 +305,15 @@ def test_mcp_server_tools_call_auth_status():
         assert resp["id"] == 2
         assert resp["result"]["isError"] is False
         body = json.loads(resp["result"]["content"][0]["text"])
-        # direct-cli 0.5.4 reports both domains; the isolated HOME has no
+        # direct-cli reports both domains; the isolated HOME has no
         # token and no saved browser session (#313). The full browser section
-        # is env-shaped, so assert the stable keys only.
+        # is env-shaped, so assert the stable keys only (flat single-store
+        # form since direct-cli #951).
         assert body["valid"] is False
         assert body["reason"] == "not_authenticated"
         assert body["profile"] == "default"
         assert body["browser_valid"] is False
-        assert body["browser"]["active_tier"] is None
+        assert body["browser"]["exists"] is False
     finally:
         proc.terminate()
         proc.wait(timeout=5)
