@@ -11,7 +11,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - **MCP never calls Yandex.Direct directly** — always through `direct`, even to work around a missing/broken CLI feature. No `urllib`, raw HTTP, or `tapi-yandex-direct` imports. File upstream issues in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary. WSDL/Reports spec wins when CLI convenience names drift.
 - Machine-readable parity source: `server/contract.py` (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
-- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 165 default tools across 43 modules, one module per service; the contract declares 24 additional browser/local-reference names — 15 are implemented in bundle modules that `server/optional_tools.py` loads by default, the other 9 stay reserved until their modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
+- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 152 default tools across 43 modules, one module per service; the contract declares 24 additional browser/local-reference names — 21 are implemented in bundle modules that `server/optional_tools.py` loads by default, the other 3 stay reserved until their modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
 
 ## Commands
 
@@ -36,11 +36,11 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - Creds: `YANDEX_DIRECT_TOKEN`, `YANDEX_DIRECT_LOGIN`, `YANDEX_DIRECT_CLI_PATH`. Finance/master tokens are env-only: `YANDEX_DIRECT_FINANCE_TOKEN`, `YANDEX_DIRECT_MASTER_TOKEN`.
 - Bundle registration (`server/optional_tools.py`, default = all bundles): implemented browser/trackingparams tools load without any env (#312); a bundle module missing its extra degrades softly — its tools are absent, the server starts. `YANDEX_DIRECT_OPTIONAL_TOOLS` remains as an explicit narrow-down override (`browser`, `trackingparams`, a comma-separated combination, or `all`). Opt out through the tool-surface config: `YANDEX_DIRECT_DISABLED_GROUPS=browser` or `YANDEX_DIRECT_DISABLED_TOOLS`. The import gate runs before tool-surface filtering, so profiles/groups can subtract tools after their bundle is loaded; surface allow-lists do not load bundles by themselves.
 - Browser read deployment: `YANDEX_DIRECT_BROWSER_PROFILE_DIR` and `YANDEX_DIRECT_BROWSER_CHROME_PROFILE` select the Chrome profile; `YANDEX_DIRECT_BROWSER_HEADFUL=1` shows the browser. These are server env settings, not MCP tool parameters.
-- Tool-surface selection (`server/config.py`, default = all 170 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
+- Tool-surface selection (`server/config.py`, default = all 174 registered tools): `YANDEX_DIRECT_TOOL_PROFILE` (`full|core|analytics|campaign-editor`), `YANDEX_DIRECT_ENABLED_GROUPS`/`_DISABLED_GROUPS` (service / action / product-area / `financial`), `YANDEX_DIRECT_ENABLED_TOOLS`/`_DISABLED_TOOLS`.
 
 ## Tools
 
-170 tools are registered by default (141 Direct API + 6 CLI helpers + 6 plugin + 17 browser bundle tools); the contract declares 24 browser/local-reference names — the 7 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+174 tools are registered by default (141 Direct API + 6 CLI helpers + 6 plugin + 21 browser bundle tools); the contract declares 24 browser/local-reference names — the 3 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -88,8 +88,9 @@ configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
 tokens, while the two zero-parameter W-04 schemas contribute **136 tokens**
 (`trackingparams_get` +63, `playwright_doctor` +73). Since the #312
 default-on decision the implemented bundle tools are part of the default
-surface: 170 tools / ≈35,598 tokens (`approx(len/4)`, 2026-10-28, with the
-#298 mutating masters tools and #323 auth_browser_logout).
+surface: 174 tools / ≈36,054 tokens (`approx(len/4)`, 2026-10-28,
+with the #298 mutating masters tools, #323 auth_browser_logout, and the
+#300 adimages mutations + `masters_delete`).
 
 `masters_add` (8 CLI params → 7: `region_options`) and `masters_update`
 (36 → 12: seven `*_options` dicts per the #220/#298 pattern, `MASTERS_UPDATE_DICT_REGISTRY`)
@@ -123,7 +124,12 @@ Provision Masters authentication manually, outside the stdio MCP process:
    the browser-session state alongside the
    API token so an expired session is visible before a masters call fails.
 3. Start or restart the MCP client, then call the Masters tools exposed by that plugin version (bundle modules load by default since the #312 default-on decision). Lifecycle tools
-   change live campaign state: launch and archive have no CLI rollback. Copy is
+   change live campaign state: launch and archive have no CLI rollback;
+   `masters_delete` permanently deletes a DRAFT campaign (the CLI's
+   confirmation is always auto-confirmed with `--yes` — the MCP process has no
+   TTY — and Yandex itself shows no dialog, so there is no undo), while
+   `masters_adimages_set` and `masters_adimages_delete` irreversibly replace
+   or remove the campaign's whole image set. Copy is
    non-idempotent and always creates a draft; publish the clone separately via
    the lifecycle-gated `masters_launch` tool.
 
@@ -142,7 +148,7 @@ session. Treat both stores as live login credentials; `direct auth logout browse
 
 ## Testing
 
-Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, no network), **mocks** (`-m mocks`, patch `subprocess.run` for unreproducible edges), **integration** (`-m integration`, live token). Cassette lifecycle: record → sanitize (strip secrets/PII) → audit → commit → replay. Some v2 tools (`advideos_*`, `*_set_auto`, `retargeting_update`) are mock-only pending cassette recording.
+Three modes: **cassettes** (default `pytest`, recorded in `tests/recordings/`, no network), **mocks** (`-m mocks`, patch `subprocess.run` for unreproducible edges), **integration** (`-m integration`, live token). Cassette lifecycle: record → sanitize (strip secrets/PII) → audit → commit → replay. Some v2 tools (`advideos_*`, `*_set_auto`, `retargeting_update`) are mock-only pending cassette recording. The destructive Masters tools (`masters_adimages_add/set/delete`, `masters_delete`) are manual-verification-only: no live tests exist and none are wanted — deletion and whole-set replacement are irreversible with no rollback, so verify them by hand against a disposable DRAFT campaign.
 
 **Two cassette layers, two owners.** The plugin's `tests/recordings/` cassettes capture `direct` subprocess output (stdout/returncode) — that's this repo's responsibility, recorded via `pytest --record` against a live `direct` auth profile. HTTP-level API cassettes (VCR/yaml against Yandex.Direct itself) belong to `axisrow/direct-cli` (`tests/cassettes/`, recorded upstream) — the plugin never calls the live API to produce or refresh them, per the CLI-as-transport-boundary rule above. A tool with no plugin-level cassette but full CLI-level coverage is not blocked on this repo; gaps get filed upstream in `direct-cli`. There is no `.env.test` in this repo — local secrets live in `.env`, and live-mode auth resolves through `direct` profiles (`~/.direct-cli/auth.json`).
 

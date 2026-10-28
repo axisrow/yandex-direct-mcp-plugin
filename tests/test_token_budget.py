@@ -42,9 +42,10 @@ _TOOL_SURFACE_ENV = (
 )
 # Snapshot under approx(len/4) as of 2026-10-28 (#317 adrestrictions_get,
 # #318 api_units, #319 dictionaries_get_retargeting_goals, #323
-# auth_browser_logout, #298 mutating masters tools, default-on bundle
-# registration): total ≈ 35,598 · descriptions ≈ 5,923 · 170 tools
-# (153 base + 17 implemented bundle tools).
+# auth_browser_logout, #298 mutating masters tools, #300 masters_adimages_
+# add/set/delete + masters_delete, default-on bundle registration):
+# total ≈ 36,054 · descriptions ≈ 6,021 · 174 tools
+# (153 base + 21 implemented bundle tools).
 # Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
 # Raised 35,500 → 36,250 (#298: masters_add + masters_update joined the browser
 # bundle; +608 tokens of grouped-dict schemas, measured 35,516 approx).

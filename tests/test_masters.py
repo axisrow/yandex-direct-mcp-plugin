@@ -17,6 +17,7 @@ from mcp.server.fastmcp import FastMCP
 
 import server.main as main_module
 import server.tools as tools_package
+from server.config import config_from_env
 from server.contract import PUBLIC_CONTRACT
 from tests.helpers import import_tool_module_without_registration
 from tests.measure_tool_tokens import _make_approx_counter
@@ -30,8 +31,12 @@ TOOL_NAMES = (
     "masters_suspend",
     "masters_resume",
     "masters_archive",
+    "masters_delete",
     "masters_copy",
     "masters_adimages_get",
+    "masters_adimages_add",
+    "masters_adimages_set",
+    "masters_adimages_delete",
     "masters_targetactions_get",
     "masters_counters_get",
     "masters_audience_get",
@@ -55,10 +60,35 @@ NESTED_TOOL_PATHS = {
     "masters_counters_get": ("masters", "counters", "get"),
     "masters_audience_get": ("masters", "audience", "get"),
 }
+ADIMAGES_MUTATION_TOOL_PATHS = {
+    "masters_adimages_add": ("masters", "adimages", "add"),
+    "masters_adimages_set": ("masters", "adimages", "set"),
+    "masters_adimages_delete": ("masters", "adimages", "delete"),
+}
 STRING_ID_TOOL_PATHS = {
     **NESTED_TOOL_PATHS,
+    **ADIMAGES_MUTATION_TOOL_PATHS,
     "masters_copy": ("masters", "copy"),
+    "masters_delete": ("masters", "delete"),
 }
+# click param -> MCP param renames for repeatable CLI options whose MCP shape
+# is a plural list; masters_adimages_delete's --all becomes the all_images flag.
+CLICK_PARAM_RENAMES = {
+    "masters_adimages_add": {"image_file": "image_files"},
+    "masters_adimages_set": {"image_file": "image_files"},
+    "masters_adimages_delete": {
+        "position": "positions",
+        "content_id": "content_ids",
+        "all": "all_images",
+    },
+}
+# click params consumed by the wrapper itself, never exposed to MCP callers.
+WRAPPER_CONSUMED_CLICK_PARAMS = {
+    # --yes is always forwarded: the MCP process has no TTY to answer the CLI's
+    # confirmation prompt.
+    "masters_delete": {"yes"},
+}
+IRREVERSIBLE_TOOL_NAMES = ("masters_delete", "masters_adimages_delete")
 IGNORED_CLI_PARAMS = {
     "headful",
     "profile_dir",
@@ -342,6 +372,231 @@ def test_adimages_path_is_not_flattened(masters_module: ModuleType) -> None:
     ]
 
 
+@pytest.mark.parametrize("tool_name,path", ADIMAGES_MUTATION_TOOL_PATHS.items())
+def test_adimages_mutations_use_full_contract_path(
+    masters_module: ModuleType,
+    tool_name: str,
+    path: tuple[str, ...],
+) -> None:
+    assert masters_module._command_path(tool_name) == list(path)
+
+
+def test_masters_adimages_add_builds_exact_command(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, {"campaign_id": 456})
+
+    result = masters_module.masters_adimages_add(
+        "456", [" /tmp/a.png ", "", "/tmp/b.jpg"]
+    )
+
+    assert result == {"campaign_id": 456}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "adimages",
+            "add",
+            "456",
+            "--image-file",
+            "/tmp/a.png",
+            "--image-file",
+            "/tmp/b.jpg",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_masters_adimages_add_rejects_empty_image_files(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_adimages_add("456", [" ", ""])
+
+    assert result["error"] == "missing_image_files"
+    runner.run_json_lenient.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    (*ADIMAGES_MUTATION_TOOL_PATHS, "masters_delete"),
+)
+def test_destructive_surface_has_no_hidden_publish_switch(
+    masters_module: ModuleType,
+    tool_name: str,
+) -> None:
+    """Draft publication stays with the lifecycle-gated masters_launch tool."""
+    parameters = inspect.signature(getattr(masters_module, tool_name)).parameters
+    assert "launch" not in parameters
+
+
+def test_masters_adimages_set_replaces_whole_set(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"campaign_id": 456})
+
+    result = masters_module.masters_adimages_set("456", ["/tmp/new.png"])
+
+    assert result == {"campaign_id": 456}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "adimages",
+            "set",
+            "456",
+            "--image-file",
+            "/tmp/new.png",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_masters_adimages_set_refuses_empty_without_allow_empty(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_adimages_set("456", [])
+
+    assert result["error"] == "invalid_param"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_adimages_set_allow_empty_forwards_no_files(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, {"campaign_id": 456})
+
+    result = masters_module.masters_adimages_set("456", [], allow_empty=True)
+
+    assert result == {"campaign_id": 456}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "adimages",
+            "set",
+            "456",
+            "--allow-empty",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_masters_adimages_delete_by_positions(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"deleted": 2})
+
+    result = masters_module.masters_adimages_delete("456", positions=[3, 1])
+
+    assert result == {"deleted": 2}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "adimages",
+            "delete",
+            "456",
+            "--position",
+            "3",
+            "--position",
+            "1",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_masters_adimages_delete_by_content_ids(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"deleted": 1})
+
+    result = masters_module.masters_adimages_delete(
+        "456", content_ids=["content-1", " content-2 "]
+    )
+
+    assert result == {"deleted": 1}
+    runner.run_json_lenient.assert_called_once_with(
+        [
+            "masters",
+            "adimages",
+            "delete",
+            "456",
+            "--content-id",
+            "content-1",
+            "--content-id",
+            "content-2",
+            "--format",
+            "json",
+        ]
+    )
+
+
+def test_masters_adimages_delete_all(masters_module: ModuleType) -> None:
+    runner = _runner_for(masters_module, {"deleted": 3})
+
+    result = masters_module.masters_adimages_delete("456", all_images=True)
+
+    assert result == {"deleted": 3}
+    runner.run_json_lenient.assert_called_once_with(
+        ["masters", "adimages", "delete", "456", "--all", "--format", "json"]
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"positions": []},
+        {"positions": [1], "content_ids": ["content-1"]},
+        {"all_images": True, "positions": [1]},
+        {"all_images": True, "content_ids": ["content-1"]},
+    ],
+)
+def test_masters_adimages_delete_requires_exactly_one_scope(
+    masters_module: ModuleType,
+    kwargs: dict,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_adimages_delete("456", **kwargs)
+
+    assert result["error"] == "invalid_param"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_masters_delete_builds_exact_command_with_yes(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, {"deleted": True})
+
+    result = masters_module.masters_delete("456")
+
+    assert result == {"deleted": True}
+    # --yes is unconditional: the MCP process has no TTY to answer the CLI's
+    # own confirmation prompt.
+    runner.run_json_lenient.assert_called_once_with(
+        ["masters", "delete", "456", "--yes", "--format", "json"]
+    )
+
+
+def test_masters_delete_rejects_blank_campaign_id(
+    masters_module: ModuleType,
+) -> None:
+    runner = _runner_for(masters_module, [])
+
+    result = masters_module.masters_delete("   ")
+
+    assert result["error"] == "missing_campaign_ids"
+    runner.run_json_lenient.assert_not_called()
+
+
+def test_destructive_group_filter_removes_masters_deletes() -> None:
+    cfg = config_from_env({"YANDEX_DIRECT_DISABLED_GROUPS": "destructive"})
+    enabled = cfg.enabled_tool_names()
+
+    assert "masters_delete" not in enabled
+    assert "masters_adimages_delete" not in enabled
+    assert {"masters_adimages_add", "masters_adimages_set"} <= enabled
+
+
 @pytest.mark.parametrize("tool_name", TOOL_NAMES)
 def test_masters_signature_matches_click_except_env_and_output_options(
     masters_module: ModuleType,
@@ -365,6 +620,9 @@ def test_masters_signature_matches_click_except_env_and_output_options(
         for parameter in _click_command_or_skip_unreleased(tool_name, path).params
         if parameter.name not in ignored
     }
+    click_params -= WRAPPER_CONSUMED_CLICK_PARAMS.get(tool_name, set())
+    renames = CLICK_PARAM_RENAMES.get(tool_name, {})
+    expected_mcp_params = {renames.get(name, name) for name in click_params}
     mcp_params = set(inspect.signature(getattr(masters_module, tool_name)).parameters)
     registry_attr = DICT_REGISTRY_BY_TOOL.get(tool_name)
     if registry_attr is not None:
@@ -373,9 +631,9 @@ def test_masters_signature_matches_click_except_env_and_output_options(
         # Grouped dict params replace their absorbed flat params in the
         # signature: click flat names covered by members swap for dict names.
         dict_params = {dict_name for dict_name, _ in registry}
-        assert mcp_params == (click_params - members) | dict_params, tool_name
+        assert mcp_params == (expected_mcp_params - members) | dict_params, tool_name
     else:
-        assert mcp_params == click_params, tool_name
+        assert mcp_params == expected_mcp_params, tool_name
 
 
 def test_masters_signature_defaults_and_cli_option_tables(
@@ -402,6 +660,22 @@ def test_masters_signature_defaults_and_cli_option_tables(
     assert copy_params["campaign_id"].default is inspect.Parameter.empty
     assert copy_params["campaign_id"].annotation is str
     assert "launch" not in copy_params
+    delete_params = signatures["masters_delete"].parameters
+    assert delete_params["campaign_id"].default is inspect.Parameter.empty
+    assert delete_params["campaign_id"].annotation is str
+    assert "yes" not in delete_params
+
+    add_params = signatures["masters_adimages_add"].parameters
+    assert add_params["campaign_id"].default is inspect.Parameter.empty
+    assert add_params["campaign_id"].annotation is str
+    assert add_params["image_files"].default is inspect.Parameter.empty
+    set_params = signatures["masters_adimages_set"].parameters
+    assert set_params["image_files"].default is inspect.Parameter.empty
+    assert set_params["allow_empty"].default is False
+    del_params = signatures["masters_adimages_delete"].parameters
+    assert del_params["positions"].default is None
+    assert del_params["content_ids"].default is None
+    assert del_params["all_images"].default is False
 
     add_params = signatures["masters_add"].parameters
     assert add_params["url"].default is inspect.Parameter.empty
@@ -445,6 +719,25 @@ def test_masters_signature_defaults_and_cli_option_tables(
     ] == [
         ("moderation_statuses", "--moderation-statuses", False, True),
         ("tracking_params", "--tracking-params", False, True),
+    ]
+    assert [
+        (option.name, option.flag, option.repeat, option.is_flag)
+        for option in masters_module.MASTERS_ADIMAGES_ADD_OPTIONS
+    ] == [("image_files", "--image-file", True, False)]
+    assert [
+        (option.name, option.flag, option.repeat, option.is_flag)
+        for option in masters_module.MASTERS_ADIMAGES_SET_OPTIONS
+    ] == [
+        ("image_files", "--image-file", True, False),
+        ("allow_empty", "--allow-empty", False, True),
+    ]
+    assert [
+        (option.name, option.flag, option.repeat, option.is_flag)
+        for option in masters_module.MASTERS_ADIMAGES_DELETE_OPTIONS
+    ] == [
+        ("positions", "--position", True, False),
+        ("content_ids", "--content-id", True, False),
+        ("all_images", "--all", False, True),
     ]
 
 
@@ -1105,7 +1398,13 @@ def test_seventeen_masters_tools_fit_token_budget() -> None:
     for tool in tools:
         if tool.name in STRING_ID_TOOL_PATHS:
             assert tool.inputSchema["properties"]["campaign_id"]["type"] == "string"
-    assert sum(_token_cost(tool) for tool in tools) <= 1450
+        if tool.name in IRREVERSIBLE_TOOL_NAMES:
+            # Irreversibility must be visible in the one-line description the
+            # client shows before any tool_help call (#300).
+            assert "irreversible" in (tool.description or "").lower(), tool.name
+    # 1450 was the #298 snapshot for 17 tools without the adimages mutations;
+    # #300 adds masters_delete + adimages add/set/delete (~440 tokens measured).
+    assert sum(_token_cost(tool) for tool in tools) <= 1950
 
 
 def test_masters_mutating_tools_have_hard_token_ceilings() -> None:

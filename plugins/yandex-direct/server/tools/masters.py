@@ -15,7 +15,9 @@ from server.tools.helpers import (
     expand_grouped_dicts,
     finalize_json_args,
     normalize_json_arg,
+    normalize_str_list,
     require_non_empty_csv,
+    require_non_empty_list,
     require_update_fields,
     tool_error_dict,
     validate_enum,
@@ -36,6 +38,16 @@ MASTERS_LIST_OPTIONS = (
 MASTERS_GET_OPTIONS = (
     CliOption("moderation_statuses", "--moderation-statuses", is_flag=True),
     CliOption("tracking_params", "--tracking-params", is_flag=True),
+)
+MASTERS_ADIMAGES_ADD_OPTIONS = (CliOption("image_files", "--image-file", repeat=True),)
+MASTERS_ADIMAGES_SET_OPTIONS = (
+    CliOption("image_files", "--image-file", repeat=True),
+    CliOption("allow_empty", "--allow-empty", is_flag=True),
+)
+MASTERS_ADIMAGES_DELETE_OPTIONS = (
+    CliOption("positions", "--position", repeat=True),
+    CliOption("content_ids", "--content-id", repeat=True),
+    CliOption("all_images", "--all", is_flag=True),
 )
 
 # Families of flat params are exposed to the model as nested dict params (#298,
@@ -327,6 +339,40 @@ def masters_archive(campaign_ids: str) -> list[dict] | dict:
 
 
 @mcp.tool(
+    name="masters_delete",
+    description=(
+        "Permanently delete a draft Wizard campaign — IRREVERSIBLE, no undo. "
+        "See tool_help('masters_delete')."
+    ),
+)
+@handle_cli_errors
+def masters_delete(campaign_id: str) -> dict:
+    """Permanently delete a DRAFT Campaign Wizard campaign. IRREVERSIBLE.
+
+    There is no undo and no CLI rollback: Yandex itself shows no confirmation
+    dialog, so the campaign is gone the instant the deletion lands, and the
+    CLI's own confirmation is always auto-confirmed with ``--yes`` because the
+    MCP process has no TTY to answer it. Only DRAFT campaigns can be deleted —
+    the CLI refuses every other status and points at masters_archive instead.
+
+    Args:
+        campaign_id: Campaign ID.
+    """
+    normalized_id = require_non_empty_csv(
+        campaign_id,
+        error="missing_campaign_ids",
+        noun="campaign ID",
+    )
+    if isinstance(normalized_id, ToolError):
+        return tool_error_dict(normalized_id)
+
+    # --yes is unconditional: the CLI's interactive confirmation prompt would
+    # hang forever in the terminal-less MCP process.
+    args = [*_command_path("masters_delete"), normalized_id, "--yes"]
+    return cast(dict, _run_browser_json(args))
+
+
+@mcp.tool(
     name="masters_copy",
     description="Copy a Wizard campaign. See tool_help('masters_copy').",
 )
@@ -362,6 +408,151 @@ def masters_adimages_get(campaign_id: str) -> dict:
         campaign_id: Campaign ID.
     """
     return _get_campaign_resource("masters_adimages_get", campaign_id)
+
+
+@mcp.tool(
+    name="masters_adimages_add",
+    description=(
+        "Append local images to a Wizard campaign's image set. "
+        "See tool_help('masters_adimages_add')."
+    ),
+)
+@handle_cli_errors
+def masters_adimages_add(campaign_id: str, image_files: list[str]) -> dict:
+    """Append one or more local image files to the campaign's image set.
+
+    Works even if the campaign currently has no images. Saving a DRAFT
+    campaign keeps it a draft — publish it separately via masters_launch.
+
+    Args:
+        campaign_id: Campaign ID.
+        image_files: Local PNG/JPEG/GIF paths to append (one or more).
+    """
+    normalized_files = require_non_empty_list(
+        image_files,
+        error="missing_image_files",
+        noun="image file",
+    )
+    if isinstance(normalized_files, ToolError):
+        return tool_error_dict(normalized_files)
+
+    args = [*_command_path("masters_adimages_add"), str(campaign_id)]
+    append_cli_options(
+        args,
+        {"image_files": normalized_files},
+        MASTERS_ADIMAGES_ADD_OPTIONS,
+    )
+    return cast(dict, _run_browser_json(args))
+
+
+@mcp.tool(
+    name="masters_adimages_set",
+    description=(
+        "Replace a Wizard campaign's ENTIRE image set (previous set is lost). "
+        "See tool_help('masters_adimages_set')."
+    ),
+)
+@handle_cli_errors
+def masters_adimages_set(
+    campaign_id: str,
+    image_files: list[str],
+    allow_empty: bool = False,
+) -> dict:
+    """Replace the campaign's ENTIRE image set inside one modal session.
+
+    Irreversible: every current image is removed and every ``image_files``
+    entry is uploaded; the previous image set cannot be restored. An empty
+    ``image_files`` deletes every image and is refused unless
+    ``allow_empty=True`` confirms it — the CLI's own guard against a likely
+    mistake such as an empty shell glob (masters_adimages_delete with
+    all_images=True is the explicit way to clear the set). Saving a DRAFT
+    campaign keeps it a draft — publish it separately via masters_launch.
+
+    Args:
+        campaign_id: Campaign ID.
+        image_files: Local PNG/JPEG/GIF paths forming the new image set.
+        allow_empty: Confirm an empty ``image_files``, i.e. delete every image.
+    """
+    normalized_files = normalize_str_list(image_files)
+    if not normalized_files and not allow_empty:
+        return tool_error_dict(
+            ToolError(
+                error="invalid_param",
+                message=(
+                    "image_files must be non-empty; pass allow_empty=true to "
+                    "delete every image."
+                ),
+            )
+        )
+
+    args = [*_command_path("masters_adimages_set"), str(campaign_id)]
+    append_cli_options(
+        args,
+        {"image_files": normalized_files, "allow_empty": allow_empty},
+        MASTERS_ADIMAGES_SET_OPTIONS,
+    )
+    return cast(dict, _run_browser_json(args))
+
+
+@mcp.tool(
+    name="masters_adimages_delete",
+    description=(
+        "Delete a Wizard campaign's images (irreversible). "
+        "See tool_help('masters_adimages_delete')."
+    ),
+)
+@handle_cli_errors
+def masters_adimages_delete(
+    campaign_id: str,
+    positions: list[int] | None = None,
+    content_ids: list[str] | None = None,
+    all_images: bool = False,
+) -> dict:
+    """Delete images from the campaign's image set. Irreversible.
+
+    The campaign's previous image set cannot be restored. Exactly one of
+    ``positions``, ``content_ids``, or ``all_images`` must be provided.
+    Saving a DRAFT campaign keeps it a draft — publish it separately via
+    masters_launch.
+
+    Args:
+        campaign_id: Campaign ID.
+        positions: 1-based image positions as shown by masters_adimages_get.
+        content_ids: Yandex content IDs as shown by masters_adimages_get.
+        all_images: Delete every image (idempotent on an empty set).
+    """
+    normalized_content_ids = normalize_str_list(content_ids)
+    provided_scopes = [
+        scope_name
+        for scope_name, value in (
+            ("positions", positions),
+            ("content_ids", normalized_content_ids),
+            ("all_images", all_images),
+        )
+        if value
+    ]
+    if len(provided_scopes) != 1:
+        return tool_error_dict(
+            ToolError(
+                error="invalid_param",
+                message=(
+                    "Provide exactly one of positions, content_ids, or "
+                    f"all_images; got {', '.join(provided_scopes) or 'none'}."
+                ),
+            )
+        )
+
+    args = [*_command_path("masters_adimages_delete"), str(campaign_id)]
+    append_cli_options(
+        args,
+        {
+            "positions": positions,
+            "content_ids": normalized_content_ids,
+            "all_images": all_images,
+        },
+        MASTERS_ADIMAGES_DELETE_OPTIONS,
+    )
+    return cast(dict, _run_browser_json(args))
 
 
 @mcp.tool(
