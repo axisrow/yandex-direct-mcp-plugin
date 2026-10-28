@@ -306,14 +306,15 @@ def test_mcp_server_tools_call_auth_status():
         assert resp["result"]["isError"] is False
         body = json.loads(resp["result"]["content"][0]["text"])
         # direct-cli reports both domains; the isolated HOME has no
-        # token and no saved browser session (#313). The full browser section
-        # is env-shaped, so assert the stable keys only (flat single-store
-        # form since direct-cli #951).
+        # token and no saved browser session (#313). The browser section's
+        # shape follows the installed CLI (tier keys up to 0.5.5, flat
+        # single-store form since direct-cli #951), so only the verdict and
+        # the section's presence are stable here.
         assert body["valid"] is False
         assert body["reason"] == "not_authenticated"
         assert body["profile"] == "default"
+        assert isinstance(body.get("browser"), dict)
         assert body["browser_valid"] is False
-        assert body["browser"]["exists"] is False
     finally:
         proc.terminate()
         proc.wait(timeout=5)
