@@ -11,7 +11,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 - **MCP never calls Yandex.Direct directly** — always through `direct`, even to work around a missing/broken CLI feature. No `urllib`, raw HTTP, or `tapi-yandex-direct` imports. File upstream issues in `axisrow/direct-cli` and wait for the release.
 - `direct` is the only execution/transport boundary. WSDL/Reports spec wins when CLI convenience names drift.
 - Machine-readable parity source: `server/contract.py` (`PUBLIC_CONTRACT`, `TRANSPORT_BLOCKED_OPERATIONS`, `RENAMED_TOOL_MIGRATION`).
-- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 153 default tools across 43 modules, one module per service; the contract declares 24 additional browser/local-reference names — 21 are implemented in bundle modules that `server/optional_tools.py` loads by default, the other 3 stay reserved until their modules land. `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
+- `server/cli/runner.py` — `DirectCliRunner` subprocess wrapper. `server/tools/*.py` — 153 default tools across 43 modules, one module per service; the contract declares 21 additional browser/local-reference names, all implemented in bundle modules that `server/optional_tools.py` loads by default (the 3 reserved auth names left the contract with their removed CLI commands — direct-cli #951). `server/tools/helpers.py` — shared validation (`parse_ids`, `check_batch_limit`).
 
 ## Commands
 
@@ -40,7 +40,7 @@ MCP (server/main.py) → direct CLI → tapi-yandex-direct → Yandex.Direct API
 
 ## Tools
 
-174 tools are registered by default (141 Direct API + 6 CLI helpers + 6 plugin + 21 browser bundle tools); the contract declares 24 browser/local-reference names — the 3 without implementation modules stay reserved, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
+174 tools are registered by default (141 Direct API + 6 CLI helpers + 6 plugin + 21 browser bundle tools); all 21 browser/local-reference contract names are implemented, plus the `oauth_login` prompt. **Canonical list: `server/contract.py`**; default tables are in [docs/TOOLS.md](docs/TOOLS.md) — do not maintain a copy here. Each tool exposes a one-line description; call `tool_help('<name>')` for full docs (parameters, examples, constraints); `tool_help()` lists registered tools.
 
 Transport-blocked (in WSDL/tapi, no `direct` subcommand — see `TRANSPORT_BLOCKED_OPERATIONS`):
 
@@ -112,17 +112,20 @@ Provision Masters authentication manually, outside the stdio MCP process:
    executable selected by the MCP server, pinned to that executable's currently
    installed `direct-cli` version. Do not redirect the server to an arbitrary
    unpinned system CLI; it is the transport for every plugin tool.
-2. Run `direct masters login` and complete Yandex Passport login in the visible
-   Chromium window. This creates the CLI-owned persistent profile at
-   `~/.direct-cli/chrome-profile/`; it does not read the user's real Chrome
-   profile or macOS Keychain. Since direct-cli 0.5.4 the plugin's
+2. Run `direct auth login browser` and complete Yandex Passport login in the
+   visible Chromium window. This saves the session to the single CLI-owned
+   store `~/.direct-cli/playwright/session.json` (since direct-cli #951 there
+   is no separate persistent profile and no tier system). The plugin's
    `auth_browser_login` tool wraps the canonical `direct auth login browser`
    (same visible window, `--allow-no-tty` for the terminal-less MCP process;
    `--source chrome` imports an existing logged-in Chrome session without a
    window), `auth_browser_logout` wraps `direct auth logout browser` (deletes
-   the persistent profile and the imported session), and `auth_status` reports
+   the session store), and `auth_status` reports
    the browser-session state alongside the
    API token so an expired session is visible before a masters call fails.
+   Any browser command auto-imports a live Chrome session into the store
+   (headless, no window) when it is missing, broken, or expired; only
+   `direct auth login browser` opens a window.
 3. Start or restart the MCP client, then call the Masters tools exposed by that plugin version (bundle modules load by default since the #312 default-on decision). Lifecycle tools
    change live campaign state: launch and archive have no CLI rollback;
    `masters_delete` permanently deletes a DRAFT campaign (the CLI's
@@ -133,18 +136,20 @@ Provision Masters authentication manually, outside the stdio MCP process:
    non-idempotent and always creates a draft; publish the clone separately via
    the lifecycle-gated `masters_launch` tool.
 
-`direct masters login` requires a TTY, visible GUI session, and human input; do
+`direct auth login browser` (manual source) requires a TTY, visible GUI
+session, and human input; do
 not attempt it from a tool call, headless/remote process without GUI, CI, or an
 ephemeral sandbox. Once provisioned, reads may run headlessly only while the
 same home directory and Playwright Chromium remain available.
 
-The alternative `direct playwright login` path imports Yandex cookies from a
-real Chrome profile into `~/.direct-cli/playwright/session.json`; on macOS it
-reads the `Chrome Safe Storage` key from the login Keychain. `direct playwright
-doctor` diagnoses that path without logging in or writing files. A persistent
-profile created by `direct masters login` takes precedence over the imported
-session. Treat both stores as live login credentials; `direct auth logout browser`
-(plugin tool `auth_browser_logout`) removes the CLI-owned persistent profile.
+The `--source chrome` path (and the automatic import) decrypt Yandex cookies
+from a real Chrome profile into `~/.direct-cli/playwright/session.json`; on
+macOS they read the `Chrome Safe Storage` key from the login Keychain.
+`direct playwright doctor` diagnoses that path without logging in or writing
+files (`direct playwright login` is a deprecated alias of
+`direct auth login browser`). Treat the session store as a live login
+credential; `direct auth logout browser` (plugin tool `auth_browser_logout`)
+removes it.
 
 ## Testing
 

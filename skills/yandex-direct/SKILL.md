@@ -81,8 +81,8 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 
 Загружаются по умолчанию. Работают через браузерную сессию веб-интерфейса
 Директа — OAuth-токен для них не используется. Перед первым вызовом нужна
-разовая настройка сессии (`auth_browser_login()` или `direct masters login`
-в обычном терминале); статус виден в `auth_status()`.
+разовая настройка сессии (`auth_browser_login()` или `direct auth login
+browser` в обычном терминале); статус виден в `auth_status()`.
 
 - Мастера кампаний: `masters_list`, `masters_get`, `masters_add`, `masters_update`, `masters_launch`, `masters_suspend`, `masters_resume`, `masters_archive`, `masters_delete`, `masters_copy`
 - Изображения Мастеров: `masters_adimages_get`, `masters_adimages_add`, `masters_adimages_set`, `masters_adimages_delete` — set/delete заменяют или удаляют весь набор изображений необратимо
@@ -91,8 +91,9 @@ argument-hint: "[вопрос или команда по Яндекс.Дирек
 - Диагностика и справочники: `playwright_doctor`, `trackingparams_get`
 
 Lifecycle-тулы Мастеров меняют живые кампании; у `masters_delete` отмены нет.
-Имена `masters_login`, `masters_logout`, `playwright_login` зарезервированы
-контрактом — модулей пока нет, не вызывать.
+Канонические auth-тулы — `auth_browser_login`/`auth_browser_logout`; имён
+`masters_login`/`masters_logout`/`playwright_login` в контракте больше нет
+(CLI-команды удалены в direct-cli #951), не вызывать.
 
 ## Отчёты (статистика)
 
