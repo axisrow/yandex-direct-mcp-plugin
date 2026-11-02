@@ -238,28 +238,46 @@ def _run_auth_command(
     return {"success": True, "message": stdout or stderr}
 
 
+# `auth login` is a group since direct-cli #951: the API-token flow lives in
+# the `api` subcommand, which is also the only place `--force` exists.
+# Overwriting an existing profile always requires the caller's explicit force
+# (direct-cli #969/#970); the plugin never adds it implicitly.
 def _token_setup_args(
-    token: str, *, login: str | None = None, profile: str = "default"
+    token: str,
+    *,
+    login: str | None = None,
+    profile: str = "default",
+    force: bool = False,
 ) -> list[str]:
-    args = ["auth", "login", "--profile", profile, "--oauth-token", token]
+    args = ["auth", "login", "api", "--profile", profile, "--oauth-token", token]
     if login:
         args.extend(["--login", login])
+    if force:
+        args.append("--force")
     return args
 
 
-def _login_start_args(login: str | None = None, profile: str = "default") -> list[str]:
-    args = ["auth", "login", "--profile", profile, "--format", "json"]
+def _login_start_args(
+    login: str | None = None, profile: str = "default", force: bool = False
+) -> list[str]:
+    args = ["auth", "login", "api", "--profile", profile, "--format", "json"]
     if login:
         args.extend(["--login", login])
+    if force:
+        args.append("--force")
     return args
 
 
-def _login_finish_args(*, profile: str = "default") -> list[str]:
-    return ["auth", "login", "--profile", profile, "--code", "-"]
+def _login_finish_args(*, profile: str = "default", force: bool = False) -> list[str]:
+    args = ["auth", "login", "api", "--profile", profile, "--code", "-"]
+    if force:
+        args.append("--force")
+    return args
 
 
-def _login_finish_legacy_args(*, profile: str = "default") -> list[str]:
-    return ["auth", "login", "--profile", profile, "--code-stdin"]
+def _is_profile_exists_message(message: str) -> bool:
+    normalized = message.casefold()
+    return "уже существует" in normalized or "already exists" in normalized
 
 
 def _browser_login_args(
@@ -315,23 +333,12 @@ def _parse_authorize_url(stdout: str) -> str | None:
     return authorize_url if isinstance(authorize_url, str) and authorize_url else None
 
 
-def _complete_login_with_code(profile: str, code: str) -> dict:
-    stdin = f"{code}\n"
-    result = _run_auth_command(
-        _login_finish_args(profile=profile),
+def _complete_login_with_code(profile: str, code: str, *, force: bool = False) -> dict:
+    return _run_auth_command(
+        _login_finish_args(profile=profile, force=force),
         timeout=60,
-        input=stdin,
+        input=f"{code}\n",
     )
-    if result.get("success"):
-        return result
-    legacy_result = _run_auth_command(
-        _login_finish_legacy_args(profile=profile),
-        timeout=60,
-        input=stdin,
-    )
-    if legacy_result.get("success"):
-        return legacy_result
-    return result
 
 
 # --- MCP Tools ---
@@ -346,15 +353,22 @@ def auth_status(profile: str | None = None) -> dict:
 
 
 @mcp.tool(
-    description="Save a ready-made direct OAuth token (y0_...) into a direct auth profile; use auth_login for the interactive browser flow. Call tool_help('auth_setup') for parameters.",
+    description="Save a ready-made direct OAuth token (y0_...) into a direct auth profile; use auth_login for the interactive browser flow. An existing profile is overwritten only with force=true. Call tool_help('auth_setup') for parameters.",
 )
-def auth_setup(code: str, login: str | None = None, profile: str = "default") -> dict:
+def auth_setup(
+    code: str, login: str | None = None, profile: str = "default", force: bool = False
+) -> dict:
     """Save a direct OAuth token into a direct auth profile.
 
     Args:
         code: Direct OAuth token (starts with y0_).
         login: Optional Yandex.Direct Client-Login to save with the profile.
         profile: direct auth profile name to save and activate.
+        force: Explicitly overwrite the profile's already-saved credentials.
+            Without it the CLI refuses to overwrite an existing profile and
+            this tool returns error="profile_exists" (nothing is written
+            implicitly); retry with force=true to confirm the overwrite, or
+            choose another profile name.
     """
     if not code:
         return {
@@ -385,8 +399,21 @@ def auth_setup(code: str, login: str | None = None, profile: str = "default") ->
                 'для готового токена передайте auth_setup(code="y0_...").'
             ),
         }
-    result = _run_auth_command(_token_setup_args(code, login=login, profile=profile))
+    result = _run_auth_command(
+        _token_setup_args(code, login=login, profile=profile, force=force)
+    )
     if not result.get("success"):
+        if _is_profile_exists_message(result.get("message") or ""):
+            return {
+                "success": False,
+                "error": "profile_exists",
+                "message": result["message"],
+                "hint": (
+                    f"Профиль '{profile}' уже существует. Чтобы явно "
+                    "перезаписать сохранённый токен, повторите вызов с "
+                    "force=true, либо выберите другое имя профиля."
+                ),
+            }
         return result
     status = auth_status(profile)
     return {
@@ -417,9 +444,11 @@ async def auth_login(
     Args:
         login: Optional Yandex.Direct Client-Login to save with the profile.
         profile: direct auth profile name (default — "default").
-        force: Re-run OAuth flow even if the profile is already valid. Use
-            this to switch the active account or to refresh an existing token
-            without manually changing CLI auth configuration.
+        force: Re-run OAuth flow even if the profile is already valid and
+            authorize overwriting its stored credentials (direct-cli requires
+            --force for that). Use this to switch the active account or to
+            refresh an existing token; without it an existing profile is never
+            overwritten.
     """
     status = auth_status(profile)
     if status.get("valid") and not force:
@@ -434,7 +463,7 @@ async def auth_login(
 
     try:
         start_result = _runner().run(
-            _login_start_args(login=login, profile=target_profile),
+            _login_start_args(login=login, profile=target_profile, force=force),
             timeout=30,
             input="",
         )
@@ -479,7 +508,9 @@ async def auth_login(
     if result.action != "accept" or not result.data:
         return {"cancelled": True, "message": "Авторизация отменена."}
 
-    finish_result = _complete_login_with_code(target_profile, result.data.value)
+    finish_result = _complete_login_with_code(
+        target_profile, result.data.value, force=force
+    )
     if not finish_result.get("success"):
         return {**finish_result, "auth_url": auth_url}
     status = auth_status(target_profile)
