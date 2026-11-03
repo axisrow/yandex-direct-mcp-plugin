@@ -3,9 +3,9 @@
 Tool count (derived from the structures below):
 - Direct API tools: 141
 - CLI helper tools:   6
-- Browser tools:     24
-- Plugin tools:       5
-Total:              176 (152 default + 24 optional)
+- Browser tools:     21
+- Plugin tools:       6
+Total:              174 (153 default + 21 optional)
 """
 
 from __future__ import annotations
@@ -271,6 +271,11 @@ _BROWSER_CLI_SUBCOMMAND_PATHS: dict[tuple[str, str], tuple[str, ...]] = {
     # not in the direct CLI command tree.
     ("trackingparams", "get"): ("trackingparams",),
     ("adrestrictions", "get"): ("adrestrictions",),
+    # The MCP tool keeps its public name (and the ``playwright`` service group
+    # used by YANDEX_DIRECT_DISABLED_GROUPS), but the CLI hid the deprecated
+    # ``playwright doctor`` alias, so it wraps the canonical
+    # ``direct auth doctor`` (same parameters).
+    ("playwright", "doctor"): ("auth", "doctor"),
 }
 
 # Reports-spec tools that share the same CLI subcommand (`direct reports get`)

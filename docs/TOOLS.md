@@ -169,7 +169,7 @@ Auth/utility tools unrelated to Direct API parity.
 
 | Tool | Purpose |
 |---|---|
-| `auth_status` | Check direct auth status: API token + browser session (masters/history) |
+| `auth_status` | Check direct auth status: API token + browser session (masters/history), incl. the server-side probe verdict |
 | `auth_setup` | Submit authorization code or direct token |
 | `auth_login` | Interactive OAuth flow with elicitation |
 | `auth_browser_login` | Open the visible browser login window (or import a Chrome session) to save the browser session used by browser-backed tools |
@@ -207,7 +207,7 @@ the browser session lives in the single store
 | `masters_audience_get` | Get the campaign's manual audience settings |
 | `history_get` | Read the account-wide change journal with filters and pagination |
 | `adrestrictions_get` | Read the campaign's ads with their UI moderation restrictions (warnings per ad) |
-| `playwright_doctor` | Diagnose the browser-session pipeline (read-only) |
+| `playwright_doctor` | Diagnose the browser-session pipeline (read-only; wraps `direct auth doctor`, incl. the cookie-only server-side session probe) |
 | `trackingparams_get` | Static local reference of dynamic tracking parameters |
 
 ### Prompt

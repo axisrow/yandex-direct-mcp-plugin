@@ -87,7 +87,11 @@ def _attach_browser_status(result: dict, browser: dict | None) -> dict:
     expired, cookie_count, path, error, ...}`` (#951 removed the tier keys
     without aliases). A usable session is ``active_tier is not None`` on the
     tier form, or exists, not expired, and error-free on the flat form;
-    either way that makes a cheap ``browser_valid`` flag.
+    either way that makes a cheap ``browser_valid`` flag. The flat form may
+    also carry ``probe`` (#954: alive/revoked/unknown; absent on 0.5.5
+    wheels) — ``revoked`` means Yandex invalidated the SSO session
+    server-side even though the cookies look fresh, so the session is not
+    usable.
     """
     if browser is None:
         return result
@@ -99,6 +103,7 @@ def _attach_browser_status(result: dict, browser: dict | None) -> dict:
             bool(browser.get("exists"))
             and not browser.get("expired")
             and not browser.get("error")
+            and browser.get("probe") != "revoked"
         )
     return result
 
