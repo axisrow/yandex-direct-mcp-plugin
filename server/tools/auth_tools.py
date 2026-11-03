@@ -280,6 +280,21 @@ def _is_profile_exists_message(message: str) -> bool:
     return "уже существует" in normalized or "already exists" in normalized
 
 
+def _profile_exists_error(profile: str, message: str) -> dict:
+    """Structured refusal for an existing profile (direct-cli#970): the
+    overwrite must be the caller's explicit next step, never a plugin retry."""
+    return {
+        "success": False,
+        "error": "profile_exists",
+        "message": message,
+        "hint": (
+            f"Профиль '{profile}' уже существует. Чтобы явно перезаписать "
+            "сохранённый токен, повторите вызов с force=true, либо выберите "
+            "другое имя профиля."
+        ),
+    }
+
+
 def _browser_login_args(
     source: str,
     *,
@@ -314,7 +329,7 @@ def _browser_login_args(
 
 def _browser_logout_args() -> list[str]:
     # `direct auth logout browser` takes no flags (verified against CLI 0.5.5):
-    # it removes both saved browser sessions in one call (#323).
+    # it removes the single saved browser-session store in one call (#323).
     return ["auth", "logout", "browser"]
 
 
@@ -404,16 +419,7 @@ def auth_setup(
     )
     if not result.get("success"):
         if _is_profile_exists_message(result.get("message") or ""):
-            return {
-                "success": False,
-                "error": "profile_exists",
-                "message": result["message"],
-                "hint": (
-                    f"Профиль '{profile}' уже существует. Чтобы явно "
-                    "перезаписать сохранённый токен, повторите вызов с "
-                    "force=true, либо выберите другое имя профиля."
-                ),
-            }
+            return _profile_exists_error(profile, result["message"])
         return result
     status = auth_status(profile)
     return {
@@ -447,13 +453,23 @@ async def auth_login(
         force: Re-run OAuth flow even if the profile is already valid and
             authorize overwriting its stored credentials (direct-cli requires
             --force for that). Use this to switch the active account or to
-            refresh an existing token; without it an existing profile is never
-            overwritten.
+            refresh an existing token; without it a profile that already
+            stores a token is refused up front with error="profile_exists".
     """
     status = auth_status(profile)
     if status.get("valid") and not force:
         return {"already_authenticated": True, **status}
     target_profile = _resolve_profile_name(profile)
+    # Pre-flight before the user is asked for a one-time code: the CLI gates
+    # every save (oauth-token or code) on profile existence, so with a stored
+    # token and no explicit force the finish is guaranteed to refuse — refuse
+    # up front instead of spending the user's manual step (#970 review).
+    if status.get("has_token") and not force:
+        return _profile_exists_error(
+            target_profile,
+            f"Профиль '{target_profile}' уже хранит OAuth-токен (сейчас "
+            "невалидный или истёкший); CLI отклоняет перезапись без --force.",
+        )
 
     if not _find_direct():
         return {
@@ -512,6 +528,10 @@ async def auth_login(
         target_profile, result.data.value, force=force
     )
     if not finish_result.get("success"):
+        if _is_profile_exists_message(finish_result.get("message") or ""):
+            # Belt-and-suspenders for a pre-flight miss (e.g. profile exists
+            # with no token): map the CLI refusal like auth_setup does.
+            return _profile_exists_error(target_profile, finish_result["message"])
         return {**finish_result, "auth_url": auth_url}
     status = auth_status(target_profile)
     return {

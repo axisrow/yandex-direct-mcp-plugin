@@ -702,13 +702,15 @@ class TestAuthSetup:
     def test_auth_setup_overwrite_refusal_maps_to_profile_exists(self) -> None:
         """The CLI's overwrite refusal becomes a machine-readable
         profile_exists error with a force=true hint — no implicit retry
-        (direct-cli#970)."""
+        (direct-cli#970). stderr text is verbatim `direct auth login api`
+        output (click UsageError, direct-cli 0.5.5 commands/auth.py)."""
         with patch(
             "server.tools.auth_tools.DirectCliRunner.run",
             return_value=completed(
                 stderr=(
-                    "Профиль 'default' уже существует (login=engineeringprint.ru). "
-                    "Перезапись требует --force или другого имени через --profile NAME."
+                    "Error: Profile 'default' already exists "
+                    "(login=engineeringprint.ru). Overwriting requires --force, "
+                    "or pick another name with --profile NAME."
                 ),
                 returncode=1,
             ),
@@ -717,10 +719,28 @@ class TestAuthSetup:
 
         assert result["success"] is False
         assert result["error"] == "profile_exists"
-        assert "уже существует" in result["message"]
+        assert "already exists" in result["message"]
         assert "force=true" in result["hint"]
         # Exactly one CLI call: the refusal is surfaced, not retried implicitly.
         assert mock_run.call_count == 1
+
+    def test_auth_setup_refusal_heuristic_accepts_localized_text(self) -> None:
+        """The refusal heuristic also matches a localized «уже существует»
+        message so a translated CLI stays covered (direct-cli#970 review)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr=(
+                    "Профиль 'default' уже существует (login=client). "
+                    "Перезапись требует --force."
+                ),
+                returncode=1,
+            ),
+        ):
+            result = auth_setup("y0_FAKE-TEST-TOKEN")
+
+        assert result["error"] == "profile_exists"
+        assert "force=true" in result["hint"]
 
     def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
         with patch(
@@ -779,6 +799,97 @@ class TestAuthLogin:
     def test_auth_login_already_authenticated(self, _mock_status) -> None:
         result = asyncio.run(auth_login(MagicMock()))
         assert result["already_authenticated"] is True
+
+    @patch("server.tools.auth_tools.auth_status")
+    def test_auth_login_preflight_refuses_stored_token_without_force(
+        self, mock_status
+    ) -> None:
+        """An existing profile with a stored (invalid/expired) token refuses
+        BEFORE elicitation: the CLI gates every save on profile existence, so
+        the finish would reject the code anyway — the user's manual step must
+        not be spent on a doomed flow (#970 review)."""
+        mock_status.return_value = {
+            "valid": False,
+            "has_token": True,
+            "profile": "default",
+            "login": "client",
+        }
+        mock_ctx = MagicMock()
+        mock_ctx.elicit = AsyncMock()
+
+        result = asyncio.run(auth_login(mock_ctx))
+
+        assert result["success"] is False
+        assert result["error"] == "profile_exists"
+        assert "force=true" in result["hint"]
+        mock_ctx.elicit.assert_not_called()
+
+    @patch("server.tools.auth_tools.auth_status")
+    def test_auth_login_preflight_skipped_with_force(self, mock_status) -> None:
+        """force=true acknowledges the overwrite and proceeds into the OAuth
+        flow despite the stored token (#970 review)."""
+        mock_status.return_value = {
+            "valid": False,
+            "has_token": True,
+            "profile": "default",
+            "login": "client",
+        }
+        mock_ctx = MagicMock()
+        decline = MagicMock()
+        decline.action = "decline"
+        decline.data = None
+        mock_ctx.elicit = AsyncMock(return_value=decline)
+        with (
+            patch(
+                "server.tools.auth_tools._find_direct", return_value="/usr/bin/direct"
+            ),
+            patch(
+                "server.tools.auth_tools.DirectCliRunner.run",
+                return_value=completed(
+                    json.dumps(
+                        {"authorize_url": "https://oauth.yandex.ru/authorize?x=1"}
+                    )
+                ),
+            ),
+        ):
+            result = asyncio.run(auth_login(mock_ctx, force=True))
+
+        # force passes the pre-flight; the flow reaches elicitation (declined
+        # here) instead of refusing.
+        assert result == {"cancelled": True, "message": "Авторизация отменена."}
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_finish_refusal_maps_to_profile_exists(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        """Belt-and-suspenders for a pre-flight miss (profile exists without a
+        token in status): the finish-time CLI refusal maps to profile_exists
+        like auth_setup (direct-cli#970 review)."""
+        mock_run.side_effect = [
+            completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            completed(
+                stderr=(
+                    "Error: Profile 'custom' already exists. Overwriting "
+                    "requires --force, or pick another name with --profile NAME."
+                ),
+                returncode=1,
+            ),
+        ]
+
+        result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
+
+        assert result["success"] is False
+        assert result["error"] == "profile_exists"
+        assert "already exists" in result["message"]
+        assert "force=true" in result["hint"]
+        # The dead authorize URL is not echoed back: retrying with force
+        # re-runs the whole flow, so the old URL would be misleading.
+        assert "auth_url" not in result
 
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": True})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
