@@ -369,9 +369,11 @@ browser-backed tools require auth_browser_login again afterwards.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
 <li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – direct auth profile name (default — “default”).</p></li>
-<li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Re-run OAuth flow even if the profile is already valid. Use
-this to switch the active account or to refresh an existing token
-without manually changing CLI auth configuration.</p></li>
+<li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Re-run OAuth flow even if the profile is already valid and
+authorize overwriting its stored credentials (direct-cli requires
+–force for that). Use this to switch the active account or to
+refresh an existing token; without it a profile that already
+stores a token is refused up front with error=”profile_exists”.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -382,7 +384,7 @@ without manually changing CLI auth configuration.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="server.tools.auth_tools.auth_setup">
-<span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">login</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_setup" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">server.tools.auth_tools.</span></span><span class="sig-name descname"><span class="pre">auth_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">login</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.auth_tools.auth_setup" title="Link to this definition">¶</a></dt>
 <dd><p>Save a direct OAuth token into a direct auth profile.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -390,6 +392,11 @@ without manually changing CLI auth configuration.</p></li>
 <li><p><strong>code</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Direct OAuth token (starts with <a href="#id1"><span class="problematic" id="id2">y0_</span></a>).</p></li>
 <li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
 <li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – direct auth profile name to save and activate.</p></li>
+<li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Explicitly overwrite the profile’s already-saved credentials.
+Without it the CLI refuses to overwrite an existing profile and
+this tool returns error=”profile_exists” (nothing is written
+implicitly); retry with force=true to confirm the overwrite, or
+choose another profile name.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
