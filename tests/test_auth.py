@@ -9,7 +9,6 @@ from server.tools.auth_tools import (
     _browser_login_args,
     _human_readable_time,
     _login_finish_args,
-    _login_finish_legacy_args,
     _login_start_args,
     _token_setup_args,
     auth_browser_login,
@@ -423,6 +422,57 @@ class TestAuthStatus:
         assert result["valid"] is True
         assert result["browser_valid"] is False
 
+    def test_auth_status_reads_nested_api_payload_with_global_fallback(self) -> None:
+        """Verbatim `direct auth status --format json` shape (direct-cli 0.5.5,
+        #951): both domains nested under api/browser; an unconfigured API
+        profile still reports global fallback credentials the tool must ignore
+        when deciding validity (direct-cli#969)."""
+        browser = {
+            "exists": True,
+            "path": "/Users/u/.direct-cli/playwright/session.json",
+            "version": 1,
+            "created_at": 1793602849.103184,
+            "owner_login": "ksamatadirect",
+            "age_seconds": 38331,
+            "cookie_count": 46,
+            "expires_at": 1828072537.388149,
+            "expired": False,
+            "mode": "0600",
+            "error": None,
+            "sso_cookie_names": ["Session_id", "sessionid2", "yandex_login"],
+            "sso_cookies": 3,
+            "probe": "unknown",
+        }
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": None,
+                            "source": None,
+                            "has_token": False,
+                            "login": None,
+                            "global_profile": "engineeringprint",
+                            "global_login": "engineeringprint.ru",
+                        },
+                        "browser": browser,
+                    }
+                )
+            ),
+        ) as mock_run:
+            result = auth_status()
+
+        assert result["valid"] is False
+        assert result["reason"] == "not_authenticated"
+        assert result["profile"] == "default"
+        # Global fallback credentials are proxied inside the api payload only;
+        # the flat tool surface must not invent a login for them.
+        assert "login" not in result
+        assert result["browser"] == browser
+        assert result["browser_valid"] is True
+        mock_run.assert_called_once_with(["auth", "status", "--format", "json"])
+
 
 class TestAuthSetup:
     def test_auth_setup_with_direct_token(self) -> None:
@@ -442,7 +492,7 @@ class TestAuthSetup:
                 ),
             ],
         ) as mock_run:
-            result = auth_setup("y0_token", login="client")
+            result = auth_setup("y0_FAKE-TEST-TOKEN", login="client")
 
         assert result == {
             "success": True,
@@ -455,10 +505,11 @@ class TestAuthSetup:
                 [
                     "auth",
                     "login",
+                    "api",
                     "--profile",
                     "default",
                     "--oauth-token",
-                    "y0_token",
+                    "y0_FAKE-TEST-TOKEN",
                     "--login",
                     "client",
                 ],
@@ -489,8 +540,9 @@ class TestAuthSetup:
             result = auth_setup("AQAA-legacy-token")
 
         assert result["success"] is True
-        # The token reached the CLI rather than being rejected up front.
-        assert mock_run.call_args_list[0].args[0][:2] == ["auth", "login"]
+        # The token reached the CLI's api subcommand rather than being
+        # rejected up front.
+        assert mock_run.call_args_list[0].args[0][:3] == ["auth", "login", "api"]
         assert "AQAA-legacy-token" in mock_run.call_args_list[0].args[0]
 
     def test_auth_setup_returns_status_login_when_param_omitted(self) -> None:
@@ -548,6 +600,7 @@ class TestAuthSetup:
         assert setup_args == [
             "auth",
             "login",
+            "api",
             "--profile",
             "default",
             "--oauth-token",
@@ -572,6 +625,7 @@ class TestAuthSetup:
         assert setup_args == [
             "auth",
             "login",
+            "api",
             "--profile",
             "default",
             "--oauth-token",
@@ -580,6 +634,7 @@ class TestAuthSetup:
         assert login_args == [
             "auth",
             "login",
+            "api",
             "--profile",
             "default",
             "--format",
@@ -588,18 +643,104 @@ class TestAuthSetup:
         assert _login_finish_args() == [
             "auth",
             "login",
+            "api",
             "--profile",
             "default",
             "--code",
             "-",
         ]
-        assert _login_finish_legacy_args() == [
-            "auth",
-            "login",
-            "--profile",
-            "default",
-            "--code-stdin",
-        ]
+        assert _login_start_args(force=True)[-1] == "--force"
+        assert _login_finish_args(profile="p", force=True)[-1] == "--force"
+
+    def test_auth_setup_force_flag_reaches_cli(self) -> None:
+        """force=true is forwarded as the CLI's --force (direct-cli#970):
+        the only way an existing profile's credentials get overwritten."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                completed("ok"),
+                completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": "client",
+                        }
+                    )
+                ),
+            ],
+        ) as mock_run:
+            result = auth_setup("y0_FAKE-TEST-TOKEN", force=True)
+
+        assert result["success"] is True
+        assert mock_run.call_args_list[0].args[0][-1] == "--force"
+
+    def test_auth_setup_default_never_passes_force(self) -> None:
+        """Without force the CLI must stay free to refuse the overwrite:
+        no implicit rewriting of an existing profile (direct-cli#970)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            side_effect=[
+                completed("ok"),
+                completed(
+                    json.dumps(
+                        {
+                            "profile": "default",
+                            "source": "manual",
+                            "has_token": True,
+                            "login": "client",
+                        }
+                    )
+                ),
+            ],
+        ) as mock_run:
+            auth_setup("y0_FAKE-TEST-TOKEN")
+
+        assert "--force" not in mock_run.call_args_list[0].args[0]
+
+    def test_auth_setup_overwrite_refusal_maps_to_profile_exists(self) -> None:
+        """The CLI's overwrite refusal becomes a machine-readable
+        profile_exists error with a force=true hint — no implicit retry
+        (direct-cli#970). stderr text is verbatim `direct auth login api`
+        output (click UsageError, direct-cli 0.5.5 commands/auth.py)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr=(
+                    "Error: Profile 'default' already exists "
+                    "(login=engineeringprint.ru). Overwriting requires --force, "
+                    "or pick another name with --profile NAME."
+                ),
+                returncode=1,
+            ),
+        ) as mock_run:
+            result = auth_setup("y0_FAKE-TEST-TOKEN", login="engineeringprint.ru")
+
+        assert result["success"] is False
+        assert result["error"] == "profile_exists"
+        assert "already exists" in result["message"]
+        assert "force=true" in result["hint"]
+        # Exactly one CLI call: the refusal is surfaced, not retried implicitly.
+        assert mock_run.call_count == 1
+
+    def test_auth_setup_refusal_heuristic_accepts_localized_text(self) -> None:
+        """The refusal heuristic also matches a localized «уже существует»
+        message so a translated CLI stays covered (direct-cli#970 review)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                stderr=(
+                    "Профиль 'default' уже существует (login=client). "
+                    "Перезапись требует --force."
+                ),
+                returncode=1,
+            ),
+        ):
+            result = auth_setup("y0_FAKE-TEST-TOKEN")
+
+        assert result["error"] == "profile_exists"
+        assert "force=true" in result["hint"]
 
     def test_auth_setup_rejects_browser_oauth_code_without_cli_call(self) -> None:
         with patch(
@@ -659,6 +800,97 @@ class TestAuthLogin:
         result = asyncio.run(auth_login(MagicMock()))
         assert result["already_authenticated"] is True
 
+    @patch("server.tools.auth_tools.auth_status")
+    def test_auth_login_preflight_refuses_stored_token_without_force(
+        self, mock_status
+    ) -> None:
+        """An existing profile with a stored (invalid/expired) token refuses
+        BEFORE elicitation: the CLI gates every save on profile existence, so
+        the finish would reject the code anyway — the user's manual step must
+        not be spent on a doomed flow (#970 review)."""
+        mock_status.return_value = {
+            "valid": False,
+            "has_token": True,
+            "profile": "default",
+            "login": "client",
+        }
+        mock_ctx = MagicMock()
+        mock_ctx.elicit = AsyncMock()
+
+        result = asyncio.run(auth_login(mock_ctx))
+
+        assert result["success"] is False
+        assert result["error"] == "profile_exists"
+        assert "force=true" in result["hint"]
+        mock_ctx.elicit.assert_not_called()
+
+    @patch("server.tools.auth_tools.auth_status")
+    def test_auth_login_preflight_skipped_with_force(self, mock_status) -> None:
+        """force=true acknowledges the overwrite and proceeds into the OAuth
+        flow despite the stored token (#970 review)."""
+        mock_status.return_value = {
+            "valid": False,
+            "has_token": True,
+            "profile": "default",
+            "login": "client",
+        }
+        mock_ctx = MagicMock()
+        decline = MagicMock()
+        decline.action = "decline"
+        decline.data = None
+        mock_ctx.elicit = AsyncMock(return_value=decline)
+        with (
+            patch(
+                "server.tools.auth_tools._find_direct", return_value="/usr/bin/direct"
+            ),
+            patch(
+                "server.tools.auth_tools.DirectCliRunner.run",
+                return_value=completed(
+                    json.dumps(
+                        {"authorize_url": "https://oauth.yandex.ru/authorize?x=1"}
+                    )
+                ),
+            ),
+        ):
+            result = asyncio.run(auth_login(mock_ctx, force=True))
+
+        # force passes the pre-flight; the flow reaches elicitation (declined
+        # here) instead of refusing.
+        assert result == {"cancelled": True, "message": "Авторизация отменена."}
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_finish_refusal_maps_to_profile_exists(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        """Belt-and-suspenders for a pre-flight miss (profile exists without a
+        token in status): the finish-time CLI refusal maps to profile_exists
+        like auth_setup (direct-cli#970 review)."""
+        mock_run.side_effect = [
+            completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            completed(
+                stderr=(
+                    "Error: Profile 'custom' already exists. Overwriting "
+                    "requires --force, or pick another name with --profile NAME."
+                ),
+                returncode=1,
+            ),
+        ]
+
+        result = asyncio.run(auth_login(self._accepted_ctx(), profile="custom"))
+
+        assert result["success"] is False
+        assert result["error"] == "profile_exists"
+        assert "already exists" in result["message"]
+        assert "force=true" in result["hint"]
+        # The dead authorize URL is not echoed back: retrying with force
+        # re-runs the whole flow, so the old URL would be misleading.
+        assert "auth_url" not in result
+
     @patch("server.tools.auth_tools.auth_status", return_value={"valid": True})
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="default")
@@ -679,7 +911,16 @@ class TestAuthLogin:
 
         assert result == {"cancelled": True, "message": "Авторизация отменена."}
         mock_run.assert_called_once_with(
-            ["auth", "login", "--profile", "default", "--format", "json"],
+            [
+                "auth",
+                "login",
+                "api",
+                "--profile",
+                "default",
+                "--format",
+                "json",
+                "--force",
+            ],
             timeout=30,
             input="",
         )
@@ -710,7 +951,7 @@ class TestAuthLogin:
         result = asyncio.run(auth_login(mock_ctx))
         assert result == {"cancelled": True, "message": "Авторизация отменена."}
         mock_run.assert_called_once_with(
-            ["auth", "login", "--profile", "default", "--format", "json"],
+            ["auth", "login", "api", "--profile", "default", "--format", "json"],
             timeout=30,
             input="",
         )
@@ -810,6 +1051,7 @@ class TestAuthLogin:
         assert mock_run.call_args_list[0].args[0] == [
             "auth",
             "login",
+            "api",
             "--profile",
             "default",
             "--format",
@@ -856,6 +1098,7 @@ class TestAuthLogin:
         assert mock_run.call_args_list[0].args[0] == [
             "auth",
             "login",
+            "api",
             "--profile",
             "custom",
             "--format",
@@ -867,6 +1110,7 @@ class TestAuthLogin:
         assert mock_run.call_args_list[1].args[0] == [
             "auth",
             "login",
+            "api",
             "--profile",
             "custom",
             "--code",
@@ -894,16 +1138,42 @@ class TestAuthLogin:
     @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
     @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
     @patch("server.tools.auth_tools.DirectCliRunner.run")
-    def test_auth_login_falls_back_to_legacy_code_stdin(
+    def test_auth_login_force_authorizes_cli_overwrite(
+        self, mock_run, _mock_resolve, _mock_find, _mock_status
+    ) -> None:
+        """force=True travels into both CLI calls as --force: finishing an
+        OAuth re-auth into an existing profile is an explicit overwrite
+        (direct-cli#970)."""
+        mock_run.side_effect = [
+            completed(
+                json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
+            ),
+            completed("saved"),
+        ]
+
+        result = asyncio.run(
+            auth_login(self._accepted_ctx(), profile="custom", force=True)
+        )
+
+        assert mock_run.call_args_list[0].args[0][-1] == "--force"
+        assert mock_run.call_args_list[1].args[0][-1] == "--force"
+        assert result["success"] is True
+
+    @patch("server.tools.auth_tools.auth_status", return_value={"valid": False})
+    @patch("server.tools.auth_tools._find_direct", return_value="/usr/bin/direct")
+    @patch("server.tools.auth_tools._resolve_profile_name", return_value="custom")
+    @patch("server.tools.auth_tools.DirectCliRunner.run")
+    def test_auth_login_finishes_single_api_code_form(
         self, mock_run, _mock_resolve, _mock_find, _mock_status, monkeypatch, tmp_path
     ) -> None:
         # No saved profile and no login parameter → response login is "".
+        # The removed --code-stdin fallback is gone with direct-cli #951:
+        # one finish call, one form (#969).
         monkeypatch.setenv("HOME", str(tmp_path))
         mock_run.side_effect = [
             completed(
                 json.dumps({"authorize_url": "https://oauth.yandex.ru/authorize?x=1"})
             ),
-            completed(stderr="invalid authorization code", returncode=1),
             completed("saved"),
         ]
 
@@ -912,28 +1182,19 @@ class TestAuthLogin:
         assert mock_run.call_args_list[1].args[0] == [
             "auth",
             "login",
+            "api",
             "--profile",
             "custom",
             "--code",
             "-",
         ]
-        assert mock_run.call_args_list[2].args[0] == [
-            "auth",
-            "login",
-            "--profile",
-            "custom",
-            "--code-stdin",
-        ]
         assert mock_run.call_args_list[1].kwargs == {
-            "timeout": 60,
-            "input": "ABC123\n",
-        }
-        assert mock_run.call_args_list[2].kwargs == {
             "timeout": 60,
             "input": "ABC123\n",
         }
         for recorded_call in mock_run.call_args_list:
             assert "ABC123" not in recorded_call.args[0]
+            assert "--code-stdin" not in recorded_call.args[0]
         assert result == {
             "success": True,
             "method": "oauth_code",

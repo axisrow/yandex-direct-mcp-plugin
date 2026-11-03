@@ -10,7 +10,9 @@ import sys
 
 def main() -> int:
     """Delegate live test authentication to `direct`."""
-    return subprocess.call(["direct", "auth", "login"])
+    # `auth login` is a group (direct-cli #951); the API-token login the
+    # cassette recording needs is the `api` subcommand.
+    return subprocess.call(["direct", "auth", "login", "api"])
 
 
 if __name__ == "__main__":
