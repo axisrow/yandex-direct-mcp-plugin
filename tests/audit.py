@@ -24,7 +24,13 @@ CRITICAL_PATTERNS: list[tuple[str, str]] = [
 ]
 
 WARNING_PATTERNS: list[tuple[str, str]] = [
-    (r"https?://(?!example\.com)[a-z0-9.-]+\.[a-z]{2,}", "Real domain"),
+    # Scheme is optional: yac prints pixel URLs scheme-less
+    # ("mc.yandex.ru/pixel/..."), and a strict https?:// prefix would let
+    # exactly that shape through (it did — sanitizer and audit shared the
+    # blind spot until the leak was caught in review). The lookbehind keeps
+    # the engine from matching mid-word ("xample.com" inside the sanitized
+    # "example.com" placeholder).
+    (r"(?<![\w.-])(?:https?://)?(?!example\.com)[a-z0-9.-]+\.[a-z]{2,}", "Real domain"),
     (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "Phone number"),
     (r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "Email address"),
 ]

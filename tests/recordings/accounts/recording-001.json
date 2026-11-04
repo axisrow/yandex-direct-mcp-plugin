@@ -1,0 +1,10 @@
+{
+  "command": "yac",
+  "args": [
+    "accounts",
+    "list"
+  ],
+  "stdout": "{\n  \"accounts\": []\n}",
+  "stderr": "",
+  "returncode": 0
+}

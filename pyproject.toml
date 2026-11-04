@@ -6,7 +6,15 @@ requires-python = ">=3.11"
 # changes (mcp is third-party; direct-cli is ours). Versions are kept in lockstep
 # with scripts/runtime-pins.env (single source of truth) by scripts/update-pins.sh;
 # tests/test_pins_consistency.py enforces alignment. Bump via the script, not by hand.
-dependencies = ["mcp==1.23.3", "direct-cli==0.5.5"]
+#
+# yandex-audience-cli (the `yac` second transport) is deliberately UNPINNED for
+# now: PyPI carries only the 0.0.1 early build (not the current 0.1.x line) as
+# of 2026-11-04, so pinning to it would downgrade installs and a floor above
+# PyPI would make this package uninstallable. The pin arrives together with the
+# first real PyPI release (and then goes into runtime-pins.env + both bootstrap
+# installers, like direct-cli). The runner shells out to `yac` and never
+# imports the package, so the stale PyPI artifact is inert in CI.
+dependencies = ["mcp==1.23.3", "direct-cli==0.5.5", "yandex-audience-cli"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff==0.16.0", "mypy", "pre-commit"]
 docs = ["sphinx", "sphinx-autodoc-typehints", "furo"]

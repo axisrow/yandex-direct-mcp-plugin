@@ -89,17 +89,28 @@ def test_bundle_copy_is_byte_identical() -> None:
 
 
 def test_pyproject_pins_match(pins: dict[str, str]) -> None:
-    """#3 — pyproject.toml pins ``mcp`` and ``direct-cli`` to the same exact versions."""
+    """#3 — pyproject pins ``mcp`` and ``direct-cli`` to the same exact versions.
+
+    The pinned set must always cover both runtime pins; anything on top is an
+    explicitly unpinned transport dependency. Today that is exactly
+    ``yandex-audience-cli`` (the `yac` second transport) — unpinned until its
+    first real PyPI release (0.0.1 is a stub), at which point it graduates
+    into runtime-pins.env like the other two.
+    """
     pyproject = tomllib.loads(PYPROJECT.read_text())
-    deps = pyproject["project"]["dependencies"]
+    deps = set(pyproject["project"]["dependencies"])
     expected = {
         f"mcp=={pins['MCP_VERSION']}",
         f"direct-cli=={pins['DIRECT_CLI_VERSION']}",
     }
-    actual = set(deps)
-    assert expected == actual, (
-        f"pyproject.toml dependencies drifted from runtime-pins.env: "
-        f"expected {expected}, got {actual}"
+    assert expected <= deps, (
+        f"pyproject.toml is missing exact runtime pins from runtime-pins.env: "
+        f"expected to contain {expected}, got {sorted(deps)}"
+    )
+    unpinned = deps - expected
+    assert unpinned == {"yandex-audience-cli"}, (
+        f"unexpected unpinned dependencies in pyproject.toml: {sorted(unpinned)}; "
+        "every new runtime dep needs an explicit decision here"
     )
 
 

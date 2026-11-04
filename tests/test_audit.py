@@ -57,3 +57,39 @@ def test_warning_leak(tmp_path):
 
     result = audit(tmp_path)
     assert result == 1
+
+
+def test_warning_schemeless_domain_leak(tmp_path):
+    """Scheme-less domains are flagged too (yac prints pixel URLs without a scheme)."""
+    cassette = tmp_path / "warn-schemeless.json"
+    cassette.write_text(
+        json.dumps(
+            {
+                "args": [],
+                "stdout": '{"url": "mc.yandex.ru/pixel/8781148034394595718"}',
+                "stderr": "",
+                "returncode": 0,
+            }
+        )
+    )
+
+    result = audit(tmp_path)
+    assert result == 1
+
+
+def test_sanitized_example_com_placeholder_is_clean(tmp_path):
+    """The scheme-less pattern must not match mid-word inside "example.com"."""
+    cassette = tmp_path / "placeholder.json"
+    cassette.write_text(
+        json.dumps(
+            {
+                "args": [],
+                "stdout": '{"url": "https://example.com/pixel"}',
+                "stderr": "",
+                "returncode": 0,
+            }
+        )
+    )
+
+    result = audit(tmp_path)
+    assert result == 0

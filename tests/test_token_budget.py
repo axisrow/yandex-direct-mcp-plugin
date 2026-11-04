@@ -40,20 +40,20 @@ _TOOL_SURFACE_ENV = (
     "YANDEX_DIRECT_ENABLED_TOOLS",
     "YANDEX_DIRECT_DISABLED_TOOLS",
 )
-# Snapshot under approx(len/4) as of 2026-10-28 (#317 adrestrictions_get,
-# #318 api_units, #319 dictionaries_get_retargeting_goals, #323
-# auth_browser_logout, #298 mutating masters tools, #300 masters_adimages_
-# add/set/delete + masters_delete, default-on bundle registration):
-# total ≈ 36,054 · descriptions ≈ 6,021 · 174 tools
-# (153 base + 21 implemented bundle tools).
+# Snapshot under approx(len/4) as of 2026-11-04 (yac/Audience integration:
+# 28 audience_* tools joined the default surface; measured 39,098 total /
+# 7,039 descriptions · 202 tools = 181 base + 21 implemented bundle tools):
+# total ≈ 39,098 · descriptions ≈ 7,039 · 202 tools
 # Raised 33,500 → 35,500 (#312: bundle tools joined the default surface).
 # Raised 35,500 → 36,250 (#298: masters_add + masters_update joined the browser
 # bundle; +608 tokens of grouped-dict schemas, measured 35,516 approx).
+# Raised 36,250 → 40,000 / 37,250 → 41,000 / 7,000 → 7,500 (second transport:
+# yandex-audience-cli audience_* tools; measured 39,098 / 7,039 approx).
 # Ceilings carry headroom to absorb small additions but stay well below a
 # regression (re-adding full docstrings alone was ~16k of descriptions).
-DEFAULT_TOTAL_TOKEN_CEILING = 36_250
-FULL_TOTAL_TOKEN_CEILING = 37_250
-DESCRIPTION_TOKEN_CEILING = 7_000
+DEFAULT_TOTAL_TOKEN_CEILING = 40_000
+FULL_TOTAL_TOKEN_CEILING = 41_000
+DESCRIPTION_TOKEN_CEILING = 7_500
 
 
 def _measure(env: dict[str, str] | None = None) -> dict:

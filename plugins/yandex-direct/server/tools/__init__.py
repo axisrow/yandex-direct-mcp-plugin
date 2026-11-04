@@ -311,6 +311,13 @@ def get_runner():
     return DirectCliRunner()
 
 
+def get_audience_runner():
+    """Create an AudienceCliRunner for the `yac` transport (Yandex Audience API)."""
+    from server.cli.audience_runner import AudienceCliRunner
+
+    return AudienceCliRunner()
+
+
 def get_browser_runner(*, timeout: int = BROWSER_DEFAULT_TIMEOUT):
     """Create a runner with a browser-safe, environment-overridable timeout."""
     from server.cli.runner import DirectCliRunner

@@ -1,0 +1,12 @@
+{
+  "command": "yac",
+  "args": [
+    "segments",
+    "list",
+    "--pixel",
+    "724143"
+  ],
+  "stdout": "{\n  \"segments\": []\n}",
+  "stderr": "",
+  "returncode": 0
+}

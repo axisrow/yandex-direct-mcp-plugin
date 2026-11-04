@@ -45,3 +45,24 @@ def test_sanitizes_campaign_names(tmp_path):
     data = json.loads(cassette.read_text())
     assert "Campaign_XXXXX" in data["stdout"]
     assert "\u0414\u043e\u0441\u0442\u0430\u0432\u043a\u0430" not in data["stdout"]
+
+
+def test_sanitizes_schemeless_pixel_url(tmp_path):
+    """yac prints pixel URLs scheme-less \u2014 the rule must not require a scheme."""
+    cassette = tmp_path / "test.json"
+    cassette.write_text(
+        json.dumps(
+            {
+                "args": [],
+                "stdout": '{"url": "mc.yandex.ru/pixel/8781148034394595718?rnd=%aw_random%"}',
+                "stderr": "",
+                "returncode": 0,
+            }
+        )
+    )
+
+    sanitize(tmp_path)
+
+    data = json.loads(cassette.read_text())
+    assert "https://example.com/pixel" in data["stdout"]
+    assert "mc.yandex.ru" not in data["stdout"]

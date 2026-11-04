@@ -1,11 +1,17 @@
-"""Public MCP contract metadata aligned to the `direct` CLI surface.
+"""Public MCP contract metadata aligned to the CLI transports.
+
+`direct` (direct-cli) is the transport for the Yandex.Direct API surface;
+`yac` (yandex-audience-cli) is the second transport for the Yandex Audience
+API surface (`audience_*` tools). Both CLIs are subprocess boundaries — the
+plugin never talks to either API over HTTP itself.
 
 Tool count (derived from the structures below):
 - Direct API tools: 141
 - CLI helper tools:   6
+- Audience tools:    28
 - Browser tools:     21
 - Plugin tools:       6
-Total:              174 (153 default + 21 optional)
+Total:              202 (181 default + 21 optional)
 """
 
 from __future__ import annotations
@@ -19,15 +25,19 @@ from typing import Literal
 # ``cli-extra``: public CLI helper intentionally outside the 1:1 API surface.
 # ``browser``: optional browser/local-reference command outside the Direct API.
 # ``plugin``: plugin-only auth/utility tool, not a Direct API operation.
+# ``audience-api``: Yandex Audience API operation validated against the yac registry.
 ToolAuthority = Literal[
-    "wsdl", "reports-spec", "v4-live", "cli-extra", "browser", "plugin"
+    "wsdl", "reports-spec", "v4-live", "cli-extra", "browser", "plugin", "audience-api"
 ]
 
 # ``direct_api``: public Direct operation exposed through CLI transport.
 # ``cli_helper``: public helper kept separate from the Direct API contract.
 # ``browser``: optional browser/local-reference tool, not a Direct API operation.
 # ``plugin``: plugin-only tool unrelated to Direct service parity.
-ToolClassification = Literal["direct_api", "cli_helper", "browser", "plugin"]
+# ``audience``: Yandex Audience operation exposed through the `yac` transport.
+ToolClassification = Literal[
+    "direct_api", "cli_helper", "browser", "plugin", "audience"
+]
 
 # ``aligned``: MCP name matches tapi/WSDL canonical; CLI transport confirmed.
 # ``transport_blocked``: operation exists in WSDL/tapi surface but
@@ -277,6 +287,46 @@ _BROWSER_CLI_SUBCOMMAND_PATHS: dict[tuple[str, str], tuple[str, ...]] = {
     # ``direct auth doctor`` (same parameters).
     ("playwright", "doctor"): ("auth", "doctor"),
 }
+
+# Yandex Audience API surface, one entry per `yac` command (28 tools, 5
+# groups). The source of truth is yac's registry (yac/registry/<group>/<op>.py
+# in axisrow/yandex-audience-cli); the plugin mirrors it 1:1. Public names are
+# ``audience_{group}_{op}``; the CLI argv path is ``<group> <kebab-op>``, so
+# every entry needs an explicit cli_subcommand_path (the flat kebab-case
+# default would invent commands like `segments create-pixel` as ONE token).
+# `direct` knows nothing about these commands — they belong to the second
+# transport exclusively.
+AUDIENCE_SERVICE_METHODS: dict[str, tuple[str, ...]] = {
+    "segments": (
+        "list",
+        "create_pixel",
+        "create_lookalike",
+        "create_metrika",
+        "create_appmetrica",
+        "create_geo",
+        "create_geo_polygon",
+        "upload_file",
+        "upload_csv_file",
+        "update_geo_points",
+        "modify_data",
+        "confirm",
+        "confirm_client_id",
+        "update",
+        "delete",
+        "reprocess",
+    ),
+    "grants": ("list", "add", "remove"),
+    "pixels": ("list", "create", "update", "delete", "undelete"),
+    "accounts": ("list",),
+    "delegates": ("list", "add", "remove"),
+}
+
+
+def _audience_subcommand_path(cli_method: str) -> tuple[str, ...]:
+    """Derive the two-token yac argv path: segments_create_pixel → ("segments", "create-pixel")."""
+    group, _, verb = cli_method.partition("_")
+    return (group, verb.replace("_", "-"))
+
 
 # Reports-spec tools that share the same CLI subcommand (`direct reports get`)
 # but expose a different MCP-side parameter shape. These cannot live in
@@ -775,6 +825,18 @@ PUBLIC_CONTRACT: tuple[ContractTool, ...] = (
     *V4_LIVE_CLI_TOOLS,
     *(
         ContractTool(
+            public_name=_tool_name("audience", _tool_name(service, method)),
+            cli_service="audience",
+            cli_method=method,
+            authority="audience-api",
+            classification="audience",
+            cli_subcommand_path=_audience_subcommand_path(_tool_name(service, method)),
+        )
+        for service, methods in AUDIENCE_SERVICE_METHODS.items()
+        for method in methods
+    ),
+    *(
+        ContractTool(
             public_name=_tool_name(service, method),
             cli_service=service,
             cli_method=method,
@@ -807,6 +869,9 @@ CLI_HELPER_TOOL_NAMES = frozenset(
 )
 BROWSER_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "browser"
+)
+AUDIENCE_TOOL_NAMES = frozenset(
+    tool.public_name for tool in PUBLIC_CONTRACT if tool.classification == "audience"
 )
 OPTIONAL_TOOL_NAMES = frozenset(
     tool.public_name for tool in PUBLIC_CONTRACT if tool.optional_bundle is not None

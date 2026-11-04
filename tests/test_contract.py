@@ -70,7 +70,8 @@ def test_optional_and_default_name_sets_partition_public_contract() -> None:
     assert DEFAULT_TOOL_NAMES.isdisjoint(OPTIONAL_TOOL_NAMES)
     assert DEFAULT_TOOL_NAMES | OPTIONAL_TOOL_NAMES == PUBLIC_TOOL_NAMES
 
-    # The current main-branch default surface contains 153 tools. Issue #292's
+    # The current main-branch default surface contains 181 tools: the 153
+    # pre-audience tools plus 28 `yac`-transport audience tools. Issue #292's
     # original 146 estimate predated three already-merged default tools; browser
     # declarations must not make existing tools optional just to preserve it.
     # #313 added auth_browser_login as the fifth plugin tool; #318 added the
@@ -78,7 +79,7 @@ def test_optional_and_default_name_sets_partition_public_contract() -> None:
     # #323 added auth_browser_logout. Since direct-cli #951 every browser
     # contract name has an implementation module (the three reserved auth
     # names left the contract with their removed CLI commands).
-    assert len(DEFAULT_TOOL_NAMES) == 153
+    assert len(DEFAULT_TOOL_NAMES) == 181
 
 
 def test_nested_browser_commands_override_flat_kebab_case_path() -> None:
