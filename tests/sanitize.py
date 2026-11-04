@@ -31,8 +31,10 @@ SANITIZE_RULES: list[tuple[str, str]] = [
     (r'"Cost"\s*:\s*[\d.]+', '"Cost": 1000.00'),
     (r'"Href"\s*:\s*"https?://[^"]+"', '"Href": "https://example.com"'),
     # Audience cassettes (yac transport): the pixel tracking URL leaks a real
-    # mc.yandex.ru domain, which the audit flags as commercial data.
-    (r'"url"\s*:\s*"https?://[^"]+"', '"url": "https://example.com/pixel"'),
+    # mc.yandex.ru domain, which the audit flags as commercial data. yac
+    # prints the URL SCHEME-LESS ("mc.yandex.ru/pixel/..."), so the scheme is
+    # optional here — a strict https?:// prefix silently lets the domain pass.
+    (r'"url"\s*:\s*"(?:https?://)?[^"]+"', '"url": "https://example.com/pixel"'),
     (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "+7 (000) 000-00-00"),
 ]
 
