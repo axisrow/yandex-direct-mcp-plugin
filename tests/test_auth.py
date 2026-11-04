@@ -422,6 +422,101 @@ class TestAuthStatus:
         assert result["valid"] is True
         assert result["browser_valid"] is False
 
+    def test_auth_status_reports_revoked_browser_session_invalid(self) -> None:
+        """A server-revoked SSO session (probe=revoked) must read as invalid
+        even though the cookies themselves are fresh — exactly the case the
+        CLI probe names instead of guessing (direct-cli #954)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "exists": True,
+                            "owner_login": "ksamatadirect",
+                            "expired": False,
+                            "cookie_count": 46,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": None,
+                            "probe": "revoked",
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is False
+
+    def test_auth_status_reports_alive_probe_browser_valid(self) -> None:
+        """probe=alive keeps the flat-form verdict positive (direct-cli #954)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "exists": True,
+                            "owner_login": "ksamatadirect",
+                            "expired": False,
+                            "cookie_count": 46,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": None,
+                            "probe": "alive",
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is True
+
+    def test_auth_status_reports_probe_absent_browser_valid(self) -> None:
+        """Wheels before the probe (pinned direct-cli 0.5.5) carry no probe
+        key at all; its absence must not flip the verdict (#954)."""
+        with patch(
+            "server.tools.auth_tools.DirectCliRunner.run",
+            return_value=completed(
+                json.dumps(
+                    {
+                        "api": {
+                            "profile": "default",
+                            "source": "oauth",
+                            "has_token": True,
+                            "login": "client",
+                        },
+                        "browser": {
+                            "exists": True,
+                            "owner_login": "ksamatadirect",
+                            "expired": False,
+                            "cookie_count": 46,
+                            "path": "/home/u/.direct-cli/playwright/session.json",
+                            "error": None,
+                        },
+                    }
+                )
+            ),
+        ):
+            result = auth_status()
+
+        assert result["valid"] is True
+        assert result["browser_valid"] is True
+
     def test_auth_status_reads_nested_api_payload_with_global_fallback(self) -> None:
         """Verbatim `direct auth status --format json` shape (direct-cli 0.5.5,
         #951): both domains nested under api/browser; an unconfigured API

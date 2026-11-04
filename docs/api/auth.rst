@@ -44,18 +44,19 @@ are available.
 Chrome cookie import (alternative)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``direct playwright login`` is a separate non-OAuth alternative. It imports
-only Yandex cookies from an existing Chrome profile and saves a reusable
-Playwright state at ``~/.direct-cli/playwright/session.json``. On macOS,
-decrypting those cookies requires access to the ``Chrome Safe Storage`` key in
-the login Keychain. ``direct playwright doctor`` checks this pipeline without
-logging in or writing files.
+``direct auth login browser --source chrome`` imports only Yandex cookies
+from an existing Chrome profile and saves a reusable Playwright state at
+``~/.direct-cli/playwright/session.json`` (``direct playwright login`` is its
+hidden deprecated alias). On macOS, decrypting those cookies requires access
+to the ``Chrome Safe Storage`` key in the login Keychain.
+``direct auth doctor`` checks this pipeline without logging in or writing
+files (the deprecated ``direct playwright doctor`` alias is hidden in the CLI).
 
-When both stores exist, ``direct`` prefers the persistent profile created by
-``direct masters login``. Both stores contain a live Yandex session and must be
-protected as credentials. ``direct auth logout browser`` — or the plugin's
-``auth_browser_logout`` tool — removes both saved sessions: the CLI-owned
-persistent profile and the imported session store. Masters commands always use
+Since direct-cli #951 there is a single session store; the persistent profile
+created by the removed ``direct masters login`` is gone. The store contains a
+live Yandex session and must be protected as a credential.
+``direct auth logout browser`` — or the plugin's
+``auth_browser_logout`` tool — removes it. Masters commands always use
 the account logged in to the
 browser session; API profile and ``YANDEX_DIRECT_LOGIN`` selection do not apply.
 

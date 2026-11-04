@@ -203,8 +203,9 @@ read-only-инструменты могут запускать браузер б
 `~/.direct-cli/playwright/session.json`. На macOS для расшифровки cookies
 потребуется разрешить чтение ключа `Chrome Safe Storage` из Keychain. Для
 безопасной диагностики без входа и записи файлов используйте `direct
-playwright doctor` (legacy-команда `direct playwright login` deprecated —
-используйте `direct auth login browser`).
+auth doctor` — скрытый legacy-алиас `direct playwright doctor` deprecated
+(`direct playwright login` тоже deprecated — используйте
+`direct auth login browser`).
 
 Браузерные тулы авторизуют аккаунт, открытый в браузере; OAuth-профиль и
 `YANDEX_DIRECT_LOGIN` не переключают masters-инструменты на другой клиентский

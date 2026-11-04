@@ -99,6 +99,9 @@ def test_nested_browser_commands_override_flat_kebab_case_path() -> None:
         "masters_audience_get": ("masters", "audience", "get"),
         "trackingparams_get": ("trackingparams",),
         "adrestrictions_get": ("adrestrictions",),
+        # Name heritage only: the canonical transport is `direct auth doctor`
+        # (the deprecated `playwright doctor` alias is hidden in the CLI).
+        "playwright_doctor": ("auth", "doctor"),
     }
     for name, path in expected_nested_paths.items():
         assert by_name[name].cli_subcommand_path == path

@@ -41,12 +41,14 @@ def _runner_for(module: ModuleType, result: object) -> MagicMock:
 
 
 def _published_doctor_or_skip() -> click.Command:
-    group = cli.commands.get("playwright")
+    # The wrapper targets the canonical `direct auth doctor` since the CLI hid
+    # the deprecated `playwright doctor` alias.
+    group = cli.commands.get("auth")
     if not isinstance(group, click.Group):
-        pytest.skip("playwright group is not in published direct-cli 0.5.2")
+        pytest.skip("auth group is not in the installed direct-cli")
     command = group.get_command(click.Context(group), "doctor")
     if command is None:
-        pytest.skip("playwright doctor is not in published direct-cli 0.5.2")
+        pytest.skip("auth doctor is not in the installed direct-cli")
     return command
 
 
@@ -75,7 +77,7 @@ def test_playwright_doctor_returns_structured_lenient_json(
     assert playwright_module.playwright_doctor() == result_data
 
     runner.run_json_lenient.assert_called_once_with(
-        ["playwright", "doctor", "--format", "json"]
+        ["auth", "doctor", "--format", "json"]
     )
     cast(Any, playwright_module).get_browser_runner.assert_called_once_with()
 
@@ -93,7 +95,7 @@ def test_playwright_doctor_forwards_profile_env_but_never_headful(
 
     runner.run_json_lenient.assert_called_once_with(
         [
-            "playwright",
+            "auth",
             "doctor",
             "--profile-dir",
             "/tmp/profile",

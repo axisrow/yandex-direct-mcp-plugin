@@ -80,7 +80,7 @@ The first optional thin slice also includes two zero-parameter helpers:
 | Bundle | Tool | CLI command | Safety |
 |---|---|---|---|
 | `trackingparams` | `trackingparams_get` | `direct trackingparams` | Static local reference; no browser or API request |
-| `browser` | `playwright_doctor` | `direct playwright doctor` | Read-only diagnostics; never logs in, launches a browser, or writes files |
+| `browser` | `playwright_doctor` | `direct auth doctor` | Read-only diagnostics; no login, no browser window, no file writes; the saved-session check probes the server (cookie-only GET, #954) |
 
 CLI output controls and Playwright profile path/name are transport/deployment
 configuration, not MCP inputs. Calibration on 2026-08-27 with deterministic
@@ -122,7 +122,9 @@ Provision Masters authentication manually, outside the stdio MCP process:
    window), `auth_browser_logout` wraps `direct auth logout browser` (deletes
    the session store), and `auth_status` reports
    the browser-session state alongside the
-   API token so an expired session is visible before a masters call fails.
+   API token so an expired — or, since direct-cli #954, server-revoked
+   (`probe: revoked`) — session is visible before a masters call fails
+   (`browser_valid` folds in the probe verdict).
    Any browser command auto-imports a live Chrome session into the store
    (headless, no window) when it is missing, broken, or expired; only
    `direct auth login browser` opens a window.
@@ -145,9 +147,11 @@ same home directory and Playwright Chromium remain available.
 The `--source chrome` path (and the automatic import) decrypt Yandex cookies
 from a real Chrome profile into `~/.direct-cli/playwright/session.json`; on
 macOS they read the `Chrome Safe Storage` key from the login Keychain.
-`direct playwright doctor` diagnoses that path without logging in or writing
-files (`direct playwright login` is a deprecated alias of
-`direct auth login browser`). Treat the session store as a live login
+`direct auth doctor` diagnoses that path without logging in or writing
+files (`direct playwright doctor` and `direct playwright login` remain hidden
+deprecated aliases of `direct auth doctor` and `direct auth login browser`;
+the plugin's `playwright_doctor` keeps its public name but wraps the canonical
+`auth doctor`). Treat the session store as a live login
 credential; `direct auth logout browser` (plugin tool `auth_browser_logout`)
 removes it.
 
