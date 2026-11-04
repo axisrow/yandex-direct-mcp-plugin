@@ -4575,6 +4575,13 @@ when the browser session or the page read fails.</p>
 <dt class="sig sig-object py" id="server.tools.playwright.playwright_doctor">
 <span class="sig-prename descclassname"><span class="pre">server.tools.playwright.</span></span><span class="sig-name descname"><span class="pre">playwright_doctor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.tools.playwright.playwright_doctor" title="Link to this definition">¶</a></dt>
 <dd><p>Return read-only diagnostics for browser dependencies and session state.</p>
+<p>Wraps <code class="docutils literal notranslate"><span class="pre">direct</span> <span class="pre">auth</span> <span class="pre">doctor</span></code> — the canonical diagnostics command since the
+CLI hid the deprecated <code class="docutils literal notranslate"><span class="pre">playwright</span> <span class="pre">doctor</span></code> alias; the MCP tool keeps its
+public name and its <code class="docutils literal notranslate"><span class="pre">playwright</span></code> config group (<a href="#id17"><span class="problematic" id="id18">YANDEX_DIRECT_DISABLED_</span></a>
+GROUPS=playwright still works). The <code class="docutils literal notranslate"><span class="pre">auth</span> <span class="pre">doctor</span></code> saved-session check may
+run a cookie-only server-side probe (direct-cli #954), so this command can
+touch the network — it still never logs in, launches a browser, or writes
+files.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>] | <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
@@ -4701,7 +4708,7 @@ stores a token is refused up front with error=”profile_exists”.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>code</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Direct OAuth token (starts with <a href="#id17"><span class="problematic" id="id18">y0_</span></a>).</p></li>
+<li><p><strong>code</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Direct OAuth token (starts with <a href="#id19"><span class="problematic" id="id20">y0_</span></a>).</p></li>
 <li><p><strong>login</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <span class="highlight sphinx_autodoc_typehints-value"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></span></span>) – Optional Yandex.Direct Client-Login to save with the profile.</p></li>
 <li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – direct auth profile name to save and activate.</p></li>
 <li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Explicitly overwrite the profile’s already-saved credentials.
