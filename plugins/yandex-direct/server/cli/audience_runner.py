@@ -11,10 +11,11 @@ Differences from DirectCliRunner, all deliberate:
   (``--token`` > ``YANDEX_AUDIENCE_TOKEN`` env passthrough >
   ``~/.config/yandex-audience-cli/token`` file). The runner only makes sure
   the environment reaches the subprocess untouched.
-- No version floor: yandex-audience-cli has no real PyPI release yet
-  (0.0.1 stub as of 2026-11-04), so there is nothing to floor against and
-  ``--version`` probing would be theater. A floor is added together with
-  the first real release and the pins/bootstrap wiring.
+- Version floor lives at the packaging layer: pyproject and both bootstrap
+  channels install ``yandex-audience-cli>=0.1.1`` (the first real PyPI
+  release; the 0.0.1 stub below it has no working commands). The runner
+  does not re-probe ``yac --version`` — the floor is enforced where the
+  package is installed, not on every resolve.
 - No JSON envelope tricks: yac prints the API response as plain JSON to
   stdout (`-o json`), errors go to stderr with exit 1. No notices, no
   per-action error codes, no browser fallback paths.
@@ -34,9 +35,10 @@ from pathlib import Path
 from server.cli.runner import CliError, CliNotFoundError, _strip_ansi
 
 _YAC_INSTALL_HINT = (
-    "yac not found. Install yandex-audience-cli and make sure `yac` is on PATH: "
-    "https://github.com/axisrow/yandex-audience-cli "
-    "(until a real PyPI release exists, install editable from the repo checkout). "
+    "yac not found. Install yandex-audience-cli>=0.1.1 and make sure `yac` is "
+    "on PATH: https://github.com/axisrow/yandex-audience-cli "
+    "(the plugin's bootstrap installs it into its venv; 0.0.1 is a broken "
+    "stub — do not use it). "
     "Set YANDEX_AUDIENCE_CLI_PATH to pin a specific binary."
 )
 
@@ -63,14 +65,22 @@ def _find_yac() -> str | None:
 
     1. ``YANDEX_AUDIENCE_CLI_PATH`` env var (explicit override; broken paths
        fall through to the normal search, matching ``_find_direct``)
-    2. ``shutil.which("yac")`` (system PATH)
-    3. ``~/.local/bin/yac`` (``pip install --user``)
+    2. ``CLAUDE_PLUGIN_DATA/venv/bin/yac`` (plugin-managed venv — both
+       bootstrap channels install the ``yandex-audience-cli`` floor there)
+    3. ``shutil.which("yac")`` (system PATH)
+    4. ``~/.local/bin/yac`` (``pip install --user``)
 
-    No version probing: there is no published floor to verify against yet.
+    No version probing: the ``>=0.1.1`` floor is enforced at install time by
+    pyproject + the bootstrap pins, not on every resolve.
     """
     explicit = os.environ.get("YANDEX_AUDIENCE_CLI_PATH")
     if explicit and Path(explicit).is_file():
         return explicit
+    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA", "")
+    if plugin_data:
+        venv_yac = Path(plugin_data) / "venv" / "bin" / "yac"
+        if venv_yac.is_file():
+            return str(venv_yac)
     if found := shutil.which("yac"):
         return found
     local_bin = Path.home() / ".local" / "bin" / "yac"

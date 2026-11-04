@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Bump the two runtime dependency pins (mcp, direct-cli) across the canonical
-# places that must stay in lockstep:
+# Bump the runtime dependency pins (mcp, direct-cli) and the yandex-audience-cli
+# floor across the canonical places that must stay in lockstep:
 #
 #   - scripts/runtime-pins.env                       (single source of truth)
 #   - plugins/yandex-direct/scripts/runtime-pins.env (Codex bundle copy)
-#   - pyproject.toml                                 (mcp==X.Y.Z, direct-cli==X.Y.Z)
+#   - pyproject.toml                                 (mcp==X.Y.Z, direct-cli==X.Y.Z,
+#                                                     yandex-audience-cli>=X.Y.Z)
 #   - server/cli/runner.py                           (MIN_DIRECT_VERSION tuple)
 #
 # tests/test_pins_consistency.py guards that nothing drifted.
@@ -23,15 +24,16 @@ RUNNER_PY="${PLUGIN_DIR}/server/cli/runner.py"
 
 usage() {
   cat >&2 <<EOF
-Usage: $0 MCP_VERSION DIRECT_CLI_VERSION
+Usage: $0 MCP_VERSION DIRECT_CLI_VERSION AUDIENCE_CLI_VERSION
 
-Pin the runtime mcp and direct-cli versions across all canonical places.
-Both versions must be PEP 440 X.Y.Z (optional [.-]suffix).
+Pin the runtime mcp and direct-cli versions and the yandex-audience-cli floor
+across all canonical places. All versions must be PEP 440 X.Y.Z (optional
+[.-]suffix).
 EOF
 }
 
 command -v perl >/dev/null || { echo "error: perl is required" >&2; exit 1; }
-[[ $# -eq 2 ]] || { usage; exit 2; }
+[[ $# -eq 3 ]] || { usage; exit 2; }
 [[ -f "$PIN_FILE_REPO" ]] || { echo "error: $PIN_FILE_REPO not found" >&2; exit 1; }
 [[ -f "$PIN_FILE_BUNDLE" ]] || { echo "error: $PIN_FILE_BUNDLE not found" >&2; exit 1; }
 [[ -f "$PYPROJECT" ]] || { echo "error: $PYPROJECT not found" >&2; exit 1; }
@@ -39,6 +41,7 @@ command -v perl >/dev/null || { echo "error: perl is required" >&2; exit 1; }
 
 mcp_version="$1"
 direct_cli_version="$2"
+audience_cli_version="$3"
 
 SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
 if [[ ! "$mcp_version" =~ $SEMVER_RE ]]; then
@@ -49,6 +52,10 @@ if [[ ! "$direct_cli_version" =~ $SEMVER_RE ]]; then
   echo "error: invalid DIRECT_CLI_VERSION '$direct_cli_version'" >&2
   exit 1
 fi
+if [[ ! "$audience_cli_version" =~ $SEMVER_RE ]]; then
+  echo "error: invalid AUDIENCE_CLI_VERSION '$audience_cli_version'" >&2
+  exit 1
+fi
 
 # Derive the (X, Y, Z) tuple for MIN_DIRECT_VERSION from the leading triplet.
 read -r dx dy dz <<< "$(echo "$direct_cli_version" | perl -ne '/^(\d+)\.(\d+)\.(\d+)/ && print "$1 $2 $3"')"
@@ -57,15 +64,17 @@ if [[ -z "${dx:-}" ]]; then
   exit 1
 fi
 
-echo "Pinning mcp=${mcp_version}, direct-cli=${direct_cli_version}"
+echo "Pinning mcp=${mcp_version}, direct-cli=${direct_cli_version}, audience-cli>=${audience_cli_version}"
 
 for pin_file in "$PIN_FILE_REPO" "$PIN_FILE_BUNDLE"; do
   perl -i -pe 's/^MCP_VERSION=.*$/MCP_VERSION='"$mcp_version"'/' "$pin_file"
   perl -i -pe 's/^DIRECT_CLI_VERSION=.*$/DIRECT_CLI_VERSION='"$direct_cli_version"'/' "$pin_file"
+  perl -i -pe 's/^AUDIENCE_CLI_VERSION=.*$/AUDIENCE_CLI_VERSION='"$audience_cli_version"'/' "$pin_file"
 done
 
 perl -i -pe 's/"mcp==[^"]+"/"mcp=='"$mcp_version"'"/' "$PYPROJECT"
 perl -i -pe 's/"direct-cli==[^"]+"/"direct-cli=='"$direct_cli_version"'"/' "$PYPROJECT"
+perl -i -pe 's/"yandex-audience-cli[^"]*"/"yandex-audience-cli>='"$audience_cli_version"'"/' "$PYPROJECT"
 
 perl -i -pe 's/^MIN_DIRECT_VERSION: tuple\[int, int, int\] = \(\d+, \d+, \d+\)$/MIN_DIRECT_VERSION: tuple[int, int, int] = ('"$dx"', '"$dy"', '"$dz"')/' "$RUNNER_PY"
 

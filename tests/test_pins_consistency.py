@@ -3,10 +3,13 @@
 #223 introduced exact-version pinning for `mcp` and `direct-cli` and a stamp-
 file gate that skips bootstrap on hot starts. The wiring spans 4 files: the
 pin file, its byte-identical Codex bundle copy, pyproject.toml, and server/cli/
-runner.py's MIN_DIRECT_VERSION. The plugin version is deliberately NOT in the
-pin files: the bootstrap shell scripts derive it from their channel manifest,
-and this module guards that derivation too. These tests fail noisily if
-anything drifts out of sync.
+runner.py's MIN_DIRECT_VERSION. Since the first real yandex-audience-cli
+release (0.1.1), the `yac` second transport joins the same wiring as a floor
+(AUDIENCE_CLI_VERSION, installed as ``>=`` by both bootstrap channels) rather
+than an exact pin. The plugin version is deliberately NOT in the pin files:
+the bootstrap shell scripts derive it from their channel manifest, and this
+module guards that derivation too. These tests fail noisily if anything
+drifts out of sync.
 """
 
 from __future__ import annotations
@@ -33,7 +36,7 @@ BUNDLE_MANIFEST = (
     REPO_ROOT / "plugins" / "yandex-direct" / ".codex-plugin" / "plugin.json"
 )
 
-REQUIRED_KEYS = ("MCP_VERSION", "DIRECT_CLI_VERSION")
+REQUIRED_KEYS = ("MCP_VERSION", "DIRECT_CLI_VERSION", "AUDIENCE_CLI_VERSION")
 PEP440_LITE_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-+a-zA-Z0-9]*)?$")
 
 # The sed program the bootstrap scripts use to read "version" out of a
@@ -61,7 +64,7 @@ def pins() -> dict[str, str]:
 
 
 def test_pin_file_has_required_keys_only(pins: dict[str, str]) -> None:
-    """#1 — pin file has exactly MCP_VERSION, DIRECT_CLI_VERSION."""
+    """#1 — pin file has exactly MCP_VERSION, DIRECT_CLI_VERSION, AUDIENCE_CLI_VERSION."""
     assert set(pins) == set(REQUIRED_KEYS), (
         f"unexpected keys in {PIN_FILE_REPO}: {set(pins) ^ set(REQUIRED_KEYS)}"
     )
@@ -89,28 +92,23 @@ def test_bundle_copy_is_byte_identical() -> None:
 
 
 def test_pyproject_pins_match(pins: dict[str, str]) -> None:
-    """#3 — pyproject pins ``mcp`` and ``direct-cli`` to the same exact versions.
+    """#3 — pyproject carries the same pins/floor as runtime-pins.env.
 
-    The pinned set must always cover both runtime pins; anything on top is an
-    explicitly unpinned transport dependency. Today that is exactly
-    ``yandex-audience-cli`` (the `yac` second transport) — unpinned until its
-    first real PyPI release (0.0.1 is a stub), at which point it graduates
-    into runtime-pins.env like the other two.
+    ``mcp`` and ``direct-cli`` are exact pins; ``yandex-audience-cli`` is a
+    floor (``>=``) since its first real PyPI release 0.1.1 — the minimum
+    verified surface, with the 0.1.x line still moving. No dependency may be
+    unpinned: anything new needs an explicit entry here.
     """
     pyproject = tomllib.loads(PYPROJECT.read_text())
     deps = set(pyproject["project"]["dependencies"])
     expected = {
         f"mcp=={pins['MCP_VERSION']}",
         f"direct-cli=={pins['DIRECT_CLI_VERSION']}",
+        f"yandex-audience-cli>={pins['AUDIENCE_CLI_VERSION']}",
     }
-    assert expected <= deps, (
-        f"pyproject.toml is missing exact runtime pins from runtime-pins.env: "
-        f"expected to contain {expected}, got {sorted(deps)}"
-    )
-    unpinned = deps - expected
-    assert unpinned == {"yandex-audience-cli"}, (
-        f"unexpected unpinned dependencies in pyproject.toml: {sorted(unpinned)}; "
-        "every new runtime dep needs an explicit decision here"
+    assert deps == expected, (
+        f"pyproject.toml dependencies drifted from runtime-pins.env: "
+        f"expected exactly {sorted(expected)}, got {sorted(deps)}"
     )
 
 
@@ -164,10 +162,12 @@ def test_shell_scripts_source_pin_file() -> None:
 
 
 def test_shell_scripts_use_pinned_literals() -> None:
-    """#6 — both scripts install ``mcp==${MCP_VERSION}`` and ``direct-cli==${DIRECT_CLI_VERSION}``.
+    """#6 — both scripts install ``mcp==${MCP_VERSION}``,
+    ``direct-cli==${DIRECT_CLI_VERSION}`` and the audience floor
+    ``yandex-audience-cli>=${AUDIENCE_CLI_VERSION}``.
 
     Guards against someone hand-editing one channel to a different pin string
-    (or back to a ``>=`` range) and forgetting the other.
+    (or back to a bare name) and forgetting the other.
     """
     for path in (SETUP_SH, RUN_SERVER_SH):
         text = path.read_text()
@@ -176,6 +176,10 @@ def test_shell_scripts_use_pinned_literals() -> None:
         )
         assert "direct-cli==${DIRECT_CLI_VERSION}" in text, (
             f"{path}: install command does not use direct-cli==${{DIRECT_CLI_VERSION}}"
+        )
+        assert "yandex-audience-cli>=${AUDIENCE_CLI_VERSION}" in text, (
+            f"{path}: install command does not use "
+            "yandex-audience-cli>=${AUDIENCE_CLI_VERSION}"
         )
 
 
