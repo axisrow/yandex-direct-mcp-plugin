@@ -82,18 +82,33 @@ def test_find_yac_prefers_explicit_env(monkeypatch, tmp_path):
     fake = tmp_path / "yac"
     fake.write_text("")
     monkeypatch.setenv("YANDEX_AUDIENCE_CLI_PATH", str(fake))
+    monkeypatch.delenv("CLAUDE_PLUGIN_DATA", raising=False)
     monkeypatch.setattr(audience_runner.shutil, "which", lambda _: "/other/yac")
     assert audience_runner._find_yac() == str(fake)
 
 
 def test_find_yac_falls_through_broken_explicit_path(monkeypatch, tmp_path):
     monkeypatch.setenv("YANDEX_AUDIENCE_CLI_PATH", str(tmp_path / "missing"))
+    monkeypatch.delenv("CLAUDE_PLUGIN_DATA", raising=False)
     monkeypatch.setattr(audience_runner.shutil, "which", lambda _: "/other/yac")
     assert audience_runner._find_yac() == "/other/yac"
 
 
+def test_find_yac_prefers_plugin_venv_over_path(monkeypatch, tmp_path):
+    """Both bootstrap channels install the yac floor into the plugin venv;
+    that binary must win over a system-PATH yac (mirrors `_candidate_paths`)."""
+    monkeypatch.delenv("YANDEX_AUDIENCE_CLI_PATH", raising=False)
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path))
+    venv_yac = tmp_path / "venv" / "bin" / "yac"
+    venv_yac.parent.mkdir(parents=True)
+    venv_yac.write_text("")
+    monkeypatch.setattr(audience_runner.shutil, "which", lambda _: "/other/yac")
+    assert audience_runner._find_yac() == str(venv_yac)
+
+
 def test_find_yac_uses_local_bin_fallback(monkeypatch, tmp_path):
     monkeypatch.delenv("YANDEX_AUDIENCE_CLI_PATH", raising=False)
+    monkeypatch.delenv("CLAUDE_PLUGIN_DATA", raising=False)
     monkeypatch.setattr(audience_runner.shutil, "which", lambda _: None)
     fake = tmp_path / "yac"
     fake.write_text("")
@@ -105,6 +120,7 @@ def test_find_yac_uses_local_bin_fallback(monkeypatch, tmp_path):
 
 def test_find_yac_missing_everywhere(monkeypatch, tmp_path):
     monkeypatch.delenv("YANDEX_AUDIENCE_CLI_PATH", raising=False)
+    monkeypatch.delenv("CLAUDE_PLUGIN_DATA", raising=False)
     monkeypatch.setattr(audience_runner.shutil, "which", lambda _: None)
     monkeypatch.setattr(audience_runner.Path, "home", lambda: tmp_path, raising=False)
     assert audience_runner._find_yac() is None

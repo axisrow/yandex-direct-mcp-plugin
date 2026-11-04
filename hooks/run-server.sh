@@ -37,10 +37,10 @@ fi
 
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV_PYTHON="$DATA/venv/bin/python3"
-STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}"
+STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}-${AUDIENCE_CLI_VERSION}"
 
 if [ ! -f "$STAMP" ] || [ ! -x "$VENV_PYTHON" ]; then
-    echo "yandex-direct: pinned dependencies not installed for this version triple." >&2
+    echo "yandex-direct: pinned dependencies not installed for this version quadruple." >&2
     echo "  Expected stamp: $STAMP" >&2
     echo "  Expected venv:  $VENV_PYTHON" >&2
     echo "  Restart Claude Code so the SessionStart hook (hooks/setup.sh) can install them." >&2

@@ -2,9 +2,9 @@
 # Auto-install dependencies for yandex-direct plugin on session start.
 #
 # Fast path (almost always after first run): the pinned versions are already
-# installed for this (plugin, mcp, direct-cli) triple — stamp file exists in
-# $CLAUDE_PLUGIN_DATA — so we exit 0 immediately without touching pip or
-# probing the venv. No network, no import cost.
+# installed for this (plugin, mcp, direct-cli, audience-cli floor) quadruple —
+# stamp file exists in $CLAUDE_PLUGIN_DATA — so we exit 0 immediately without
+# touching pip or probing the venv. No network, no import cost.
 #
 # Slow path: stamp absent → create venv → pip install pinned versions → on
 # success, stamp.  The stamp is the contract with hooks/run-server.sh: it
@@ -42,16 +42,16 @@ fi
 
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV="$DATA/venv"
-STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}"
+STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}-${AUDIENCE_CLI_VERSION}"
 
-# Fast path: deps already pinned for this exact triple.
+# Fast path: deps already pinned for this exact quadruple.
 if [ -f "$STAMP" ]; then
     exit 0
 fi
 
 mkdir -p "$DATA"
 
-PINNED_DEPS=("mcp==${MCP_VERSION}" "direct-cli==${DIRECT_CLI_VERSION}")
+PINNED_DEPS=("mcp==${MCP_VERSION}" "direct-cli==${DIRECT_CLI_VERSION}" "yandex-audience-cli>=${AUDIENCE_CLI_VERSION}")
 
 # Venv is the only supported install target — the launcher refuses to start
 # without $VENV/bin/python3 (#223 cycle 3). On Debian/Ubuntu, `python3 -m venv`

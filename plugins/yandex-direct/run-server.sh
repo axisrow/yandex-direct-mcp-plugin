@@ -6,9 +6,10 @@
 #   Fast path  (almost always)        stamp present → pip is NEVER invoked.
 #                                     We exec the server straight away.
 #   Slow path  (first install / bump) stamp absent → ensure venv → pip install
-#                                     pinned mcp + direct-cli → stamp on
-#                                     success → exec.  Failures keep #214's
-#                                     120s backoff via $DATA/.bootstrap-failed.
+#                                     pinned mcp + direct-cli + audience-cli
+#                                     floor → stamp on success → exec.
+#                                     Failures keep #214's 120s backoff via
+#                                     $DATA/.bootstrap-failed.
 #
 # Dependency pins come from scripts/runtime-pins.env (single source of truth,
 # also sourced by hooks/setup.sh in the Claude Code channel). The plugin
@@ -40,7 +41,7 @@ fi
 DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/yandex-direct}"
 VENV="$DATA/venv"
 VENV_PYTHON="$VENV/bin/python3"
-STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}"
+STAMP="$DATA/.installed-${PLUGIN_VERSION}-${MCP_VERSION}-${DIRECT_CLI_VERSION}-${AUDIENCE_CLI_VERSION}"
 FAIL_MARKER="$DATA/.bootstrap-failed"
 BACKOFF_SECONDS=120
 
@@ -64,13 +65,14 @@ else
 
     if python3 -m venv "$VENV" \
         && "$VENV/bin/pip" install --quiet --disable-pip-version-check \
-            "mcp==${MCP_VERSION}" "direct-cli==${DIRECT_CLI_VERSION}"; then
+            "mcp==${MCP_VERSION}" "direct-cli==${DIRECT_CLI_VERSION}" \
+            "yandex-audience-cli>=${AUDIENCE_CLI_VERSION}"; then
         rm -f "$FAIL_MARKER"
         touch "$STAMP"
         PYTHON="$VENV_PYTHON"
     else
         date +%s >"$FAIL_MARKER"
-        echo "yandex-direct: failed to install MCP server dependencies (mcp==${MCP_VERSION}, direct-cli==${DIRECT_CLI_VERSION})." >&2
+        echo "yandex-direct: failed to install MCP server dependencies (mcp==${MCP_VERSION}, direct-cli==${DIRECT_CLI_VERSION}, yandex-audience-cli>=${AUDIENCE_CLI_VERSION})." >&2
         echo "  Check network/pip and restart; retries are throttled for ${BACKOFF_SECONDS}s." >&2
         exit 1
     fi

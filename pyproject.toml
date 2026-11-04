@@ -7,14 +7,14 @@ requires-python = ">=3.11"
 # with scripts/runtime-pins.env (single source of truth) by scripts/update-pins.sh;
 # tests/test_pins_consistency.py enforces alignment. Bump via the script, not by hand.
 #
-# yandex-audience-cli (the `yac` second transport) is deliberately UNPINNED for
-# now: PyPI carries only the 0.0.1 early build (not the current 0.1.x line) as
-# of 2026-11-04, so pinning to it would downgrade installs and a floor above
-# PyPI would make this package uninstallable. The pin arrives together with the
-# first real PyPI release (and then goes into runtime-pins.env + both bootstrap
-# installers, like direct-cli). The runner shells out to `yac` and never
-# imports the package, so the stale PyPI artifact is inert in CI.
-dependencies = ["mcp==1.23.3", "direct-cli==0.5.5", "yandex-audience-cli"]
+# yandex-audience-cli (the `yac` second transport) carries a FLOOR, not an
+# exact pin: the first real PyPI release 0.1.1 (2026-11-04) is the minimum
+# verified surface (the 0.0.1 stub below it has no working commands), while
+# the 0.1.x line may keep moving. Exact pinning stays reserved for direct-cli
+# whose surface this repo syncs release-by-release. The floor value lives in
+# runtime-pins.env (AUDIENCE_CLI_VERSION) and is installed by both bootstrap
+# channels; the runner shells out to `yac` and never imports the package.
+dependencies = ["mcp==1.23.3", "direct-cli==0.5.5", "yandex-audience-cli>=0.1.1"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff==0.16.0", "mypy", "pre-commit"]
 docs = ["sphinx", "sphinx-autodoc-typehints", "furo"]
