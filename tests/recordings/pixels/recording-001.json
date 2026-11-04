@@ -1,0 +1,10 @@
+{
+  "command": "yac",
+  "args": [
+    "pixels",
+    "list"
+  ],
+  "stdout": "{\n  \"pixels\": [\n    {\n      \"id\": 10000020,\n      \"name\": \"Audience object XXXXX\",\n      \"create_time\": \"2024-06-28T21:11:11+03:00\",\n      \"segments\": [],\n      \"url\": \"mc.yandex.ru/pixel/8781148034394595718?rnd=%aw_random%\",\n      \"user_quantity_7\": 0,\n      \"user_quantity_30\": 0,\n      \"user_quantity_90\": 0\n    },\n    {\n      \"id\": 10000021,\n      \"name\": \"Audience object XXXXX\",\n      \"create_time\": \"2024-07-05T13:10:00+03:00\",\n      \"segments\": [],\n      \"url\": \"mc.yandex.ru/pixel/79685121396136916?rnd=%aw_random%\",\n      \"user_quantity_7\": 0,\n      \"user_quantity_30\": 0,\n      \"user_quantity_90\": 0\n    }\n  ]\n}",
+  "stderr": "",
+  "returncode": 0
+}

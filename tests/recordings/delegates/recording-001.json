@@ -1,0 +1,10 @@
+{
+  "command": "yac",
+  "args": [
+    "delegates",
+    "list"
+  ],
+  "stdout": "{\n  \"delegates\": []\n}",
+  "stderr": "",
+  "returncode": 0
+}

@@ -30,6 +30,9 @@ SANITIZE_RULES: list[tuple[str, str]] = [
     (r'"Login"\s*:\s*"[^"]+"', '"Login": "test_account"'),
     (r'"Cost"\s*:\s*[\d.]+', '"Cost": 1000.00'),
     (r'"Href"\s*:\s*"https?://[^"]+"', '"Href": "https://example.com"'),
+    # Audience cassettes (yac transport): the pixel tracking URL leaks a real
+    # mc.yandex.ru domain, which the audit flags as commercial data.
+    (r'"url"\s*:\s*"https?://[^"]+"', '"url": "https://example.com/pixel"'),
     (r"\+7\s*\(?\d{3}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}", "+7 (000) 000-00-00"),
 ]
 
@@ -53,6 +56,12 @@ _ID_FIELDS = {
     "CreativeId",
     "TurboPageId",
     "ClientId",
+    # Audience (yac) cassettes use lowercase snake_case keys. `id` is generic,
+    # but no Direct cassette carries a lowercase `id`, so it is unambiguous in
+    # practice; values <=100_000 (counter_id=0, source_id=80) pass through.
+    "id",
+    "lookalike_link",
+    "derivatives",
 }
 
 # Text fields replaced with fixed placeholders
@@ -62,6 +71,11 @@ _TEXT_REPLACEMENTS: dict[str, str] = {
     "Title": "Ad title placeholder",
     "Title2": "Ad title2 placeholder",
     "DisplayUrlPath": "example-path",
+    # Audience (yac) cassettes: segment/pixel names are commercial data,
+    # `owner` carries the account login. Direct cassettes use the PascalCase
+    # keys, so the lowercase forms only ever fire on Audience payloads.
+    "name": "Audience object XXXXX",
+    "owner": "test_account",
 }
 
 # Date fields replaced with fixed dates
@@ -78,6 +92,13 @@ _NUMBER_REPLACEMENTS: dict[str, int] = {
 }
 
 
+def _map_id(value: int, id_map: dict[int, int]) -> int:
+    """Remap one numeric ID through the shared id_map (values <=100_000 pass)."""
+    if value > 100_000 and value not in id_map:
+        id_map[value] = 10_000_000 + len(id_map) + 1
+    return id_map.get(value, value) if value > 100_000 else value
+
+
 def _anonymize_node(node: Any, id_map: dict[int, int]) -> Any:
     """Recursively anonymize a parsed JSON node."""
     if isinstance(node, list):
@@ -86,10 +107,14 @@ def _anonymize_node(node: Any, id_map: dict[int, int]) -> Any:
     if isinstance(node, dict):
         result: dict[str, Any] = {}
         for key, value in node.items():
-            if key in _ID_FIELDS and isinstance(value, int) and value > 100_000:
-                if value not in id_map:
-                    id_map[value] = 10_000_000 + len(id_map) + 1
-                result[key] = id_map[value]
+            if key in _ID_FIELDS and isinstance(value, int):
+                result[key] = _map_id(value, id_map)
+            elif key in _ID_FIELDS and isinstance(value, list):
+                # Audience cassettes carry ID lists (e.g. segments derivatives).
+                result[key] = [
+                    _map_id(item, id_map) if isinstance(item, int) else item
+                    for item in value
+                ]
             elif key in _TEXT_REPLACEMENTS and isinstance(value, str):
                 result[key] = _TEXT_REPLACEMENTS[key]
             elif key in _DATE_REPLACEMENTS and isinstance(value, str) and value:

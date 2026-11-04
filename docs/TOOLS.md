@@ -1,4 +1,4 @@
-## MCP Tools (174 total) + 1 Prompt
+## MCP Tools (202 total) + 1 Prompt
 
 The canonical source of truth for tool names is `server/contract.py`.
 Naming follows `service_method` from `tapi-yandex-direct`/`direct-cli`;
@@ -162,6 +162,45 @@ These are public but explicitly not 1:1 Direct API methods.
 | `dictionaries_list_names` | List available dictionary names |
 | `reports_list_types` | List available report types |
 | `trackingparams` | List dynamic tracking parameters for UTM templates |
+
+### Audience tools (28)
+
+Second transport: Yandex Audience API via the `yac` CLI (yandex-audience-cli),
+never direct HTTP — same transport boundary as `direct`. Auth: `YANDEX_AUDIENCE_TOKEN`
+env passthrough or `~/.config/yandex-audience-cli/token` (yac resolves it itself);
+binary override: `YANDEX_AUDIENCE_CLI_PATH`. Mutating tools warn in their docstrings;
+deletion of segments is permanent (pixels can be undeleted).
+
+| Tool | Purpose |
+|---|---|
+| `audience_segments_list` | List Audience segments (optional pixel filter) |
+| `audience_segments_create_pixel` | Create a segment from a pixel (MUTATING) |
+| `audience_segments_create_lookalike` | Create a look-alike segment (MUTATING) |
+| `audience_segments_create_metrika` | Create a segment from Yandex Metrica (MUTATING) |
+| `audience_segments_create_appmetrica` | Create a segment from AppMetrica (MUTATING) |
+| `audience_segments_create_geo` | Create a geo segment — circle (MUTATING) |
+| `audience_segments_create_geo_polygon` | Create a geo segment — polygon (MUTATING) |
+| `audience_segments_upload_file` | Upload a CRM/idfa_gaid/mac/client_id data file as a segment (MUTATING) |
+| `audience_segments_upload_csv_file` | Upload a CSV data file as a segment (MUTATING) |
+| `audience_segments_update_geo_points` | Update geo (circle) segment coordinates (MUTATING) |
+| `audience_segments_modify_data` | Modify file-segment data: addition/subtraction/replace (MUTATING) |
+| `audience_segments_confirm` | Confirm/finalize an uploaded segment (MUTATING) |
+| `audience_segments_confirm_client_id` | Confirm a Metrica ClientId segment (MUTATING) |
+| `audience_segments_update` | Update a segment, e.g. rename (MUTATING) |
+| `audience_segments_delete` | Permanently delete a segment (irreversible, no undo) |
+| `audience_segments_reprocess` | Reprocess (recount) a segment (MUTATING) |
+| `audience_grants_list` | List access grants on a segment |
+| `audience_grants_add` | Grant a login view/edit access to a segment (MUTATING) |
+| `audience_grants_remove` | Revoke a login's segment access (MUTATING) |
+| `audience_pixels_list` | List pixels with audience counters |
+| `audience_pixels_create` | Create a pixel (MUTATING) |
+| `audience_pixels_update` | Rename a pixel (MUTATING) |
+| `audience_pixels_delete` | Delete a pixel (soft-deleted; restorable) |
+| `audience_pixels_undelete` | Restore a deleted pixel |
+| `audience_accounts_list` | List Audience accounts where the login is a representative |
+| `audience_delegates_list` | List account delegates (representatives) |
+| `audience_delegates_add` | Add an account-level delegate (MUTATING) |
+| `audience_delegates_remove` | Remove an account delegate (MUTATING) |
 
 ### Plugin tools (6)
 

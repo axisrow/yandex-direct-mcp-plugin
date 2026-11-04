@@ -18,8 +18,8 @@ from server.contract import DEFAULT_TOOL_NAMES, PUBLIC_CONTRACT
 
 def test_tool_names_match_contract():
     assert tool_names() == frozenset(ct.public_name for ct in PUBLIC_CONTRACT)
-    assert len(tool_names()) == 174
-    assert len(DEFAULT_TOOL_NAMES) == 153
+    assert len(tool_names()) == 202
+    assert len(DEFAULT_TOOL_NAMES) == 181
 
 
 def test_every_tool_has_exactly_one_action_group():
@@ -75,6 +75,33 @@ def test_browser_tool_group_membership() -> None:
         {"masters", "browser", "mutate"}
     )
     assert groups_for_tool("history_get") == frozenset({"history", "browser", "read"})
+
+
+def test_audience_tool_group_membership() -> None:
+    """The `yac` second transport: one `audience` service group, targeting_audience area.
+
+    The effective action verb is the last cli_subcommand_path token, so the
+    multi-word yac verbs classify by their kebab form in config.py.
+    """
+    assert groups_for_tool("audience_segments_list") == frozenset(
+        {"audience", "targeting_audience", "read"}
+    )
+    assert groups_for_tool("audience_segments_create_pixel") == frozenset(
+        {"audience", "targeting_audience", "mutate"}
+    )
+    assert groups_for_tool("audience_segments_delete") == frozenset(
+        {"audience", "targeting_audience", "destructive"}
+    )
+    # undelete reverses pixel deletion — lifecycle, not destructive (#205-A).
+    assert groups_for_tool("audience_pixels_undelete") == frozenset(
+        {"audience", "targeting_audience", "lifecycle"}
+    )
+    assert groups_for_tool("audience_grants_remove") == frozenset(
+        {"audience", "targeting_audience", "mutate"}
+    )
+    assert groups_for_tool("audience_accounts_list") == frozenset(
+        {"audience", "targeting_audience", "read"}
+    )
 
 
 def test_nested_browser_writes_use_terminal_cli_verb() -> None:

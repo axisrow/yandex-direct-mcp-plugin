@@ -1,0 +1,11 @@
+{
+  "command": "yac",
+  "args": [
+    "grants",
+    "list",
+    "12834430"
+  ],
+  "stdout": "{\n  \"grants\": []\n}",
+  "stderr": "",
+  "returncode": 0
+}

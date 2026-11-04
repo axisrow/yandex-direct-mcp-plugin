@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 from server.contract import (
+    AUDIENCE_TOOL_NAMES,
     CLI_HELPER_TOOL_NAMES,
     DEFAULT_TOOL_NAMES,
     DIRECT_API_TOOL_NAMES,
@@ -87,6 +88,12 @@ def test_direct_api_table_matches_contract() -> None:
 
 def test_cli_helper_table_matches_contract() -> None:
     _check("### CLI helper tools", CLI_HELPER_TOOL_NAMES)
+
+
+def test_audience_table_matches_contract() -> None:
+    """The second-transport surface (`yac`) is documented like the others."""
+    _check("### Audience tools", AUDIENCE_TOOL_NAMES)
+    assert AUDIENCE_TOOL_NAMES.isdisjoint(DIRECT_API_TOOL_NAMES)
 
 
 def test_browser_bundle_table_matches_contract() -> None:

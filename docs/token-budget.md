@@ -114,9 +114,11 @@ FastMCP генерирует `anyOf: [..., {"type":"null"}]` 200+ раз.
 > показывают экономию профиля.
 >
 > Снимок эпохи #149 (149 тулов): после #312 default-on полная поверхность —
-> 174 инструмента (см. раздел ниже), а составы профилей изменились. Актуальный
-> замер 2026-10-28 (approx): `core` 10 / 2 576, `analytics` 28 / 3 819,
-> `campaign-editor` 36 / 15 358.
+> 174 инструмента, после интеграции yac (2026-11-04) — 202 (28 `audience_*`
+> тулов второго транспорта). Составы профилей не изменились: `audience` —
+> отдельная service-группа, в сценарные профили она не входит. Актуальный
+> замер 2026-11-04 (approx): `core` 10 / 2 576, `analytics` 28 / 3 819,
+> `campaign-editor` 36 / 15 358 (без audience; full — 202 / 39 098).
 
 Как задать (env):
 
@@ -136,17 +138,17 @@ export YANDEX_DIRECT_DISABLED_TOOLS=campaigns_delete,ads_archive
 применения профилей и групп. С 2026-10-26 (#312) реализованные bundle-модули
 (`server.tools.masters`, `server.tools.history`, `server.tools.adrestrictions`,
 `server.tools.playwright`, `server.tools.trackingparams`) импортируются
-**по умолчанию**: их 21 инструмент входит в default-поверхность —
-174 инструмента, `DEFAULT_TOTAL_TOKEN_CEILING = 36_250` (замер 36,054 approx
-`len/4`, 2026-10-28, с мутирующими `masters_add`/`masters_update` #298,
-`auth_browser_logout` #323 и `masters_adimages_add/set/delete` +
-`masters_delete` #300).
-Оставшиеся 3 зарезервированных контрактом имён по-прежнему ждут модулей
-реализаций. Модуль, чей extra недоступен, деградирует мягко: его инструменты
+**по умолчанию**: их 21 инструмент входит в default-поверхность — вместе с 28
+инструментами второго транспорта `yac` (Yandex Audience, `audience_*`,
+2026-11-04) default-поверхность составляет 202 инструмента,
+`DEFAULT_TOTAL_TOKEN_CEILING = 40_000` (замер 39,098 approx `len/4`,
+2026-11-04). С 2026-10-26 (#312) реализованы все browser-имена контракта —
+каждое имя имеет модуль реализации.
+Модуль, чей extra недоступен, деградирует мягко: его инструменты
 не регистрируются, сервер и `tools/list` живут (warning в stderr).
 
 Гард полной поверхности (`YANDEX_DIRECT_OPTIONAL_TOOLS=all`, с #312 совпадает
-с default-поверхностью) — `FULL_TOTAL_TOKEN_CEILING = 37_250` в том же
+с default-поверхностью) — `FULL_TOTAL_TOKEN_CEILING = 41_000` в том же
 `tests/test_token_budget.py`.
 
 ```bash

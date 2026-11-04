@@ -266,4 +266,7 @@ print(json.dumps({"tool_names": sorted(main.mcp._tool_manager._tools)}))
     result = _run_python(source, env=_clean_env(tmp_path))
     payload = json.loads(result.stdout)
     assert set(payload["tool_names"]) == DEFAULT_TOOL_NAMES
-    assert "1 tool(s) disabled by config; 153 enabled" in result.stderr
+    assert (
+        f"1 tool(s) disabled by config; {len(DEFAULT_TOOL_NAMES)} enabled"
+        in result.stderr
+    )

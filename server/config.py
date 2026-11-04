@@ -50,7 +50,7 @@ from server.contract import PLUGIN_TOOL_NAMES, PUBLIC_CONTRACT
 # also strip the ability to undo a state change (#205-A).
 _DESTRUCTIVE_METHODS = frozenset({"delete", "delete_report"})
 _LIFECYCLE_METHODS = frozenset(
-    {"archive", "unarchive", "suspend", "resume", "moderate", "launch"}
+    {"archive", "unarchive", "suspend", "resume", "moderate", "launch", "undelete"}
 )
 _MUTATE_METHODS = frozenset(
     {
@@ -69,6 +69,23 @@ _MUTATE_METHODS = frozenset(
         "copy",
         "login",
         "logout",
+        # yac (Yandex Audience) verbs — the effective verb is the last
+        # cli_subcommand_path token, so multi-word yac commands appear here in
+        # kebab form (e.g. audience_segments_create_pixel → "create-pixel").
+        "create-pixel",
+        "create-lookalike",
+        "create-metrika",
+        "create-appmetrica",
+        "create-geo",
+        "create-geo-polygon",
+        "upload-file",
+        "upload-csv-file",
+        "update-geo-points",
+        "modify-data",
+        "confirm",
+        "confirm-client-id",
+        "reprocess",
+        "remove",
     }
 )
 # Tools whose cli_method does not encode the action (cli_method is None or a
@@ -107,6 +124,8 @@ _SERVICE_AREA: dict[str, str] = {
     "dynamicads": "targeting_audience",
     "dynamicfeedadtargets": "targeting_audience",
     "negativekeywordsharedsets": "targeting_audience",
+    # second transport: Yandex Audience segments/pixels/grants via `yac`
+    "audience": "targeting_audience",
     # analytics
     "reports": "analytics",
     "changes": "analytics",
