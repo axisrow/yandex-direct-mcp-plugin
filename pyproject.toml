@@ -14,7 +14,7 @@ requires-python = ">=3.11"
 # whose surface this repo syncs release-by-release. The floor value lives in
 # runtime-pins.env (AUDIENCE_CLI_VERSION) and is installed by both bootstrap
 # channels; the runner shells out to `yac` and never imports the package.
-dependencies = ["mcp==1.23.3", "direct-cli==0.5.5", "yandex-audience-cli>=0.1.1"]
+dependencies = ["mcp==1.23.3", "direct-cli==0.5.7", "yandex-audience-cli>=0.1.1"]
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff==0.16.0", "mypy", "pre-commit"]
 docs = ["sphinx", "sphinx-autodoc-typehints", "furo"]
