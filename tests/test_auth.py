@@ -4,7 +4,10 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
-from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError
+import pytest
+
+from server.cli.runner import CliError, CliNotFoundError, CliTimeoutError, _find_direct
+from server.main import mcp
 from server.tools.auth_tools import (
     _browser_login_args,
     _human_readable_time,
@@ -794,6 +797,22 @@ class TestAuthSetup:
 
         assert "--force" not in mock_run.call_args_list[0].args[0]
 
+    def test_auth_setup_schema_exposes_force(self) -> None:
+        """direct-cli#970 acceptance: `force` must be visible in the
+        registered MCP schema itself. The 0.3.3 schema exposed only
+        code/login/profile, so a host could never send the CLI's --force and
+        an existing profile could not be overwritten from MCP. The signature
+        tests above prove the Python callable; this one locks the wire
+        contract an MCP host actually sees."""
+        tools = asyncio.run(mcp.list_tools())
+        schema = next(t.inputSchema for t in tools if t.name == "auth_setup")
+        force = schema["properties"]["force"]
+        assert force["type"] == "boolean"
+        # Optional with a false default: hosts that never send force keep the
+        # exact pre-#970 behavior (the CLI stays free to refuse the overwrite).
+        assert force.get("default") is False
+        assert "force" not in schema.get("required", [])
+
     def test_auth_setup_overwrite_refusal_maps_to_profile_exists(self) -> None:
         """The CLI's overwrite refusal becomes a machine-readable
         profile_exists error with a force=true hint — no implicit retry
@@ -879,6 +898,42 @@ class TestAuthSetup:
             "error": "timeout",
             "message": "direct timed out after 30s",
         }
+
+
+class TestAuthSetupRealCliOverwrite:
+    """End-to-end overwrite proof against the real `direct` binary (direct-cli#970).
+
+    The bug itself was cross-repo drift — the CLI surface accepted --force
+    while the MCP schema never exposed it — so offline runner mocks can't
+    prove the two ends agree. This drives the plugin's own auth_setup through
+    the real binary with HOME pointed at a scratch directory: nothing outside
+    tmp_path is touched and no network call happens (login is passed
+    explicitly, which skips the CLI's account-login resolution).
+    """
+
+    def test_overwrite_requires_force_and_replaces_the_token(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        if _find_direct() is None:
+            pytest.skip("no `direct` binary available")
+        monkeypatch.setenv("HOME", str(tmp_path))
+        store = tmp_path / ".direct-cli" / "auth.json"
+
+        first = auth_setup("y0_FAKE-TEST-TOKEN-1", login="example-login")
+        assert first["success"] is True
+        assert store.is_file()
+
+        # The reported symptom: a second setup into the same profile must
+        # refuse without force, with the machine-readable profile_exists hint.
+        refused = auth_setup("y0_FAKE-TEST-TOKEN-2", login="example-login")
+        assert refused["success"] is False
+        assert refused["error"] == "profile_exists"
+
+        forced = auth_setup("y0_FAKE-TEST-TOKEN-2", login="example-login", force=True)
+        assert forced["success"] is True
+
+        stored = json.loads(store.read_text())
+        assert stored["profiles"]["default"]["token"] == "y0_FAKE-TEST-TOKEN-2"
 
 
 class TestAuthLogin:
